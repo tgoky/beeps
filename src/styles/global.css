@@ -11,6 +11,24 @@
     @apply border border-gray-300 rounded-sm;
   }
 
+
+  html, body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+  background-color: #0e0909; /* bg-background-light */
+  color: #1a1a1a; /* text-text-light */
+  min-height: 100vh;
+
+}
+
+.dark {
+  background-color: #1f2937; /* bg-background-dark */
+  color: #e5e7eb; /* text-text-dark */
+}
+
+
+
   input[type="submit"] {
     @apply bg-[#EFEFEF];
   }
@@ -56,6 +74,8 @@
   table td:last-child {
     @apply border-r-0;
   }
+
+
 
   .layout {
     @apply flex gap-4;
