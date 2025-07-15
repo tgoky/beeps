@@ -6,6 +6,7 @@ import { Avatar, Card, Tag, Rate, Space, Button, Input, Select, message, Tabs, B
 import { SearchOutlined, FilterOutlined, StarFilled, HeartOutlined, MessageOutlined, ShareAltOutlined, EllipsisOutlined, PlayCircleOutlined, UserAddOutlined } from "@ant-design/icons";
 import { IResourceComponentsProps } from "@refinedev/core";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 const { Meta } = Card;
 const { Option } = Select;
@@ -45,6 +46,8 @@ export default function ProducerHub() {
   const [activeTab, setActiveTab] = useState("trending");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGenre, setSelectedGenre] = useState("all");
+
+    const router = useRouter();
 
   // Mock data for producers
   const producerData: Producer[] = [
@@ -354,13 +357,14 @@ export default function ProducerHub() {
               </div>
             </div>
 
-            <Button 
-              block 
-              type="primary" 
-              className="mt-2 h-8 text-xs font-medium"
-            >
-              View Profile
-            </Button>
+<Button 
+  block 
+  type="primary" 
+  className="mt-2 h-8 text-xs font-medium"
+  onClick={() => router.push(`/producers/create/${producer.id}`)}
+>
+  View Profile
+</Button>
             <Button 
               block 
               className="mt-2 h-8 text-xs font-medium"

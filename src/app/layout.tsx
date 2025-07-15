@@ -50,7 +50,7 @@ export default function RootLayout({
                   {
                     name: "producers",
                     list: "/producers",
-                    create: "/producers/create",
+                    create: "/producers/create/:id",
                     edit: "/producers/edit/:id",
                     show: "/producers/show/:id",
                     meta: {
@@ -76,7 +76,18 @@ export default function RootLayout({
                     edit: "/bookings/edit/:id",
                     show: "/bookings/show/:id",
                     meta: {
-                      label: "Session Bookings",
+                      label: "Bookings",
+                      canDelete: false,
+                    },
+                  },
+                   {
+                    name: "collabs",
+                    list: "/collabs",
+                    create: "/collabs/create",
+                    edit: "/collabs/edit/:id",
+                    show: "/collabs/show/:id",
+                    meta: {
+                      label: "Collabs",
                       canDelete: false,
                     },
                   },
@@ -107,7 +118,7 @@ export default function RootLayout({
                     list: "/artists",
                     show: "/artists/profile/:id",
                     meta: {
-                      label: "Artists",
+                      label: "Profile",
                       canDelete: false,
                     },
                   },

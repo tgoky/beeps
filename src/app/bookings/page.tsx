@@ -2,574 +2,653 @@
 
 import { useState } from "react";
 import { 
-  Card, 
+  Table, 
   Tag, 
   Button, 
-  Input, 
-  Select, 
+  Card, 
+  Badge, 
   Tabs, 
   Avatar, 
   List, 
-  Badge, 
   Divider, 
-  Radio, 
-  Slider, 
-  Rate, 
-  Popover,
-  Modal,
-  message 
+  Popover, 
+  Modal, 
+  message,
+  Timeline,
+  Progress,
+  Statistic,
+  Space,
+  Input,
+  Select,
+  DatePicker,
+    Rate
 } from "antd";
 import { 
-  SearchOutlined, 
-  FilterOutlined, 
-  HeartOutlined, 
-  HeartFilled, 
   ClockCircleOutlined, 
-  DollarOutlined, 
-  EnvironmentOutlined, 
-  UserOutlined, 
-  FireOutlined, 
-  StarFilled, 
-  MessageOutlined, 
-  CheckOutlined,
-  CloseOutlined,
-  MoreOutlined
+  CheckCircleOutlined, 
+  CloseCircleOutlined,
+  StarFilled,
+  EnvironmentOutlined,
+  DollarOutlined,
+  CalendarOutlined,
+  UserOutlined,
+  SearchOutlined,
+  FilterOutlined,
+  MoreOutlined,
+  FileTextOutlined,
+  MessageOutlined,
+  PhoneOutlined
 } from "@ant-design/icons";
+import { useRouter } from "next/navigation";
+import dayjs from "dayjs";
+import { studioData } from "@app/studios/studiosjson";
 
-const { Meta } = Card;
+const { RangePicker } = DatePicker;
 const { Option } = Select;
 const { TabPane } = Tabs;
 
-type BookingSession = {
-  id: number;
-  title: string;
-  type: 'deal' | 'collab' | 'bid';
-  studio?: {
-    name: string;
-    avatar: string;
-    rating: number;
-  };
-  producer?: {
-    name: string;
-    avatar: string;
-    rating: number;
-  };
-  price: number | string;
-  originalPrice?: number;
-  discount?: number;
-  duration: string;
-  location: string;
-  equipment: string[];
-  genre: string[];
+type Booking = {
+  key: string;
+  id: string;
+  studioId: number; // Reference to studioData.id
   date: string;
-  slots: number;
-  liked: boolean;
-  image: string;
-};
-
-type Activity = {
-  id: number;
-  user: {
-    name: string;
-    avatar: string;
-  };
-  action: 'booked' | 'requested' | 'accepted' | 'rejected';
-  session: string;
-  price?: string;
   time: string;
+  duration: string;
+  status: 'confirmed' | 'pending' | 'cancelled' | 'completed';
+  price: string;
+  paymentStatus: 'paid' | 'pending' | 'refunded';
+  equipment: string[];
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
-// Mock Data
-const sessionData: BookingSession[] = [
+const bookingsData: Booking[] = [
   {
-    id: 1,
-    title: "Weekend Studio Blowout",
-    type: 'deal',
-    studio: {
-      name: "Harmony Studios",
-      avatar: "https://randomuser.me/api/portraits/men/32.jpg",
-      rating: 4.8,
-    },
-    price: 50,
-    originalPrice: 100,
-    discount: 50,
-    duration: "2 hours",
-    location: "Los Angeles, CA",
-    equipment: ["Neve Console", "Pro Tools HD"],
-    genre: ["Hip Hop", "R&B"],
-    date: "Today - 3 slots left",
-    slots: 3,
-    liked: false,
-    image: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4",
+    key: '1',
+    id: 'BK-2023-001',
+    studioId: 1, // Maps to Harmony Studios
+    date: '2023-06-15',
+    time: '14:00 - 18:00',
+    duration: '4 hours',
+    status: 'confirmed',
+    price: '$200',
+    paymentStatus: 'paid',
+    equipment: ['Neve Console', 'Pro Tools HD', 'Grand Piano'],
+    notes: 'Need 2 extra microphones',
+    createdAt: '2023-06-10T14:30:00Z',
+    updatedAt: '2023-06-10T14:30:00Z'
   },
   {
-    id: 2,
-    title: "Collab with Producer Alex",
-    type: 'collab',
-    producer: {
-      name: "Alex BeatSmith",
-      avatar: "https://randomuser.me/api/portraits/men/22.jpg",
-      rating: 4.9,
-    },
-    price: "Negotiable",
-    duration: "Flexible",
-    location: "Online or NYC",
-    equipment: ["FL Studio", "Live Mixing"],
-    genre: ["Trap", "Pop"],
-    date: "Ongoing",
-    slots: 5,
-    liked: true,
-    image: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f",
+    key: '2',
+    id: 'BK-2023-002',
+    studioId: 3, // Maps to Vocal Booth Pro
+    date: '2023-06-20',
+    time: '10:00 - 14:00',
+    duration: '4 hours',
+    status: 'pending',
+    price: '$300',
+    paymentStatus: 'pending',
+    equipment: ['Isolation Booth', 'U87 Mic'],
+    createdAt: '2023-06-15T09:15:00Z',
+    updatedAt: '2023-06-15T09:15:00Z'
   },
   {
-    id: 3,
-    title: "Name Your Price Session",
-    type: 'bid',
-    studio: {
-      name: "Vocal Booth Pro",
-      avatar: "https://randomuser.me/api/portraits/women/44.jpg",
-      rating: 4.7,
-    },
-    price: "Bid Now",
-    duration: "1-4 hours",
-    location: "Miami, FL",
-    equipment: ["Isolation Booth", "U87 Mic"],
-    genre: ["Rap", "Vocals"],
-    date: "Next Week",
-    slots: 10,
-    liked: false,
-    image: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819",
+    key: '3',
+    id: 'BK-2023-003',
+    studioId: 2, // Maps to Beat Factory
+    date: '2023-06-25',
+    time: '16:00 - 20:00',
+    duration: '4 hours',
+    status: 'cancelled',
+    price: '$250',
+    paymentStatus: 'refunded',
+    equipment: ['SSL Console', 'Drum Room'],
+    notes: 'Cancelled due to illness',
+    createdAt: '2023-06-18T11:20:00Z',
+    updatedAt: '2023-06-22T16:45:00Z'
   },
   {
-    id: 4,
-    title: "Late-Night Discount",
-    type: 'deal',
-    studio: {
-      name: "Beat Factory",
-      avatar: "https://randomuser.me/api/portraits/men/75.jpg",
-      rating: 4.5,
-    },
-    price: 30,
-    originalPrice: 70,
-    discount: 57,
-    duration: "1 hour",
-    location: "Chicago, IL",
-    equipment: ["SSL Console", "Drum Room"],
-    genre: ["Rock", "Alternative"],
-    date: "Tonight 10PM-2AM",
-    slots: 2,
-    liked: false,
-    image: "https://images.unsplash.com/photo-1501612780327-45045538702b",
+    key: '4',
+    id: 'BK-2023-004',
+    studioId: 1, // Maps to Harmony Studios
+    date: '2023-07-02',
+    time: '09:00 - 13:00',
+    duration: '4 hours',
+    status: 'completed',
+    price: '$180',
+    paymentStatus: 'paid',
+    equipment: ['SSL Console', 'Vocal Booth'],
+    notes: 'Great session!',
+    createdAt: '2023-06-25T08:45:00Z',
+    updatedAt: '2023-07-02T13:30:00Z'
   },
 ];
 
-const activityData: Activity[] = [
-  {
-    id: 1,
-    user: {
-      name: "Trapper King",
-      avatar: "https://randomuser.me/api/portraits/men/22.jpg"
-    },
-    action: 'booked',
-    session: "Weekend Studio Blowout",
-    price: "$50",
-    time: "5 min ago"
-  },
-  {
-    id: 2,
-    user: {
-      name: "Luna Sky",
-      avatar: "https://randomuser.me/api/portraits/women/33.jpg"
-    },
-    action: 'requested',
-    session: "Collab with Producer Alex",
-    price: "$80",
-    time: "25 min ago"
-  },
-  {
-    id: 3,
-    user: {
-      name: "Urban Flow",
-      avatar: "https://randomuser.me/api/portraits/men/45.jpg"
-    },
-    action: 'accepted',
-    session: "Name Your Price Session",
-    price: "$65",
-    time: "1 hour ago"
-  },
-  {
-    id: 4,
-    user: {
-      name: "Soulful Sam",
-      avatar: "https://randomuser.me/api/portraits/men/55.jpg"
-    },
-    action: 'rejected',
-    session: "Late-Night Discount",
-    price: "$25",
-    time: "2 hours ago"
-  },
-];
+const statusColors = {
+  confirmed: 'green',
+  pending: 'orange',
+  cancelled: 'red',
+  completed: 'blue'
+};
 
-export default function SessionBookings() {
-  const [activeTab, setActiveTab] = useState("deals");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedGenre, setSelectedGenre] = useState("all");
-  const [selectedLocation, setSelectedLocation] = useState("all");
-  const [priceRange, setPriceRange] = useState([0, 200]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [bidPrice, setBidPrice] = useState(50);
-  const [sessions, setSessions] = useState<BookingSession[]>(sessionData);
+const paymentStatusColors = {
+  paid: 'green',
+  pending: 'orange',
+  refunded: 'purple'
+};
 
-  const toggleLike = (id: number) => {
-    setSessions(sessions.map(session => 
-      session.id === id ? { ...session, liked: !session.liked } : session
-    ));
+export default function MyBookings() {
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState('all');
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [dateRange, setDateRange] = useState<any>(null);
+  const [statusFilter, setStatusFilter] = useState('all');
+
+const showDetailModal = (booking: Booking) => {
+  setSelectedBooking(booking);
+  setIsDetailModalOpen(true);
+};
+
+  const handleCancel = () => {
+    Modal.confirm({
+      title: 'Are you sure you want to cancel this booking?',
+      content: 'Cancellation fees may apply depending on studio policy.',
+      okText: 'Yes, cancel',
+      okType: 'danger',
+      cancelText: 'No',
+      onOk() {
+        message.success('Booking cancellation requested');
+      },
+    });
   };
 
-  const showModal = () => {
-    setIsModalOpen(true);
-  };
-
-  const handleBidSubmit = () => {
-    message.success(`Bid submitted for $${bidPrice}!`);
-    setIsModalOpen(false);
-  };
-
-  const filteredSessions = sessions.filter(session => {
-  const matchesSearch =
-    session.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (session.studio?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      session.producer?.name?.toLowerCase().includes(searchQuery.toLowerCase()));
-  const matchesGenre = selectedGenre === "all" || session.genre.includes(selectedGenre);
-  const matchesLocation = selectedLocation === "all" || session.location.includes(selectedLocation);
-  const matchesPrice =
-    typeof session.price === "number"
-      ? session.price >= priceRange[0] && session.price <= priceRange[1]
-      : true;
-  return matchesSearch && matchesGenre && matchesLocation && matchesPrice;
+ const filteredBookings = bookingsData.filter(booking => {
+  const studio = studioData.find(s => s.id === booking.studioId);
+  const matchesSearch = 
+    (studio && studio.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    booking.id.toLowerCase().includes(searchQuery.toLowerCase());
+  const matchesStatus = 
+    statusFilter === 'all' || booking.status === statusFilter;
+  const matchesDate = 
+    !dateRange || (
+      dayjs(booking.date).isAfter(dayjs(dateRange[0]).subtract(1, 'day')) && 
+      dayjs(booking.date).isBefore(dayjs(dateRange[1]).add(1, 'day'))
+    );
+  return matchesSearch && matchesStatus && matchesDate;
 });
-  return (
-    <div className="flex h-full">
-      {/* Main Content */}
-      <div className="flex-1 p-6 overflow-auto">
-        <div className="max-w-6xl mx-auto">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Session Bookings</h1>
-            <p className="text-gray-600">Find deals, collabs, or name your price for studio time</p>
-          </div>
 
-          {/* Search & Filters */}
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <Input
-              placeholder="Search studios, producers, deals..."
-              prefix={<SearchOutlined />}
-              className="w-full md:w-[300px]"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <Select
-              placeholder="All Genres"
-              className="w-full md:w-[180px]"
-              value={selectedGenre}
-              onChange={(value) => setSelectedGenre(value)}
+  const upcomingBookings = filteredBookings.filter(
+    b => b.status === 'confirmed' || b.status === 'pending'
+  ).length;
+
+  const completedBookings = filteredBookings.filter(
+    b => b.status === 'completed'
+  ).length;
+
+  const cancelledBookings = filteredBookings.filter(
+    b => b.status === 'cancelled'
+  ).length;
+
+  const pendingBookings = filteredBookings.filter(
+  b => b.status === 'pending'
+).length;
+
+  const columns = [
+  {
+    title: 'Booking ID',
+    dataIndex: 'id',
+    key: 'id',
+    render: (id: string) => <span className="font-mono">{id}</span>
+  },
+  {
+    title: 'Studio',
+    key: 'studio',
+    render: (_: any, record: Booking) => {
+      const studio = studioData.find(s => s.id === record.studioId);
+      if (!studio) return <span>Studio not found</span>;
+      return (
+        <div className="flex items-center gap-3">
+          <Avatar 
+            src={studio.image} 
+            shape="square" 
+            size="large"
+          />
+          <div>
+            <div className="font-medium">{studio.name}</div>
+            <div className="flex items-center text-xs text-gray-500">
+              <EnvironmentOutlined className="mr-1" />
+              {studio.location}
+            </div>
+          </div>
+        </div>
+      );
+    }
+  },
+  {
+    title: 'Date & Time',
+    key: 'datetime',
+    render: (record: Booking) => (
+      <div>
+        <div>{dayjs(record.date).format('MMM D, YYYY')}</div>
+        <div className="text-sm text-gray-500">{record.time}</div>
+      </div>
+    )
+  },
+  {
+    title: 'Status',
+    dataIndex: 'status',
+    key: 'status',
+    render: (status: string, record: Booking) => (
+      <div className="flex flex-col gap-1">
+        <Tag 
+          color={statusColors[status as keyof typeof statusColors]} 
+          icon={
+            status === 'confirmed' ? <CheckCircleOutlined /> :
+            status === 'pending' ? <ClockCircleOutlined /> :
+            status === 'cancelled' ? <CloseCircleOutlined /> : null
+          }
+        >
+          {status.toUpperCase()}
+        </Tag>
+        <Tag color={paymentStatusColors[record.paymentStatus as keyof typeof paymentStatusColors]}>
+          {record.paymentStatus.toUpperCase()}
+        </Tag>
+      </div>
+    )
+  },
+  {
+    title: 'Price',
+    dataIndex: 'price',
+    key: 'price',
+    render: (price: string) => (
+      <div className="font-medium">{price}</div>
+    )
+  },
+  {
+    title: 'Action',
+    key: 'action',
+    render: (_: any, record: Booking) => (
+      <Space>
+        <Button 
+          size="small" 
+          onClick={() => showDetailModal(record)}
+        >
+          Details
+        </Button>
+        {record.status === 'pending' && (
+          <Button 
+            size="small" 
+            danger
+            onClick={handleCancel}
+          >
+            Cancel
+          </Button>
+        )}
+      </Space>
+    )
+  },
+];
+
+  return (
+   <div className="max-w-7xl mx-auto p-4">
+  {/* Header */}
+  <div className="mb-6">
+    <h1 className="text-3xl font-bold mb-2">My Bookings</h1>
+    <p className="text-gray-600">
+      Manage your upcoming, completed, and cancelled studio sessions
+    </p>
+  </div>
+
+  {/* Stats Overview */}
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <Card className="text-center h-full">
+      <Statistic 
+        title="Upcoming Sessions" 
+        value={upcomingBookings} 
+        prefix={<CalendarOutlined />}
+        valueStyle={{ color: '#3f8600' }}
+      />
+      <Progress 
+        percent={Math.round((upcomingBookings / bookingsData.length) * 100)} 
+        status="active" 
+        strokeColor="#52c41a"
+        showInfo={false}
+      />
+    </Card>
+
+    <Card className="text-center h-full">
+      <Statistic 
+        title="Pending Sessions" 
+        value={pendingBookings} 
+        prefix={<ClockCircleOutlined />}
+        valueStyle={{ color: '#fa8c16' }}
+      />
+      <Progress 
+        percent={Math.round((pendingBookings / bookingsData.length) * 100)} 
+        status="normal" 
+        strokeColor="#fa8c16"
+        showInfo={false}
+      />
+    </Card>
+
+    <Card className="text-center h-full">
+      <Statistic 
+        title="Completed Sessions" 
+        value={completedBookings} 
+        prefix={<CheckCircleOutlined />}
+        valueStyle={{ color: '#1890ff' }}
+      />
+      <Progress 
+        percent={Math.round((completedBookings / bookingsData.length) * 100)} 
+        status="normal" 
+        strokeColor="#1890ff"
+        showInfo={false}
+      />
+    </Card>
+
+    <Card className="text-center h-full">
+      <Statistic 
+        title="Cancelled Sessions" 
+        value={cancelledBookings} 
+        prefix={<CloseCircleOutlined />}
+        valueStyle={{ color: '#cf1322' }}
+      />
+      <Progress 
+        percent={Math.round((cancelledBookings / bookingsData.length) * 100)} 
+        status="exception" 
+        strokeColor="#ff4d4f"
+        showInfo={false}
+      />
+    </Card>
+  </div>
+
+
+      {/* Filters */}
+      <Card className="mb-6">
+        <div className="flex flex-col md:flex-row gap-4">
+          <Input
+            placeholder="Search bookings or studios..."
+            prefix={<SearchOutlined />}
+            className="w-full md:w-[300px]"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          
+          <Select
+            placeholder="Filter by status"
+            className="w-full md:w-[200px]"
+            value={statusFilter}
+            onChange={setStatusFilter}
+          >
+            <Option value="all">All Statuses</Option>
+            <Option value="confirmed">Confirmed</Option>
+            <Option value="pending">Pending</Option>
+            <Option value="completed">Completed</Option>
+            <Option value="cancelled">Cancelled</Option>
+          </Select>
+          
+          <RangePicker
+            className="w-full md:w-[300px]"
+            onChange={setDateRange}
+            disabledDate={(current) => current && current > dayjs().endOf('day')}
+          />
+          
+          <Button icon={<FilterOutlined />}>
+            More Filters
+          </Button>
+        </div>
+      </Card>
+
+      {/* Main Content */}
+      <Tabs 
+        activeKey={activeTab} 
+        onChange={setActiveTab}
+        items={[
+          {
+            key: 'all',
+            label: 'All Bookings',
+          },
+          {
+            key: 'upcoming',
+            label: 'Upcoming',
+          },
+          {
+            key: 'past',
+            label: 'Past',
+          },
+        ]}
+      >
+        <TabPane key="all" tab="All Bookings">
+          <Table 
+            columns={columns} 
+            dataSource={filteredBookings}
+            rowClassName={(record) => 
+              record.status === 'cancelled' ? 'bg-gray-50' : ''
+            }
+            expandable={{
+              expandedRowRender: (record) => (
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <h4 className="font-medium mb-2">Equipment</h4>
+                      <div className="flex flex-wrap gap-1">
+                        {record.equipment.map((item, index) => (
+                          <Tag key={index}>{item}</Tag>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="font-medium mb-2">Duration</h4>
+                      <p>{record.duration}</p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium mb-2">Created</h4>
+                      <p>{dayjs(record.createdAt).format('MMM D, YYYY h:mm A')}</p>
+                    </div>
+                  </div>
+                  {record.notes && (
+                    <div className="mt-4">
+                      <h4 className="font-medium mb-2">Notes</h4>
+                      <p className="text-gray-700">{record.notes}</p>
+                    </div>
+                  )}
+                </div>
+              ),
+              rowExpandable: (record) => !!record.notes || record.equipment.length > 0,
+            }}
+          />
+        </TabPane>
+        <TabPane key="upcoming" tab="Upcoming">
+          <Table 
+            columns={columns} 
+            dataSource={filteredBookings.filter(b => 
+              b.status === 'confirmed' || b.status === 'pending'
+            )}
+          />
+        </TabPane>
+        <TabPane key="past" tab="Past">
+          <Table 
+            columns={columns} 
+            dataSource={filteredBookings.filter(b => 
+              b.status === 'completed' || b.status === 'cancelled'
+            )}
+          />
+        </TabPane>
+      </Tabs>
+
+      {/* Booking Detail Modal */}
+   <Modal
+  title={<span className="font-bold">Booking Details</span>}
+  open={isDetailModalOpen}
+  onCancel={() => setIsDetailModalOpen(false)}
+  footer={[
+    <Button key="back" onClick={() => setIsDetailModalOpen(false)}>
+      Close
+    </Button>,
+    selectedBooking?.status === 'pending' && (
+      <Button key="cancel" danger onClick={handleCancel}>
+        Cancel Booking
+      </Button>
+    ),
+    <Button 
+      key="contact" 
+      type="primary"
+      icon={<MessageOutlined />}
+    >
+      Contact Studio
+    </Button>
+  ]}
+  width={800}
+>
+  {selectedBooking && (
+    <div className="mt-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-2">
+          {(() => {
+            const studio = studioData.find(s => s.id === selectedBooking.studioId);
+            if (!studio) return <span>Studio not found</span>;
+            return (
+              <div className="flex items-start gap-4 mb-6">
+                <Avatar 
+                  src={studio.image} 
+                  shape="square" 
+                  size={80}
+                />
+                <div>
+                  <h2 className="text-xl font-bold mb-1">
+                    {studio.name}
+                  </h2>
+                  <div className="flex items-center mb-2">
+                    <Rate 
+                      disabled 
+                      defaultValue={studio.rating} 
+                      allowHalf 
+                      character={<StarFilled className="text-sm" />}
+                    />
+                    <span className="ml-2 text-gray-600">
+                      {studio.rating}
+                    </span>
+                  </div>
+                  <div className="flex items-center text-gray-600">
+                    <EnvironmentOutlined className="mr-1" />
+                    {studio.location}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          <Timeline>
+            <Timeline.Item 
+              color="green" 
+              dot={<CheckCircleOutlined />}
             >
-              <Option value="all">All Genres</Option>
-              <Option value="Hip Hop">Hip Hop</Option>
-              <Option value="Trap">Trap</Option>
-              <Option value="R&B">R&B</Option>
-              <Option value="Pop">Pop</Option>
-              <Option value="Rock">Rock</Option>
-              <Option value="Electronic">Electronic</Option>
-            </Select>
-            <Select
-              placeholder="All Locations"
-              className="w-full md:w-[180px]"
-              value={selectedLocation}
-              onChange={(value) => setSelectedLocation(value)}
+              <div className="font-medium">Booking Created</div>
+              <div className="text-gray-500">
+                {dayjs(selectedBooking.createdAt).format('MMM D, YYYY h:mm A')}
+              </div>
+            </Timeline.Item>
+            {selectedBooking.status === 'confirmed' && (
+              <Timeline.Item 
+                color="green" 
+                dot={<CheckCircleOutlined />}
+              >
+                <div className="font-medium">Booking Confirmed</div>
+                <div className="text-gray-500">
+                  {dayjs(selectedBooking.updatedAt).format('MMM D, YYYY h:mm A')}
+                </div>
+              </Timeline.Item>
+            )}
+            {selectedBooking.status === 'cancelled' && (
+              <Timeline.Item 
+                color="red" 
+                dot={<CloseCircleOutlined />}
+              >
+                <div className="font-medium">Booking Cancelled</div>
+                <div className="text-gray-500">
+                  {dayjs(selectedBooking.updatedAt).format('MMM D, YYYY h:mm A')}
+                </div>
+              </Timeline.Item>
+            )}
+            <Timeline.Item
+              color={selectedBooking.status === 'completed' ? 'green' : 'blue'}
+              dot={<CalendarOutlined />}
             >
-              <Option value="all">All Locations</Option>
-              <Option value="Los Angeles">Los Angeles</Option>
-              <Option value="New York">New York</Option>
-              <Option value="Miami">Miami</Option>
-              <Option value="Chicago">Chicago</Option>
-              <Option value="Online">Online</Option>
-            </Select>
-            <Button type="primary" icon={<FilterOutlined />}>
-              More Filters
+              <div className="font-medium">Scheduled Session</div>
+              <div className="text-gray-500">
+                {dayjs(selectedBooking.date).format('dddd, MMMM D, YYYY')}
+              </div>
+              <div className="text-gray-500">
+                {selectedBooking.time} ({selectedBooking.duration})
+              </div>
+            </Timeline.Item>
+          </Timeline>
+        </div>
+
+        <div className="md:col-span-1">
+          <Card className="border border-gray-200">
+            <h3 className="font-bold mb-4">Booking Summary</h3>
+            
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Booking ID:</span>
+                <span className="font-mono">{selectedBooking.id}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Status:</span>
+                <Tag color={statusColors[selectedBooking.status]}>
+                  {selectedBooking.status.toUpperCase()}
+                </Tag>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Payment:</span>
+                <Tag color={paymentStatusColors[selectedBooking.paymentStatus]}>
+                  {selectedBooking.paymentStatus.toUpperCase()}
+                </Tag>
+              </div>
+              <Divider className="my-2" />
+              <div className="flex justify-between font-medium">
+                <span>Total:</span>
+                <span>{selectedBooking.price}</span>
+              </div>
+            </div>
+
+            <Divider className="my-4" />
+
+            <h4 className="font-medium mb-2">Equipment Included</h4>
+            <div className="flex flex-wrap gap-1 mb-4">
+              {selectedBooking.equipment.map((item, index) => (
+                <Tag key={index}>{item}</Tag>
+              ))}
+            </div>
+
+            {selectedBooking.notes && (
+              <>
+                <h4 className="font-medium mb-2">Special Requests</h4>
+                <p className="text-gray-700">{selectedBooking.notes}</p>
+              </>
+            )}
+          </Card>
+
+          <div className="mt-4 space-y-2">
+            <Button block icon={<MessageOutlined />}>
+              Message Studio
+            </Button>
+            <Button block icon={<PhoneOutlined />}>
+              Call Studio
+            </Button>
+            <Button block icon={<FileTextOutlined />}>
+              View Receipt
             </Button>
           </div>
-
-          {/* Price Range Slider */}
-          <div className="mb-6">
-            <h4 className="text-sm font-medium mb-2">Price Range: ${priceRange[0]} - ${priceRange[1]}</h4>
-            <Slider 
-              range 
-              min={0} 
-              max={200} 
-              defaultValue={[0, 200]} 
-              onChange={(value) => setPriceRange(value)} 
-            />
-          </div>
-
-          {/* Tabs */}
-          <Tabs 
-            activeKey={activeTab} 
-            onChange={setActiveTab} 
-            className="mb-6"
-            tabBarExtraContent={
-              <Radio.Group defaultValue="all" size="small">
-                <Radio.Button value="all">All</Radio.Button>
-                <Radio.Button value="studios">Studios</Radio.Button>
-                <Radio.Button value="producers">Producers</Radio.Button>
-              </Radio.Group>
-            }
-          >
-            <TabPane tab={<span><FireOutlined /> Hot Deals</span>} key="deals" />
-            <TabPane tab={<span><UserOutlined /> Collabs</span>} key="collabs" />
-            <TabPane tab={<span><DollarOutlined /> Name Your Price</span>} key="bids" />
-          </Tabs>
-
-          {/* Sessions Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredSessions.map((session) => (
-              <Card
-                key={session.id}
-                hoverable
-                className="relative border rounded-lg overflow-hidden"
-                cover={
-                  <div className="relative h-40 group">
-                    <img 
-                      alt={session.title} 
-                      src={session.image} 
-                      className="w-full h-full object-cover"
-                    />
-                    {session.type === 'deal' && session.discount && (
-                      <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
-                        {session.discount}% OFF
-                      </div>
-                    )}
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-                      <h3 className="text-white font-bold text-lg">{session.title}</h3>
-                      <div className="flex items-center text-white/80 text-sm">
-                        <EnvironmentOutlined className="mr-1" />
-                        {session.location}
-                      </div>
-                    </div>
-                  </div>
-                }
-              >
-                <div className="flex justify-between items-start mb-3">
-                  <div className="flex items-center gap-2">
-                    <Avatar src={session.studio?.avatar || session.producer?.avatar} />
-                    <div>
-                      <div className="font-medium">
-                        {session.studio?.name || session.producer?.name}
-                      </div>
-                      <Rate 
-                        disabled 
-                        defaultValue={session.studio?.rating || session.producer?.rating} 
-                        allowHalf 
-                        character={<StarFilled className="text-sm" />}
-                        className="[&_.ant-rate-star]:mr-0.5"
-                      />
-                    </div>
-                  </div>
-                  <button 
-                    onClick={() => toggleLike(session.id)}
-                    className="text-lg"
-                  >
-                    {session.liked ? (
-                      <HeartFilled className="text-red-500" />
-                    ) : (
-                      <HeartOutlined />
-                    )}
-                  </button>
-                </div>
-
-                <div className="mb-3">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm text-gray-500">
-                      <ClockCircleOutlined className="mr-1" />
-                      {session.duration}
-                    </span>
-                    <span className="text-sm text-gray-500">
-                      {session.date}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-1 mb-3">
-                    {session.genre.map((g, i) => (
-                      <Tag key={i} className="text-xs">{g}</Tag>
-                    ))}
-                    {session.equipment.slice(0, 2).map((e, i) => (
-                      <Tag key={`e-${i}`} color="blue" className="text-xs">{e}</Tag>
-                    ))}
-                    {session.equipment.length > 2 && (
-                      <Popover content={
-                        <div className="p-2">
-                          {session.equipment.slice(2).map((e, i) => (
-                            <div key={i} className="text-xs py-1">{e}</div>
-                          ))}
-                        </div>
-                      }>
-                        <Tag className="text-xs cursor-pointer">+{session.equipment.length - 2} more</Tag>
-                      </Popover>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-center mb-4">
-                  <div>
-                    {session.type === 'deal' && (
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-xl font-bold">${session.price}</span>
-                        {session.originalPrice && (
-                          <span className="text-sm text-gray-500 line-through">${session.originalPrice}</span>
-                        )}
-                      </div>
-                    )}
-                    {session.type === 'collab' && (
-                      <span className="text-gray-700">{session.price}</span>
-                    )}
-                    {session.type === 'bid' && (
-                      <span className="text-gray-700 font-medium">Bid Your Price</span>
-                    )}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    {session.slots} slot{session.slots !== 1 ? 's' : ''} left
-                  </div>
-                </div>
-
-                {session.type === 'bid' ? (
-                  <Button 
-                    type="primary" 
-                    block 
-                    onClick={showModal}
-                    className="flex items-center justify-center"
-                  >
-                    Make an Offer
-                  </Button>
-                ) : (
-                  <Button 
-                    type="primary" 
-                    block 
-                    className="flex items-center justify-center"
-                  >
-                    {session.type === 'collab' ? 'Request Collab' : 'Book Now'}
-                  </Button>
-                )}
-              </Card>
-            ))}
-          </div>
         </div>
       </div>
-
-      {/* Activity Sidebar */}
-      <div className="w-80 border-l border-gray-200 hidden xl:block p-6 bg-gray-50 overflow-y-auto">
-        <div className="sticky top-6">
-          <h2 className="text-lg font-bold mb-4">Booking Activity</h2>
-          
-          <Tabs defaultActiveKey="live" size="small">
-            <TabPane tab="Live" key="live" />
-            <TabPane tab="Recent" key="recent" />
-            <TabPane tab="My Activity" key="my" />
-          </Tabs>
-
-          <div className="space-y-4 mt-4">
-            {activityData.map((activity) => (
-              <div key={activity.id} className="flex items-start gap-3 p-3 hover:bg-gray-100 rounded-lg transition-colors">
-                <Avatar src={activity.user.avatar} />
-                <div className="flex-1">
-                  <div className="text-sm">
-                    <span className="font-medium">{activity.user.name}</span>{" "}
-                    {activity.action === 'booked' && (
-                      <span>booked <span className="font-medium">{activity.session}</span> for {activity.price}</span>
-                    )}
-                    {activity.action === 'requested' && (
-                      <span>requested <span className="font-medium">{activity.session}</span> at {activity.price}</span>
-                    )}
-                    {activity.action === 'accepted' && (
-                      <span>accepted a bid for <span className="font-medium">{activity.session}</span> at {activity.price}</span>
-                    )}
-                    {activity.action === 'rejected' && (
-                      <span>rejected a bid for <span className="font-medium">{activity.session}</span> at {activity.price}</span>
-                    )}
-                  </div>
-                  <div className="text-xs text-gray-500">{activity.time}</div>
-                </div>
-                {activity.action === 'booked' && (
-                  <Tag color="green" icon={<CheckOutlined />} className="text-xs">Booked</Tag>
-                )}
-                {activity.action === 'requested' && (
-                  <Tag color="orange" className="text-xs">Pending</Tag>
-                )}
-                {activity.action === 'accepted' && (
-                  <Tag color="blue" icon={<CheckOutlined />} className="text-xs">Accepted</Tag>
-                )}
-                {activity.action === 'rejected' && (
-                  <Tag color="red" icon={<CloseOutlined />} className="text-xs">Rejected</Tag>
-                )}
-              </div>
-            ))}
-          </div>
-
-          <Divider className="my-6" />
-
-          <div>
-            <h3 className="font-bold mb-3">Trending Studios</h3>
-            <List
-              dataSource={sessions.filter(s => s.studio).slice(0, 5)}
-              renderItem={(session) => (
-                <List.Item className="!px-0 !py-2">
-                  <div className="flex items-center gap-3 w-full">
-                    <Avatar src={session.studio?.avatar} />
-                    <div className="flex-1">
-                      <div className="font-medium">{session.studio?.name}</div>
-                      <div className="text-xs text-gray-500">{session.location}</div>
-                    </div>
-                    <Button size="small" type="text" className="text-blue-500">View</Button>
-                  </div>
-                </List.Item>
-              )}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Bid Modal */}
-      <Modal 
-        title="Make an Offer" 
-        open={isModalOpen} 
-        onOk={handleBidSubmit}
-        onCancel={() => setIsModalOpen(false)}
-        okText="Submit Bid"
-      >
-        <div className="mb-4">
-          <h4 className="mb-2">Your Offer Price:</h4>
-          <div className="flex items-center gap-4">
-            <Slider 
-              min={20} 
-              max={200} 
-              value={bidPrice} 
-              onChange={(value) => setBidPrice(value)} 
-              className="flex-1"
-            />
-            <span className="font-bold">${bidPrice}</span>
-          </div>
-        </div>
-        <div className="mb-4">
-          <h4 className="mb-2">Session Details:</h4>
-          <div className="text-sm text-gray-600">
-            <div>Studio: Vocal Booth Pro</div>
-            <div>Duration: 1-4 hours</div>
-            <div>Equipment: Isolation Booth, U87 Mic</div>
-          </div>
-        </div>
-        <div>
-          <h4 className="mb-2">Add a Message (Optional):</h4>
-          <Input.TextArea placeholder="E.g., 'I need 2 hours for vocal recording...'" />
-        </div>
-      </Modal>
+    </div>
+  )}
+</Modal>
     </div>
   );
 }
