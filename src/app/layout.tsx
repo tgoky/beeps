@@ -39,7 +39,7 @@ export default function RootLayout({
                   {
                     name: "studios",
                     list: "/studios",
-                    create: "/studios/create",
+                    create: "/studios/create/:id",
                     edit: "/studios/edit/:id",
                     show: "/studios/show/:id",
                     meta: {
