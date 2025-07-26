@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Card, Tag, Button, Input, Select, Tabs, Avatar, List, Badge, Divider } from "antd";
-import { SearchOutlined, FilterOutlined, HeartOutlined, HeartFilled, ShoppingCartOutlined, PlayCircleOutlined, PauseOutlined, EllipsisOutlined, FireOutlined, RiseOutlined, DollarOutlined } from "@ant-design/icons";
+import { Card, Tag, Button, Input, Select, Tabs, Avatar, List, Badge, Divider, Modal, Form, Upload, message, Switch, Radio, Slider } from "antd";
+import { SearchOutlined, FilterOutlined, HeartOutlined, HeartFilled, ShoppingCartOutlined, PlayCircleOutlined, PauseOutlined, EllipsisOutlined, FireOutlined, RiseOutlined, DollarOutlined, UploadOutlined, PlusOutlined } from "@ant-design/icons";
 
 const { Meta } = Card;
 const { Option } = Select;
 const { TabPane } = Tabs;
+const { TextArea } = Input;
 
 type Beat = {
   id: number;
@@ -26,7 +27,12 @@ type Beat = {
   image: string;
   audio: string;
   type: 'lease' | 'exclusive';
- 
+  description?: string;
+  previewAvailable: 'free' | 'subscribers' | 'none';
+  deal?: {
+    discount: number;
+    endDate: string;
+  };
 };
 
 type Activity = {
@@ -60,7 +66,12 @@ const beatData: Beat[] = [
     image: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f",
     audio: "https://example.com/beat1.mp3",
     type: 'lease',
-
+    description: "Dark trap beat with heavy 808s and eerie melodies perfect for late night sessions.",
+    previewAvailable: 'free',
+    deal: {
+      discount: 20,
+      endDate: "2023-12-31"
+    }
   },
   {
     id: 2,
@@ -80,7 +91,8 @@ const beatData: Beat[] = [
     image: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4",
     audio: "https://example.com/beat2.mp3",
     type: 'exclusive',
-
+    description: "Upbeat electronic pop instrumental with shimmering synths and punchy drums.",
+    previewAvailable: 'subscribers'
   },
   {
     id: 3,
@@ -100,7 +112,8 @@ const beatData: Beat[] = [
     image: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819",
     audio: "https://example.com/beat3.mp3",
     type: 'lease',
-
+    description: "Hard-hitting drill beat with sliding 808s and aggressive hi-hat patterns.",
+    previewAvailable: 'free'
   },
   {
     id: 4,
@@ -120,6 +133,8 @@ const beatData: Beat[] = [
     image: "https://images.unsplash.com/photo-1501612780327-45045538702b",
     audio: "https://example.com/beat4.mp3",
     type: 'lease',
+    description: "Chill lo-fi jazz beat with warm Rhodes chords and dusty drum breaks.",
+    previewAvailable: 'subscribers'
   },
   {
     id: 5,
@@ -139,6 +154,12 @@ const beatData: Beat[] = [
     image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b",
     audio: "https://example.com/beat5.mp3",
     type: 'exclusive',
+    description: "Energetic future bass instrumental with massive drops and emotional chord progressions.",
+    previewAvailable: 'none',
+    deal: {
+      discount: 15,
+      endDate: "2023-11-30"
+    }
   },
   {
     id: 6,
@@ -158,7 +179,8 @@ const beatData: Beat[] = [
     image: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f",
     audio: "https://example.com/beat6.mp3",
     type: 'lease',
-
+    description: "Underground hip hop beat with gritty samples and boom-bap drums.",
+    previewAvailable: 'free'
   },
 ];
 
@@ -212,6 +234,8 @@ export default function BeatMarketplace() {
   const [selectedMood, setSelectedMood] = useState("all");
   const [currentlyPlaying, setCurrentlyPlaying] = useState<number | null>(null);
   const [beats, setBeats] = useState<Beat[]>(beatData);
+  const [isUploadModalVisible, setIsUploadModalVisible] = useState(false);
+  const [form] = Form.useForm();
 
   const toggleLike = (id: number) => {
     setBeats(beats.map(beat => 
@@ -241,15 +265,90 @@ export default function BeatMarketplace() {
     return num.toString();
   };
 
+  const showUploadModal = () => {
+    setIsUploadModalVisible(true);
+  };
+
+  const handleUploadOk = () => {
+    form.validateFields().then(values => {
+      // Create new beat from form values
+      const newBeat: Beat = {
+        id: beats.length + 1,
+        title: values.title,
+        producer: {
+          name: "Current User", // Replace with actual user data
+          avatar: "https://randomuser.me/api/portraits/men/1.jpg",
+          verified: true
+        },
+        bpm: values.bpm,
+        price: values.price,
+        genre: values.genre,
+        mood: values.mood,
+        plays: 0,
+        likes: 0,
+        liked: false,
+        image: values.image?.[0]?.thumbUrl || "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f",
+        audio: values.audio?.[0]?.thumbUrl || "https://example.com/new-beat.mp3",
+        type: values.licenseType,
+        description: values.description,
+        previewAvailable: values.previewAvailable,
+        ...(values.hasDeal ? {
+          deal: {
+            discount: values.discount,
+            endDate: values.endDate.format('YYYY-MM-DD')
+          }
+        } : {})
+      };
+
+      // Add to beats array
+      setBeats([newBeat, ...beats]);
+      message.success('Beat uploaded successfully!');
+      setIsUploadModalVisible(false);
+      form.resetFields();
+    }).catch(info => {
+      console.log('Validate Failed:', info);
+    });
+  };
+
+  const handleUploadCancel = () => {
+    setIsUploadModalVisible(false);
+    form.resetFields();
+  };
+
+  const normFile = (e: any) => {
+    if (Array.isArray(e)) {
+      return e;
+    }
+    return e?.fileList;
+  };
+
+  const beforeUpload = (file: any) => {
+    const isAudio = file.type.includes('audio/');
+    if (!isAudio) {
+      message.error('You can only upload audio files!');
+    }
+    return isAudio || Upload.LIST_IGNORE;
+  };
+
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Main Content */}
       <div className="flex-1 p-6 overflow-auto">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Beat Marketplace</h1>
-            <p className="text-gray-600">Discover and license premium beats from top producers</p>
+          <div className="flex justify-between items-start mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Beat Marketplace</h1>
+              <p className="text-gray-600">Discover and license premium beats from top producers</p>
+            </div>
+            <Button 
+              type="primary" 
+              icon={<PlusOutlined />}
+              onClick={showUploadModal}
+              className="flex items-center"
+            >
+              Upload Beat
+            </Button>
           </div>
 
           {/* Search and Filters */}
@@ -320,7 +419,7 @@ export default function BeatMarketplace() {
             <TabPane tab={<span><DollarOutlined /> Deals</span>} key="deals" />
           </Tabs>
 
-          {/* Beats Grid - Changed to 3 columns */}
+          {/* Beats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredBeats.map((beat) => (
               <Card
@@ -418,7 +517,10 @@ export default function BeatMarketplace() {
                         {formatNumber(beat.likes)}
                       </button>
                     </div>
-                    <span className="text-sm font-medium">{beat.date}</span>
+                    <span className="text-sm font-medium">
+                      {beat.previewAvailable === 'free' ? 'Free Preview' : 
+                       beat.previewAvailable === 'subscribers' ? 'Subscribers Only' : 'No Preview'}
+                    </span>
                   </div>
                 
                   {/* Action Buttons */}
@@ -504,6 +606,189 @@ export default function BeatMarketplace() {
           </div>
         </div>
       </div>
+
+      {/* Upload Beat Modal */}
+      <Modal
+        title="Upload New Beat"
+        width={800}
+        open={isUploadModalVisible}
+        onOk={handleUploadOk}
+        onCancel={handleUploadCancel}
+        okText="Upload Beat"
+        cancelText="Cancel"
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          initialValues={{
+            previewAvailable: 'free',
+            licenseType: 'lease',
+            hasDeal: false
+          }}
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Left Column */}
+            <div>
+              <Form.Item
+                name="title"
+                label="Beat Title"
+                rules={[{ required: true, message: 'Please enter a title for your beat' }]}
+              >
+                <Input placeholder="e.g. Midnight Dreams" />
+              </Form.Item>
+
+              <Form.Item
+                name="description"
+                label="Description"
+              >
+                <TextArea rows={4} placeholder="Describe your beat (optional)" />
+              </Form.Item>
+
+              <Form.Item
+                name="bpm"
+                label="BPM"
+                rules={[{ required: true, message: 'Please enter the BPM' }]}
+              >
+                <Input type="number" placeholder="e.g. 140" />
+              </Form.Item>
+
+              <Form.Item
+                name="price"
+                label="Price ($)"
+                rules={[{ required: true, message: 'Please set a price' }]}
+              >
+                <Input type="number" placeholder="e.g. 49.99" step="0.01" />
+              </Form.Item>
+
+              <Form.Item
+                name="licenseType"
+                label="License Type"
+                rules={[{ required: true }]}
+              >
+                <Radio.Group>
+                  <Radio value="lease">Lease</Radio>
+                  <Radio value="exclusive">Exclusive</Radio>
+                </Radio.Group>
+              </Form.Item>
+            </div>
+
+            {/* Right Column */}
+            <div>
+              <Form.Item
+                name="genre"
+                label="Genre(s)"
+                rules={[{ required: true, message: 'Please select at least one genre' }]}
+              >
+                <Select
+                  mode="multiple"
+                  placeholder="Select genre(s)"
+                >
+                  <Option value="Hip Hop">Hip Hop</Option>
+                  <Option value="Trap">Trap</Option>
+                  <Option value="Pop">Pop</Option>
+                  <Option value="Electronic">Electronic</Option>
+                  <Option value="R&B">R&B</Option>
+                  <Option value="Drill">Drill</Option>
+                  <Option value="Jazz">Jazz</Option>
+                  <Option value="Lo-fi">Lo-fi</Option>
+                </Select>
+              </Form.Item>
+
+              <Form.Item
+                name="mood"
+                label="Mood(s)"
+                rules={[{ required: true, message: 'Please select at least one mood' }]}
+              >
+                <Select
+                  mode="multiple"
+                  placeholder="Select mood(s)"
+                >
+                  <Option value="Dark">Dark</Option>
+                  <Option value="Aggressive">Aggressive</Option>
+                  <Option value="Energetic">Energetic</Option>
+                  <Option value="Bright">Bright</Option>
+                  <Option value="Hard">Hard</Option>
+                  <Option value="Street">Street</Option>
+                  <Option value="Chill">Chill</Option>
+                  <Option value="Smooth">Smooth</Option>
+                </Select>
+              </Form.Item>
+
+              <Form.Item
+                name="previewAvailable"
+                label="Preview Availability"
+              >
+                <Radio.Group>
+                  <Radio value="free">Free for everyone</Radio>
+                  <Radio value="subscribers">Subscribers only</Radio>
+                  <Radio value="none">No preview</Radio>
+                </Radio.Group>
+              </Form.Item>
+
+              <Form.Item
+                name="audio"
+                label="Audio File"
+                valuePropName="fileList"
+                getValueFromEvent={normFile}
+                rules={[{ required: true, message: 'Please upload your beat' }]}
+              >
+                <Upload
+                  name="audio"
+                  listType="text"
+                  beforeUpload={beforeUpload}
+                  accept="audio/*"
+                  maxCount={1}
+                >
+                  <Button icon={<UploadOutlined />}>Click to upload</Button>
+                </Upload>
+              </Form.Item>
+
+              <Form.Item
+                name="image"
+                label="Cover Art"
+                valuePropName="fileList"
+                getValueFromEvent={normFile}
+              >
+                <Upload
+                  name="image"
+                  listType="picture"
+                  accept="image/*"
+                  maxCount={1}
+                >
+                  <Button icon={<UploadOutlined />}>Click to upload</Button>
+                </Upload>
+              </Form.Item>
+
+              <Form.Item
+                name="hasDeal"
+                label="Create Special Deal"
+                valuePropName="checked"
+              >
+                <Switch />
+              </Form.Item>
+
+              {form.getFieldValue('hasDeal') && (
+                <div className="grid grid-cols-2 gap-4">
+                  <Form.Item
+                    name="discount"
+                    label="Discount (%)"
+                    rules={[{ required: form.getFieldValue('hasDeal'), message: 'Please enter discount' }]}
+                  >
+                    <Slider min={5} max={50} step={5} />
+                  </Form.Item>
+                  <Form.Item
+                    name="endDate"
+                    label="Deal End Date"
+                    rules={[{ required: form.getFieldValue('hasDeal'), message: 'Please select end date' }]}
+                  >
+                    <Input type="date" />
+                  </Form.Item>
+                </div>
+              )}
+            </div>
+          </div>
+        </Form>
+      </Modal>
     </div>
   );
 }
