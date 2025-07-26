@@ -41,6 +41,9 @@ import {
   ShareAltOutlined,
   VerifiedOutlined,
   HistoryOutlined,
+  ShopOutlined,
+  StarFilled,
+  TruckOutlined,
   AlertOutlined,
   ThunderboltOutlined
 } from "@ant-design/icons";
@@ -64,7 +67,7 @@ type Equipment = {
   price: number | string;
   originalPrice?: number;
   discount?: number;
-  condition: 'new' | 'like new' | 'used' | 'vintage';
+  // condition: 'new' | 'like new' | 'used' | 'vintage';
   category: string;
   brand: string;
   location: string;
@@ -111,7 +114,7 @@ const gearData: Equipment[] = [
     price: 85,
     originalPrice: 120,
     discount: 29,
-    condition: 'like new',
+
     category: "Microphones",
     brand: "Neumann",
     location: "Los Angeles, CA",
@@ -144,7 +147,7 @@ const gearData: Equipment[] = [
       transactions: 89
     },
     price: 2200,
-    condition: 'vintage',
+
     category: "Guitars",
     brand: "Fender",
     location: "Burbank, CA",
@@ -177,7 +180,7 @@ const gearData: Equipment[] = [
       transactions: 34
     },
     price: 45,
-    condition: 'used',
+
     category: "Synthesizers",
     brand: "Moog",
     location: "Online",
@@ -209,8 +212,8 @@ const gearData: Equipment[] = [
       verified: true,
       transactions: 56
     },
-    price: "Current bid: $550",
-    condition: 'like new',
+    price: "550",
+
     category: "Drum Machines",
     brand: "Roland",
     location: "Brooklyn, NY",
@@ -340,11 +343,9 @@ export default function GearMarketplace() {
     const matchesDelivery = deliveryFilter.length === 0 || 
       deliveryFilter.some(option => item.deliveryOptions.includes(option));
     
-    const matchesCondition = conditionFilter.length === 0 || 
-      conditionFilter.includes(item.condition);
     
     return matchesSearch && matchesCategory && matchesBrand && 
-           matchesPrice && matchesDelivery && matchesCondition;
+           matchesPrice && matchesDelivery ;
   });
 
   return (
@@ -501,179 +502,325 @@ export default function GearMarketplace() {
             <TabPane tab={<span><HistoryOutlined /> Recently Added</span>} key="new" />
           </Tabs>
 
-          {/* Gear Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredGear.map((item) => (
-              <Card
-                key={item.id}
-                hoverable
-                className="relative border rounded-lg overflow-hidden bg-white shadow-sm"
-                cover={
-                  <div className="relative h-48 group">
-                    <Carousel dotPosition="top" autoplay>
-                      {item.images.map((img, i) => (
-                        <div key={i} className="h-48">
-                          <img 
-                            alt={item.title} 
-                            src={img} 
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      ))}
-                    </Carousel>
-                    
-                    {item.type === 'rent' && (
-                      <Tag color="blue" className="absolute top-2 left-2">
-                        <CalendarOutlined /> Rent
-                      </Tag>
-                    )}
-                    {item.type === 'auction' && (
-                      <Tag color="orange" className="absolute top-2 left-2">
-                        <AlertOutlined /> Auction
-                      </Tag>
-                    )}
-                    {item.discount && (
-                      <Tag color="red" className="absolute top-2 right-2">
-                        {item.discount}% OFF
-                      </Tag>
-                    )}
-                    
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-                      <h3 className="text-white font-bold text-lg">{item.title}</h3>
-                      <div className="flex items-center text-white/80 text-sm">
-                        <EnvironmentOutlined className="mr-1" />
-                        {item.location}
-                      </div>
-                    </div>
-                  </div>
-                }
-                actions={[
-                  <button 
-                    key="like" 
-                    onClick={() => toggleLike(item.id)}
-                    className="text-lg"
-                  >
-                    {item.liked ? (
-                      <HeartFilled className="text-red-500" />
-                    ) : (
-                      <HeartOutlined />
-                    )}
-                  </button>,
-                  <Tooltip title="Share" key="share">
-                    <ShareAltOutlined />
-                  </Tooltip>,
-                  item.type === 'rent' ? (
-                    <Button type="primary" size="small" icon={<CalendarOutlined />}>
-                      Rent Now
-                    </Button>
-                  ) : item.type === 'auction' ? (
-                    <Button type="primary" size="small" onClick={showModal}>
-                      Place Bid
-                    </Button>
-                  ) : (
-                    <Button type="primary" size="small" icon={<ShoppingCartOutlined />}>
-                      Buy Now
-                    </Button>
-                  )
-                ]}
-              >
-                <div className="flex justify-between items-start mb-3">
-                  <div className="flex items-center gap-2">
-                    <Avatar src={item.seller.avatar} />
-                    <div>
-                      <div className="font-medium flex items-center">
+     {/* Landscape Gear Grid */}
+{/* Landscape Gear Grid with Stacked Images */}
+<div className="grid grid-cols-1 gap-6 p-4">
+  {filteredGear.map((item) => (
+    <Card
+      key={item.id}
+      hoverable
+      className="relative border border-gray-200 rounded-xl overflow-hidden bg-white shadow-md hover:shadow-lg transition-shadow duration-300"
+    >
+      <div className="flex flex-col md:flex-row">
+        {/* Image Stack - Now vertical on the left side */}
+        <div className="relative w-full md:w-1/3 flex flex-col gap-2 p-2 bg-gray-50">
+          {item.images.slice(0, 3).map((img, i) => (
+            <div 
+              key={i} 
+              className="relative h-48 w-full rounded-lg overflow-hidden border border-gray-200"
+            >
+              <img
+                alt={`${item.title} - ${i + 1}`}
+                src={img}
+                className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+              />
+              {/* Discount badge on first image only */}
+              {i === 0 && item.discount && (
+                <Tag
+                  color="red"
+                  className="absolute top-2 left-2 rounded-full px-3 py-1 text-xs font-semibold shadow-sm bg-red-100 text-red-800"
+                >
+                  {item.discount}% OFF
+                </Tag>
+              )}
+            </div>
+          ))}
+          {/* Show remaining image count if more than 3 */}
+          {item.images.length > 3 && (
+            <div className="relative h-12 w-full rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center">
+              <span className="text-sm font-medium text-gray-600">
+                +{item.images.length - 3} more images
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Content - Right side */}
+        <div className="w-full md:w-2/3 p-6 flex flex-col">
+          <div className="flex flex-col h-full">
+            {/* Seller Info */}
+            <div className="border border-gray-100 rounded-lg p-4 mb-4 bg-gray-50/30">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3 flex-1">
+                  <Avatar
+                    src={item.seller.avatar}
+                    size={44}
+                    className="border border-gray-200 shadow-sm flex-shrink-0"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <span className="font-semibold text-gray-900">
                         {item.seller.name}
-                        {item.seller.verified && (
-                          <VerifiedOutlined className="text-blue-500 ml-1" />
-                        )}
-                      </div>
-                      <div className="flex items-center">
-                        <Rate 
-                          disabled 
-                          defaultValue={item.seller.rating} 
-                          allowHalf 
-                          character={<StarOutlined className="text-xs" />}
-                          className="[&_.ant-rate-star]:mr-0.5 text-xs"
+                      </span>
+                      {item.seller.verified && (
+                        <VerifiedOutlined className="text-blue-500 text-sm flex-shrink-0" />
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <div className="flex items-center gap-1 border border-gray-200 rounded-md px-2 py-1 bg-gray-50">
+                        <Rate
+                          disabled
+                          defaultValue={item.seller.rating}
+                          allowHalf
+                          character={<StarFilled className="text-yellow-400" />}
+                          className="text-xs leading-none"
+                          style={{ 
+                            fontSize: '12px',
+                            lineHeight: 1,
+                            display: 'flex',
+                            gap: '1px'
+                          }}
                         />
-                        <span className="text-xs text-gray-500 ml-1">({item.seller.transactions})</span>
+                        <span className="text-xs font-medium ml-1">({item.seller.transactions})</span>
                       </div>
                     </div>
                   </div>
-                  <Tag color={item.condition === 'new' ? 'green' : 
-                            item.condition === 'like new' ? 'blue' : 
-                            item.condition === 'vintage' ? 'gold' : 'default'}>
-                    {item.condition}
-                  </Tag>
+                </div>
+              </div>
+            </div>
+
+            {/* Main Content - Horizontal layout */}
+            <div className="flex flex-col md:flex-row gap-4 mb-4">
+              {/* Left side content */}
+              <div className="md:w-1/2 space-y-4">
+                <div className="border border-gray-100 rounded-lg p-4 bg-gray-50/30">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <h3 className="text-lg font-semibold text-gray-900 flex-1 leading-tight">
+                      {item.title}
+                    </h3>
+                    <div className="flex-shrink-0">
+                      {item.type === 'rent' && (
+                        <Tag
+                          color="blue"
+                          className="rounded-full px-2 py-1 text-xs font-semibold shadow-sm bg-blue-100 text-blue-800"
+                        >
+                          <CalendarOutlined className="mr-1" /> Rent
+                        </Tag>
+                      )}
+                      {item.type === 'auction' && (
+                        <Tag
+                          color="orange"
+                          className="rounded-full px-2 py-1 text-xs font-semibold shadow-sm bg-orange-100 text-orange-800"
+                        >
+                          <AlertOutlined className="mr-1" /> Auction
+                        </Tag>
+                      )}
+                      {item.type === 'sale' && (
+                        <Tag
+                          color="green"
+                          className="rounded-full px-2 py-1 text-xs font-semibold shadow-sm bg-green-100 text-green-800"
+                        >
+                          <ShoppingCartOutlined className="mr-1" /> Sale
+                        </Tag>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-sm text-gray-600 mb-3 line-clamp-2 leading-relaxed">
+                    {item.description}
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center text-sm">
+                      <EnvironmentOutlined className="text-gray-400 mr-2 text-base flex-shrink-0" />
+                      <span className="text-gray-600 truncate">{item.location}</span>
+                    </div>
+                    <div className="flex items-center text-sm">
+                      <div className="flex items-center gap-2 border border-gray-200 rounded-md px-2 py-1 bg-gray-50">
+                        <Rate
+                          disabled
+                          defaultValue={item.rating}
+                          allowHalf
+                          character={<StarFilled className="text-yellow-400" />}
+                          className="text-xs leading-none"
+                          style={{ 
+                            fontSize: '12px',
+                            lineHeight: 1,
+                            display: 'flex',
+                            gap: '1px'
+                          }}
+                        />
+                        <span className="text-xs font-medium text-gray-600">({item.reviewCount} reviews)</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="mb-3">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm text-gray-500">
-                      {item.availability}
-                    </span>
-                    <div className="flex items-center text-sm">
-                      <Rate 
-                        disabled 
-                        defaultValue={item.rating} 
-                        allowHalf 
-                        character={<StarOutlined className="text-xs" />}
-                        className="[&_.ant-rate-star]:mr-0.5 text-xs"
-                      />
-                      <span className="text-xs text-gray-500 ml-1">({item.reviewCount})</span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex flex-wrap gap-1 mb-3">
-                    {item.tags.map((tag, i) => (
-                      <Tag key={i} className="text-xs">{tag}</Tag>
-                    ))}
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-2 text-xs mb-3">
-                    {item.specs.slice(0, 4).map((spec, i) => (
-                      <div key={i} className="truncate">
-                        <span className="text-gray-500">{spec.label}:</span> {spec.value}
-                      </div>
-                    ))}
-                  </div>
-                  
-                  <div className="flex flex-wrap gap-1 text-xs">
-                    {item.deliveryOptions.map((option, i) => (
-                      <Tag key={i} color="cyan" className="text-xs">
-                        {option}
+                <div className="border border-gray-100 rounded-lg p-4 bg-gray-50/30">
+                  <div className="flex flex-wrap gap-2">
+                    {item.tags.slice(0, 5).map((tag, i) => (
+                      <Tag
+                        key={i}
+                        className="rounded-full text-xs px-3 py-1 bg-gray-100 border border-gray-200 text-gray-700 font-medium"
+                      >
+                        {tag}
                       </Tag>
                     ))}
                   </div>
                 </div>
+              </div>
 
-                <div className="flex justify-between items-center mt-4">
-                  <div>
-                    {item.type === 'rent' && (
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-xl font-bold">${item.price}/day</span>
-                        {item.originalPrice && (
-                          <span className="text-sm text-gray-500 line-through">${item.originalPrice}</span>
-                        )}
+              {/* Right side content */}
+              <div className="md:w-1/2 space-y-4">
+                <div className="border border-gray-100 rounded-lg p-4 bg-gray-50/30">
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    {item.specs.slice(0, 4).map((spec, i) => (
+                      <div key={i} className="flex flex-col">
+                        <div className="text-gray-500 font-medium mb-1 text-xs truncate">
+                          {spec.label}
+                        </div>
+                        <div className="text-gray-800 font-semibold text-sm truncate">
+                          {spec.value}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="border border-gray-100 rounded-lg p-4 bg-gray-50/30">
+                  <div className="flex flex-wrap gap-2">
+                    {item.deliveryOptions.map((option, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center text-xs bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full font-medium border border-blue-100"
+                      >
+                        {option === 'Shipping' && <TruckOutlined className="mr-1.5" />}
+                        {option === 'Local Pickup' && <ShopOutlined className="mr-1.5" />}
+                        {option === 'Instant' && <ThunderboltOutlined className="mr-1.5" />}
+                        {option}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Price and Actions */}
+            <div className="mt-auto border border-gray-100 rounded-lg p-4 bg-gray-50/30">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex-1">
+                  <div className="flex justify-between items-end min-h-[70px]">
+                    <div className="flex items-end">
+                      {item.type === 'rent' && (
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-3xl font-bold text-gray-900 leading-none">
+                            ${item.price}
+                          </span>
+                          <span className="text-base font-normal text-gray-500 mb-1">/day</span>
+                          {item.originalPrice && (
+                            <span className="text-sm text-gray-400 line-through mb-1">
+                              ${item.originalPrice}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      {item.type === 'sale' && (
+                        <span className="text-3xl font-bold text-gray-900 leading-none">
+                          ${item.price}
+                        </span>
+                      )}
+                      {item.type === 'auction' && (
+                        <div className="flex flex-col">
+                          <div className="text-sm text-gray-500 mb-1">Current Bid</div>
+                          <span className="text-3xl font-bold text-gray-900 leading-none">
+                            ${item.price}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    {item.type === 'auction' && (
+                      <div className="text-right flex flex-col justify-end">
+                        <div className="text-sm text-gray-500 mb-1">Ends in</div>
+                        <Countdown
+                          value={Date.now() + 1000 * 60 * 60 * 24 * 2}
+                          format="HH:mm:ss"
+                          className="font-mono"
+                          valueStyle={{
+                            fontSize: '16px',
+                            fontWeight: 'bold',
+                            color: '#ef4444',
+                            lineHeight: 1
+                          }}
+                        />
                       </div>
                     )}
-                    {item.type === 'sale' && (
-                      <span className="text-xl font-bold">${item.price}</span>
-                    )}
-                    {item.type === 'auction' && (
-                      <span className="text-gray-700 font-medium">{item.price}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-3 h-[48px]">
+                  <div className="flex items-center gap-2">
+                    <Tooltip title={item.liked ? 'Remove from favorites' : 'Add to favorites'}>
+                      <button
+                        onClick={() => toggleLike(item.id)}
+                        className={`flex items-center justify-center w-12 h-12 rounded-full transition-colors border ${
+                          item.liked
+                            ? 'bg-red-50 text-red-500 border-red-100'
+                            : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
+                        }`}
+                      >
+                        {item.liked ? (
+                          <HeartFilled className="text-lg" />
+                        ) : (
+                          <HeartOutlined className="text-lg" />
+                        )}
+                      </button>
+                    </Tooltip>
+                    <Tooltip title="Share">
+                      <button className="flex items-center justify-center w-12 h-12 rounded-full bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100 transition-colors">
+                        <ShareAltOutlined className="text-lg" />
+                      </button>
+                    </Tooltip>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    {item.type === 'rent' ? (
+                      <Button
+                        type="primary"
+                        size="large"
+                        icon={<CalendarOutlined />}
+                        className="w-full h-12 rounded-lg shadow-sm hover:shadow-md transition-shadow font-semibold"
+                        block
+                      >
+                        Rent Now
+                      </Button>
+                    ) : item.type === 'auction' ? (
+                      <Button
+                        type="primary"
+                        size="large"
+                        onClick={showModal}
+                        className="w-full h-12 rounded-lg shadow-sm hover:shadow-md transition-shadow font-semibold"
+                        block
+                      >
+                        Place Bid
+                      </Button>
+                    ) : (
+                      <Button
+                        type="primary"
+                        size="large"
+                        icon={<ShoppingCartOutlined />}
+                        className="w-full h-12 rounded-lg shadow-sm hover:shadow-md transition-shadow font-semibold"
+                        block
+                      >
+                        Buy Now
+                      </Button>
                     )}
                   </div>
-                  {item.type === 'auction' && (
-                    <Countdown 
-                      value={Date.now() + 1000 * 60 * 60 * 24 * 2} 
-                      format="HH:mm:ss" 
-                      valueStyle={{ fontSize: '12px' }}
-                    />
-                  )}
                 </div>
-              </Card>
-            ))}
+              </div>
+            </div>
           </div>
+        </div>
+      </div>
+    </Card>
+  ))}
+</div>
         </div>
       </div>
 
@@ -816,7 +963,7 @@ export default function GearMarketplace() {
             />
             <div>
               <h4 className="font-bold">Roland TR-8S Rhythm Performer</h4>
-              <div className="text-sm text-gray-600 mb-2">Current bid: $550</div>
+              <div className="text-sm text-gray-600 mb-2">$550</div>
               <div className="flex items-center gap-2">
                 <Avatar src={gear.find(i => i.type === 'auction')?.seller.avatar} size="small" />
                 <div>
