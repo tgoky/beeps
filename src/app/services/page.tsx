@@ -591,13 +591,15 @@ export default function MusicServices() {
                           Join Collab
                         </Button>
                       )}
-                      {service.type === 'lyrics' && (
-                        <Button 
-                       onClick={() => router.push(`/services/create/${service.id}`)} 
-                        type="primary" size="small">
-                          Review Lyrics
-                        </Button>
-                      )}
+        {service.type === 'lyrics' && (
+  <Button 
+    type="primary" 
+    size="small"
+    onClick={() => router.push(`/services/create/${service.id}`)}
+  >
+    Review Lyrics
+  </Button>
+)}
                       {service.type === 'writer' && (
                         <Button 
                          onClick={() => router.push(`/services/edit/${service.id}`)} 

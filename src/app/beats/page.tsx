@@ -26,7 +26,7 @@ type Beat = {
   image: string;
   audio: string;
   type: 'lease' | 'exclusive';
-  date: string;
+ 
 };
 
 type Activity = {
@@ -60,7 +60,7 @@ const beatData: Beat[] = [
     image: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f",
     audio: "https://example.com/beat1.mp3",
     type: 'lease',
-    date: '2 hours ago'
+
   },
   {
     id: 2,
@@ -80,7 +80,7 @@ const beatData: Beat[] = [
     image: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4",
     audio: "https://example.com/beat2.mp3",
     type: 'exclusive',
-    date: '1 day ago'
+
   },
   {
     id: 3,
@@ -100,7 +100,7 @@ const beatData: Beat[] = [
     image: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819",
     audio: "https://example.com/beat3.mp3",
     type: 'lease',
-    date: '3 days ago'
+
   },
   {
     id: 4,
@@ -120,7 +120,45 @@ const beatData: Beat[] = [
     image: "https://images.unsplash.com/photo-1501612780327-45045538702b",
     audio: "https://example.com/beat4.mp3",
     type: 'lease',
-    date: '1 week ago'
+  },
+  {
+    id: 5,
+    title: "Future Bass Anthem",
+    producer: {
+      name: "Electric Soul",
+      avatar: "https://randomuser.me/api/portraits/women/25.jpg",
+      verified: true,
+    },
+    bpm: 128,
+    price: 89.99,
+    genre: ["Electronic", "Future Bass"],
+    mood: ["Energetic", "Uplifting"],
+    plays: 95000,
+    likes: 4100,
+    liked: false,
+    image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b",
+    audio: "https://example.com/beat5.mp3",
+    type: 'exclusive',
+  },
+  {
+    id: 6,
+    title: "Underground Vibes",
+    producer: {
+      name: "Dark Mode",
+      avatar: "https://randomuser.me/api/portraits/men/18.jpg",
+      verified: false,
+    },
+    bpm: 135,
+    price: 39.99,
+    genre: ["Hip Hop", "Underground"],
+    mood: ["Dark", "Mysterious"],
+    plays: 76000,
+    likes: 1850,
+    liked: true,
+    image: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f",
+    audio: "https://example.com/beat6.mp3",
+    type: 'lease',
+
   },
 ];
 
@@ -204,10 +242,10 @@ export default function BeatMarketplace() {
   };
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-screen bg-gray-50">
       {/* Main Content */}
       <div className="flex-1 p-6 overflow-auto">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Beat Marketplace</h1>
@@ -282,19 +320,21 @@ export default function BeatMarketplace() {
             <TabPane tab={<span><DollarOutlined /> Deals</span>} key="deals" />
           </Tabs>
 
-          {/* Beats Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {/* Beats Grid - Changed to 3 columns */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredBeats.map((beat) => (
               <Card
                 key={beat.id}
                 hoverable
-                className="relative"
+                className="relative shadow-md hover:shadow-lg transition-shadow duration-300"
+                style={{ height: 'auto', minHeight: '520px' }}
+                bodyStyle={{ padding: '20px', height: 'auto' }}
                 cover={
                   <div className="relative group">
                     <img 
                       alt={beat.title} 
                       src={beat.image} 
-                      className="w-full h-40 object-cover"
+                      className="w-full h-52 object-cover"
                     />
                     <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                       <button 
@@ -308,84 +348,95 @@ export default function BeatMarketplace() {
                         )}
                       </button>
                     </div>
-                    <div className="absolute top-2 left-2">
-                      <Tag color={beat.type === 'exclusive' ? "gold" : "blue"} className="font-medium">
+                    <div className="absolute top-3 left-3">
+                      <Tag color={beat.type === 'exclusive' ? "gold" : "blue"} className="font-medium text-xs">
                         {beat.type === 'exclusive' ? "EXCLUSIVE" : "LEASE"}
                       </Tag>
                     </div>
-                    <div className="absolute bottom-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-xs font-semibold">
+                    <div className="absolute bottom-3 left-3 bg-black/70 text-white px-2 py-1 rounded text-xs font-semibold">
                       {beat.bpm} BPM
                     </div>
                   </div>
                 }
               >
-                <Meta
-                  title={
-                    <div className="flex justify-between items-start">
-                      <span className="font-medium text-lg">{beat.title}</span>
-                      <span className="font-bold text-lg">${beat.price}</span>
-                    </div>
-                  }
-                  description={
-                    <div className="mt-2">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Avatar src={beat.producer.avatar} size="small" />
-                        <span className="text-sm">{beat.producer.name}</span>
-                        {beat.producer.verified && (
-                          <span className="text-blue-500">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-                              <path fillRule="evenodd" d="M8.603 3.799A4.49 4.49 0 0112 2.25c1.357 0 2.573.6 3.397 1.549a4.49 4.49 0 013.498 1.307 4.491 4.491 0 011.307 3.497A4.49 4.49 0 0121.75 12a4.49 4.49 0 01-1.549 3.397 4.491 4.491 0 01-1.307 3.497 4.491 4.491 0 01-3.497 1.307A4.49 4.49 0 0112 21.75a4.49 4.49 0 01-3.397-1.549 4.49 4.49 0 01-3.498-1.306 4.491 4.491 0 01-1.307-3.498A4.49 4.49 0 012.25 12c0-1.357.6-2.573 1.549-3.397a4.49 4.49 0 011.307-3.497 4.49 4.49 0 013.497-1.307zm7.007 6.387a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clipRule="evenodd" />
-                            </svg>
-                          </span>
+                <div className="flex flex-col h-full">
+                  {/* Title and Price */}
+                  <div className="flex justify-between items-start mb-4">
+                    <h3 className="font-semibold text-xl text-gray-900 truncate pr-2 flex-1">
+                      {beat.title}
+                    </h3>
+                    <span className="font-bold text-xl text-green-600 whitespace-nowrap">
+                      ${beat.price}
+                    </span>
+                  </div>
+
+                  {/* Producer Info */}
+                  <div className="flex items-center gap-3 mb-4">
+                    <Avatar src={beat.producer.avatar} size="default" />
+                    <span className="text-sm text-gray-700 truncate flex-1">
+                      {beat.producer.name}
+                    </span>
+                    {beat.producer.verified && (
+                      <span className="text-blue-500 flex-shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                          <path fillRule="evenodd" d="M8.603 3.799A4.49 4.49 0 0112 2.25c1.357 0 2.573.6 3.397 1.549a4.49 4.49 0 013.498 1.307 4.491 4.491 0 011.307 3.497A4.49 4.49 0 0121.75 12a4.49 4.49 0 01-1.549 3.397 4.491 4.491 0 01-1.307 3.497 4.491 4.491 0 01-3.497 1.307A4.49 4.49 0 0112 21.75a4.49 4.49 0 01-3.397-1.549 4.49 4.49 0 01-3.498-1.306 4.491 4.491 0 01-1.307-3.498A4.49 4.49 0 012.25 12c0-1.357.6-2.573 1.549-3.397a4.49 4.49 0 011.307-3.497 4.49 4.49 0 013.497-1.307zm7.007 6.387a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clipRule="evenodd" />
+                        </svg>
+                      </span>
+                    )}
+                  </div>
+                  
+                  {/* Tags */}
+                  <div className="flex flex-wrap gap-2 mb-5 min-h-[70px]">
+                    {beat.genre.map((g, i) => (
+                      <Tag key={i} className="text-sm mb-1" color="default">
+                        {g}
+                      </Tag>
+                    ))}
+                    {beat.mood.map((m, i) => (
+                      <Tag key={`m-${i}`} color="purple" className="text-sm mb-1">
+                        {m}
+                      </Tag>
+                    ))}
+                  </div>
+                  
+                  {/* Stats */}
+                  <div className="flex justify-between items-center text-sm text-gray-500 mb-5">
+                    <div className="flex items-center gap-4">
+                      <span className="flex items-center">
+                        <PlayCircleOutlined className="mr-1" />
+                        {formatNumber(beat.plays)}
+                      </span>
+                      <button 
+                        onClick={() => toggleLike(beat.id)}
+                        className="flex items-center hover:text-red-500 transition-colors"
+                      >
+                        {beat.liked ? (
+                          <HeartFilled className="mr-1 text-red-500" />
+                        ) : (
+                          <HeartOutlined className="mr-1" />
                         )}
-                      </div>
-                      
-                      <div className="flex flex-wrap gap-1 mb-3">
-                        {beat.genre.map((g, i) => (
-                          <Tag key={i} className="text-xs">{g}</Tag>
-                        ))}
-                        {beat.mood.map((m, i) => (
-                          <Tag key={`m-${i}`} color="purple" className="text-xs">{m}</Tag>
-                        ))}
-                      </div>
-                      
-                      <div className="flex justify-between items-center text-xs text-gray-500">
-                        <div className="flex items-center gap-4">
-                          <span>
-                            <PlayCircleOutlined className="mr-1" />
-                            {formatNumber(beat.plays)}
-                          </span>
-                          <button 
-                            onClick={() => toggleLike(beat.id)}
-                            className="flex items-center hover:text-red-500"
-                          >
-                            {beat.liked ? (
-                              <HeartFilled className="mr-1 text-red-500" />
-                            ) : (
-                              <HeartOutlined className="mr-1" />
-                            )}
-                            {formatNumber(beat.likes)}
-                          </button>
-                        </div>
-                        <span>{beat.date}</span>
-                      </div>
+                        {formatNumber(beat.likes)}
+                      </button>
                     </div>
-                  }
-                />
+                    <span className="text-sm font-medium">{beat.date}</span>
+                  </div>
                 
-                <div className="mt-4 flex gap-2">
-                  <Button 
-                    type="primary" 
-                    block 
-                    icon={<ShoppingCartOutlined />}
-                    className="flex items-center justify-center"
-                  >
-                    Add to Cart
-                  </Button>
-                  <Button 
-                    icon={<EllipsisOutlined />}
-                    className="flex items-center justify-center"
-                  />
+                  {/* Action Buttons */}
+                  <div className="flex gap-3 mt-auto pt-2">
+                    <Button 
+                      type="primary" 
+                      size="middle"
+                      icon={<ShoppingCartOutlined />}
+                      className="flex-1 flex items-center justify-center h-10"
+                    >
+                      Add to Cart
+                    </Button>
+                    <Button 
+                      size="middle"
+                      icon={<EllipsisOutlined />}
+                      className="flex items-center justify-center h-10 w-10"
+                    />
+                  </div>
                 </div>
               </Card>
             ))}
@@ -394,30 +445,33 @@ export default function BeatMarketplace() {
       </div>
 
       {/* Activity Sidebar */}
-      <div className="w-80 border-l border-gray-200 hidden xl:block p-6 bg-gray-50 overflow-y-auto">
+      <div className="w-80 border-l border-gray-200 hidden xl:block p-6 bg-white overflow-y-auto">
         <div className="sticky top-6">
-          <h2 className="text-lg font-bold mb-4">Marketplace Activity</h2>
+          <h2 className="text-lg font-bold mb-4 text-gray-900">Marketplace Activity</h2>
           
-          <div className="space-y-4">
+          <div className="space-y-3 mb-6">
             {activityData.map((activity) => (
-              <div key={activity.id} className="flex items-start gap-3 p-3 hover:bg-gray-100 rounded-lg transition-colors">
-                <Avatar src={activity.user.avatar} />
-                <div className="flex-1">
+              <div key={activity.id} className="flex items-start gap-3 p-3 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer">
+                <Avatar src={activity.user.avatar} size="default" />
+                <div className="flex-1 min-w-0">
                   <div className="text-sm">
-                    <span className="font-medium">{activity.user.name}</span> {activity.action} 
-                    <span className="font-medium"> {activity.beat}</span>
+                    <span className="font-medium text-gray-900">{activity.user.name}</span>
+                    <span className="text-gray-600"> {activity.action} </span>
+                    <span className="font-medium text-gray-900">{activity.beat}</span>
                   </div>
-                  <div className="text-xs text-gray-500">{activity.time}</div>
+                  <div className="text-xs text-gray-500 mt-1">{activity.time}</div>
                 </div>
-                {activity.action === 'purchased' && (
-                  <Tag color="green" className="text-xs">Purchase</Tag>
-                )}
-                {activity.action === 'liked' && (
-                  <Tag color="red" className="text-xs">Like</Tag>
-                )}
-                {activity.action === 'uploaded' && (
-                  <Tag color="blue" className="text-xs">New</Tag>
-                )}
+                <div className="flex-shrink-0">
+                  {activity.action === 'purchased' && (
+                    <Tag color="green" className="text-xs">Purchase</Tag>
+                  )}
+                  {activity.action === 'liked' && (
+                    <Tag color="red" className="text-xs">Like</Tag>
+                  )}
+                  {activity.action === 'uploaded' && (
+                    <Tag color="blue" className="text-xs">New</Tag>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -425,18 +479,24 @@ export default function BeatMarketplace() {
           <Divider className="my-6" />
 
           <div>
-            <h3 className="font-bold mb-3">Top Producers</h3>
+            <h3 className="font-bold mb-4 text-gray-900">Top Producers</h3>
             <List
               dataSource={beats.slice(0, 5).map(b => b.producer)}
               renderItem={(producer) => (
-                <List.Item className="!px-0 !py-2">
+                <List.Item className="!px-0 !py-3 border-b border-gray-100 last:border-b-0">
                   <div className="flex items-center gap-3 w-full">
-                    <Avatar src={producer.avatar} />
-                    <div className="flex-1">
-                      <div className="font-medium">{producer.name}</div>
+                    <Avatar src={producer.avatar} size="default" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-gray-900 truncate">{producer.name}</div>
                       <div className="text-xs text-gray-500">5 beats available</div>
                     </div>
-                    <Button size="small" type="text" className="text-blue-500">Follow</Button>
+                    <Button 
+                      size="small" 
+                      type="text" 
+                      className="text-blue-500 hover:text-blue-600 hover:bg-blue-50 flex-shrink-0"
+                    >
+                      Follow
+                    </Button>
                   </div>
                 </List.Item>
               )}

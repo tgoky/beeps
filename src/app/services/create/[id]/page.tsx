@@ -15,7 +15,9 @@ import {
   message,
   Badge,
   Tooltip,
-  Collapse, // Keep Collapse import, remove Panel
+  Collapse,
+  Breadcrumb,
+// Keep Collapse import, remove Panel
 } from "antd";
 import {
   EditOutlined,
@@ -25,6 +27,7 @@ import {
   MessageOutlined,
   UserOutlined,
   ClockCircleOutlined,
+    ArrowLeftOutlined ,
   StarFilled,
   FireOutlined,
   HeartOutlined,
@@ -32,6 +35,7 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import { useRouter, useSearchParams } from 'next/navigation';
 
 dayjs.extend(relativeTime);
 
@@ -114,6 +118,14 @@ export default function LyricsReview() {
   const [activeCommentId, setActiveCommentId] = useState<string | null>(null);
   const [commentText, setCommentText] = useState("");
   const [activeTab, setActiveTab] = useState<"all" | "needs-work" | "approved" | "pending">("all");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  // Get query parameters
+  const from = searchParams.get('from');
+  const title = searchParams.get('title');
+
+
 
   const handleEditStart = (id: string, text: string) => {
     setEditingId(id);
@@ -219,40 +231,78 @@ export default function LyricsReview() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-4">
-      <div className="flex justify-between items-center mb-6">
+   <div className="max-w-4xl mx-auto p-4">
+  {/* Breadcrumbs */}
+  <div className="mb-6">
+    <Breadcrumb>
+      <Breadcrumb.Item onClick={() => router.push('/services')}>
+        Music Services
+      </Breadcrumb.Item>
+      <Breadcrumb.Item onClick={() => router.push('/services')}>
+        Lyrics
+      </Breadcrumb.Item>
+      <Breadcrumb.Item>Lyric Review</Breadcrumb.Item>
+    </Breadcrumb>
+  </div>
+
+  {/* Main Header */}
+  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+      <Button 
+        type="default" 
+        onClick={() => router.push(from ? `/${from}` : '/services')}
+        icon={<ArrowLeftOutlined />}
+        className="order-2 sm:order-1"
+      >
+        Back to {from ? from.replace('-', ' ') : 'Music Services'}
+      </Button>
+      
+      <div className="order-1 sm:order-2">
         <h1 className="text-3xl font-bold flex items-center">
           <FireOutlined className="text-orange-500 mr-3" />
           Lyrics Review
         </h1>
-        <div className="flex gap-2">
-          <Button
-            type={activeTab === "all" ? "primary" : "default"}
-            onClick={() => setActiveTab("all")}
-          >
-            All Sections
-          </Button>
-          <Button
-            type={activeTab === "needs-work" ? "primary" : "default"}
-            danger={activeTab === "needs-work"}
-            onClick={() => setActiveTab("needs-work")}
-          >
-            Needs Work
-          </Button>
-          <Button
-            type={activeTab === "approved" ? "primary" : "default"}
-            onClick={() => setActiveTab("approved")}
-          >
-            Approved
-          </Button>
-          <Button
-            type={activeTab === "pending" ? "primary" : "default"}
-            onClick={() => setActiveTab("pending")}
-          >
-            Pending
-          </Button>
-        </div>
+        {title && (
+          <h2 className="text-xl font-semibold mt-2">
+            Reviewing: {decodeURIComponent(title as string)}
+          </h2>
+        )}
       </div>
+    </div>
+
+    {/* Tabs */}
+    <div className="flex gap-2 flex-wrap">
+      <Button
+        type={activeTab === "all" ? "primary" : "default"}
+        onClick={() => setActiveTab("all")}
+        size="small"
+      >
+        All Sections
+      </Button>
+      <Button
+        type={activeTab === "needs-work" ? "primary" : "default"}
+        danger={activeTab === "needs-work"}
+        onClick={() => setActiveTab("needs-work")}
+        size="small"
+      >
+        Needs Work
+      </Button>
+      <Button
+        type={activeTab === "approved" ? "primary" : "default"}
+        onClick={() => setActiveTab("approved")}
+        size="small"
+      >
+        Approved
+      </Button>
+      <Button
+        type={activeTab === "pending" ? "primary" : "default"}
+        onClick={() => setActiveTab("pending")}
+        size="small"
+      >
+        Pending
+      </Button>
+    </div>
+  </div>
 
       <Card className="shadow-lg border-0">
         <div className="flex items-center justify-between mb-6">
