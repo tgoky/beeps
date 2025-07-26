@@ -19,6 +19,7 @@ import {
   Modal,
   message 
 } from "antd";
+import { useRouter } from 'next/navigation';
 import { 
   SearchOutlined, 
   FilterOutlined, 
@@ -219,6 +220,7 @@ export default function SessionBookings() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [bidPrice, setBidPrice] = useState(50);
   const [sessions, setSessions] = useState<BookingSession[]>(sessionData);
+  const router = useRouter();
 
   const toggleLike = (id: number) => {
     setSessions(sessions.map(session => 
@@ -439,25 +441,25 @@ export default function SessionBookings() {
                     {session.slots} slot{session.slots !== 1 ? 's' : ''} left
                   </div>
                 </div>
-
-                {session.type === 'bid' ? (
-                  <Button 
-                    type="primary" 
-                    block 
-                    onClick={showModal}
-                    className="flex items-center justify-center"
-                  >
-                    Make an Offer
-                  </Button>
-                ) : (
-                  <Button 
-                    type="primary" 
-                    block 
-                    className="flex items-center justify-center"
-                  >
-                    {session.type === 'collab' ? 'Request Collab' : 'Book Now'}
-                  </Button>
-                )}
+{session.type === 'bid' ? (
+  <Button 
+    type="primary" 
+    block 
+    onClick={showModal}
+    className="flex items-center justify-center"
+  >
+    Make an Offer
+  </Button>
+) : (
+  <Button
+    block
+    type="text"
+    className="mt-2 !bg-black hover:!bg-green-500 !text-white hover:!text-white h-8 text-xs font-medium !border-none"
+    onClick={() => router.push(session.type === 'collab' ? `/collabs/create/${session.id}` : `/studios/create/${session.id}`)}
+  >
+    {session.type === 'collab' ? 'Request Collab' : 'Book Now'}
+  </Button>
+)}
               </Card>
             ))}
           </div>

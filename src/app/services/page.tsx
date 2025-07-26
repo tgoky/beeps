@@ -27,6 +27,7 @@ import {
   Form,
   Badge
 } from "antd";
+import { useRouter } from "next/navigation";
 import { 
   SearchOutlined, 
   FilterOutlined, 
@@ -276,6 +277,8 @@ export default function MusicServices() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [services, setServices] = useState<MusicService[]>(musicServices);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+   const router = useRouter();
+
 
   const toggleLike = (id: number) => {
     setServices(services.map(service => 
@@ -580,22 +583,31 @@ export default function MusicServices() {
                         </Button>
                       )}
                       {service.type === 'collab' && (
-                        <Button type="primary" size="small">
+                        <Button 
+                     onClick={() => router.push(`/collabs/create/${service.id}`)} 
+                        type="primary" size="small">
                           Join Collab
                         </Button>
                       )}
                       {service.type === 'lyrics' && (
-                        <Button type="primary" size="small">
+                        <Button 
+                       onClick={() => router.push(`/services/create/${service.id}`)} 
+                        type="primary" size="small">
                           Review Lyrics
                         </Button>
                       )}
                       {service.type === 'writer' && (
-                        <Button type="primary" size="small">
+                        <Button 
+                         onClick={() => router.push(`/services/edit/${service.id}`)} 
+                        
+                        type="primary" size="small">
                           Hire Writer
                         </Button>
                       )}
                       {service.type === 'audition' && (
-                        <Button type="primary" size="small">
+                        <Button 
+                          onClick={() => router.push(`/services/show/${service.id}`)} 
+                        type="primary" size="small">
                           Submit Audition
                         </Button>
                       )}

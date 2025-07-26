@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { Avatar, Card, Tag, Rate, Space, Button, Tabs, Divider, List, Input, message, Collapse, Modal } from "antd";
 import { StarFilled, HeartOutlined, MessageOutlined, ShareAltOutlined, PlayCircleOutlined, UserAddOutlined, MailOutlined, LinkOutlined, ArrowLeftOutlined } from "@ant-design/icons";
 import Image from "next/image";
+import { producerData } from "@app/producers/producersdata";
 
 const { TabPane } = Tabs;
 const { Panel } = Collapse;
@@ -43,62 +44,6 @@ type Producer = {
   }[];
 };
 
-const producerData: Producer[] = [
-  // Same producer data as before, but let's add more details
-  {
-    id: 1,
-    name: "Alex BeatSmith",
-    handle: "@beat_alchemist",
-    avatar: "https://randomuser.me/api/portraits/men/32.jpg",
-    cover: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4",
-    location: "Los Angeles, CA",
-    rating: 4.9,
-    genres: ["Hip Hop", "Trap", "R&B"],
-    skills: ["Production", "Mixing", "Sound Design"],
-    recentWorks: [
-      {
-        title: "Midnight Dreams",
-        artist: "Luna Sky",
-        plays: 1245000,
-        image: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f",
-      },
-      {
-        title: "City Lights",
-        artist: "Urban Flow",
-        plays: 876000,
-        image: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819",
-      },
-    ],
-    social: {
-      followers: 12400,
-      following: 560,
-      posts: 243,
-    },
-    online: true,
-    lastActive: "5 min ago",
-    featuredGear: ["MPC Live", "Moog Subsequent", "Neumann U87"],
-    bio: "Grammy-nominated producer specializing in hip hop and R&B. I've worked with major artists and love discovering new talent.",
-    credits: ["Billboard Top 10 (2023)", "Platinum Record (2022)", "Producer of the Year Nominee (2021)"],
-    services: [
-      {
-        name: "Beat Production",
-        price: "$500",
-        description: "Custom beat tailored to your style with 3 revisions"
-      },
-      {
-        name: "Full Song Production",
-        price: "$1500",
-        description: "Complete production including mixing and mastering"
-      },
-      {
-        name: "Mixing/Mastering",
-        price: "$300",
-        description: "Professional mixing and mastering for your track"
-      }
-    ]
-  },
-  // ... other producers
-];
 
 export default function ProducerProfile() {
   const params = useParams();
