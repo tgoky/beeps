@@ -64,6 +64,7 @@ const { TextArea } = Input;
 type MusicService = {
   id: number;
   type: 'snippet' | 'collab' | 'lyrics' | 'writer' | 'audition' | 'label';
+  auditionType?: 'artist' | 'producer' | 'lyricist'; 
   title: string;
   user: {
     name: string;
@@ -174,6 +175,7 @@ const musicServices: MusicService[] = [
   {
     id: 5,
     type: 'audition',
+      auditionType: 'producer',
     title: "Vocalist Auditions for Label",
     user: {
       name: "Urban Sounds Records",
@@ -605,12 +607,14 @@ export default function MusicServices() {
                         </Button>
                       )}
                       {service.type === 'audition' && (
-                        <Button 
-                          onClick={() => router.push(`/services/show/${service.id}`)} 
-                        type="primary" size="small">
-                          Submit Audition
-                        </Button>
-                      )}
+  <Button 
+    onClick={() => router.push(`/services/auditions/${service.auditionType}/${service.id}`)}
+    type="primary" 
+    size="small"
+  >
+    Submit Audition
+  </Button>
+)}
                       {service.type === 'label' && (
                         <Button type="primary" size="small">
                           Contact Label

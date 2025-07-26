@@ -29,8 +29,13 @@ import {
   DollarOutlined
 } from "@ant-design/icons";
 
+
 const { TextArea } = Input;
 const { Panel } = Collapse;
+
+type AuditionType = 'producer' | 'artist' | 'lyricist' | 'writer' | 'general';
+
+
 
 type AuditionSubmissionProps = {
   jobTitle: string;
@@ -40,17 +45,172 @@ type AuditionSubmissionProps = {
   requirements: string[];
 };
 
+import type { AuditionBaseProps, AuditionSpecificFields } from '@/types/audition';
+
+interface SubmitAuditionProps extends AuditionBaseProps, AuditionSpecificFields {}
+
 export default function SubmitAudition({
   jobTitle,
   clientName,
   budget,
   deadline,
   requirements,
-}: AuditionSubmissionProps) {
+  type = 'general',
+  ...specificFields
+}: SubmitAuditionProps) {
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState<any[]>([]);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+   const getTypeSpecificFields = () => {
+    switch (type) {
+      case 'producer':
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Form.Item
+              label="Primary Genres"
+              name="genres"
+              rules={[{ required: true, message: "Please select genres" }]}
+            >
+              <Select
+                mode="multiple"
+                placeholder="Select genres you specialize in"
+                options={[
+                  { label: "Hip Hop", value: "hiphop" },
+                  { label: "EDM", value: "edm" },
+                  { label: "Pop", value: "pop" },
+                  { label: "R&B", value: "rnb" },
+                  { label: "Rock", value: "rock" },
+                ]}
+              />
+            </Form.Item>
+            <Form.Item
+              label="Main DAW"
+              name="daw"
+            >
+              <Select
+                placeholder="Select your primary DAW"
+                options={[
+                  { label: "FL Studio", value: "flstudio" },
+                  { label: "Ableton", value: "ableton" },
+                  { label: "Logic Pro", value: "logic" },
+                  { label: "Pro Tools", value: "protools" },
+                ]}
+              />
+            </Form.Item>
+          </div>
+        );
+    case 'artist':
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <Form.Item
+        label="Vocal Range"
+        name="vocalRange"
+      >
+        <Select
+          placeholder="Select your vocal range"
+          options={[
+            { label: "Soprano", value: "soprano" },
+            { label: "Alto", value: "alto" },
+            { label: "Tenor", value: "tenor" },
+            { label: "Baritone", value: "baritone" },
+            { label: "Bass", value: "bass" },
+          ]}
+        />
+      </Form.Item>
+            <Form.Item
+              label="Performance Types"
+              name="performanceTypes"
+            >
+              <Select
+                mode="multiple"
+                placeholder="Select performance types"
+                options={[
+                  { label: "Studio Recording", value: "studio" },
+                  { label: "Live Performance", value: "live" },
+                  { label: "Music Videos", value: "videos" },
+                ]}
+              />
+            </Form.Item>
+          </div>
+        );
+      case 'lyricist':
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Form.Item
+              label="Languages"
+              name="languages"
+              rules={[{ required: true, message: "Please select languages" }]}
+            >
+              <Select
+                mode="multiple"
+                placeholder="Select languages you write in"
+                options={[
+                  { label: "English", value: "en" },
+                  { label: "Spanish", value: "es" },
+                  { label: "French", value: "fr" },
+                ]}
+              />
+            </Form.Item>
+            <Form.Item
+              label="Specialties"
+              name="specialties"
+            >
+              <Select
+                mode="multiple"
+                placeholder="Select your specialties"
+                options={[
+                  { label: "Love Songs", value: "love" },
+                  { label: "Storytelling", value: "story" },
+                  { label: "Political", value: "political" },
+                ]}
+              />
+            </Form.Item>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
+const getMediaTypes = () => {
+    switch (type) {
+      case 'producer':
+        return [
+          "Beat Sample",
+          "Full Track",
+          "Project File",
+          "Portfolio Link",
+          "Video Explanation"
+        ];
+      case 'artist':
+        return [
+          "Vocal Sample",
+          "Performance Video",
+          "Audio Recording",
+          "Portfolio Link",
+          "Music Video"
+        ];
+      case 'lyricist':
+        return [
+          "Lyric Sheet",
+          "Demo Recording",
+          "Published Work",
+          "Portfolio Link",
+          "Video Reading"
+        ];
+      default:
+        return [
+          "Work Sample",
+          "Video Introduction",
+          "Audio Recording",
+          "Portfolio Link",
+          "Document"
+        ];
+    }
+  };
+
 
   const onFinish = (values: any) => {
     setIsSubmitting(true);
@@ -161,6 +321,8 @@ export default function SubmitAudition({
           onFinish={onFinish}
           className="space-y-6"
         >
+                    {getTypeSpecificFields()}
+
           <Form.Item
             label="Cover Letter"
             name="coverLetter"
@@ -196,7 +358,7 @@ export default function SubmitAudition({
             >
               <Select
                 placeholder="Select media type"
-                options={mediaTypes.map((type) => ({
+                 options={getMediaTypes().map((type) => ({
                   label: type,
                   value: type,
                 }))}
