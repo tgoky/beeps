@@ -17,7 +17,7 @@ module.exports = {
         },
         background: {
           light: "#ffffff",
-          dark: "#1f2937", // Dark background
+          dark: "#000000ff", // Dark background
         },
         text: {
           light: "#1a1a1a",

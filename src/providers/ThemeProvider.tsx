@@ -47,7 +47,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
           token: {
             colorPrimary: theme === "dark" ? "#a78bfa" : "#6d28d9", // Match Tailwind's primary colors
             colorText: theme === "dark" ? "#e5e7eb" : "#1a1a1a",
-            colorBgBase: theme === "dark" ? "#1f2937" : "#ffffff",
+            colorBgBase: theme === "dark" ? "#0b0b0b" : "#ffffff",
           },
         }}
       >

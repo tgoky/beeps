@@ -6,7 +6,7 @@ import routerProvider from "@refinedev/nextjs-router";
 import { Metadata } from "next";
 import React, { Suspense } from "react";
 
-
+import { SidebarProvider } from "../providers/sidebar-provider/sidebar-provider";
 import { authProviderClient } from "@providers/auth-provider/auth-provider.client";
 import { dataProvider } from "@providers/data-provider";
 import { ThemeProvider } from "@providers/ThemeProvider"; // Import ThemeProvider
@@ -31,6 +31,7 @@ export default function RootLayout({
         <Suspense>
           <RefineKbarProvider>
             <ThemeProvider>
+                <SidebarProvider>
               <Refine
                 routerProvider={routerProvider}
                 authProvider={authProviderClient}
@@ -142,6 +143,7 @@ export default function RootLayout({
                 {children}
                 <RefineKbar />
               </Refine>
+                     </SidebarProvider>
             </ThemeProvider>
           </RefineKbarProvider>
         </Suspense>
