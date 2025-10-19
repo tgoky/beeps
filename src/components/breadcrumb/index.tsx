@@ -3,43 +3,39 @@
 
 import { useBreadcrumb } from "@refinedev/core";
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Home } from "lucide-react";
 
 export const Breadcrumb = () => {
   const { breadcrumbs } = useBreadcrumb();
 
   return (
-    <div className="flex items-center px-6 py-3 bg-white dark:bg-black rounded-lg shadow-sm border border-gray-100 dark:border-gray-800">
+    <div className="flex items-center px-4 py-2.5 backdrop-blur-sm  dark:bg-black border border-gray-200/60 dark:border-gray-800/50 ">
       <nav className="flex" aria-label="Breadcrumb">
-        <ol className="inline-flex items-center space-x-2">
+        <ol className="inline-flex items-center">
           {breadcrumbs.map((breadcrumb, index) => (
             <li key={`breadcrumb-${breadcrumb.label}`} className="inline-flex items-center">
               {index > 0 && (
-                <ChevronRight className="w-4 h-4 text-gray-400 dark:text-gray-600 mx-2" />
+                <ChevronRight className="w-3 h-3 text-gray-400 dark:text-gray-600 mx-1.5" />
               )}
               {breadcrumb.href ? (
                 <Link
                   href={breadcrumb.href}
-                  className={`inline-flex items-center text-sm font-medium no-underline ${
+                  className={`inline-flex items-center text-[13px] font-medium no-underline transition-colors duration-200 ${
                     index === breadcrumbs.length - 1
-                      ? "text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300"
-                      : "text-gray-600 dark:text-gray-400 hover:text-indigo-500 dark:hover:text-indigo-500"
-                  } transition-colors duration-200`}
+                      ? "text-purple-600 dark:text-purple-400"
+                      : "text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400"
+                  }`}
                 >
                   {index === 0 ? (
-                    <svg
-                      className="w-4 h-4 mr-2 text-current"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
-                    </svg>
+                    <Home className="w-3 h-3 mr-1.5" />
                   ) : null}
                   {breadcrumb.label}
                 </Link>
               ) : (
-                <span className="text-sm font-medium text-gray-400 dark:text-gray-600 no-underline">
+                <span className="inline-flex items-center text-[13px] font-medium text-gray-400 dark:text-gray-600 no-underline">
+                  {index === 0 ? (
+                    <Home className="w-3 h-3 mr-1.5" />
+                  ) : null}
                   {breadcrumb.label}
                 </span>
               )}
