@@ -13,18 +13,9 @@ import { NavigationMenu } from "./NavigationMenu";
 import { UserSection } from "./UserSection";
 import { Power } from "lucide-react";
 
-// Simple flat mapping of menu items to their groups based on your NavigationMenu
+// Simple flat mapping of menu items to their groups
 const getGroupForMenuItem = (itemKey: string): string | null => {
-  const itemName = itemKey.startsWith('/') ? itemKey.substring(1) : itemKey;
-  const contentItems = ["Client_Profiles", "Submissions", "AI_Tools", "Playbooks", "Lead_Generation", "Agents_Flow", "Work_Flow"];
-  const overviewItems = ["Top_50_Niches", "Niche_Researcher",  "Offer_Creator", "Pricing_Calculator", "Ad_Writer", "Cold_Email_Writer", "Sales_Call_Analyzer",  "Growth_Plan_Creator",  "categories"];
-  const automationItems = ["Automations", "N8n_Builder", "N8n_Library"];
-  
-  if (contentItems.includes(itemName)) return "content";
-  if (overviewItems.includes(itemName)) return "overview";
-  if (automationItems.includes(itemName)) return "automations";
-  
-  return null;
+  return "beep"; // Changed to match the actual group ID
 };
 
 // Windows 98-style Logout Dialog Component
@@ -43,11 +34,11 @@ const LogoutDialog: React.FC<LogoutDialogProps> = ({
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-      <div className="border-2 border-gray-400 bg-gray-300 w-80">
+      <div className="border-2 border-gray-400 w-80">
         <div className="bg-blue-700 text-white px-2 py-1 flex justify-between items-center">
           <div className="flex items-center">
             <Power className="w-4 h-4 mr-2" />
-            <span className="font-bold">Log Off Arbitrage-OS</span>
+            <span className="font-bold">Log Off</span>
           </div>
           <div className="flex space-x-1">
             <div
@@ -86,29 +77,14 @@ export const Menu: React.FC = () => {
   const router = useRouter();
   const [isClient, setIsClient] = useState<boolean>(false);
   const { collapsed, setCollapsed } = useSidebar();
-  const [expandedGroups, setExpandedGroups] = useState<string[]>(["overview"]);
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(["beep"]); // Changed to "beep"
   const userHasInteractedRef = useRef<boolean>(false);
   const { theme } = useTheme();
   const [showLogoutDialog, setShowLogoutDialog] = useState<boolean>(false);
 
-  const [clubSwitcherOpen, setClubSwitcherOpen] = useState(false);
-const [createClubModalOpen, setCreateClubModalOpen] = useState(false);
-
-const handleCreateClub = () => {
-  setCreateClubModalOpen(true);
-};
-
-const handleSwitchClub = () => {
-  setClubSwitcherOpen(true);
-};
-
-  
   const selectedItemGroup = useMemo(() => {
-    console.log(`Current selectedKey: "${selectedKey}"`);
     if (!selectedKey) return null;
-    const group = getGroupForMenuItem(selectedKey);
-    console.log(`Selected key: ${selectedKey}, belongs to group: ${group}`);
-    return group;
+    return getGroupForMenuItem(selectedKey);
   }, [selectedKey]);
 
   useEffect(() => {
@@ -116,10 +92,8 @@ const handleSwitchClub = () => {
   }, []);
 
   useEffect(() => {
-    console.log(`useEffect triggered - selectedItemGroup: ${selectedItemGroup}, userHasInteracted: ${userHasInteractedRef.current}, expandedGroups: ${expandedGroups.join(', ')}`);
     if (!userHasInteractedRef.current && selectedItemGroup) {
-      if (expandedGroups.length === 0 || (expandedGroups.includes("overview") && selectedItemGroup !== "overview")) {
-        console.log(`Auto-expanding group: ${selectedItemGroup}`);
+      if (!expandedGroups.includes(selectedItemGroup)) {
         setExpandedGroups([selectedItemGroup]);
       }
     }
@@ -130,14 +104,16 @@ const handleSwitchClub = () => {
   };
 
   const toggleGroup = (groupId: string): void => {
-    console.log(`User manually toggled group: ${groupId}`);
     userHasInteractedRef.current = true;
     setExpandedGroups((prev) => {
       if (prev.includes(groupId)) {
-        console.log(`Collapsing group: ${groupId}`);
+        // Don't allow collapsing if a group item is selected
+        const selectedGroup = getGroupForMenuItem(selectedKey || "");
+        if (selectedGroup === groupId) {
+          return prev; // Keep it expanded
+        }
         return prev.filter(id => id !== groupId);
       } else {
-        console.log(`Expanding group: ${groupId}`);
         return [...prev, groupId];
       }
     });
@@ -149,22 +125,23 @@ const handleSwitchClub = () => {
         h-screen sticky top-0 z-10
         ${theme === "dark" ? "bg-black border-gray-700" : "bg-white border-gray-200"}
         border-r flex flex-col transition-all duration-300
-        ${collapsed ? "w-20" : "w-72"}
+        ${collapsed ? "w-16" : "w-64"}
         relative flex-shrink-0
       `}
     >
       {/* Top Section - Fixed height content */}
       <div className="flex-shrink-0">
-        <div className="relative">
         <WorkspaceHeader
-  collapsed={collapsed}
-  onCreateClub={handleCreateClub}
-  onSwitchClub={handleSwitchClub}
-/>
-        </div>
+          collapsed={collapsed}
+          onCreateClub={() => {}}
+          onSwitchClub={() => {}}
+        />
 
         <Controls collapsed={collapsed} setCollapsed={setCollapsed} />
+      </div>
 
+      {/* Middle Section - Scrollable Navigation */}
+      <div className="flex-1 overflow-y-auto">
         <NavigationMenu
           isClient={isClient}
           collapsed={collapsed}
@@ -175,10 +152,7 @@ const handleSwitchClub = () => {
         />
       </div>
 
-      {/* Spacer to push UserSection to bottom */}
-      <div className="flex-1"></div>
-
-      {/* Bottom Section - User Section */}
+      {/* Bottom Section - User Section (Fixed at bottom) */}
       <div className="flex-shrink-0">
         <UserSection collapsed={collapsed} handleLogout={handleLogout} />
       </div>

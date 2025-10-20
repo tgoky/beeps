@@ -1,55 +1,8 @@
 "use client";
 
-import { 
-  Card, 
-  Avatar, 
-  Button, 
-  Tabs, 
-  List, 
-  Tag, 
-  Progress, 
-  Statistic, 
-  Divider, 
-  Input, 
-  Upload, 
-  Select, 
-  Switch, 
-  Form, 
-  message,
-  Badge,
-  Rate,
-  Modal,
-  Collapse,
-  Radio,
-  Slider
-} from "antd";
-import { 
-  EditOutlined, 
-  MailOutlined, 
-  LinkOutlined, 
-  EnvironmentOutlined, 
-  TeamOutlined, 
-  SoundOutlined, 
-  FileTextOutlined, 
-  HeartOutlined, 
-  MessageOutlined, 
-  ClockCircleOutlined,
-  UserOutlined,
-  LockOutlined,
-  CheckOutlined,
-  PlusOutlined,
-  UploadOutlined,
-  StarOutlined,
-  CrownOutlined,
-  SafetyOutlined,
-  DollarOutlined,
-  BankOutlined
-} from "@ant-design/icons";
 import { useState } from "react";
-
-const { TabPane } = Tabs;
-const { Option } = Select;
-const { Panel } = Collapse;
+import { useTheme } from "../../providers/ThemeProvider";
+import { Edit, Mail, MapPin, Link as LinkIcon, Users, Music2, FileText, Heart, MessageCircle, Clock, CheckCircle, Plus, Star, Crown, Settings, Upload, TrendingUp, Award } from "lucide-react";
 
 // Mock user data
 const userProfile = {
@@ -79,203 +32,108 @@ const userProfile = {
     songwriting: "$300-$700",
     mixing: "$200-$400"
   },
-  availability: "Available for new projects",
-  socialLinks: {
-    instagram: "instagram.com/alexmelody",
-    twitter: "twitter.com/alexmelody",
-    soundcloud: "soundcloud.com/alexmelody",
-    youtube: "youtube.com/alexmelody"
-  }
+  availability: "Available for new projects"
 };
 
 const userActivity = [
-  {
-    id: 1,
-    type: "upload",
-    title: "Uploaded new snippet 'Summer Vibes'",
-    date: "2 hours ago"
-  },
-  {
-    id: 2,
-    type: "collab",
-    title: "Started collab with @vocalqueen on 'Midnight Dreams'",
-    date: "1 day ago"
-  },
-  {
-    id: 3,
-    type: "like",
-    title: "Liked snippet 'Lofi Chill Loop' by @chillbeats",
-    date: "2 days ago"
-  },
-  {
-    id: 4,
-    type: "follow",
-    title: "Followed @beatmaster",
-    date: "3 days ago"
-  },
-  {
-    id: 5,
-    type: "complete",
-    title: "Completed project 'City Lights' with @urbanrecords",
-    date: "1 week ago"
-  }
+  { id: 1, type: "upload", title: "Uploaded new snippet 'Summer Vibes'", date: "2 hours ago" },
+  { id: 2, type: "collab", title: "Started collab with @vocalqueen on 'Midnight Dreams'", date: "1 day ago" },
+  { id: 3, type: "like", title: "Liked snippet 'Lofi Chill Loop' by @chillbeats", date: "2 days ago" }
 ];
 
 const userSnippets = [
-  {
-    id: 1,
-    title: "Summer Vibes Hook",
-    plays: 1245,
-    likes: 342,
-    duration: "1:02",
-    genre: "Pop",
-    date: "2 days ago"
-  },
-  {
-    id: 2,
-    title: "R&B Vocal Loop",
-    plays: 876,
-    likes: 231,
-    duration: "0:45",
-    genre: "R&B",
-    date: "1 week ago"
-  },
-  {
-    id: 3,
-    title: "Trap 808 Pattern",
-    plays: 765,
-    likes: 198,
-    duration: "0:52",
-    genre: "Hip Hop",
-    date: "2 weeks ago"
-  }
+  { id: 1, title: "Summer Vibes Hook", plays: 1245, likes: 342, duration: "1:02", genre: "Pop", date: "2 days ago" },
+  { id: 2, title: "R&B Vocal Loop", plays: 876, likes: 231, duration: "0:45", genre: "R&B", date: "1 week ago" },
+  { id: 3, title: "Trap 808 Pattern", plays: 765, likes: 198, duration: "0:52", genre: "Hip Hop", date: "2 weeks ago" }
 ];
 
 const userCollabs = [
-  {
-    id: 1,
-    title: "Midnight Dreams (with @vocalqueen)",
-    status: "in-progress",
-    progress: 65,
-    date: "1 week ago"
-  },
-  {
-    id: 2,
-    title: "City Lights (with @urbanrecords)",
-    status: "completed",
-    progress: 100,
-    date: "3 weeks ago"
-  },
-  {
-    id: 3,
-    title: "Lonely Nights (with @soulsinger)",
-    status: "on-hold",
-    progress: 30,
-    date: "1 month ago"
-  }
+  { id: 1, title: "Midnight Dreams (with @vocalqueen)", status: "in-progress", progress: 65, date: "1 week ago" },
+  { id: 2, title: "City Lights (with @urbanrecords)", status: "completed", progress: 100, date: "3 weeks ago" }
 ];
 
 const userReviews = [
   {
     id: 1,
-    user: {
-      name: "Vocal Queen",
-      avatar: "https://randomuser.me/api/portraits/women/22.jpg"
-    },
+    user: { name: "Vocal Queen", avatar: "https://randomuser.me/api/portraits/women/22.jpg" },
     rating: 5,
     comment: "Alex is an amazing producer to work with! Delivered exactly what I needed and was very professional.",
     date: "2 weeks ago"
-  },
-  {
-    id: 2,
-    user: {
-      name: "Beat Master",
-      avatar: "https://randomuser.me/api/portraits/men/41.jpg"
-    },
-    rating: 4,
-    comment: "Great communication and solid production skills. Would collab again!",
-    date: "1 month ago"
   }
 ];
 
+const formatNumber = (num: number): string => {
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+  if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+  return num.toString();
+};
+
 export default function ProfilePage() {
+  const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState("activity");
   const [editMode, setEditMode] = useState(false);
-  const [form] = Form.useForm();
-  const [isRateModalOpen, setIsRateModalOpen] = useState(false);
-  const [isPrivate, setIsPrivate] = useState(false);
-  const [isEmailPublic, setIsEmailPublic] = useState(true);
-  const [isLocationPublic, setIsLocationPublic] = useState(true);
-  const [isSocialLinksPublic, setIsSocialLinksPublic] = useState(true);
 
-  const handleEditProfile = () => {
-    form.setFieldsValue({
-      name: userProfile.name,
-      username: userProfile.username,
-      bio: userProfile.bio,
-      location: userProfile.location,
-      website: userProfile.website,
-      skills: userProfile.skills,
-      genres: userProfile.genres,
-      equipment: userProfile.equipment,
-      availability: userProfile.availability
-    });
-    setEditMode(true);
-  };
-
-  const { TextArea } = Input; 
-  
-  const handleSaveProfile = () => {
-    message.success('Profile updated successfully');
-    setEditMode(false);
-  };
-
-  const showRateModal = () => {
-    setIsRateModalOpen(true);
-  };
-
-  const handleRateUpdate = () => {
-    message.success('Rates updated successfully');
-    setIsRateModalOpen(false);
+  const getActivityIcon = (type: string) => {
+    const icons = {
+      upload: <Upload className="w-4 h-4" />,
+      collab: <Users className="w-4 h-4" />,
+      like: <Heart className="w-4 h-4" />,
+      follow: <Users className="w-4 h-4" />,
+      complete: <CheckCircle className="w-4 h-4" />
+    };
+    return icons[type as keyof typeof icons] || <Music2 className="w-4 h-4" />;
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className={`min-h-screen ${theme === "dark" ? "bg-black" : "bg-gray-50"}`}>
       {/* Cover Photo */}
       <div 
         className="h-64 bg-cover bg-center relative"
         style={{ backgroundImage: `url(${userProfile.coverImage})` }}
       >
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/50" />
         {editMode && (
-          <div className="absolute top-4 right-4">
-            <Upload showUploadList={false}>
-              <Button type="primary" icon={<UploadOutlined />}>
-                Change Cover
-              </Button>
-            </Upload>
-          </div>
+          <button
+            className={`
+              absolute top-4 right-4 flex items-center gap-2 px-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-200
+              ${theme === "dark"
+                ? "bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm border border-white/20"
+                : "bg-black/20 hover:bg-black/30 text-white backdrop-blur-sm border border-white/20"
+              }
+              active:scale-95
+            `}
+          >
+            <Upload className="w-3.5 h-3.5" />
+            Change Cover
+          </button>
         )}
       </div>
 
-      {/* Profile Header */}
+      {/* Profile Content */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         <div className="flex flex-col md:flex-row gap-6 -mt-16 relative z-10">
           {/* Avatar Section */}
           <div className="flex-shrink-0">
             <div className="relative">
-              <Avatar 
-                size={128} 
-                src={userProfile.avatar} 
-                className="border-4 border-white shadow-lg"
+              <img
+                src={userProfile.avatar}
+                alt={userProfile.name}
+                className="w-32 h-32 rounded-full border-4 shadow-lg object-cover"
+                style={{ borderColor: theme === "dark" ? "#000" : "#fff" }}
               />
+              {userProfile.verified && (
+                <div className="absolute bottom-2 right-2 w-7 h-7 rounded-full bg-blue-500 flex items-center justify-center border-2"
+                  style={{ borderColor: theme === "dark" ? "#000" : "#fff" }}
+                >
+                  <CheckCircle className="w-4 h-4 text-white" />
+                </div>
+              )}
               {editMode && (
-                <Upload showUploadList={false} className="absolute bottom-0 right-0">
-                  <Button 
-                    shape="circle" 
-                    icon={<EditOutlined />} 
-                    className="shadow-md"
-                  />
-                </Upload>
+                <button
+                  className="absolute bottom-0 right-0 p-2 rounded-full bg-purple-500 text-white shadow-lg hover:bg-purple-600 transition-colors"
+                >
+                  <Edit className="w-3.5 h-3.5" />
+                </button>
               )}
             </div>
           </div>
@@ -284,681 +142,612 @@ export default function ProfilePage() {
           <div className="flex-1">
             <div className="flex justify-between items-start mb-4">
               <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-3xl font-bold">
-                    {editMode ? (
-                      <Form.Item name="name" noStyle>
-                        <Input className="text-3xl font-bold p-0 border-none" />
-                      </Form.Item>
-                    ) : (
-                      userProfile.name
-                    )}
+                <div className="flex items-center gap-2 mb-1">
+                  <h1 className={`text-3xl font-bold ${
+                    theme === "dark" ? "text-gray-100" : "text-gray-900"
+                  }`}>
+                    {userProfile.name}
                   </h1>
-                  {userProfile.verified && (
-                    <CrownOutlined className="text-blue-500 text-xl" />
+                  {userProfile.proMember && (
+                    <Crown className="w-5 h-5 text-yellow-500" />
                   )}
                 </div>
-                
-                <div className="text-gray-600 mb-2">
-                  {editMode ? (
-                    <Form.Item name="username" noStyle>
-                      <Input 
-                        prefix="@" 
-                        className="border-none p-0 bg-transparent" 
-                        style={{ width: 200 }}
-                      />
-                    </Form.Item>
-                  ) : (
-                    userProfile.username
-                  )}
+                <div className={`text-[15px] mb-2 ${
+                  theme === "dark" ? "text-gray-500" : "text-gray-600"
+                }`}>
+                  {userProfile.username}
                 </div>
               </div>
 
               <div className="flex gap-2">
                 {!editMode ? (
                   <>
-                    <Button 
-                      icon={<EditOutlined />} 
-                      onClick={handleEditProfile}
+                    <button
+                      onClick={() => setEditMode(true)}
+                      className={`
+                        flex items-center gap-2 px-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-200
+                        ${theme === "dark"
+                          ? "bg-gray-800/60 hover:bg-gray-800 text-gray-300 border border-gray-700/60"
+                          : "bg-white hover:bg-gray-50 text-gray-700 border border-gray-200"
+                        }
+                        active:scale-95
+                      `}
                     >
+                      <Edit className="w-3.5 h-3.5" />
                       Edit Profile
-                    </Button>
-                    <Button type="primary" icon={<MailOutlined />}>
+                    </button>
+                    <button
+                      className={`
+                        flex items-center gap-2 px-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-200
+                        ${theme === "dark"
+                          ? "bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 border border-purple-500/30"
+                          : "bg-purple-50 hover:bg-purple-100 text-purple-600 border border-purple-200"
+                        }
+                        active:scale-95
+                      `}
+                    >
+                      <Mail className="w-3.5 h-3.5" />
                       Contact
-                    </Button>
+                    </button>
                   </>
                 ) : (
                   <>
-                    <Button onClick={() => setEditMode(false)}>
+                    <button
+                      onClick={() => setEditMode(false)}
+                      className={`
+                        px-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-200
+                        ${theme === "dark"
+                          ? "bg-gray-800/60 hover:bg-gray-800 text-gray-300 border border-gray-700/60"
+                          : "bg-white hover:bg-gray-50 text-gray-700 border border-gray-200"
+                        }
+                        active:scale-95
+                      `}
+                    >
                       Cancel
-                    </Button>
-                    <Button 
-                      type="primary" 
-                      onClick={handleSaveProfile}
+                    </button>
+                    <button
+                      onClick={() => setEditMode(false)}
+                      className={`
+                        px-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-200
+                        ${theme === "dark"
+                          ? "bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 border border-purple-500/30"
+                          : "bg-purple-50 hover:bg-purple-100 text-purple-600 border border-purple-200"
+                        }
+                        active:scale-95
+                      `}
                     >
                       Save Changes
-                    </Button>
+                    </button>
                   </>
                 )}
               </div>
             </div>
 
             {/* Bio */}
-            <div className="mb-4">
-              {editMode ? (
-                <Form.Item name="bio" noStyle>
-                  <TextArea 
-                    rows={3} 
-                    placeholder="Tell us about yourself..." 
-                    className="border-gray-300"
-                  />
-                </Form.Item>
-              ) : (
-                <p className="text-gray-700">{userProfile.bio}</p>
-              )}
-            </div>
+            <p className={`mb-4 text-[14px] ${
+              theme === "dark" ? "text-gray-400" : "text-gray-700"
+            }`}>
+              {userProfile.bio}
+            </p>
 
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
-              <Statistic 
-                title="Followers" 
-                value={userProfile.stats.followers} 
-                className="text-center"
-              />
-              <Statistic 
-                title="Following" 
-                value={userProfile.stats.following} 
-                className="text-center"
-              />
-              <Statistic 
-                title="Snippets" 
-                value={userProfile.stats.snippets} 
-                className="text-center"
-              />
-              <Statistic 
-                title="Collabs" 
-                value={userProfile.stats.collabs} 
-                className="text-center"
-              />
-              <div className="flex flex-col items-center">
-                <Rate 
-                  disabled 
-                  defaultValue={userProfile.stats.avgRating} 
-                  allowHalf 
-                  className="text-sm"
-                />
-                <span className="text-gray-600 text-sm">
-                  {userProfile.stats.avgRating} avg rating
-                </span>
-              </div>
+              {[
+                { label: "Followers", value: userProfile.stats.followers },
+                { label: "Following", value: userProfile.stats.following },
+                { label: "Snippets", value: userProfile.stats.snippets },
+                { label: "Collabs", value: userProfile.stats.collabs },
+                { label: "Projects", value: userProfile.stats.completedProjects }
+              ].map((stat, i) => (
+                <div
+                  key={i}
+                  className={`
+                    p-3 rounded-lg border text-center
+                    ${theme === "dark"
+                      ? "bg-gray-900/40 border-gray-800/60"
+                      : "bg-white border-gray-200"
+                    }
+                  `}
+                >
+                  <div className={`text-xl font-bold ${
+                    theme === "dark" ? "text-gray-200" : "text-gray-900"
+                  }`}>
+                    {formatNumber(stat.value)}
+                  </div>
+                  <div className={`text-[11px] ${
+                    theme === "dark" ? "text-gray-600" : "text-gray-500"
+                  }`}>
+                    {stat.label}
+                  </div>
+                </div>
+              ))}
             </div>
 
             {/* Details */}
-            <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-              {editMode ? (
-                <>
-                  <Form.Item name="location" noStyle>
-                    <Input 
-                      prefix={<EnvironmentOutlined />} 
-                      placeholder="Location" 
-                      className="w-48"
-                    />
-                  </Form.Item>
-                  <Form.Item name="website" noStyle>
-                    <Input 
-                      prefix={<LinkOutlined />} 
-                      placeholder="Website" 
-                      className="w-48"
-                    />
-                  </Form.Item>
-                </>
-              ) : (
-                <>
-                  {userProfile.location && (
-                    <div className="flex items-center">
-                      <EnvironmentOutlined className="mr-1" />
-                      {userProfile.location}
-                    </div>
-                  )}
-                  {userProfile.website && (
-                    <div className="flex items-center">
-                      <LinkOutlined className="mr-1" />
-                      <a href={`https://${userProfile.website}`} target="_blank" rel="noopener noreferrer">
-                        {userProfile.website}
-                      </a>
-                    </div>
-                  )}
-                </>
+            <div className="flex flex-wrap gap-4 text-[13px]">
+              {userProfile.location && (
+                <div className={`flex items-center gap-1.5 ${
+                  theme === "dark" ? "text-gray-400" : "text-gray-600"
+                }`}>
+                  <MapPin className="w-3.5 h-3.5" />
+                  {userProfile.location}
+                </div>
               )}
+              {userProfile.website && (
+                <div className={`flex items-center gap-1.5 ${
+                  theme === "dark" ? "text-gray-400" : "text-gray-600"
+                }`}>
+                  <LinkIcon className="w-3.5 h-3.5" />
+                  <a
+                    href={`https://${userProfile.website}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={theme === "dark" ? "text-purple-400 hover:text-purple-300" : "text-purple-600 hover:text-purple-700"}
+                  >
+                    {userProfile.website}
+                  </a>
+                </div>
+              )}
+              <div className="flex items-center gap-1">
+                {[...Array(5)].map((_, i) => (
+                  <Star
+                    key={i}
+                    className={`w-3.5 h-3.5 ${
+                      i < Math.floor(userProfile.stats.avgRating)
+                        ? "fill-yellow-500 text-yellow-500"
+                        : theme === "dark"
+                          ? "text-gray-700"
+                          : "text-gray-300"
+                    }`}
+                  />
+                ))}
+                <span className={`ml-1 text-[12px] ${
+                  theme === "dark" ? "text-gray-500" : "text-gray-600"
+                }`}>
+                  {userProfile.stats.avgRating}
+                </span>
+              </div>
             </div>
           </div>
         </div>
 
-        <Divider />
+        {/* Divider */}
+        <div className={`h-px my-6 ${
+          theme === "dark" ? "bg-gray-800/60" : "bg-gray-200"
+        }`} />
 
         {/* Main Content */}
-        <div className="flex flex-col lg:flex-row gap-6">
+        <div className="flex flex-col lg:flex-row gap-6 pb-8">
           {/* Left Sidebar */}
-          <div className="w-full lg:w-1/3">
-            <Card className="mb-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="font-bold text-lg">Skills & Services</h2>
+          <div className="w-full lg:w-1/3 space-y-4">
+            {/* Skills */}
+            <div className={`
+              p-4 rounded-lg border
+              ${theme === "dark"
+                ? "bg-gray-900/40 border-gray-800/60"
+                : "bg-white border-gray-200"
+              }
+            `}>
+              <div className="flex justify-between items-center mb-3">
+                <h2 className={`font-semibold text-[15px] ${
+                  theme === "dark" ? "text-gray-200" : "text-gray-900"
+                }`}>
+                  Skills & Services
+                </h2>
                 {editMode && (
-                  <Button type="link" size="small" icon={<PlusOutlined />}>
-                    Add
-                  </Button>
+                  <button className={`text-[12px] ${
+                    theme === "dark" ? "text-purple-400" : "text-purple-600"
+                  }`}>
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
                 )}
               </div>
-              
-              {editMode ? (
-                <Form.Item name="skills" noStyle>
-                  <Select
-                    mode="tags"
-                    style={{ width: '100%' }}
-                    placeholder="Add your skills"
-                  />
-                </Form.Item>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {userProfile.skills.map((skill, i) => (
-                    <Tag key={i} color="blue">{skill}</Tag>
-                  ))}
-                </div>
-              )}
-            </Card>
-
-            <Card className="mb-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="font-bold text-lg">Genres</h2>
-                {editMode && (
-                  <Button type="link" size="small" icon={<PlusOutlined />}>
-                    Add
-                  </Button>
-                )}
-              </div>
-              
-              {editMode ? (
-                <Form.Item name="genres" noStyle>
-                  <Select
-                    mode="tags"
-                    style={{ width: '100%' }}
-                    placeholder="Add genres you work with"
-                  />
-                </Form.Item>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {userProfile.genres.map((genre, i) => (
-                    <Tag key={i}>{genre}</Tag>
-                  ))}
-                </div>
-              )}
-            </Card>
-
-            <Card className="mb-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="font-bold text-lg">Equipment</h2>
-                {editMode && (
-                  <Button type="link" size="small" icon={<PlusOutlined />}>
-                    Add
-                  </Button>
-                )}
-              </div>
-              
-              {editMode ? (
-                <Form.Item name="equipment" noStyle>
-                  <Select
-                    mode="tags"
-                    style={{ width: '100%' }}
-                    placeholder="Add your equipment"
-                  />
-                </Form.Item>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {userProfile.equipment.map((item, i) => (
-                    <Tag key={i} color="purple">{item}</Tag>
-                  ))}
-                </div>
-              )}
-            </Card>
-
-            <Card className="mb-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="font-bold text-lg">Rates</h2>
-                <Button 
-                  type="link" 
-                  size="small" 
-                  icon={<EditOutlined />}
-                  onClick={showRateModal}
-                >
-                  Edit
-                </Button>
-              </div>
-              
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span>Production:</span>
-                  <span className="font-medium">{userProfile.rates.production}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Songwriting:</span>
-                  <span className="font-medium">{userProfile.rates.songwriting}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Mixing:</span>
-                  <span className="font-medium">{userProfile.rates.mixing}</span>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="mb-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="font-bold text-lg">Availability</h2>
-                {editMode && (
-                  <Button type="link" size="small" icon={<EditOutlined />}>
-                    Edit
-                  </Button>
-                )}
-              </div>
-              
-              {editMode ? (
-                <Form.Item name="availability" noStyle>
-                  <Select
-                    style={{ width: '100%' }}
-                    defaultValue={userProfile.availability}
+              <div className="flex flex-wrap gap-1.5">
+                {userProfile.skills.map((skill, i) => (
+                  <span
+                    key={i}
+                    className={`
+                      px-2.5 py-1 text-[11px] font-medium rounded-md
+                      ${theme === "dark"
+                        ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                        : "bg-blue-50 text-blue-600 border border-blue-200/50"
+                      }
+                    `}
                   >
-                    <Option value="Available for new projects">Available for new projects</Option>
-                    <Option value="Limited availability">Limited availability</Option>
-                    <Option value="Not currently available">Not currently available</Option>
-                  </Select>
-                </Form.Item>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Badge status="success" />
-                  <span>{userProfile.availability}</span>
-                </div>
-              )}
-            </Card>
-
-            <Card>
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="font-bold text-lg">Social Links</h2>
-                {editMode && (
-                  <Button type="link" size="small" icon={<PlusOutlined />}>
-                    Add
-                  </Button>
-                )}
+                    {skill}
+                  </span>
+                ))}
               </div>
-              
+            </div>
+
+            {/* Genres */}
+            <div className={`
+              p-4 rounded-lg border
+              ${theme === "dark"
+                ? "bg-gray-900/40 border-gray-800/60"
+                : "bg-white border-gray-200"
+              }
+            `}>
+              <div className="flex justify-between items-center mb-3">
+                <h2 className={`font-semibold text-[15px] ${
+                  theme === "dark" ? "text-gray-200" : "text-gray-900"
+                }`}>
+                  Genres
+                </h2>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {userProfile.genres.map((genre, i) => (
+                  <span
+                    key={i}
+                    className={`
+                      px-2.5 py-1 text-[11px] font-medium rounded-md
+                      ${theme === "dark"
+                        ? "bg-gray-800/60 text-gray-400"
+                        : "bg-gray-100 text-gray-600"
+                      }
+                    `}
+                  >
+                    {genre}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Equipment */}
+            <div className={`
+              p-4 rounded-lg border
+              ${theme === "dark"
+                ? "bg-gray-900/40 border-gray-800/60"
+                : "bg-white border-gray-200"
+              }
+            `}>
+              <div className="flex justify-between items-center mb-3">
+                <h2 className={`font-semibold text-[15px] ${
+                  theme === "dark" ? "text-gray-200" : "text-gray-900"
+                }`}>
+                  Equipment
+                </h2>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {userProfile.equipment.map((item, i) => (
+                  <span
+                    key={i}
+                    className={`
+                      px-2.5 py-1 text-[11px] font-medium rounded-md
+                      ${theme === "dark"
+                        ? "bg-purple-500/10 text-purple-400 border border-purple-500/20"
+                        : "bg-purple-50 text-purple-600 border border-purple-200/50"
+                      }
+                    `}
+                  >
+                    {item}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Rates */}
+            <div className={`
+              p-4 rounded-lg border
+              ${theme === "dark"
+                ? "bg-gray-900/40 border-gray-800/60"
+                : "bg-white border-gray-200"
+              }
+            `}>
+              <div className="flex justify-between items-center mb-3">
+                <h2 className={`font-semibold text-[15px] ${
+                  theme === "dark" ? "text-gray-200" : "text-gray-900"
+                }`}>
+                  Rates
+                </h2>
+                <button className={`text-[12px] ${
+                  theme === "dark" ? "text-purple-400" : "text-purple-600"
+                }`}>
+                  <Edit className="w-3.5 h-3.5" />
+                </button>
+              </div>
               <div className="space-y-2">
-                {Object.entries(userProfile.socialLinks).map(([platform, link]) => (
-                  <div key={platform} className="flex items-center">
-                    <span className="w-24 capitalize">{platform}:</span>
-                    {editMode ? (
-                      <Input 
-                        value={link} 
-                        className="flex-1" 
-                        prefix={<LinkOutlined />}
-                      />
-                    ) : (
-                      <a 
-                        href={`https://${link}`} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-blue-500"
-                      >
-                        {link}
-                      </a>
-                    )}
+                {Object.entries(userProfile.rates).map(([service, rate]) => (
+                  <div key={service} className="flex justify-between items-center">
+                    <span className={`text-[13px] capitalize ${
+                      theme === "dark" ? "text-gray-400" : "text-gray-600"
+                    }`}>
+                      {service}:
+                    </span>
+                    <span className={`text-[13px] font-semibold ${
+                      theme === "dark" ? "text-gray-200" : "text-gray-900"
+                    }`}>
+                      {rate}
+                    </span>
                   </div>
                 ))}
               </div>
-            </Card>
+            </div>
 
-            {/* Privacy Settings (only visible to profile owner) */}
-            {editMode && (
-              <Card className="mt-6">
-                <h2 className="font-bold text-lg mb-4">Privacy Settings</h2>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <div className="font-medium">Private Account</div>
-                      <div className="text-sm text-gray-500">
-                        {isPrivate ? 
-                          "Only approved followers can see your content" : 
-                          "Anyone can see your profile and content"}
-                      </div>
-                    </div>
-                    <Switch 
-                      checked={isPrivate} 
-                      onChange={setIsPrivate}
-                      checkedChildren={<LockOutlined />}
-                      unCheckedChildren={<UserOutlined />}
-                    />
-                  </div>
-                  
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <div className="font-medium">Show Email</div>
-                      <div className="text-sm text-gray-500">
-                        {isEmailPublic ? 
-                          "Your email is visible to others" : 
-                          "Your email is private"}
-                      </div>
-                    </div>
-                    <Switch 
-                      checked={isEmailPublic} 
-                      onChange={setIsEmailPublic}
-                      checkedChildren={<CheckOutlined />}
-                      unCheckedChildren={<PlusOutlined />}
-                    />
-                  </div>
-                  
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <div className="font-medium">Show Location</div>
-                      <div className="text-sm text-gray-500">
-                        {isLocationPublic ? 
-                          "Your location is visible" : 
-                          "Your location is hidden"}
-                      </div>
-                    </div>
-                    <Switch 
-                      checked={isLocationPublic} 
-                      onChange={setIsLocationPublic}
-                      checkedChildren={<CheckOutlined />}
-                      unCheckedChildren={<PlusOutlined />}
-                    />
-                  </div>
-                  
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <div className="font-medium">Show Social Links</div>
-                      <div className="text-sm text-gray-500">
-                        {isSocialLinksPublic ? 
-                          "Your social links are visible" : 
-                          "Your social links are hidden"}
-                      </div>
-                    </div>
-                    <Switch 
-                      checked={isSocialLinksPublic} 
-                      onChange={setIsSocialLinksPublic}
-                      checkedChildren={<CheckOutlined />}
-                      unCheckedChildren={<PlusOutlined />}
-                    />
-                  </div>
-                </div>
-              </Card>
-            )}
+            {/* Availability */}
+            <div className={`
+              p-4 rounded-lg border
+              ${theme === "dark"
+                ? "bg-gray-900/40 border-gray-800/60"
+                : "bg-white border-gray-200"
+              }
+            `}>
+              <h2 className={`font-semibold text-[15px] mb-3 ${
+                theme === "dark" ? "text-gray-200" : "text-gray-900"
+              }`}>
+                Availability
+              </h2>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-green-500" />
+                <span className={`text-[13px] ${
+                  theme === "dark" ? "text-gray-400" : "text-gray-600"
+                }`}>
+                  {userProfile.availability}
+                </span>
+              </div>
+            </div>
           </div>
 
           {/* Main Content */}
           <div className="w-full lg:w-2/3">
-            <Tabs 
-              activeKey={activeTab} 
-              onChange={setActiveTab}
-              tabBarExtraContent={
-                !editMode && (
-                  <Button type="primary" icon={<PlusOutlined />}>
-                    Upload Snippet
-                  </Button>
-                )
-              }
-            >
-              <TabPane 
-                tab={
-                  <span>
-                    <ClockCircleOutlined />
-                    Activity
-                  </span>
-                } 
-                key="activity"
-              >
-                <List
-                  itemLayout="horizontal"
-                  dataSource={userActivity}
-                  renderItem={item => (
-                    <List.Item>
-                      <List.Item.Meta
-                        avatar={
-                          <div className="bg-gray-100 p-3 rounded-full">
-                            {item.type === "upload" && <SoundOutlined />}
-                            {item.type === "collab" && <TeamOutlined />}
-                            {item.type === "like" && <HeartOutlined />}
-                            {item.type === "follow" && <UserOutlined />}
-                            {item.type === "complete" && <CheckOutlined />}
-                          </div>
-                        }
-                        title={item.title}
-                        description={<span className="text-gray-500">{item.date}</span>}
+            {/* Tabs */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex gap-1">
+                {[
+                  { key: "activity", label: "Activity", icon: <Clock className="w-3.5 h-3.5" /> },
+                  { key: "snippets", label: "Snippets", icon: <Music2 className="w-3.5 h-3.5" /> },
+                  { key: "collabs", label: "Collabs", icon: <Users className="w-3.5 h-3.5" /> },
+                  { key: "reviews", label: "Reviews", icon: <Star className="w-3.5 h-3.5" /> }
+                ].map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key)}
+                    className={`
+                      flex items-center gap-1.5 px-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-200
+                      ${activeTab === tab.key
+                        ? theme === "dark"
+                          ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
+                          : "bg-purple-50 text-purple-600 border border-purple-200"
+                        : theme === "dark"
+                          ? "bg-gray-900/40 hover:bg-gray-800/60 text-gray-400 hover:text-gray-300 border border-gray-800/60"
+                          : "bg-gray-50 hover:bg-gray-100 text-gray-600 hover:text-gray-900 border border-gray-200"
+                      }
+                      active:scale-95
+                    `}
+                  >
+                    {tab.icon}
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+              {!editMode && activeTab === "snippets" && (
+                <button
+                  className={`
+                    flex items-center gap-2 px-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-200
+                    ${theme === "dark"
+                      ? "bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20"
+                      : "bg-purple-50 hover:bg-purple-100 text-purple-600 border border-purple-200/50"
+                    }
+                    active:scale-95
+                  `}
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Upload Snippet
+                </button>
+              )}
+            </div>
+
+            {/* Tab Content */}
+            <div className="space-y-3">
+              {activeTab === "activity" && userActivity.map((activity) => (
+                <div
+                  key={activity.id}
+                  className={`
+                    flex items-start gap-3 p-4 rounded-lg border
+                    ${theme === "dark"
+                      ? "bg-gray-900/40 border-gray-800/60"
+                      : "bg-white border-gray-200"
+                    }
+                  `}
+                >
+                  <div className={`
+                    p-2.5 rounded-lg
+                    ${theme === "dark" ? "bg-purple-500/20" : "bg-purple-100"}
+                  `}>
+                    {getActivityIcon(activity.type)}
+                  </div>
+                  <div className="flex-1">
+                    <div className={`text-[14px] ${
+                      theme === "dark" ? "text-gray-300" : "text-gray-900"
+                    }`}>
+                      {activity.title}
+                    </div>
+                    <div className={`text-[12px] mt-1 ${
+                      theme === "dark" ? "text-gray-600" : "text-gray-500"
+                    }`}>
+                      {activity.date}
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {activeTab === "snippets" && userSnippets.map((snippet) => (
+                <div
+                  key={snippet.id}
+                  className={`
+                    flex items-center justify-between p-4 rounded-lg border
+                    ${theme === "dark"
+                      ? "bg-gray-900/40 border-gray-800/60"
+                      : "bg-white border-gray-200"
+                    }
+                  `}
+                >
+                  <div className="flex items-center gap-3 flex-1">
+                    <div className={`
+                      w-12 h-12 rounded-lg flex items-center justify-center
+                      ${theme === "dark" ? "bg-purple-500/20" : "bg-purple-100"}
+                    `}>
+                      <Music2 className={`w-5 h-5 ${theme === "dark" ? "text-purple-400" : "text-purple-600"}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className={`text-[14px] font-medium truncate ${
+                        theme === "dark" ? "text-gray-200" : "text-gray-900"
+                      }`}>
+                        {snippet.title}
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className={`
+                          px-2 py-0.5 text-[10px] font-medium rounded-md
+                          ${theme === "dark"
+                            ? "bg-gray-800/60 text-gray-400"
+                            : "bg-gray-100 text-gray-600"
+                          }
+                        `}>
+                          {snippet.genre}
+                        </span>
+                        <span className={`text-[12px] ${
+                          theme === "dark" ? "text-gray-600" : "text-gray-500"
+                        }`}>
+                          {snippet.duration}
+                        </span>
+                        <span className={`text-[12px] ${
+                          theme === "dark" ? "text-gray-600" : "text-gray-500"
+                        }`}>
+                          • {snippet.date}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 text-[12px]">
+                    <span className={theme === "dark" ? "text-gray-500" : "text-gray-600"}>
+                      {formatNumber(snippet.plays)} plays
+                    </span>
+                    <span className={theme === "dark" ? "text-gray-500" : "text-gray-600"}>
+                      {snippet.likes} likes
+                    </span>
+                  </div>
+                </div>
+              ))}
+
+              {activeTab === "collabs" && userCollabs.map((collab) => (
+                <div
+                  key={collab.id}
+                  className={`
+                    p-4 rounded-lg border
+                    ${theme === "dark"
+                      ? "bg-gray-900/40 border-gray-800/60"
+                      : "bg-white border-gray-200"
+                    }
+                  `}
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <div className={`text-[14px] font-medium ${
+                        theme === "dark" ? "text-gray-200" : "text-gray-900"
+                      }`}>
+                        {collab.title}
+                      </div>
+                      <div className={`text-[12px] mt-1 ${
+                        theme === "dark" ? "text-gray-600" : "text-gray-500"
+                      }`}>
+                        {collab.date}
+                      </div>
+                    </div>
+                    <span className={`
+                      px-2.5 py-1 text-[10px] font-semibold rounded-full capitalize
+                      ${collab.status === 'completed'
+                        ? theme === "dark"
+                          ? "bg-green-500/10 text-green-400 border border-green-500/20"
+                          : "bg-green-50 text-green-600 border border-green-200/50"
+                        : theme === "dark"
+                          ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                          : "bg-blue-50 text-blue-600 border border-blue-200/50"
+                      }
+                    `}>
+                      {collab.status.replace('-', ' ')}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className={`flex-1 h-2 rounded-full overflow-hidden ${
+                      theme === "dark" ? "bg-gray-800" : "bg-gray-200"
+                    }`}>
+                      <div
+                        className={`h-full ${
+                          collab.status === 'completed'
+                            ? "bg-green-500"
+                            : theme === "dark"
+                              ? "bg-purple-500"
+                              : "bg-purple-600"
+                        }`}
+                        style={{ width: `${collab.progress}%` }}
                       />
-                    </List.Item>
-                  )}
-                />
-              </TabPane>
-              
-              <TabPane 
-                tab={
-                  <span>
-                    <SoundOutlined />
-                    Snippets
-                  </span>
-                } 
-                key="snippets"
-              >
-                <List
-                  itemLayout="horizontal"
-                  dataSource={userSnippets}
-                  renderItem={item => (
-                    <List.Item
-                      actions={[
-                        <span key="plays">{item.plays} plays</span>,
-                        <span key="likes">{item.likes} likes</span>,
-                        <Button key="edit" type="link" icon={<EditOutlined />} />
-                      ]}
-                    >
-                      <List.Item.Meta
-                        avatar={
-                          <div className="bg-gray-100 p-3 rounded-lg">
-                            <PlusOutlined className="text-2xl" />
-                          </div>
-                        }
-                        title={<a>{item.title}</a>}
-                        description={
-                          <>
-                            <Tag>{item.genre}</Tag>
-                            <span className="text-gray-500">{item.duration}</span>
-                            <span className="text-gray-500 ml-2">{item.date}</span>
-                          </>
-                        }
-                      />
-                    </List.Item>
-                  )}
-                />
-              </TabPane>
-              
-              <TabPane 
-                tab={
-                  <span>
-                    <TeamOutlined />
-                    Collaborations
-                  </span>
-                } 
-                key="collabs"
-              >
-                <List
-                  itemLayout="horizontal"
-                  dataSource={userCollabs}
-                  renderItem={item => (
-                    <List.Item
-                      actions={[
-                        <Button key="view" type="link">View</Button>,
-                        <Button key="edit" type="link" icon={<EditOutlined />} />
-                      ]}
-                    >
-                      <List.Item.Meta
-                        avatar={
-                          <div className="bg-gray-100 p-3 rounded-full">
-                            <TeamOutlined className="text-xl" />
-                          </div>
-                        }
-                        title={<a>{item.title}</a>}
-                        description={
-                          <div className="w-full">
-                            <div className="flex justify-between mb-1">
-                              <span className="capitalize">{item.status.replace('-', ' ')}</span>
-                              <span>{item.progress}%</span>
-                            </div>
-                            <Progress 
-                              percent={item.progress} 
-                              status={
-                                item.status === "completed" ? "success" :
-                                item.status === "on-hold" ? "exception" : "active"
-                              }
+                    </div>
+                    <span className={`text-[12px] font-medium ${
+                      theme === "dark" ? "text-gray-400" : "text-gray-600"
+                    }`}>
+                      {collab.progress}%
+                    </span>
+                  </div>
+                </div>
+              ))}
+
+              {activeTab === "reviews" && userReviews.map((review) => (
+                <div
+                  key={review.id}
+                  className={`
+                    p-4 rounded-lg border
+                    ${theme === "dark"
+                      ? "bg-gray-900/40 border-gray-800/60"
+                      : "bg-white border-gray-200"
+                    }
+                  `}
+                >
+                  <div className="flex items-start gap-3">
+                    <img
+                      src={review.user.avatar}
+                      alt={review.user.name}
+                      className="w-10 h-10 rounded-full object-cover"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className={`text-[14px] font-medium ${
+                          theme === "dark" ? "text-gray-200" : "text-gray-900"
+                        }`}>
+                          {review.user.name}
+                        </span>
+                        <div className="flex items-center gap-0.5">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              className={`w-3 h-3 ${
+                                i < review.rating
+                                  ? "fill-yellow-500 text-yellow-500"
+                                  : theme === "dark"
+                                    ? "text-gray-700"
+                                    : "text-gray-300"
+                              }`}
                             />
-                            <div className="text-gray-500 text-sm mt-1">{item.date}</div>
-                          </div>
-                        }
-                      />
-                    </List.Item>
-                  )}
-                />
-              </TabPane>
-              
-              <TabPane 
-                tab={
-                  <span>
-                    <StarOutlined />
-                    Reviews
-                  </span>
-                } 
-                key="reviews"
-              >
-                <List
-                  itemLayout="horizontal"
-                  dataSource={userReviews}
-                  renderItem={item => (
-                    <List.Item>
-                      <List.Item.Meta
-                        avatar={<Avatar src={item.user.avatar} />}
-                        title={
-                          <div className="flex justify-between">
-                            <span>{item.user.name}</span>
-                            <Rate 
-                              disabled 
-                              defaultValue={item.rating} 
-                              className="text-sm"
-                            />
-                          </div>
-                        }
-                        description={
-                          <>
-                            <p>{item.comment}</p>
-                            <div className="text-gray-500 text-sm">{item.date}</div>
-                          </>
-                        }
-                      />
-                    </List.Item>
-                  )}
-                />
-              </TabPane>
-            </Tabs>
+                          ))}
+                        </div>
+                      </div>
+                      <p className={`text-[13px] mb-2 ${
+                        theme === "dark" ? "text-gray-400" : "text-gray-600"
+                      }`}>
+                        {review.comment}
+                      </p>
+                      <div className={`text-[12px] ${
+                        theme === "dark" ? "text-gray-600" : "text-gray-500"
+                      }`}>
+                        {review.date}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
-
-      {/* Rate Update Modal */}
-      <Modal
-        title="Update Your Rates"
-        open={isRateModalOpen}
-        onOk={handleRateUpdate}
-        onCancel={() => setIsRateModalOpen(false)}
-        width={600}
-      >
-        <div className="space-y-6">
-          <div>
-            <h3 className="font-medium mb-2">Production Rate</h3>
-            <div className="flex items-center gap-4">
-              <Select defaultValue="$" style={{ width: 80 }}>
-                <Option value="$">$ USD</Option>
-                <Option value="€">€ EUR</Option>
-                <Option value="£">£ GBP</Option>
-              </Select>
-              <Slider 
-                range 
-                defaultValue={[500, 1000]} 
-                min={100} 
-                max={5000} 
-                step={100}
-                className="flex-1"
-              />
-            </div>
-          </div>
-          
-          <div>
-            <h3 className="font-medium mb-2">Songwriting Rate</h3>
-            <div className="flex items-center gap-4">
-              <Select defaultValue="$" style={{ width: 80 }}>
-                <Option value="$">$ USD</Option>
-                <Option value="€">€ EUR</Option>
-                <Option value="£">£ GBP</Option>
-              </Select>
-              <Slider 
-                range 
-                defaultValue={[300, 700]} 
-                min={100} 
-                max={3000} 
-                step={100}
-                className="flex-1"
-              />
-            </div>
-          </div>
-          
-          <div>
-            <h3 className="font-medium mb-2">Mixing Rate</h3>
-            <div className="flex items-center gap-4">
-              <Select defaultValue="$" style={{ width: 80 }}>
-                <Option value="$">$ USD</Option>
-                <Option value="€">€ EUR</Option>
-                <Option value="£">£ GBP</Option>
-              </Select>
-              <Slider 
-                range 
-                defaultValue={[200, 400]} 
-                min={50} 
-                max={2000} 
-                step={50}
-                className="flex-1"
-              />
-            </div>
-          </div>
-          
-          <div className="border-t pt-4">
-            <h3 className="font-medium mb-2">Payment Methods</h3>
-            <div className="flex flex-wrap gap-4">
-              <Radio.Group defaultValue="paypal">
-                <Radio value="paypal">
-                  <div className="flex items-center gap-2">
-                    <BankOutlined />
-                    PayPal
-                  </div>
-                </Radio>
-                <Radio value="venmo" className="ml-4">
-                  <div className="flex items-center gap-2">
-                    <DollarOutlined />
-                    Venmo
-                  </div>
-                </Radio>
-                <Radio value="crypto" className="ml-4">
-                  <div className="flex items-center gap-2">
-                    <SafetyOutlined />
-                    Crypto
-                  </div>
-                </Radio>
-              </Radio.Group>
-            </div>
-          </div>
-        </div>
-      </Modal>
     </div>
   );
 }

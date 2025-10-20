@@ -1,65 +1,9 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { 
-  Card, 
-  Tag, 
-  Button, 
-  Input, 
-  Select, 
-  Tabs, 
-  Avatar, 
-  List, 
-  Divider, 
-  Radio, 
-  Slider, 
-  Rate, 
-  Popover,
-  Modal,
-  message,
-  Upload,
-  Progress,
-  Statistic,
-  Tooltip,
-  Switch,
-  Collapse,
-
-  Form,
-  Badge
-} from "antd";
 import { useRouter } from "next/navigation";
-import { 
-  SearchOutlined, 
-  FilterOutlined, 
-  HeartOutlined, 
-  HeartFilled, 
-  ClockCircleOutlined, 
-  UserOutlined,
-  PlusOutlined,
-  PlayCircleOutlined,
-  PauseCircleOutlined,
-  SoundOutlined,
-  EditOutlined,
-  TeamOutlined,
-  AuditOutlined,
-  FileTextOutlined,
-  SyncOutlined,
-  CrownOutlined,
-  MailOutlined,
-  CheckOutlined,
-  CloseOutlined,
-  UploadOutlined,
-  LikeOutlined,
-  MessageOutlined,
-  EllipsisOutlined
-} from "@ant-design/icons";
-
-const { Meta } = Card;
-const { Option } = Select;
-const { TabPane } = Tabs;
-const { Panel } = Collapse;
-
-const { TextArea } = Input;
+import { Search, Heart, Play, Pause, Music2, Users, FileText, Mic, Award, Crown, MessageCircle, Plus, TrendingUp, Clock, CheckCircle } from "lucide-react";
+import { useTheme } from "../../providers/ThemeProvider";
 
 type MusicService = {
   id: number;
@@ -175,7 +119,7 @@ const musicServices: MusicService[] = [
   {
     id: 5,
     type: 'audition',
-      auditionType: 'producer',
+    auditionType: 'producer',
     title: "Vocalist Auditions for Label",
     user: {
       name: "Urban Sounds Records",
@@ -213,76 +157,31 @@ const musicServices: MusicService[] = [
 ];
 
 const trendingSnippets = [
-  {
-    id: 1,
-    title: "Lofi Chill Loop",
-    user: "Chill Beats",
-    plays: 1245,
-    likes: 342,
-    duration: "1:02"
-  },
-  {
-    id: 2,
-    title: "Dance Drop Idea",
-    user: "EDM Creator",
-    plays: 982,
-    likes: 287,
-    duration: "0:45"
-  },
-  {
-    id: 3,
-    title: "R&B Vocal Run",
-    user: "Soul Singer",
-    plays: 876,
-    likes: 231,
-    duration: "0:38"
-  },
-  {
-    id: 4,
-    title: "Trap 808 Pattern",
-    user: "808 King",
-    plays: 765,
-    likes: 198,
-    duration: "0:52"
-  }
+  { id: 1, title: "Lofi Chill Loop", user: "Chill Beats", plays: 1245, duration: "1:02" },
+  { id: 2, title: "Dance Drop Idea", user: "EDM Creator", plays: 982, duration: "0:45" },
+  { id: 3, title: "R&B Vocal Run", user: "Soul Singer", plays: 876, duration: "0:38" }
 ];
 
-const comments = [
-  {
-    author: 'Producer Pro',
-    avatar: 'https://randomuser.me/api/portraits/men/11.jpg',
-    content: 'Love this hook! Would love to collab on a full track.',
-    datetime: '2 hours ago',
-  },
-  {
-    author: 'Vocal Queen',
-    avatar: 'https://randomuser.me/api/portraits/women/22.jpg',
-    content: 'The melody is fire! Working on some lyrics for this.',
-    datetime: '1 hour ago',
-  },
-  {
-    author: 'Beat Maker',
-    avatar: 'https://randomuser.me/api/portraits/men/33.jpg',
-    content: 'Could you send me the stems? Want to try a remix.',
-    datetime: '45 minutes ago',
-  },
-];
+const formatNumber = (num: number): string => {
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+  if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+  return num.toString();
+};
 
 export default function MusicServices() {
+  const router = useRouter();
+  const { theme } = useTheme();
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  
   const [activeTab, setActiveTab] = useState("snippets");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGenre, setSelectedGenre] = useState("all");
   const [selectedService, setSelectedService] = useState("all");
   const [isPlaying, setIsPlaying] = useState<number | null>(null);
-  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [isCollabModalOpen, setIsCollabModalOpen] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
   const [services, setServices] = useState<MusicService[]>(musicServices);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-   const router = useRouter();
 
-
-  const toggleLike = (id: number) => {
+  const toggleLike = (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
     setServices(services.map(service => 
       service.id === id ? { 
         ...service, 
@@ -292,571 +191,681 @@ export default function MusicServices() {
     ));
   };
 
-  const togglePlay = (id: number) => {
+  const togglePlay = (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
     if (isPlaying === id) {
       setIsPlaying(null);
       audioRef.current?.pause();
     } else {
       setIsPlaying(id);
-      // In a real app, we'd set the audio source here
       audioRef.current?.play();
     }
-  };
-
-  const showUploadModal = () => {
-    setIsUploadModalOpen(true);
-  };
-
-  const showCollabModal = () => {
-    setIsCollabModalOpen(true);
-  };
-
-  const handleUpload = () => {
-    // Simulate upload
-    const interval = setInterval(() => {
-      setUploadProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          return 100;
-        }
-        return prev + 10;
-      });
-    }, 300);
-
-    setTimeout(() => {
-      message.success('Your snippet has been uploaded!');
-      setIsUploadModalOpen(false);
-      setUploadProgress(0);
-    }, 3000);
   };
 
   const filteredServices = services.filter(service => {
     const matchesSearch = service.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       service.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       service.user.name.toLowerCase().includes(searchQuery.toLowerCase());
-    
     const matchesGenre = selectedGenre === "all" || service.genre.includes(selectedGenre);
     const matchesService = selectedService === "all" || service.type === selectedService;
-    
-    return matchesSearch && matchesGenre && matchesService;
+    const matchesTab = activeTab === "snippets" ? service.type === "snippet" :
+                       activeTab === "collabs" ? service.type === "collab" :
+                       activeTab === "lyrics" ? service.type === "lyrics" :
+                       activeTab === "writers" ? service.type === "writer" :
+                       activeTab === "auditions" ? service.type === "audition" :
+                       activeTab === "labels" ? service.type === "label" : true;
+    return matchesSearch && matchesGenre && matchesService && matchesTab;
   });
 
+  const getTypeConfig = (type: string) => {
+    const configs = {
+      snippet: { color: theme === "dark" ? "bg-blue-500/10 text-blue-400 border-blue-500/20" : "bg-blue-50 text-blue-600 border-blue-200/50", label: "SNIPPET", icon: <Music2 className="w-3 h-3" /> },
+      collab: { color: theme === "dark" ? "bg-purple-500/10 text-purple-400 border-purple-500/20" : "bg-purple-50 text-purple-600 border-purple-200/50", label: "COLLAB", icon: <Users className="w-3 h-3" /> },
+      lyrics: { color: theme === "dark" ? "bg-green-500/10 text-green-400 border-green-500/20" : "bg-green-50 text-green-600 border-green-200/50", label: "LYRICS", icon: <FileText className="w-3 h-3" /> },
+      writer: { color: theme === "dark" ? "bg-orange-500/10 text-orange-400 border-orange-500/20" : "bg-orange-50 text-orange-600 border-orange-200/50", label: "WRITER", icon: <FileText className="w-3 h-3" /> },
+      audition: { color: theme === "dark" ? "bg-red-500/10 text-red-400 border-red-500/20" : "bg-red-50 text-red-600 border-red-200/50", label: "AUDITION", icon: <Mic className="w-3 h-3" /> },
+      label: { color: theme === "dark" ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20" : "bg-yellow-50 text-yellow-600 border-yellow-200/50", label: "LABEL", icon: <Crown className="w-3 h-3" /> }
+    };
+    return configs[type as keyof typeof configs] || configs.snippet;
+  };
+
   return (
-    <div className="flex h-full bg-gray-50">
-      {/* Audio Element (hidden) */}
+    <div className="flex h-screen">
       <audio ref={audioRef} src="/sample.mp3" />
       
       {/* Main Content */}
       <div className="flex-1 p-6 overflow-auto">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-[1400px] mx-auto">
           {/* Header */}
-          <div className="mb-8">
-            <div className="flex justify-between items-center">
+          <div className="mb-6">
+            <div className="flex justify-between items-start">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">Music Services</h1>
-                <p className="text-gray-600">Collaborate, create, and connect with music professionals</p>
+                <h1 className={`text-2xl font-semibold mb-1 ${
+                  theme === "dark" ? "text-gray-100" : "text-gray-900"
+                }`}>
+                  Music Services
+                </h1>
+                <p className={`text-[13px] ${
+                  theme === "dark" ? "text-gray-500" : "text-gray-600"
+                }`}>
+                  Collaborate, create, and connect with music professionals
+                </p>
               </div>
-              <Button 
-                type="primary" 
-                size="large" 
-                icon={<PlusOutlined />}
-                onClick={showUploadModal}
+              <button
+                className={`
+                  flex items-center gap-2 px-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-200
+                  ${theme === "dark"
+                    ? "bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20"
+                    : "bg-purple-50 hover:bg-purple-100 text-purple-600 border border-purple-200/50"
+                  }
+                  active:scale-95
+                `}
               >
+                <Plus className="w-3.5 h-3.5" />
                 Upload Snippet
-              </Button>
+              </button>
             </div>
-            
+
             {/* Stats Bar */}
-            <div className="grid grid-cols-3 gap-4 mt-6">
-              <div className="bg-white p-4 rounded-lg shadow-sm border">
-                <div className="text-gray-500 text-sm">Active Collaborations</div>
-                <div className="text-2xl font-bold">1,248</div>
-              </div>
-              <div className="bg-white p-4 rounded-lg shadow-sm border">
-                <div className="text-gray-500 text-sm">Snippets Shared</div>
-                <div className="text-2xl font-bold">3,427</div>
-              </div>
-              <div className="bg-white p-4 rounded-lg shadow-sm border">
-                <div className="text-gray-500 text-sm">Successful Matches</div>
-                <div className="text-2xl font-bold">892</div>
-              </div>
+            <div className="grid grid-cols-3 gap-3 mt-4">
+              {[
+                { label: "Active Collaborations", value: "1,248" },
+                { label: "Snippets Shared", value: "3,427" },
+                { label: "Successful Matches", value: "892" }
+              ].map((stat, i) => (
+                <div
+                  key={i}
+                  className={`
+                    p-3 rounded-lg border backdrop-blur-sm
+                    ${theme === "dark"
+                      ? "bg-gray-900/40 border-gray-800/60"
+                      : "bg-white/50 border-gray-200/60"
+                    }
+                  `}
+                >
+                  <div className={`text-[11px] mb-1 ${
+                    theme === "dark" ? "text-gray-500" : "text-gray-600"
+                  }`}>
+                    {stat.label}
+                  </div>
+                  <div className={`text-xl font-bold ${
+                    theme === "dark" ? "text-gray-200" : "text-gray-900"
+                  }`}>
+                    {stat.value}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Search & Filters */}
-          <div className="bg-white p-4 rounded-lg shadow-sm border mb-6">
-            <div className="flex flex-col md:flex-row gap-4 mb-4">
-              <Input
-                placeholder="Search snippets, services, users..."
-                prefix={<SearchOutlined />}
-                className="w-full md:w-[300px]"
+          {/* Filters */}
+          <div className={`
+            flex flex-wrap gap-2 mb-6 p-4 rounded-lg border backdrop-blur-sm
+            ${theme === "dark" 
+              ? "bg-gray-950/40 border-gray-800/50" 
+              : "bg-white/40 border-gray-200/60"
+            }
+          `}>
+            {/* Search */}
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 ${
+                theme === "dark" ? "text-gray-500" : "text-gray-400"
+              }`} />
+              <input
+                type="text"
+                placeholder="Search services, users..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                className={`
+                  w-full pl-9 pr-3 py-2 text-[13px] rounded-lg border transition-all duration-200
+                  ${theme === "dark"
+                    ? "bg-gray-900/40 border-gray-800/60 text-gray-200 placeholder-gray-600 focus:border-purple-500/50"
+                    : "bg-gray-50/50 border-gray-200/60 text-gray-900 placeholder-gray-400 focus:border-purple-300"
+                  }
+                  focus:outline-none focus:ring-2 ${theme === "dark" ? "focus:ring-purple-500/20" : "focus:ring-purple-200"}
+                `}
               />
-              <Select
-                placeholder="All Genres"
-                className="w-full md:w-[180px]"
-                value={selectedGenre}
-                onChange={(value) => setSelectedGenre(value)}
-              >
-                <Option value="all">All Genres</Option>
-                <Option value="Pop">Pop</Option>
-                <Option value="Hip Hop">Hip Hop</Option>
-                <Option value="R&B">R&B</Option>
-                <Option value="Rock">Rock</Option>
-                <Option value="Electronic">Electronic</Option>
-                <Option value="Country">Country</Option>
-                <Option value="Jazz">Jazz</Option>
-              </Select>
-              <Select
-                placeholder="All Services"
-                className="w-full md:w-[180px]"
-                value={selectedService}
-                onChange={(value) => setSelectedService(value)}
-              >
-                <Option value="all">All Services</Option>
-                <Option value="snippet">Snippets</Option>
-                <Option value="collab">Collaborations</Option>
-                <Option value="lyrics">Lyrics</Option>
-                <Option value="writer">Songwriters</Option>
-                <Option value="audition">Auditions</Option>
-                <Option value="label">Labels</Option>
-              </Select>
-              <Button type="primary" icon={<FilterOutlined />}>
-                Advanced
-              </Button>
+            </div>
+
+            {/* Genre Filter */}
+            <select
+              value={selectedGenre}
+              onChange={(e) => setSelectedGenre(e.target.value)}
+              className={`
+                px-3 py-2 text-[13px] rounded-lg border transition-all duration-200 cursor-pointer
+                ${theme === "dark"
+                  ? "bg-gray-900/40 border-gray-800/60 text-gray-200"
+                  : "bg-gray-50/50 border-gray-200/60 text-gray-900"
+                }
+                focus:outline-none focus:ring-2 ${theme === "dark" ? "focus:ring-purple-500/20" : "focus:ring-purple-200"}
+              `}
+            >
+              <option value="all">All Genres</option>
+              <option value="Pop">Pop</option>
+              <option value="Hip Hop">Hip Hop</option>
+              <option value="R&B">R&B</option>
+              <option value="Rock">Rock</option>
+              <option value="Electronic">Electronic</option>
+            </select>
+
+            {/* Tab Filters */}
+            <div className="flex gap-1">
+              {[
+                { key: "snippets", label: "Snippets", icon: <Music2 className="w-3.5 h-3.5" /> },
+                { key: "collabs", label: "Collabs", icon: <Users className="w-3.5 h-3.5" /> },
+                { key: "lyrics", label: "Lyrics", icon: <FileText className="w-3.5 h-3.5" /> },
+                { key: "writers", label: "Writers", icon: <FileText className="w-3.5 h-3.5" /> },
+                { key: "auditions", label: "Auditions", icon: <Mic className="w-3.5 h-3.5" /> },
+                { key: "labels", label: "Labels", icon: <Crown className="w-3.5 h-3.5" /> }
+              ].map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`
+                    flex items-center gap-1.5 px-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-200
+                    ${activeTab === tab.key
+                      ? theme === "dark"
+                        ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
+                        : "bg-purple-50 text-purple-600 border border-purple-200"
+                      : theme === "dark"
+                        ? "bg-gray-900/40 hover:bg-gray-800/60 text-gray-400 hover:text-gray-300 border border-gray-800/60"
+                        : "bg-gray-50/50 hover:bg-gray-100 text-gray-600 hover:text-gray-900 border border-gray-200/60"
+                    }
+                    active:scale-95
+                  `}
+                >
+                  {tab.icon}
+                  {tab.label}
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Tabs */}
-          <Tabs 
-            activeKey={activeTab} 
-            onChange={setActiveTab} 
-            className="mb-6"
-            tabBarExtraContent={
-              <Radio.Group defaultValue="trending" size="small">
-                <Radio.Button value="trending">Trending</Radio.Button>
-                <Radio.Button value="recent">Recent</Radio.Button>
-                <Radio.Button value="following">Following</Radio.Button>
-              </Radio.Group>
-            }
-          >
-            <TabPane tab={<span><SoundOutlined /> Snippets</span>} key="snippets" />
-            <TabPane tab={<span><TeamOutlined /> Collabs</span>} key="collabs" />
-            <TabPane tab={<span><EditOutlined /> Lyrics</span>} key="lyrics" />
-            <TabPane tab={<span><FileTextOutlined /> Writers</span>} key="writers" />
-            <TabPane tab={<span><AuditOutlined /> Auditions</span>} key="auditions" />
-            <TabPane tab={<span><CrownOutlined /> Labels</span>} key="labels" />
-          </Tabs>
+          {/* Results Count */}
+          <div className={`text-[13px] mb-4 ${
+            theme === "dark" ? "text-gray-500" : "text-gray-600"
+          }`}>
+            {filteredServices.length} {filteredServices.length === 1 ? "service" : "services"} found
+          </div>
 
           {/* Services Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {filteredServices.map((service) => (
-              <Card
-                key={service.id}
-                hoverable
-                className="border rounded-lg overflow-hidden bg-white shadow-sm"
-              >
-                <div className="flex flex-col">
-                  {/* Header */}
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex items-center gap-3">
-                      <Avatar src={service.user.avatar} size="large" />
-                      <div>
-                        <div className="font-bold flex items-center">
-                          {service.user.name}
-                          {service.user.verified && (
-                            <CrownOutlined className="text-blue-500 ml-1" />
-                          )}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {service.user.followers.toLocaleString()} followers
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Tag color={
-                        service.type === 'snippet' ? 'blue' :
-                        service.type === 'collab' ? 'purple' :
-                        service.type === 'lyrics' ? 'green' :
-                        service.type === 'writer' ? 'orange' :
-                        service.type === 'audition' ? 'red' : 'gold'
-                      }>
-                        {service.type === 'snippet' ? 'SNIPPET' :
-                         service.type === 'collab' ? 'COLLAB' :
-                         service.type === 'lyrics' ? 'LYRICS' :
-                         service.type === 'writer' ? 'WRITER' :
-                         service.type === 'audition' ? 'AUDITION' : 'LABEL'}
-                      </Tag>
-                      <span className="text-xs text-gray-500">{service.date}</span>
-                    </div>
-                  </div>
-                  
-                  {/* Title & Description */}
-                  <h3 className="text-lg font-bold mb-2">{service.title}</h3>
-                  <p className="text-gray-700 mb-4">{service.description}</p>
-                  
-                  {/* Audio Player for Snippets */}
-                  {service.type === 'snippet' && (
-                    <div className="bg-gray-100 rounded-lg p-3 mb-4">
-                      <div className="flex items-center justify-between">
-                        <button 
-                          onClick={() => togglePlay(service.id)}
-                          className="text-2xl"
-                        >
-                          {isPlaying === service.id ? (
-                            <PauseCircleOutlined />
-                          ) : (
-                            <PlayCircleOutlined />
-                          )}
-                        </button>
-                        <span className="text-sm text-gray-500">
-                          {service.duration}
-                        </span>
-                        <span className="text-sm text-gray-500">
-                          {service.plays.toLocaleString()} plays
-                        </span>
-                      </div>
-                      <div className="mt-2">
-                        <Progress 
-                          percent={isPlaying === service.id ? 70 : 0} 
-                          showInfo={false} 
-                          strokeColor="#1890ff" 
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {filteredServices.map((service) => {
+              const typeConfig = getTypeConfig(service.type);
+              
+              return (
+                <div
+                  key={service.id}
+                  className={`
+                    group rounded-lg border overflow-hidden transition-all duration-200 cursor-pointer
+                    ${theme === "dark"
+                      ? "bg-gray-900/40 border-gray-800/60 hover:border-gray-700/80 hover:bg-gray-900/60"
+                      : "bg-white/50 border-gray-200/60 hover:border-gray-300/80 hover:bg-white/80"
+                    }
+                    hover:shadow-lg active:scale-[0.98]
+                  `}
+                  onClick={() => router.push(`/services/${service.id}`)}
+                >
+                  <div className="p-4">
+                    {/* Header */}
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-2.5">
+                        <img
+                          src={service.user.avatar}
+                          alt={service.user.name}
+                          className="w-10 h-10 rounded-full object-cover"
                         />
+                        <div>
+                          <div className="flex items-center gap-1">
+                            <span className={`text-[13px] font-semibold ${
+                              theme === "dark" ? "text-gray-200" : "text-gray-900"
+                            }`}>
+                              {service.user.name}
+                            </span>
+                            {service.user.verified && (
+                              <CheckCircle className="w-3.5 h-3.5 text-blue-500" />
+                            )}
+                          </div>
+                          <div className={`text-[11px] ${
+                            theme === "dark" ? "text-gray-600" : "text-gray-500"
+                          }`}>
+                            {formatNumber(service.user.followers)} followers
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-semibold border flex items-center gap-1 ${typeConfig.color}`}>
+                          {typeConfig.icon}
+                          {typeConfig.label}
+                        </span>
+                        <span className={`text-[11px] ${
+                          theme === "dark" ? "text-gray-600" : "text-gray-500"
+                        }`}>
+                          {service.date}
+                        </span>
                       </div>
                     </div>
-                  )}
-                  
-                  {/* Lyrics Preview */}
-                  {service.type === 'lyrics' && (
-                    <div className="bg-gray-50 p-3 rounded mb-4">
-                      <div className="text-sm italic text-gray-600">
-                        {service.lyrics?.substring(0, 100)}...
+
+                    {/* Title & Description */}
+                    <h3 className={`text-[15px] font-semibold mb-2 ${
+                      theme === "dark" ? "text-gray-200" : "text-gray-900"
+                    }`}>
+                      {service.title}
+                    </h3>
+                    <p className={`text-[13px] mb-3 line-clamp-2 ${
+                      theme === "dark" ? "text-gray-400" : "text-gray-600"
+                    }`}>
+                      {service.description}
+                    </p>
+
+                    {/* Audio Player for Snippets */}
+                    {service.type === 'snippet' && (
+                      <div className={`
+                        p-3 rounded-lg mb-3 border
+                        ${theme === "dark"
+                          ? "bg-gray-800/40 border-gray-800/60"
+                          : "bg-gray-50/50 border-gray-200/60"
+                        }
+                      `}>
+                        <div className="flex items-center justify-between mb-2">
+                          <button
+                            onClick={(e) => togglePlay(service.id, e)}
+                            className={`
+                              p-2 rounded-full transition-colors
+                              ${theme === "dark"
+                                ? "bg-purple-500/20 hover:bg-purple-500/30 text-purple-400"
+                                : "bg-purple-100 hover:bg-purple-200 text-purple-600"
+                              }
+                            `}
+                          >
+                            {isPlaying === service.id ? (
+                              <Pause className="w-4 h-4" />
+                            ) : (
+                              <Play className="w-4 h-4" />
+                            )}
+                          </button>
+                          <span className={`text-[12px] ${
+                            theme === "dark" ? "text-gray-500" : "text-gray-600"
+                          }`}>
+                            {service.duration}
+                          </span>
+                          <span className={`text-[12px] ${
+                            theme === "dark" ? "text-gray-500" : "text-gray-600"
+                          }`}>
+                            {formatNumber(service.plays!)} plays
+                          </span>
+                        </div>
+                        <div className={`h-1 rounded-full overflow-hidden ${
+                          theme === "dark" ? "bg-gray-700" : "bg-gray-200"
+                        }`}>
+                          <div
+                            className={`h-full ${
+                              theme === "dark" ? "bg-purple-500" : "bg-purple-600"
+                            }`}
+                            style={{ width: isPlaying === service.id ? "70%" : "0%" }}
+                          />
+                        </div>
                       </div>
-                    </div>
-                  )}
-                  
-                  {/* Tags */}
-                  <div className="flex flex-wrap gap-1 mb-4">
-                    {service.tags.map((tag, i) => (
-                      <Tag key={i}>{tag}</Tag>
-                    ))}
-                    {service.genre.map((genre, i) => (
-                      <Tag key={`g-${i}`} color="blue">{genre}</Tag>
-                    ))}
-                  </div>
-                  
-                  {/* Footer */}
-                  <div className="flex justify-between items-center border-t pt-3">
-                    <div className="flex items-center gap-4">
-                      <button 
-                        onClick={() => toggleLike(service.id)}
-                        className="flex items-center gap-1"
-                      >
-                        {service.liked ? (
-                          <HeartFilled className="text-red-500" />
-                        ) : (
-                          <HeartOutlined />
-                        )}
-                        <span>{service.likes}</span>
-                      </button>
-                      {service.comments && (
-                        <div className="flex items-center gap-1">
-                          <MessageOutlined />
-                          <span>{service.comments}</span>
-                        </div>
-                      )}
-                      {service.collaborators && (
-                        <div className="flex items-center gap-1">
-                          <TeamOutlined />
-                          <span>{service.collaborators}</span>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="flex gap-2">
-                      {service.type === 'snippet' && (
-                        <Button 
-                          type="primary" 
-                          size="small"
-                          onClick={showCollabModal}
+                    )}
+
+                    {/* Lyrics Preview */}
+                    {service.type === 'lyrics' && service.lyrics && (
+                      <div className={`
+                        p-3 rounded-lg mb-3 border italic
+                        ${theme === "dark"
+                          ? "bg-gray-800/40 border-gray-800/60 text-gray-400"
+                          : "bg-gray-50/50 border-gray-200/60 text-gray-600"
+                        }
+                      `}>
+                        <p className="text-[12px] line-clamp-2">{service.lyrics}</p>
+                      </div>
+                    )}
+
+                    {/* Tags */}
+                    <div className="flex flex-wrap gap-1 mb-3">
+                      {service.tags.slice(0, 3).map((tag, i) => (
+                        <span
+                          key={i}
+                          className={`
+                            px-2 py-0.5 text-[10px] font-medium rounded-md
+                            ${theme === "dark"
+                              ? "bg-gray-800/60 text-gray-400"
+                              : "bg-gray-100 text-gray-600"
+                            }
+                          `}
                         >
-                          Request Feature
-                        </Button>
-                      )}
-                      {service.type === 'collab' && (
-                        <Button 
-                     onClick={() => router.push(`/collabs/create/${service.id}`)} 
-                        type="primary" size="small">
-                          Join Collab
-                        </Button>
-                      )}
-        {service.type === 'lyrics' && (
-  <Button 
-    type="primary" 
-    size="small"
-    onClick={() => router.push(`/services/create/${service.id}`)}
-  >
-    Review Lyrics
-  </Button>
-)}
-                      {service.type === 'writer' && (
-                        <Button 
-                         onClick={() => router.push(`/services/edit/${service.id}`)} 
-                        
-                        type="primary" size="small">
-                          Hire Writer
-                        </Button>
-                      )}
-                      {service.type === 'audition' && (
-  <Button 
-    onClick={() => router.push(`/services/auditions/${service.auditionType}/${service.id}`)}
-    type="primary" 
-    size="small"
-  >
-    Submit Audition
-  </Button>
-)}
-                      {service.type === 'label' && (
-                        <Button type="primary" size="small">
-                          Contact Label
-                        </Button>
-                      )}
+                          {tag}
+                        </span>
+                      ))}
+                      {service.genre.map((genre, i) => (
+                        <span
+                          key={`g-${i}`}
+                          className={`
+                            px-2 py-0.5 text-[10px] font-medium rounded-md
+                            ${theme === "dark"
+                              ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                              : "bg-blue-50 text-blue-600 border border-blue-200/50"
+                            }
+                          `}
+                        >
+                          {genre}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Footer */}
+                    <div className={`flex items-center justify-between pt-3 border-t ${
+                      theme === "dark" ? "border-gray-800/60" : "border-gray-200/60"
+                    }`}>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={(e) => toggleLike(service.id, e)}
+                          className="flex items-center gap-1"
+                        >
+                          <Heart className={`w-3.5 h-3.5 ${service.liked ? "fill-red-500 text-red-500" : theme === "dark" ? "text-gray-500" : "text-gray-400"}`} />
+                          <span className={`text-[12px] font-medium ${
+                            service.liked ? "text-red-500" : theme === "dark" ? "text-gray-400" : "text-gray-600"
+                          }`}>
+                            {service.likes}
+                          </span>
+                        </button>
+                        {service.comments !== undefined && (
+                          <div className="flex items-center gap-1">
+                            <MessageCircle className={`w-3.5 h-3.5 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`} />
+                            <span className={`text-[12px] font-medium ${
+                              theme === "dark" ? "text-gray-400" : "text-gray-600"
+                            }`}>
+                              {service.comments}
+                            </span>
+                          </div>
+                        )}
+                        {service.collaborators !== undefined && (
+                          <div className="flex items-center gap-1">
+                            <Users className={`w-3.5 h-3.5 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`} />
+                            <span className={`text-[12px] font-medium ${
+                              theme === "dark" ? "text-gray-400" : "text-gray-600"
+                            }`}>
+                              {service.collaborators}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      <button
+                        className={`
+                          flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium rounded-lg transition-all duration-200
+                          ${theme === "dark"
+                            ? "bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20"
+                            : "bg-purple-50 hover:bg-purple-100 text-purple-600 border border-purple-200/50"
+                          }
+                          active:scale-95
+                        `}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (service.type === 'snippet') {
+                            // Handle snippet action
+                          } else if (service.type === 'collab') {
+                            router.push(`/collabs/create/${service.id}`);
+                          } else if (service.type === 'lyrics') {
+                            router.push(`/services/create/${service.id}`);
+                          } else if (service.type === 'writer') {
+                            router.push(`/services/edit/${service.id}`);
+                          } else if (service.type === 'audition') {
+                            router.push(`/services/auditions/${service.auditionType}/${service.id}`);
+                          }
+                        }}
+                      >
+                        {service.type === 'snippet' ? 'Request Feature' :
+                         service.type === 'collab' ? 'Join Collab' :
+                         service.type === 'lyrics' ? 'Review Lyrics' :
+                         service.type === 'writer' ? 'Hire Writer' :
+                         service.type === 'audition' ? 'Submit Audition' : 'Contact Label'}
+                      </button>
                     </div>
                   </div>
                 </div>
-              </Card>
-            ))}
+              );
+            })}
           </div>
+
+          {/* Empty State */}
+          {filteredServices.length === 0 && (
+            <div className={`
+              text-center py-12 rounded-lg border backdrop-blur-sm
+              ${theme === "dark"
+                ? "bg-gray-950/40 border-gray-800/50"
+                : "bg-white/40 border-gray-200/60"
+              }
+            `}>
+              <Music2 className={`w-12 h-12 mx-auto mb-3 ${
+                theme === "dark" ? "text-gray-700" : "text-gray-300"
+              }`} />
+              <p className={`text-[14px] font-medium mb-1 ${
+                theme === "dark" ? "text-gray-400" : "text-gray-600"
+              }`}>
+                No services found
+              </p>
+              <p className={`text-[12px] ${
+                theme === "dark" ? "text-gray-600" : "text-gray-500"
+              }`}>
+                Try adjusting your filters or search query
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Right Sidebar */}
-      <div className="w-80 border-l border-gray-200 hidden xl:block p-6 bg-white overflow-y-auto">
+      {/* Activity Sidebar */}
+      <div className={`
+        w-80 border-l hidden xl:block p-6 overflow-y-auto
+        ${theme === "dark"
+          ? "bg-black border-gray-800/50"
+          : "bg-white/40 border-gray-200/60"
+        }
+      `}>
         <div className="sticky top-6">
           {/* Trending Snippets */}
-          <div className="mb-8">
-            <h2 className="text-lg font-bold mb-4">🔥 Trending Snippets</h2>
-            <div className="space-y-4">
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-4">
+              <TrendingUp className={`w-4 h-4 ${theme === "dark" ? "text-purple-400" : "text-purple-600"}`} />
+              <h2 className={`text-[15px] font-semibold ${
+                theme === "dark" ? "text-gray-200" : "text-gray-900"
+              }`}>
+                Trending Snippets
+              </h2>
+            </div>
+            <div className="space-y-3">
               {trendingSnippets.map((snippet) => (
-                <div 
-                  key={snippet.id} 
-                  className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer"
+                <div
+                  key={snippet.id}
+                  className={`
+                    flex items-center gap-3 p-2.5 rounded-lg border transition-all duration-200 cursor-pointer
+                    ${theme === "dark"
+                      ? "bg-gray-900/40 border-gray-800/60 hover:bg-gray-900/60"
+                      : "bg-white/50 border-gray-200/60 hover:bg-white/80"
+                    }
+                  `}
                 >
-                  <div className="bg-gray-200 rounded-lg w-12 h-12 flex items-center justify-center">
-                    <PlayCircleOutlined className="text-lg" />
+                  <div className={`
+                    w-10 h-10 rounded-lg flex items-center justify-center
+                    ${theme === "dark" ? "bg-purple-500/20" : "bg-purple-100"}
+                  `}>
+                    <Play className={`w-4 h-4 ${theme === "dark" ? "text-purple-400" : "text-purple-600"}`} />
                   </div>
-                  <div className="flex-1">
-                    <div className="font-medium">{snippet.title}</div>
-                    <div className="text-xs text-gray-500">{snippet.user}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className={`text-[13px] font-medium truncate ${
+                      theme === "dark" ? "text-gray-200" : "text-gray-900"
+                    }`}>
+                      {snippet.title}
+                    </div>
+                    <div className={`text-[11px] ${
+                      theme === "dark" ? "text-gray-600" : "text-gray-500"
+                    }`}>
+                      {snippet.user}
+                    </div>
                   </div>
-                  <div className="text-xs text-gray-500">
+                  <div className={`text-[11px] flex-shrink-0 ${
+                    theme === "dark" ? "text-gray-600" : "text-gray-500"
+                  }`}>
                     {snippet.duration}
                   </div>
                 </div>
               ))}
             </div>
-            <Button type="link" className="w-full mt-2">View All</Button>
+            <button
+              className={`
+                w-full mt-3 px-3 py-2 text-[12px] font-medium rounded-lg transition-all duration-200
+                ${theme === "dark"
+                  ? "bg-gray-800/60 hover:bg-gray-800 text-gray-300 border border-gray-700/60"
+                  : "bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200"
+                }
+                active:scale-95
+              `}
+            >
+              View All
+            </button>
           </div>
-          
-          <Divider />
-          
+
+          {/* Divider */}
+          <div className={`h-px my-6 ${
+            theme === "dark" ? "bg-gray-800/60" : "bg-gray-200/60"
+          }`} />
+
           {/* Half Songs */}
-          <div className="mb-8">
-            <h2 className="text-lg font-bold mb-4">
-              <SyncOutlined className="mr-2" />
-              Finish These Songs
-            </h2>
-            <div className="space-y-3">
-              <div className="p-3 border rounded-lg">
-                <div className="font-medium mb-1">Midnight  (Needs Verse)</div>
-                <div className="text-xs text-gray-500 mb-2">Pop • 45% complete</div>
-                <Progress percent={45} size="small" />
-              </div>
-              <div className="p-3 border rounded-lg">
-                <div className="font-medium mb-1"> ds(Needs Hook)</div>
-                <div className="text-xs text-gray-500 mb-2">R&B • 60% complete</div>
-                <Progress percent={60} size="small" />
-              </div>
-              <div className="p-3 border rounded-lg">
-                <div className="font-medium mb-1">Revolution (Needs Bridge)</div>
-                <div className="text-xs text-gray-500 mb-2">Rock • 75% complete</div>
-                <Progress percent={75} size="small" />
-              </div>
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Music2 className={`w-4 h-4 ${theme === "dark" ? "text-purple-400" : "text-purple-600"}`} />
+              <h2 className={`text-[15px] font-semibold ${
+                theme === "dark" ? "text-gray-200" : "text-gray-900"
+              }`}>
+                Finish These Songs
+              </h2>
             </div>
-            <Button type="link" className="w-full mt-2">Browse More</Button>
+            <div className="space-y-3">
+              {[
+                { title: "Midnight Dreams", needs: "Needs Verse", genre: "Pop", progress: 45 },
+                { title: "City Lights", needs: "Needs Hook", genre: "R&B", progress: 60 },
+                { title: "Revolution", needs: "Needs Bridge", genre: "Rock", progress: 75 }
+              ].map((song, i) => (
+                <div
+                  key={i}
+                  className={`
+                    p-3 rounded-lg border
+                    ${theme === "dark"
+                      ? "bg-gray-900/40 border-gray-800/60"
+                      : "bg-white/50 border-gray-200/60"
+                    }
+                  `}
+                >
+                  <div className={`text-[13px] font-medium mb-1 ${
+                    theme === "dark" ? "text-gray-200" : "text-gray-900"
+                  }`}>
+                    {song.title} ({song.needs})
+                  </div>
+                  <div className={`text-[11px] mb-2 ${
+                    theme === "dark" ? "text-gray-600" : "text-gray-500"
+                  }`}>
+                    {song.genre} • {song.progress}% complete
+                  </div>
+                  <div className={`h-1.5 rounded-full overflow-hidden ${
+                    theme === "dark" ? "bg-gray-800" : "bg-gray-200"
+                  }`}>
+                    <div
+                      className={`h-full ${
+                        theme === "dark" ? "bg-purple-500" : "bg-purple-600"
+                      }`}
+                      style={{ width: `${song.progress}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button
+              className={`
+                w-full mt-3 px-3 py-2 text-[12px] font-medium rounded-lg transition-all duration-200
+                ${theme === "dark"
+                  ? "bg-gray-800/60 hover:bg-gray-800 text-gray-300 border border-gray-700/60"
+                  : "bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200"
+                }
+                active:scale-95
+              `}
+            >
+              Browse More
+            </button>
           </div>
-          
-          <Divider />
-          
+
+          {/* Divider */}
+          <div className={`h-px my-6 ${
+            theme === "dark" ? "bg-gray-800/60" : "bg-gray-200/60"
+          }`} />
+
           {/* Recent Activity */}
           <div>
-            <h2 className="text-lg font-bold mb-4">Recent Activity</h2>
-            <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <Avatar src="https://randomuser.me/api/portraits/men/41.jpg" />
-                <div>
-                  <div className="text-sm">
-                    <span className="font-medium">Beat Master</span> liked your snippet summer vibes
-                  </div>
-                  <div className="text-xs text-gray-500">15 min ago</div>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <Avatar src="https://randomuser.me/api/portraits/women/63.jpg" />
-                <div>
-                  <div className="text-sm">
-                    <span className="font-medium">Lyric Queen</span> requested to collab on your track
-                  </div>
-                  <div className="text-xs text-gray-500">1 hour ago</div>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <Avatar src="https://randomuser.me/api/portraits/men/32.jpg" />
-                <div>
-                  <div className="text-sm">
-                    <span className="font-medium">Urban Records</span> viewed your profile
-                  </div>
-                  <div className="text-xs text-gray-500">3 hours ago</div>
-                </div>
-              </div>
+            <div className="flex items-center gap-2 mb-4">
+              <Clock className={`w-4 h-4 ${theme === "dark" ? "text-purple-400" : "text-purple-600"}`} />
+              <h2 className={`text-[15px] font-semibold ${
+                theme === "dark" ? "text-gray-200" : "text-gray-900"
+              }`}>
+                Recent Activity
+              </h2>
             </div>
-            <Button type="link" className="w-full mt-2">See All Activity</Button>
+            <div className="space-y-3">
+              {[
+                { name: "Beat Master", avatar: "https://randomuser.me/api/portraits/men/41.jpg", action: "liked your snippet", item: "summer vibes", time: "15 min ago" },
+                { name: "Lyric Queen", avatar: "https://randomuser.me/api/portraits/women/63.jpg", action: "requested to collab on", item: "your track", time: "1 hour ago" },
+                { name: "Urban Records", avatar: "https://randomuser.me/api/portraits/men/32.jpg", action: "viewed", item: "your profile", time: "3 hours ago" }
+              ].map((activity, i) => (
+                <div
+                  key={i}
+                  className={`
+                    flex items-start gap-3 p-2.5 rounded-lg border transition-all duration-200
+                    ${theme === "dark"
+                      ? "bg-gray-900/40 border-gray-800/60"
+                      : "bg-white/50 border-gray-200/60"
+                    }
+                  `}
+                >
+                  <img
+                    src={activity.avatar}
+                    alt={activity.name}
+                    className="w-8 h-8 rounded-full object-cover"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className={`text-[12px] ${
+                      theme === "dark" ? "text-gray-300" : "text-gray-900"
+                    }`}>
+                      <span className="font-medium">{activity.name}</span>
+                      {' '}
+                      <span className={theme === "dark" ? "text-gray-500" : "text-gray-600"}>
+                        {activity.action}
+                      </span>
+                      {' '}
+                      <span className="font-medium">{activity.item}</span>
+                    </div>
+                    <div className={`text-[11px] mt-0.5 ${
+                      theme === "dark" ? "text-gray-600" : "text-gray-500"
+                    }`}>
+                      {activity.time}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button
+              className={`
+                w-full mt-3 px-3 py-2 text-[12px] font-medium rounded-lg transition-all duration-200
+                ${theme === "dark"
+                  ? "bg-gray-800/60 hover:bg-gray-800 text-gray-300 border border-gray-700/60"
+                  : "bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200"
+                }
+                active:scale-95
+              `}
+            >
+              See All Activity
+            </button>
           </div>
         </div>
       </div>
-
-      {/* Upload Snippet Modal */}
-      <Modal 
-        title="Upload Your Snippet" 
-        open={isUploadModalOpen} 
-        onOk={handleUpload}
-        onCancel={() => setIsUploadModalOpen(false)}
-        okText="Upload"
-        width={600}
-      >
-        <div className="mb-6">
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Snippet Title</label>
-            <Input placeholder="e.g., 'Chill Lofi Hook'" />
-          </div>
-          
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Description</label>
-            <TextArea 
-              rows={3} 
-              placeholder="Describe your snippet, what you're looking for, etc." 
-            />
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Genre</label>
-              <Select className="w-full" placeholder="Select genre">
-                <Option value="Pop">Pop</Option>
-                <Option value="Hip Hop">Hip Hop</Option>
-                <Option value="R&B">R&B</Option>
-                <Option value="Rock">Rock</Option>
-                <Option value="Electronic">Electronic</Option>
-              </Select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Mood/Tags</label>
-              <Select
-                mode="tags"
-                style={{ width: '100%' }}
-                placeholder="e.g., Chill, Upbeat, Sad"
-              />
-            </div>
-          </div>
-          
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Upload Audio</label>
-            <Upload.Dragger 
-              name="file"
-              multiple={false}
-              accept=".mp3,.wav"
-              showUploadList={false}
-            >
-              <p className="ant-upload-drag-icon">
-                <UploadOutlined />
-              </p>
-              <p className="ant-upload-text">Click or drag file to this area to upload</p>
-              <p className="ant-upload-hint">MP3 or WAV, max 5MB</p>
-            </Upload.Dragger>
-          </div>
-          
-          {uploadProgress > 0 && (
-            <div className="mb-4">
-              <Progress percent={uploadProgress} status="active" />
-            </div>
-          )}
-          
-          <div className="mb-4">
-            <Switch defaultChecked /> 
-            <span className="text-sm ml-2">Allow others to use this in collabs</span>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Collab Request Modal */}
-      <Modal 
-        title="Request Feature on Snippet" 
-        open={isCollabModalOpen} 
-        onOk={() => {
-          message.success('Collab request sent!');
-          setIsCollabModalOpen(false);
-        }}
-        onCancel={() => setIsCollabModalOpen(false)}
-        okText="Send Request"
-        width={600}
-      >
-        <div className="mb-6">
-          <div className="flex items-start gap-4 mb-4">
-            <Avatar src={musicServices[0].user.avatar} size={64} />
-            <div>
-              <h4 className="font-bold">{musicServices[0].title}</h4>
-              <div className="text-sm text-gray-600">{musicServices[0].user.name}</div>
-              <div className="flex flex-wrap gap-1 mt-1">
-                {musicServices[0].tags.slice(0, 3).map((tag, i) => (
-                  <Tag key={i} className="text-xs">{tag}</Tag>
-                ))}
-              </div>
-            </div>
-          </div>
-          
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Your Role</label>
-            <Select className="w-full" placeholder="Select your role">
-              <Option value="vocalist">Vocalist</Option>
-              <Option value="rapper">Rapper</Option>
-              <Option value="producer">Producer</Option>
-              <Option value="lyricist">Lyricist</Option>
-              <Option value="instrumentalist">Instrumentalist</Option>
-            </Select>
-          </div>
-          
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Message</label>
-            <TextArea 
-              rows={4} 
-              placeholder="Tell them about your ideas for the collab..." 
-            />
-          </div>
-          
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Attach Your Work (Optional)</label>
-            <Upload>
-              <Button icon={<UploadOutlined />}>Upload File</Button>
-            </Upload>
-          </div>
-          
-          <div className="mb-4">
-            <Switch defaultChecked /> 
-            <span className="text-sm ml-2">Allow them to contact you</span>
-          </div>
-        </div>
-      </Modal>
     </div>
   );
 }

@@ -35,7 +35,7 @@ export const WorkspaceHeader = ({
     <div
       className={`border-b backdrop-blur-sm ${
         theme === "dark" 
-          ? "bg-gray-950/40 border-gray-800/50" 
+          ? "bg-black border-gray-800/50" 
           : "bg-white/40 border-gray-200/60"
       }`}
     >
@@ -48,7 +48,7 @@ export const WorkspaceHeader = ({
               <span className={`text-[11px] font-medium tracking-[0.15em] ${
                 theme === "dark" ? "text-gray-300" : "text-gray-900"
               }`}>
-                BEAT HUB
+                make a beep!
               </span>
             </div>
             <button

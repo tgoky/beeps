@@ -1,45 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { 
-  Card, 
-  Tag, 
-  Button, 
-  Input, 
-  Select, 
-  Tabs, 
-  Avatar, 
-  List, 
-  Badge, 
-  Divider, 
-  Radio, 
-  Slider, 
-  Rate, 
-  Popover,
-  Modal,
-  message 
-} from "antd";
-import { useRouter } from 'next/navigation';
-import { 
-  SearchOutlined, 
-  FilterOutlined, 
-  HeartOutlined, 
-  HeartFilled, 
-  ClockCircleOutlined, 
-  DollarOutlined, 
-  EnvironmentOutlined, 
-  UserOutlined, 
-  FireOutlined, 
-  StarFilled, 
-  MessageOutlined, 
-  CheckOutlined,
-  CloseOutlined,
-  MoreOutlined
-} from "@ant-design/icons";
-
-const { Meta } = Card;
-const { Option } = Select;
-const { TabPane } = Tabs;
+import { useRouter } from "next/navigation";
+import { Search, MapPin, Clock, Heart, DollarSign, TrendingUp, Users, Filter, CheckCircle, XCircle, Star, Music2, Zap } from "lucide-react";
+import { useTheme } from "../../providers/ThemeProvider";
 
 type BookingSession = {
   id: number;
@@ -162,6 +126,44 @@ const sessionData: BookingSession[] = [
     liked: false,
     image: "https://images.unsplash.com/photo-1501612780327-45045538702b",
   },
+  {
+    id: 5,
+    title: "Producer Collab Special",
+    type: 'collab',
+    producer: {
+      name: "Sarah Synth",
+      avatar: "https://randomuser.me/api/portraits/women/25.jpg",
+      rating: 4.9,
+    },
+    price: "Free",
+    duration: "2-3 hours",
+    location: "Remote",
+    equipment: ["Ableton Live", "MIDI Controllers"],
+    genre: ["Electronic", "House"],
+    date: "This Month",
+    slots: 8,
+    liked: false,
+    image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b",
+  },
+  {
+    id: 6,
+    title: "Bidding War: Premium Studio",
+    type: 'bid',
+    studio: {
+      name: "Platinum Records",
+      avatar: "https://randomuser.me/api/portraits/men/18.jpg",
+      rating: 5.0,
+    },
+    price: "Starting at $75",
+    duration: "4 hours",
+    location: "Nashville, TN",
+    equipment: ["API Console", "Vintage Mics", "Drum Room"],
+    genre: ["Country", "Rock", "Pop"],
+    date: "Next Month",
+    slots: 15,
+    liked: true,
+    image: "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04",
+  },
 ];
 
 const activityData: Activity[] = [
@@ -211,367 +213,711 @@ const activityData: Activity[] = [
   },
 ];
 
+const formatNumber = (num: number): string => {
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+  if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+  return num.toString();
+};
+
 export default function SessionBookings() {
+  const router = useRouter();
+  const { theme } = useTheme();
+  
   const [activeTab, setActiveTab] = useState("deals");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGenre, setSelectedGenre] = useState("all");
   const [selectedLocation, setSelectedLocation] = useState("all");
-  const [priceRange, setPriceRange] = useState([0, 200]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [bidPrice, setBidPrice] = useState(50);
   const [sessions, setSessions] = useState<BookingSession[]>(sessionData);
-  const router = useRouter();
+  const [showBidModal, setShowBidModal] = useState(false);
+  const [bidPrice, setBidPrice] = useState(50);
 
-  const toggleLike = (id: number) => {
+  const toggleLike = (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
     setSessions(sessions.map(session => 
       session.id === id ? { ...session, liked: !session.liked } : session
     ));
   };
 
-  const showModal = () => {
-    setIsModalOpen(true);
-  };
-
-  const handleBidSubmit = () => {
-    message.success(`Bid submitted for $${bidPrice}!`);
-    setIsModalOpen(false);
-  };
-
   const filteredSessions = sessions.filter(session => {
-  const matchesSearch =
-    session.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (session.studio?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      session.producer?.name?.toLowerCase().includes(searchQuery.toLowerCase()));
-  const matchesGenre = selectedGenre === "all" || session.genre.includes(selectedGenre);
-  const matchesLocation = selectedLocation === "all" || session.location.includes(selectedLocation);
-  const matchesPrice =
-    typeof session.price === "number"
-      ? session.price >= priceRange[0] && session.price <= priceRange[1]
-      : true;
-  return matchesSearch && matchesGenre && matchesLocation && matchesPrice;
-});
+    const matchesSearch = session.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         (session.studio?.name || session.producer?.name || "").toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesGenre = selectedGenre === "all" || session.genre.includes(selectedGenre);
+    const matchesLocation = selectedLocation === "all" || session.location.includes(selectedLocation);
+    const matchesTab = activeTab === "deals" ? session.type === "deal" :
+                       activeTab === "collabs" ? session.type === "collab" :
+                       activeTab === "bids" ? session.type === "bid" : true;
+    return matchesSearch && matchesGenre && matchesLocation && matchesTab;
+  });
+
   return (
-    <div className="flex h-full">
+    <div className="flex h-screen">
       {/* Main Content */}
       <div className="flex-1 p-6 overflow-auto">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-[1400px] mx-auto">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Collabs & Deals</h1>
-            <p className="text-gray-600">Find deals, collabs, or name your price for studio time</p>
-          </div>
-
-          {/* Search & Filters */}
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <Input
-              placeholder="Search studios, producers, deals..."
-              prefix={<SearchOutlined />}
-              className="w-full md:w-[300px]"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <Select
-              placeholder="All Genres"
-              className="w-full md:w-[180px]"
-              value={selectedGenre}
-              onChange={(value) => setSelectedGenre(value)}
-            >
-              <Option value="all">All Genres</Option>
-              <Option value="Hip Hop">Hip Hop</Option>
-              <Option value="Trap">Trap</Option>
-              <Option value="R&B">R&B</Option>
-              <Option value="Pop">Pop</Option>
-              <Option value="Rock">Rock</Option>
-              <Option value="Electronic">Electronic</Option>
-            </Select>
-            <Select
-              placeholder="All Locations"
-              className="w-full md:w-[180px]"
-              value={selectedLocation}
-              onChange={(value) => setSelectedLocation(value)}
-            >
-              <Option value="all">All Locations</Option>
-              <Option value="Los Angeles">Los Angeles</Option>
-              <Option value="New York">New York</Option>
-              <Option value="Miami">Miami</Option>
-              <Option value="Chicago">Chicago</Option>
-              <Option value="Online">Online</Option>
-            </Select>
-            <Button type="primary" icon={<FilterOutlined />}>
-              More Filters
-            </Button>
-          </div>
-
-          {/* Price Range Slider */}
           <div className="mb-6">
-            <h4 className="text-sm font-medium mb-2">Price Range: ${priceRange[0]} - ${priceRange[1]}</h4>
-            <Slider 
-              range 
-              min={0} 
-              max={200} 
-              defaultValue={[0, 200]} 
-              onChange={(value) => setPriceRange(value)} 
-            />
+            <h1 className={`text-2xl font-semibold mb-1 ${
+              theme === "dark" ? "text-gray-100" : "text-gray-900"
+            }`}>
+              Collabs & Deals
+            </h1>
+            <p className={`text-[13px] ${
+              theme === "dark" ? "text-gray-500" : "text-gray-600"
+            }`}>
+              Find deals, collabs, or name your price for studio time
+            </p>
           </div>
 
-          {/* Tabs */}
-          <Tabs 
-            activeKey={activeTab} 
-            onChange={setActiveTab} 
-            className="mb-6"
-            tabBarExtraContent={
-              <Radio.Group defaultValue="all" size="small">
-                <Radio.Button value="all">All</Radio.Button>
-                <Radio.Button value="studios">Studios</Radio.Button>
-                <Radio.Button value="producers">Producers</Radio.Button>
-              </Radio.Group>
+          {/* Filters */}
+          <div className={`
+            flex flex-wrap gap-2 mb-6 p-4 rounded-lg border backdrop-blur-sm
+            ${theme === "dark" 
+              ? "bg-gray-950/40 border-gray-800/50" 
+              : "bg-white/40 border-gray-200/60"
             }
-          >
-            <TabPane tab={<span><FireOutlined /> Hot Deals</span>} key="deals" />
-            <TabPane tab={<span><UserOutlined /> Collabs</span>} key="collabs" />
-            <TabPane tab={<span><DollarOutlined /> Name Your Price</span>} key="bids" />
-          </Tabs>
+          `}>
+            {/* Search */}
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 ${
+                theme === "dark" ? "text-gray-500" : "text-gray-400"
+              }`} />
+              <input
+                type="text"
+                placeholder="Search sessions..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className={`
+                  w-full pl-9 pr-3 py-2 text-[13px] rounded-lg border transition-all duration-200
+                  ${theme === "dark"
+                    ? "bg-gray-900/40 border-gray-800/60 text-gray-200 placeholder-gray-600 focus:border-purple-500/50"
+                    : "bg-gray-50/50 border-gray-200/60 text-gray-900 placeholder-gray-400 focus:border-purple-300"
+                  }
+                  focus:outline-none focus:ring-2 ${theme === "dark" ? "focus:ring-purple-500/20" : "focus:ring-purple-200"}
+                `}
+              />
+            </div>
+
+            {/* Genre Filter */}
+            <select
+              value={selectedGenre}
+              onChange={(e) => setSelectedGenre(e.target.value)}
+              className={`
+                px-3 py-2 text-[13px] rounded-lg border transition-all duration-200 cursor-pointer
+                ${theme === "dark"
+                  ? "bg-gray-900/40 border-gray-800/60 text-gray-200"
+                  : "bg-gray-50/50 border-gray-200/60 text-gray-900"
+                }
+                focus:outline-none focus:ring-2 ${theme === "dark" ? "focus:ring-purple-500/20" : "focus:ring-purple-200"}
+              `}
+            >
+              <option value="all">All Genres</option>
+              <option value="Hip Hop">Hip Hop</option>
+              <option value="Trap">Trap</option>
+              <option value="R&B">R&B</option>
+              <option value="Pop">Pop</option>
+              <option value="Rock">Rock</option>
+              <option value="Electronic">Electronic</option>
+            </select>
+
+            {/* Location Filter */}
+            <select
+              value={selectedLocation}
+              onChange={(e) => setSelectedLocation(e.target.value)}
+              className={`
+                px-3 py-2 text-[13px] rounded-lg border transition-all duration-200 cursor-pointer
+                ${theme === "dark"
+                  ? "bg-gray-900/40 border-gray-800/60 text-gray-200"
+                  : "bg-gray-50/50 border-gray-200/60 text-gray-900"
+                }
+                focus:outline-none focus:ring-2 ${theme === "dark" ? "focus:ring-purple-500/20" : "focus:ring-purple-200"}
+              `}
+            >
+              <option value="all">All Locations</option>
+              <option value="Los Angeles">Los Angeles</option>
+              <option value="New York">New York</option>
+              <option value="Miami">Miami</option>
+              <option value="Chicago">Chicago</option>
+              <option value="Online">Online/Remote</option>
+            </select>
+
+            {/* Tab Filters */}
+            <div className="flex gap-1">
+              {[
+                { key: "deals", label: "Hot Deals", icon: <Zap className="w-3.5 h-3.5" /> },
+                { key: "collabs", label: "Collabs", icon: <Users className="w-3.5 h-3.5" /> },
+                { key: "bids", label: "Bids", icon: <DollarSign className="w-3.5 h-3.5" /> }
+              ].map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`
+                    flex items-center gap-1.5 px-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-200
+                    ${activeTab === tab.key
+                      ? theme === "dark"
+                        ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
+                        : "bg-purple-50 text-purple-600 border border-purple-200"
+                      : theme === "dark"
+                        ? "bg-gray-900/40 hover:bg-gray-800/60 text-gray-400 hover:text-gray-300 border border-gray-800/60"
+                        : "bg-gray-50/50 hover:bg-gray-100 text-gray-600 hover:text-gray-900 border border-gray-200/60"
+                    }
+                    active:scale-95
+                  `}
+                >
+                  {tab.icon}
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Results Count */}
+          <div className={`text-[13px] mb-4 ${
+            theme === "dark" ? "text-gray-500" : "text-gray-600"
+          }`}>
+            {filteredSessions.length} {filteredSessions.length === 1 ? "session" : "sessions"} found
+          </div>
 
           {/* Sessions Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {filteredSessions.map((session) => (
-              <Card
+              <div
                 key={session.id}
-                hoverable
-                className="relative border rounded-lg overflow-hidden"
-                cover={
-                  <div className="relative h-40 group">
-                    <img 
-                      alt={session.title} 
-                      src={session.image} 
-                      className="w-full h-full object-cover"
-                    />
-                    {session.type === 'deal' && session.discount && (
-                      <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
-                        {session.discount}% OFF
-                      </div>
-                    )}
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-                      <h3 className="text-white font-bold text-lg">{session.title}</h3>
-                      <div className="flex items-center text-white/80 text-sm">
-                        <EnvironmentOutlined className="mr-1" />
-                        {session.location}
-                      </div>
-                    </div>
-                  </div>
-                }
+                className={`
+                  group rounded-lg border overflow-hidden transition-all duration-200 cursor-pointer
+                  ${theme === "dark"
+                    ? "bg-gray-900/40 border-gray-800/60 hover:border-gray-700/80 hover:bg-gray-900/60"
+                    : "bg-white/50 border-gray-200/60 hover:border-gray-300/80 hover:bg-white/80"
+                  }
+                  hover:shadow-lg active:scale-[0.98]
+                `}
+                onClick={() => router.push(`/bookings/${session.id}`)}
               >
-                <div className="flex justify-between items-start mb-3">
-                  <div className="flex items-center gap-2">
-                    <Avatar src={session.studio?.avatar || session.producer?.avatar} />
-                    <div>
-                      <div className="font-medium">
-                        {session.studio?.name || session.producer?.name}
-                      </div>
-                      <Rate 
-                        disabled 
-                        defaultValue={session.studio?.rating || session.producer?.rating} 
-                        allowHalf 
-                        character={<StarFilled className="text-sm" />}
-                        className="[&_.ant-rate-star]:mr-0.5"
-                      />
+                {/* Cover Image */}
+                <div className="relative h-44 overflow-hidden">
+                  <img
+                    alt={session.title}
+                    src={session.image}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  
+                  {/* Gradient Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+                  {/* Type Badge */}
+                  <div className={`
+                    absolute top-2 left-2 px-2.5 py-1 rounded-full text-[10px] font-semibold backdrop-blur-sm flex items-center gap-1.5
+                    ${session.type === 'deal'
+                      ? "bg-red-500/90 text-white border border-red-400/50"
+                      : session.type === 'collab'
+                        ? theme === "dark"
+                          ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+                          : "bg-blue-50/90 text-blue-700 border border-blue-200/50"
+                        : theme === "dark"
+                          ? "bg-green-500/20 text-green-400 border border-green-500/30"
+                          : "bg-green-50/90 text-green-700 border border-green-200/50"
+                    }
+                  `}>
+                    {session.type === 'deal' ? 'HOT DEAL' : session.type === 'collab' ? 'COLLAB' : 'BID'}
+                  </div>
+
+                  {/* Discount Badge */}
+                  {session.discount && (
+                    <div className="absolute top-2 right-2 px-2.5 py-1 rounded-full text-[10px] font-semibold backdrop-blur-sm bg-red-500/90 text-white border border-red-400/50">
+                      {session.discount}% OFF
+                    </div>
+                  )}
+
+                  {/* Title & Location Overlay */}
+                  <div className="absolute bottom-0 left-0 right-0 p-3">
+                    <h3 className="text-white font-semibold text-[14px] mb-1 line-clamp-1">
+                      {session.title}
+                    </h3>
+                    <div className="flex items-center gap-1 text-white/80 text-[11px]">
+                      <MapPin className="w-3 h-3" />
+                      <span className="truncate">{session.location}</span>
                     </div>
                   </div>
-                  <button 
-                    onClick={() => toggleLike(session.id)}
-                    className="text-lg"
-                  >
-                    {session.liked ? (
-                      <HeartFilled className="text-red-500" />
-                    ) : (
-                      <HeartOutlined />
-                    )}
-                  </button>
                 </div>
 
-                <div className="mb-3">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm text-gray-500">
-                      <ClockCircleOutlined className="mr-1" />
-                      {session.duration}
-                    </span>
-                    <span className="text-sm text-gray-500">
-                      {session.date}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-1 mb-3">
-                    {session.genre.map((g, i) => (
-                      <Tag key={i} className="text-xs">{g}</Tag>
-                    ))}
-                    {session.equipment.slice(0, 2).map((e, i) => (
-                      <Tag key={`e-${i}`} color="blue" className="text-xs">{e}</Tag>
-                    ))}
-                    {session.equipment.length > 2 && (
-                      <Popover content={
-                        <div className="p-2">
-                          {session.equipment.slice(2).map((e, i) => (
-                            <div key={i} className="text-xs py-1">{e}</div>
-                          ))}
+                {/* Content */}
+                <div className="p-3.5">
+                  {/* Studio/Producer Info */}
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <img
+                        src={session.studio?.avatar || session.producer?.avatar}
+                        alt={session.studio?.name || session.producer?.name}
+                        className="w-6 h-6 rounded-full object-cover"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className={`text-[12px] font-medium truncate ${
+                          theme === "dark" ? "text-gray-300" : "text-gray-900"
+                        }`}>
+                          {session.studio?.name || session.producer?.name}
                         </div>
-                      }>
-                        <Tag className="text-xs cursor-pointer">+{session.equipment.length - 2} more</Tag>
-                      </Popover>
-                    )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-0.5 flex-shrink-0">
+                      <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
+                      <span className={`text-[11px] font-medium ${
+                        theme === "dark" ? "text-gray-400" : "text-gray-600"
+                      }`}>
+                        {session.studio?.rating || session.producer?.rating}
+                      </span>
+                    </div>
                   </div>
-                </div>
 
-                <div className="flex justify-between items-center mb-4">
-                  <div>
-                    {session.type === 'deal' && (
+                  {/* Details */}
+                  <div className={`flex items-center justify-between mb-3 pb-3 border-b text-[11px] ${
+                    theme === "dark" ? "border-gray-800/60 text-gray-500" : "border-gray-200/60 text-gray-600"
+                  }`}>
+                    <div className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      <span>{session.duration}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Users className="w-3 h-3" />
+                      <span>{session.slots} left</span>
+                    </div>
+                  </div>
+
+                  {/* Genres & Equipment */}
+                  <div className="mb-3">
+                    <div className="flex flex-wrap gap-1">
+                      {session.genre.slice(0, 2).map((genre, index) => (
+                        <span
+                          key={index}
+                          className={`
+                            px-2 py-0.5 text-[10px] font-medium rounded-md
+                            ${theme === "dark"
+                              ? "bg-purple-500/10 text-purple-400 border border-purple-500/20"
+                              : "bg-purple-50 text-purple-600 border border-purple-200/50"
+                            }
+                          `}
+                        >
+                          {genre}
+                        </span>
+                      ))}
+                      {session.equipment.slice(0, 1).map((equip, index) => (
+                        <span
+                          key={`equip-${index}`}
+                          className={`
+                            px-2 py-0.5 text-[10px] font-medium rounded-md
+                            ${theme === "dark"
+                              ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                              : "bg-blue-50 text-blue-600 border border-blue-200/50"
+                            }
+                          `}
+                        >
+                          {equip}
+                        </span>
+                      ))}
+                      {(session.genre.length + session.equipment.length > 3) && (
+                        <span
+                          className={`
+                            px-2 py-0.5 text-[10px] font-medium rounded-md
+                            ${theme === "dark"
+                              ? "bg-gray-800/60 text-gray-400"
+                              : "bg-gray-100 text-gray-600"
+                            }
+                          `}
+                        >
+                          +{session.genre.length + session.equipment.length - 3}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Price */}
+                  <div className="mb-3">
+                    {typeof session.price === 'number' ? (
                       <div className="flex items-baseline gap-2">
-                        <span className="text-xl font-bold">${session.price}</span>
+                        <span className={`text-[18px] font-bold ${
+                          theme === "dark" ? "text-green-400" : "text-green-600"
+                        }`}>
+                          ${session.price}
+                        </span>
                         {session.originalPrice && (
-                          <span className="text-sm text-gray-500 line-through">${session.originalPrice}</span>
+                          <span className={`text-[12px] line-through ${
+                            theme === "dark" ? "text-gray-600" : "text-gray-400"
+                          }`}>
+                            ${session.originalPrice}
+                          </span>
                         )}
                       </div>
-                    )}
-                    {session.type === 'collab' && (
-                      <span className="text-gray-700">{session.price}</span>
-                    )}
-                    {session.type === 'bid' && (
-                      <span className="text-gray-700 font-medium">Bid Your Price</span>
+                    ) : (
+                      <span className={`text-[14px] font-semibold ${
+                        theme === "dark" ? "text-gray-300" : "text-gray-700"
+                      }`}>
+                        {session.price}
+                      </span>
                     )}
                   </div>
-                  <div className="text-xs text-gray-500">
-                    {session.slots} slot{session.slots !== 1 ? 's' : ''} left
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-1.5">
+                    <button
+                      className={`
+                        flex-1 flex items-center justify-center gap-2 px-3 py-2 text-[13px] font-medium rounded-lg transition-all duration-200
+                        ${theme === "dark"
+                          ? "bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20"
+                          : "bg-purple-50 hover:bg-purple-100 text-purple-600 border border-purple-200/50"
+                        }
+                        group-hover:shadow-md active:scale-95
+                      `}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (session.type === 'bid') {
+                          setShowBidModal(true);
+                        } else {
+                          router.push(session.type === 'collab' ? `/collabs/create/${session.id}` : `/studios/create/${session.id}`);
+                        }
+                      }}
+                    >
+                      <CheckCircle className="w-3.5 h-3.5" />
+                      {session.type === 'bid' ? 'Make Offer' : session.type === 'collab' ? 'Request' : 'Book Now'}
+                    </button>
+                    
+                    <button
+                      className={`
+                        p-2 rounded-lg transition-all duration-200
+                        ${theme === "dark"
+                          ? "bg-gray-800/60 hover:bg-gray-800 border border-gray-800/60"
+                          : "bg-gray-100/80 hover:bg-gray-200 border border-gray-200/60"
+                        }
+                        active:scale-95
+                      `}
+                      onClick={(e) => toggleLike(session.id, e)}
+                    >
+                      <Heart className={`w-3.5 h-3.5 ${session.liked ? "fill-red-500 text-red-500" : theme === "dark" ? "text-gray-400" : "text-gray-600"}`} />
+                    </button>
                   </div>
                 </div>
-{session.type === 'bid' ? (
-  <Button 
-    type="primary" 
-    block 
-    onClick={showModal}
-    className="flex items-center justify-center"
-  >
-    Make an Offer
-  </Button>
-) : (
-  <Button
-    block
-    type="text"
-    className="mt-2 !bg-black hover:!bg-green-500 !text-white hover:!text-white h-8 text-xs font-medium !border-none"
-    onClick={() => router.push(session.type === 'collab' ? `/collabs/create/${session.id}` : `/studios/create/${session.id}`)}
-  >
-    {session.type === 'collab' ? 'Request Collab' : 'Book Now'}
-  </Button>
-)}
-              </Card>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Activity Sidebar */}
-      <div className="w-80 border-l border-gray-200 hidden xl:block p-6 bg-gray-50 overflow-y-auto">
-        <div className="sticky top-6">
-          <h2 className="text-lg font-bold mb-4">Booking Activity</h2>
-          
-          <Tabs defaultActiveKey="live" size="small">
-            <TabPane tab="Live" key="live" />
-            <TabPane tab="Recent" key="recent" />
-            <TabPane tab="My Activity" key="my" />
-          </Tabs>
-
-          <div className="space-y-4 mt-4">
-            {activityData.map((activity) => (
-              <div key={activity.id} className="flex items-start gap-3 p-3 hover:bg-gray-100 rounded-lg transition-colors">
-                <Avatar src={activity.user.avatar} />
-                <div className="flex-1">
-                  <div className="text-sm">
-                    <span className="font-medium">{activity.user.name}</span>{" "}
-                    {activity.action === 'booked' && (
-                      <span>booked <span className="font-medium">{activity.session}</span> for {activity.price}</span>
-                    )}
-                    {activity.action === 'requested' && (
-                      <span>requested <span className="font-medium">{activity.session}</span> at {activity.price}</span>
-                    )}
-                    {activity.action === 'accepted' && (
-                      <span>accepted a bid for <span className="font-medium">{activity.session}</span> at {activity.price}</span>
-                    )}
-                    {activity.action === 'rejected' && (
-                      <span>rejected a bid for <span className="font-medium">{activity.session}</span> at {activity.price}</span>
-                    )}
-                  </div>
-                  <div className="text-xs text-gray-500">{activity.time}</div>
-                </div>
-                {activity.action === 'booked' && (
-                  <Tag color="green" icon={<CheckOutlined />} className="text-xs">Booked</Tag>
-                )}
-                {activity.action === 'requested' && (
-                  <Tag color="orange" className="text-xs">Pending</Tag>
-                )}
-                {activity.action === 'accepted' && (
-                  <Tag color="blue" icon={<CheckOutlined />} className="text-xs">Accepted</Tag>
-                )}
-                {activity.action === 'rejected' && (
-                  <Tag color="red" icon={<CloseOutlined />} className="text-xs">Rejected</Tag>
-                )}
               </div>
             ))}
           </div>
 
-          <Divider className="my-6" />
+          {/* Empty State */}
+          {filteredSessions.length === 0 && (
+            <div className={`
+              text-center py-12 rounded-lg border backdrop-blur-sm
+              ${theme === "dark"
+                ? "bg-gray-950/40 border-gray-800/50"
+                : "bg-white/40 border-gray-200/60"
+              }
+            `}>
+              <Music2 className={`w-12 h-12 mx-auto mb-3 ${
+                theme === "dark" ? "text-gray-700" : "text-gray-300"
+              }`} />
+              <p className={`text-[14px] font-medium mb-1 ${
+                theme === "dark" ? "text-gray-400" : "text-gray-600"
+              }`}>
+                No sessions found
+              </p>
+              <p className={`text-[12px] ${
+                theme === "dark" ? "text-gray-600" : "text-gray-500"
+              }`}>
+                Try adjusting your filters
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
 
-          <div>
-            <h3 className="font-bold mb-3">Trending Studios</h3>
-            <List
-              dataSource={sessions.filter(s => s.studio).slice(0, 5)}
-              renderItem={(session) => (
-                <List.Item className="!px-0 !py-2">
-                  <div className="flex items-center gap-3 w-full">
-                    <Avatar src={session.studio?.avatar} />
-                    <div className="flex-1">
-                      <div className="font-medium">{session.studio?.name}</div>
-                      <div className="text-xs text-gray-500">{session.location}</div>
+      {/* Activity Sidebar */}
+      <div className={`
+        w-80 border-l hidden xl:block p-6 overflow-y-auto
+        ${theme === "dark"
+          ? "bg-black border-gray-800/50"
+          : "bg-white/40 border-gray-200/60"
+        }
+      `}>
+        <div className="sticky top-6">
+          <h2 className={`text-lg font-semibold mb-4 ${
+            theme === "dark" ? "text-gray-200" : "text-gray-900"
+          }`}>
+            Booking Activity
+          </h2>
+          
+          {/* Activity Feed */}
+          <div className="space-y-3 mb-6">
+            {activityData.map((activity) => (
+              <div
+                key={activity.id}
+                className={`
+                  p-3 rounded-lg border transition-all duration-200
+                  ${theme === "dark"
+                    ? "bg-gray-900/40 border-gray-800/60"
+                    : "bg-white/50 border-gray-200/60"
+                  }
+                `}
+              >
+                <div className="flex items-start gap-3">
+                  <img
+                    src={activity.user.avatar}
+                    alt={activity.user.name}
+                    className="w-8 h-8 rounded-full object-cover"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className={`text-[12px] ${
+                      theme === "dark" ? "text-gray-300" : "text-gray-900"
+                    }`}>
+                      <span className="font-medium">{activity.user.name}</span>
+                      {' '}
+                      <span className={theme === "dark" ? "text-gray-500" : "text-gray-600"}>
+                        {activity.action === 'booked' ? 'booked' : 
+                         activity.action === 'requested' ? 'requested' :
+                         activity.action === 'accepted' ? 'accepted' : 'rejected'}
+                      </span>
+                      {' '}
+                      <span className="font-medium">{activity.session}</span>
+                      {activity.price && (
+                        <>
+                          {' for '}
+                          <span className="font-semibold">{activity.price}</span>
+                        </>
+                      )}
                     </div>
-                    <Button size="small" type="text" className="text-blue-500">View</Button>
+                    <div className={`text-[11px] mt-1 ${
+                      theme === "dark" ? "text-gray-600" : "text-gray-500"
+                    }`}>
+                      {activity.time}
+                    </div>
                   </div>
-                </List.Item>
-              )}
-            />
+                  <span
+                    className={`
+                      px-2 py-0.5 text-[10px] font-medium rounded-md flex-shrink-0
+                      ${activity.action === 'booked'
+                        ? theme === "dark"
+                          ? "bg-green-500/10 text-green-400 border border-green-500/20"
+                          : "bg-green-50 text-green-600 border border-green-200/50"
+                        : activity.action === 'requested'
+                          ? theme === "dark"
+                            ? "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
+                            : "bg-yellow-50 text-yellow-600 border border-yellow-200/50"
+                          : activity.action === 'accepted'
+                            ? theme === "dark"
+                              ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                              : "bg-blue-50 text-blue-600 border border-blue-200/50"
+                            : theme === "dark"
+                              ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                              : "bg-red-50 text-red-600 border border-red-200/50"
+                      }
+                    `}
+                  >
+                    {activity.action === 'booked' ? 'Booked' :
+                     activity.action === 'requested' ? 'Pending' :
+                     activity.action === 'accepted' ? 'Accepted' : 'Rejected'}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Divider */}
+          <div className={`h-px my-6 ${
+            theme === "dark" ? "bg-gray-800/60" : "bg-gray-200/60"
+          }`} />
+
+          {/* Trending Studios */}
+          <div>
+            <h3 className={`text-[15px] font-semibold mb-4 ${
+              theme === "dark" ? "text-gray-200" : "text-gray-900"
+            }`}>
+              Trending Studios
+            </h3>
+            <div className="space-y-3">
+              {sessions.filter(s => s.studio).slice(0, 5).map((session) => (
+                <div
+                  key={session.id}
+                  className={`
+                    flex items-center gap-3 p-2.5 rounded-lg border transition-all duration-200 cursor-pointer
+                    ${theme === "dark"
+                      ? "bg-gray-900/40 border-gray-800/60 hover:bg-gray-900/60"
+                      : "bg-white/50 border-gray-200/60 hover:bg-white/80"
+                    }
+                  `}
+                >
+                  <img
+                    src={session.studio?.avatar}
+                    alt={session.studio?.name}
+                    className="w-9 h-9 rounded-full object-cover"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className={`text-[13px] font-medium truncate ${
+                      theme === "dark" ? "text-gray-200" : "text-gray-900"
+                    }`}>
+                      {session.studio?.name}
+                    </div>
+                    <div className={`text-[11px] ${
+                      theme === "dark" ? "text-gray-600" : "text-gray-500"
+                    }`}>
+                      {session.location}
+                    </div>
+                  </div>
+                  <button
+                    className={`
+                      px-3 py-1 text-[11px] font-medium rounded-lg transition-all duration-200
+                      ${theme === "dark"
+                        ? "bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20"
+                        : "bg-purple-50 hover:bg-purple-100 text-purple-600 border border-purple-200/50"
+                      }
+                      active:scale-95
+                    `}
+                  >
+                    View
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Stats Card */}
+          <div className={`
+            mt-6 p-4 rounded-lg border backdrop-blur-sm
+            ${theme === "dark"
+              ? "bg-gray-900/40 border-gray-800/60"
+              : "bg-white/50 border-gray-200/60"
+            }
+          `}>
+            <h3 className={`text-[13px] font-semibold mb-3 ${
+              theme === "dark" ? "text-gray-200" : "text-gray-900"
+            }`}>
+              Todays Stats
+            </h3>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className={`text-[12px] ${
+                  theme === "dark" ? "text-gray-500" : "text-gray-600"
+                }`}>
+                  Active Deals
+                </span>
+                <span className={`text-[12px] font-semibold ${
+                  theme === "dark" ? "text-gray-200" : "text-gray-900"
+                }`}>
+                  {sessions.filter(s => s.type === 'deal').length}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className={`text-[12px] ${
+                  theme === "dark" ? "text-gray-500" : "text-gray-600"
+                }`}>
+                  Open Collabs
+                </span>
+                <span className={`text-[12px] font-semibold ${
+                  theme === "dark" ? "text-gray-200" : "text-gray-900"
+                }`}>
+                  {sessions.filter(s => s.type === 'collab').length}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className={`text-[12px] ${
+                  theme === "dark" ? "text-gray-500" : "text-gray-600"
+                }`}>
+                  Bid Sessions
+                </span>
+                <span className={`text-[12px] font-semibold ${
+                  theme === "dark" ? "text-gray-200" : "text-gray-900"
+                }`}>
+                  {sessions.filter(s => s.type === 'bid').length}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Bid Modal */}
-      <Modal 
-        title="Make an Offer" 
-        open={isModalOpen} 
-        onOk={handleBidSubmit}
-        onCancel={() => setIsModalOpen(false)}
-        okText="Submit Bid"
-      >
-        <div className="mb-4">
-          <h4 className="mb-2">Your Offer Price:</h4>
-          <div className="flex items-center gap-4">
-            <Slider 
-              min={20} 
-              max={200} 
-              value={bidPrice} 
-              onChange={(value) => setBidPrice(value)} 
-              className="flex-1"
-            />
-            <span className="font-bold">${bidPrice}</span>
+      {showBidModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className={`
+            w-full max-w-md rounded-lg border p-6
+            ${theme === "dark"
+              ? "bg-gray-900 border-gray-800"
+              : "bg-white border-gray-200"
+            }
+          `}>
+            <h3 className={`text-lg font-semibold mb-4 ${
+              theme === "dark" ? "text-gray-200" : "text-gray-900"
+            }`}>
+              Make an Offer
+            </h3>
+
+            <div className="mb-4">
+              <label className={`block text-[13px] font-medium mb-2 ${
+                theme === "dark" ? "text-gray-300" : "text-gray-700"
+              }`}>
+                Your Offer Price: ${bidPrice}
+              </label>
+              <input
+                type="range"
+                min="20"
+                max="200"
+                value={bidPrice}
+                onChange={(e) => setBidPrice(Number(e.target.value))}
+                className="w-full h-2 rounded-lg appearance-none cursor-pointer"
+                style={{
+                  background: theme === "dark"
+                    ? `linear-gradient(to right, #a855f7 0%, #a855f7 ${((bidPrice - 20) / 180) * 100}%, #374151 ${((bidPrice - 20) / 180) * 100}%, #374151 100%)`
+                    : `linear-gradient(to right, #9333ea 0%, #9333ea ${((bidPrice - 20) / 180) * 100}%, #e5e7eb ${((bidPrice - 20) / 180) * 100}%, #e5e7eb 100%)`
+                }}
+              />
+            </div>
+
+            <div className="mb-4">
+              <label className={`block text-[13px] font-medium mb-2 ${
+                theme === "dark" ? "text-gray-300" : "text-gray-700"
+              }`}>
+                Add a Message (Optional)
+              </label>
+              <textarea
+                placeholder="E.g., 'I need 2 hours for vocal recording...'"
+                rows={3}
+                className={`
+                  w-full px-3 py-2 text-[13px] rounded-lg border transition-all duration-200 resize-none
+                  ${theme === "dark"
+                    ? "bg-gray-800/40 border-gray-700/60 text-gray-200 placeholder-gray-600 focus:border-purple-500/50"
+                    : "bg-gray-50/50 border-gray-200/60 text-gray-900 placeholder-gray-400 focus:border-purple-300"
+                  }
+                  focus:outline-none focus:ring-2 ${theme === "dark" ? "focus:ring-purple-500/20" : "focus:ring-purple-200"}
+                `}
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowBidModal(false)}
+                className={`
+                  flex-1 px-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-200
+                  ${theme === "dark"
+                    ? "bg-gray-800/60 hover:bg-gray-800 text-gray-300 border border-gray-700/60"
+                    : "bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200"
+                  }
+                  active:scale-95
+                `}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowBidModal(false);
+                  // Handle bid submission here
+                }}
+                className={`
+                  flex-1 px-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-200
+                  ${theme === "dark"
+                    ? "bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 border border-purple-500/30"
+                    : "bg-purple-50 hover:bg-purple-100 text-purple-600 border border-purple-200"
+                  }
+                  active:scale-95
+                `}
+              >
+                Submit Bid
+              </button>
+            </div>
           </div>
         </div>
-        <div className="mb-4">
-          <h4 className="mb-2">Session Details:</h4>
-          <div className="text-sm text-gray-600">
-            <div>Studio: Vocal Booth Pro</div>
-            <div>Duration: 1-4 hours</div>
-            <div>Equipment: Isolation Booth, U87 Mic</div>
-          </div>
-        </div>
-        <div>
-          <h4 className="mb-2">Add a Message (Optional):</h4>
-          <Input.TextArea placeholder="E.g., 'I need 2 hours for vocal recording...'" />
-        </div>
-      </Modal>
+      )}
     </div>
   );
 }

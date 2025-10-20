@@ -1,57 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { 
-  Card, 
-  Button, 
-  Input, 
-  Select, 
-  Tabs, 
-  Avatar, 
-  List, 
-  Divider, 
-  Radio, 
-  Modal,
-  message,
-  Upload,
-  Progress,
-  Statistic,
-  Tooltip,
-  Switch,
-  Collapse,
-  Badge,
-  Drawer,
-  Carousel,
-  Tag,
-  Rate,
-} from "antd";
-import { 
-  SearchOutlined, 
-  FilterOutlined, 
-  HeartOutlined, 
-  HeartFilled,
-  PlayCircleOutlined,
-  PauseCircleOutlined,
-  VideoCameraOutlined,
-  UserOutlined,
-  PlusOutlined,
-  EnvironmentOutlined,
-  WifiOutlined,
-  ClockCircleOutlined,
-  StarOutlined,
-  ShoppingCartOutlined,
-  PhoneOutlined,
-  MessageOutlined,
-  CalendarOutlined,
-  TeamOutlined,
-  SoundOutlined,
-  BulbOutlined,
-  AppstoreOutlined,
-  CompassOutlined
-} from "@ant-design/icons";
-
-const { TabPane } = Tabs;
-const { Panel } = Collapse;
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Search, Video, MapPin, Users, Music2, ShoppingCart, Clock, Star, Play, Zap, Package, Radio, Tv } from "lucide-react";
+import { useTheme } from "../../providers/ThemeProvider";
 
 type LiveStream = {
   id: number;
@@ -71,45 +23,6 @@ type LiveStream = {
   scheduled?: string;
 };
 
-type Studio = {
-  id: number;
-  name: string;
-  image: string;
-  distance: string;
-  rating: number;
-  price: string;
-  equipment: string[];
-  available: boolean;
-  slots: {
-    start: string;
-    end: string;
-  }[];
-};
-
-type ServiceProvider = {
-  id: number;
-  name: string;
-  avatar: string;
-  service: string;
-  rating: number;
-  price: string;
-  distance: string;
-  available: boolean;
-  tags: string[];
-};
-
-type GearItem = {
-  id: number;
-  name: string;
-  image: string;
-  price: string;
-  rating: number;
-  seller: string;
-  distance: string;
-  condition: 'New' | 'Used - Like New' | 'Used - Good' | 'Used - Fair';
-};
-const { Option } = Select;
-// Mock Data
 const liveStreams: LiveStream[] = [
   {
     id: 1,
@@ -122,7 +35,7 @@ const liveStreams: LiveStream[] = [
     title: "Making a Hit Beat from Scratch",
     thumbnail: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400",
     viewers: 1245,
-    tags: ["Producing", "Tutorial", "BehindTheScenes"],
+    tags: ["Producing", "Tutorial"],
     genre: "Hip Hop",
     duration: "2:45:12",
     isLive: true
@@ -138,7 +51,7 @@ const liveStreams: LiveStream[] = [
     title: "Vocal Recording Session",
     thumbnail: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400",
     viewers: 876,
-    tags: ["Recording", "R&B", "Vocals"],
+    tags: ["Recording", "R&B"],
     genre: "R&B",
     duration: "1:23:45",
     isLive: true
@@ -154,7 +67,7 @@ const liveStreams: LiveStream[] = [
     title: "Weekly Beat Challenge",
     thumbnail: "https://images.unsplash.com/photo-1496293455970-f8581aae0e3b?w=400",
     viewers: 432,
-    tags: ["Challenge", "LiveFeedback", "Trap"],
+    tags: ["Challenge", "Trap"],
     genre: "Trap",
     duration: "3:12:08",
     isLive: true
@@ -170,7 +83,7 @@ const liveStreams: LiveStream[] = [
     title: "Songwriting Workshop",
     thumbnail: "https://images.unsplash.com/photo-1453738773917-9c3eff1db985?w=400",
     viewers: 0,
-    tags: ["Workshop", "Education", "Pop"],
+    tags: ["Workshop", "Pop"],
     genre: "Pop",
     duration: "",
     isLive: false,
@@ -178,830 +91,449 @@ const liveStreams: LiveStream[] = [
   }
 ];
 
-const nearbyStudios: Studio[] = [
-  {
-    id: 1,
-    name: "Hit Factory Studios",
-    image: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400",
-    distance: "0.5 mi",
-    rating: 4.8,
-    price: "$50/hr",
-    equipment: ["Neumann U87", "SSL Console", "Pro Tools HD", "Live Room"],
-    available: true,
-    slots: [
-      { start: "10:00 AM", end: "12:00 PM" },
-      { start: "2:00 PM", end: "4:00 PM" },
-      { start: "6:00 PM", end: "8:00 PM" }
-    ]
-  },
-  {
-    id: 2,
-    name: "Urban Sound Lab",
-    image: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400",
-    distance: "1.2 mi",
-    rating: 4.5,
-    price: "$35/hr",
-    equipment: ["Avalon 737", "MPC Live", "Logic Pro", "Booth"],
-    available: true,
-    slots: [
-      { start: "11:00 AM", end: "1:00 PM" },
-      { start: "3:00 PM", end: "5:00 PM" }
-    ]
-  },
-  {
-    id: 3,
-    name: "Basement Beats",
-    image: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400",
-    distance: "2.1 mi",
-    rating: 4.2,
-    price: "$25/hr",
-    equipment: ["Focusrite Interface", "MIDI Keyboard", "FL Studio", "Monitor Speakers"],
-    available: false,
-    slots: []
-  }
-];
-
-const instantServices: ServiceProvider[] = [
-  {
-    id: 1,
-    name: "Alex Beatmaker",
-    avatar: "https://randomuser.me/api/portraits/men/22.jpg",
-    service: "Producer",
-    rating: 4.9,
-    price: "$100/song",
-    distance: "0.3 mi",
-    available: true,
-    tags: ["Trap", "Hip Hop", "Pop"]
-  },
-  {
-    id: 2,
-    name: "Sarah Songwriter",
-    avatar: "https://randomuser.me/api/portraits/women/33.jpg",
-    service: "Songwriter",
-    rating: 4.7,
-    price: "$150/song",
-    distance: "1.1 mi",
-    available: true,
-    tags: ["Pop", "R&B", "Lyrics"]
-  },
-  {
-    id: 3,
-    name: "Mike Mixer",
-    avatar: "https://randomuser.me/api/portraits/men/44.jpg",
-    service: "Mixing Engineer",
-    rating: 4.8,
-    price: "$75/track",
-    distance: "0.8 mi",
-    available: false,
-    tags: ["Mixing", "Mastering", "Audio"]
-  }
-];
-
-const gearMarketplace: GearItem[] = [
-  {
-    id: 1,
-    name: "Neumann U87 Microphone",
-    image: "https://m.media-amazon.com/images/I/61fVY5RSeGL._AC_SL1500_.jpg",
-    price: "$2,200",
-    rating: 4.9,
-    seller: "ProAudioSeller",
-    distance: "3.2 mi",
-    condition: "Used - Like New"
-  },
-  {
-    id: 2,
-    name: "MPC Live II",
-    image: "https://m.media-amazon.com/images/I/71Q8gR1vQVL._AC_SL1500_.jpg",
-    price: "$1,100",
-    rating: 4.7,
-    seller: "BeatEquipment",
-    distance: "5.5 mi",
-    condition: "New"
-  },
-  {
-    id: 3,
-    name: "Yamaha HS8 Monitors (Pair)",
-    image: "https://m.media-amazon.com/images/I/71Q8gR1vQVL._AC_SL1500_.jpg",
-    price: "$500",
-    rating: 4.5,
-    seller: "StudioGear",
-    distance: "2.7 mi",
-    condition: "Used - Good"
-  }
-];
+const formatNumber = (num: number): string => {
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+  if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+  return num.toString();
+};
 
 export default function LiveMusicPage() {
+  const router = useRouter();
+  const { theme } = useTheme();
+  
   const [activeTab, setActiveTab] = useState("streams");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [isLiveModalOpen, setIsLiveModalOpen] = useState(false);
-  const [isStudioDrawerOpen, setIsStudioDrawerOpen] = useState(false);
-  const [selectedStudio, setSelectedStudio] = useState<Studio | null>(null);
-  const [selectedService, setSelectedService] = useState<ServiceProvider | null>(null);
-  const [isFindingStudio, setIsFindingStudio] = useState(false);
-  const [findingProgress, setFindingProgress] = useState(0);
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [streamTitle, setStreamTitle] = useState("");
- const [streamGenre, setStreamGenre] = useState<string>("all");
-  const [streamTags, setStreamTags] = useState<string[]>([]);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  
-  // Simulate finding nearby studios
-  const findNearbyStudios = () => {
-    setIsFindingStudio(true);
-    setFindingProgress(0);
-    
-    const interval = setInterval(() => {
-      setFindingProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setIsFindingStudio(false);
-          setIsStudioDrawerOpen(true);
-          return 100;
-        }
-        return prev + 10;
-      });
-    }, 300);
-  };
-  
-  // Simulate starting a live stream
-  const startStreaming = () => {
-    setIsStreaming(true);
-    message.success('Your live stream has started!');
-    setIsLiveModalOpen(false);
-    
-    // In a real app, this would connect to your streaming service
-    if (videoRef.current) {
-      navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-        .then(stream => {
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-          }
-        })
-        .catch(err => {
-          console.error("Error accessing media devices:", err);
-          message.error('Could not access camera/microphone');
-          setIsStreaming(false);
-        });
-    }
-  };
-  
-  // Clean up stream on unmount
-  useEffect(() => {
-    return () => {
-      if (videoRef.current?.srcObject) {
-        const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
-        tracks.forEach(track => track.stop());
-      }
-    };
-  }, []);
-  
+
   const filteredStreams = liveStreams.filter(stream => {
     const matchesSearch = stream.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       stream.user.name.toLowerCase().includes(searchQuery.toLowerCase());
-    
     const matchesCategory = selectedCategory === "all" || stream.genre === selectedCategory;
-    
     return matchesSearch && matchesCategory;
   });
 
   return (
-    <div className="flex h-full bg-gray-50">
+    <div className="flex h-screen">
       {/* Main Content */}
       <div className="flex-1 p-6 overflow-auto">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-[1400px] mx-auto">
           {/* Header */}
-          <div className="mb-8">
-            <div className="flex justify-between items-center">
+          <div className="mb-6">
+            <div className="flex justify-between items-start">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">Live Music Hub</h1>
-                <p className="text-gray-600">Stream, connect, and create in real-time</p>
+                <h1 className={`text-2xl font-semibold mb-1 ${
+                  theme === "dark" ? "text-gray-100" : "text-gray-900"
+                }`}>
+                  Live Music Hub
+                </h1>
+                <p className={`text-[13px] ${
+                  theme === "dark" ? "text-gray-500" : "text-gray-600"
+                }`}>
+                  Stream, connect, and create in real-time
+                </p>
               </div>
-              <Button 
-                type="primary" 
-                size="large" 
-                icon={<VideoCameraOutlined />}
-                onClick={() => setIsLiveModalOpen(true)}
+              <button
+                className={`
+                  flex items-center gap-2 px-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-200
+                  ${theme === "dark"
+                    ? "bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30"
+                    : "bg-red-50 hover:bg-red-100 text-red-600 border border-red-200"
+                  }
+                  active:scale-95
+                `}
               >
+                <Radio className="w-3.5 h-3.5" />
                 Go Live
-              </Button>
+              </button>
             </div>
-            
+
             {/* Quick Actions */}
-            <div className="grid grid-cols-4 gap-4 mt-6">
-              <button 
-                className="bg-white p-4 rounded-lg shadow-sm border hover:bg-blue-50 transition-colors"
-                onClick={findNearbyStudios}
-              >
-                <div className="flex flex-col items-center">
-                  <EnvironmentOutlined className="text-2xl text-blue-500 mb-2" />
-                  <span>Find Studio</span>
-                </div>
-              </button>
-              <button className="bg-white p-4 rounded-lg shadow-sm border hover:bg-purple-50 transition-colors">
-                <div className="flex flex-col items-center">
-                  <TeamOutlined className="text-2xl text-purple-500 mb-2" />
-                  <span>Find Musicians</span>
-                </div>
-              </button>
-              <button className="bg-white p-4 rounded-lg shadow-sm border hover:bg-green-50 transition-colors">
-                <div className="flex flex-col items-center">
-                  <SoundOutlined className="text-2xl text-green-500 mb-2" />
-                  <span>Book Session</span>
-                </div>
-              </button>
-              <button className="bg-white p-4 rounded-lg shadow-sm border hover:bg-orange-50 transition-colors">
-                <div className="flex flex-col items-center">
-                  <ShoppingCartOutlined className="text-2xl text-orange-500 mb-2" />
-                  <span>Buy Gear</span>
-                </div>
-              </button>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+              {[
+                { icon: <MapPin className="w-5 h-5" />, label: "Find Studio", color: "blue" },
+                { icon: <Users className="w-5 h-5" />, label: "Find Musicians", color: "purple" },
+                { icon: <Music2 className="w-5 h-5" />, label: "Book Session", color: "green" },
+                { icon: <ShoppingCart className="w-5 h-5" />, label: "Buy Gear", color: "orange" }
+              ].map((action, i) => (
+                <button
+                  key={i}
+                  className={`
+                    p-4 rounded-lg border transition-all duration-200
+                    ${theme === "dark"
+                      ? "bg-gray-900/40 border-gray-800/60 hover:bg-gray-900/60"
+                      : "bg-white border-gray-200 hover:bg-gray-50"
+                    }
+                    active:scale-95
+                  `}
+                >
+                  <div className="flex flex-col items-center gap-2">
+                    <div className={`
+                      ${action.color === "blue" ? theme === "dark" ? "text-blue-400" : "text-blue-600" :
+                        action.color === "purple" ? theme === "dark" ? "text-purple-400" : "text-purple-600" :
+                        action.color === "green" ? theme === "dark" ? "text-green-400" : "text-green-600" :
+                        theme === "dark" ? "text-orange-400" : "text-orange-600"
+                      }
+                    `}>
+                      {action.icon}
+                    </div>
+                    <span className={`text-[13px] font-medium ${
+                      theme === "dark" ? "text-gray-300" : "text-gray-700"
+                    }`}>
+                      {action.label}
+                    </span>
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Search & Filters */}
-          <div className="bg-white p-4 rounded-lg shadow-sm border mb-6">
-            <div className="flex flex-col md:flex-row gap-4">
-              <Input
-                placeholder="Search streams, studios, services..."
-                prefix={<SearchOutlined />}
-                className="w-full md:w-[300px]"
+          {/* Filters */}
+          <div className={`
+            flex flex-wrap gap-2 mb-6 p-4 rounded-lg border backdrop-blur-sm
+            ${theme === "dark" 
+              ? "bg-gray-950/40 border-gray-800/50" 
+              : "bg-white/40 border-gray-200/60"
+            }
+          `}>
+            {/* Search */}
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 ${
+                theme === "dark" ? "text-gray-500" : "text-gray-400"
+              }`} />
+              <input
+                type="text"
+                placeholder="Search streams..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                className={`
+                  w-full pl-9 pr-3 py-2 text-[13px] rounded-lg border transition-all duration-200
+                  ${theme === "dark"
+                    ? "bg-gray-900/40 border-gray-800/60 text-gray-200 placeholder-gray-600 focus:border-purple-500/50"
+                    : "bg-gray-50/50 border-gray-200/60 text-gray-900 placeholder-gray-400 focus:border-purple-300"
+                  }
+                  focus:outline-none focus:ring-2 ${theme === "dark" ? "focus:ring-purple-500/20" : "focus:ring-purple-200"}
+                `}
               />
-              <Select
-                placeholder="All Categories"
-                className="w-full md:w-[180px]"
-                value={selectedCategory}
-                onChange={(value) => setSelectedCategory(value)}
-              >
-                <Option value="all">All Categories</Option>
-                <Option value="Hip Hop">Hip Hop</Option>
-                <Option value="R&B">R&B</Option>
-                <Option value="Pop">Pop</Option>
-                <Option value="Trap">Trap</Option>
-                <Option value="Electronic">Electronic</Option>
-                <Option value="Rock">Rock</Option>
-              </Select>
-              <Button type="primary" icon={<FilterOutlined />}>
-                Filters
-              </Button>
+            </div>
+
+            {/* Category Filter */}
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className={`
+                px-3 py-2 text-[13px] rounded-lg border transition-all duration-200 cursor-pointer
+                ${theme === "dark"
+                  ? "bg-gray-900/40 border-gray-800/60 text-gray-200"
+                  : "bg-gray-50/50 border-gray-200/60 text-gray-900"
+                }
+                focus:outline-none focus:ring-2 ${theme === "dark" ? "focus:ring-purple-500/20" : "focus:ring-purple-200"}
+              `}
+            >
+              <option value="all">All Categories</option>
+              <option value="Hip Hop">Hip Hop</option>
+              <option value="R&B">R&B</option>
+              <option value="Pop">Pop</option>
+              <option value="Trap">Trap</option>
+              <option value="Electronic">Electronic</option>
+            </select>
+
+            {/* Tab Filters */}
+            <div className="flex gap-1">
+              {[
+                { key: "streams", label: "Live Streams", icon: <Video className="w-3.5 h-3.5" /> },
+                { key: "studios", label: "Studios", icon: <MapPin className="w-3.5 h-3.5" /> },
+                { key: "services", label: "Services", icon: <Zap className="w-3.5 h-3.5" /> },
+                { key: "gear", label: "Gear", icon: <Package className="w-3.5 h-3.5" /> }
+              ].map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`
+                    flex items-center gap-1.5 px-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-200
+                    ${activeTab === tab.key
+                      ? theme === "dark"
+                        ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
+                        : "bg-purple-50 text-purple-600 border border-purple-200"
+                      : theme === "dark"
+                        ? "bg-gray-900/40 hover:bg-gray-800/60 text-gray-400 hover:text-gray-300 border border-gray-800/60"
+                        : "bg-gray-50/50 hover:bg-gray-100 text-gray-600 hover:text-gray-900 border border-gray-200/60"
+                    }
+                    active:scale-95
+                  `}
+                >
+                  {tab.icon}
+                  {tab.label}
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Tabs */}
-          <Tabs 
-            activeKey={activeTab} 
-            onChange={setActiveTab} 
-            className="mb-6"
-          >
-            <TabPane tab={<span><VideoCameraOutlined /> Live Streams</span>} key="streams" />
-            <TabPane tab={<span><EnvironmentOutlined /> Studios</span>} key="studios" />
-            <TabPane tab={<span><BulbOutlined /> Instant Services</span>} key="services" />
-            <TabPane tab={<span><ShoppingCartOutlined /> Gear Marketplace</span>} key="gear" />
-          </Tabs>
+          {/* Results Count */}
+          <div className={`text-[13px] mb-4 ${
+            theme === "dark" ? "text-gray-500" : "text-gray-600"
+          }`}>
+            {filteredStreams.length} {filteredStreams.length === 1 ? "stream" : "streams"} found
+          </div>
 
-          {/* Content based on active tab */}
+          {/* Streams Grid */}
           {activeTab === "streams" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {filteredStreams.map((stream) => (
-                <Card
+                <div
                   key={stream.id}
-                  hoverable
-                  cover={
-                    <div className="relative">
-                      <img 
-                        alt={stream.title} 
-                        src={stream.thumbnail} 
-                        className="h-48 w-full object-cover"
-                      />
-                      {stream.isLive && (
-                        <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-md text-xs flex items-center">
-                          <div className="w-2 h-2 bg-white rounded-full mr-1"></div>
-                          LIVE
-                        </div>
-                      )}
-                      <div className="absolute bottom-2 left-2 bg-black bg-opacity-70 text-white px-2 py-1 rounded-md text-xs">
-                        {stream.viewers.toLocaleString()} viewers
-                      </div>
-                      {!stream.isLive && stream.scheduled && (
-                        <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-                          <div className="text-white text-center">
-                            <ClockCircleOutlined className="text-2xl mb-1" />
-                            <div className="font-medium">{stream.scheduled}</div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  }
+                  className={`
+                    group rounded-lg border overflow-hidden transition-all duration-200 cursor-pointer
+                    ${theme === "dark"
+                      ? "bg-gray-900/40 border-gray-800/60 hover:border-gray-700/80 hover:bg-gray-900/60"
+                      : "bg-white/50 border-gray-200/60 hover:border-gray-300/80 hover:bg-white/80"
+                    }
+                    hover:shadow-lg active:scale-[0.98]
+                  `}
+                  onClick={() => router.push(`/live/${stream.id}`)}
                 >
-                  <div className="flex items-start gap-3">
-                    <Avatar src={stream.user.avatar} size="large" />
-                    <div className="flex-1">
-                      <h3 className="font-bold mb-1">{stream.title}</h3>
-                      <div className="flex items-center text-sm">
-                        <span>{stream.user.name}</span>
-                        {stream.user.verified && (
-                          <span className="ml-1 text-blue-500">
-                            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-                              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-                            </svg>
+                  {/* Thumbnail */}
+                  <div className="relative h-40 overflow-hidden">
+                    <img
+                      src={stream.thumbnail}
+                      alt={stream.title}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                    
+                    {/* Live Badge */}
+                    {stream.isLive && (
+                      <div className="absolute top-2 left-2 px-2.5 py-1 rounded-full text-[10px] font-semibold backdrop-blur-sm bg-red-500/90 text-white border border-red-400/50 flex items-center gap-1.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                        LIVE
+                      </div>
+                    )}
+
+                    {/* Viewers Count */}
+                    {stream.isLive && (
+                      <div className="absolute top-2 right-2 px-2.5 py-1 rounded-full text-[10px] font-semibold backdrop-blur-sm bg-black/70 text-white">
+                        {formatNumber(stream.viewers)} viewers
+                      </div>
+                    )}
+
+                    {/* Scheduled Overlay */}
+                    {!stream.isLive && stream.scheduled && (
+                      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex flex-col items-center justify-center text-white">
+                        <Clock className="w-6 h-6 mb-2" />
+                        <div className="text-[11px] font-medium text-center px-2">
+                          {stream.scheduled}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Duration */}
+                    {stream.isLive && stream.duration && (
+                      <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-md text-[10px] font-semibold backdrop-blur-sm bg-black/70 text-white">
+                        {stream.duration}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Content */}
+                  <div className="p-3">
+                    {/* User Info */}
+                    <div className="flex items-center gap-2 mb-2">
+                      <img
+                        src={stream.user.avatar}
+                        alt={stream.user.name}
+                        className="w-6 h-6 rounded-full object-cover"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1">
+                          <span className={`text-[12px] font-medium truncate ${
+                            theme === "dark" ? "text-gray-300" : "text-gray-900"
+                          }`}>
+                            {stream.user.name}
                           </span>
-                        )}
-                      </div>
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        <Tag color="blue">{stream.genre}</Tag>
-                        {stream.tags.slice(0, 2).map((tag, i) => (
-                          <Tag key={i}>{tag}</Tag>
-                        ))}
+                          {stream.user.verified && (
+                            <svg className="w-3 h-3 text-blue-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                        </div>
                       </div>
                     </div>
+
+                    {/* Title */}
+                    <h3 className={`text-[14px] font-semibold mb-2 line-clamp-2 ${
+                      theme === "dark" ? "text-gray-200" : "text-gray-900"
+                    }`}>
+                      {stream.title}
+                    </h3>
+
+                    {/* Tags */}
+                    <div className="flex flex-wrap gap-1">
+                      <span
+                        className={`
+                          px-2 py-0.5 text-[10px] font-medium rounded-md
+                          ${theme === "dark"
+                            ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                            : "bg-blue-50 text-blue-600 border border-blue-200/50"
+                          }
+                        `}
+                      >
+                        {stream.genre}
+                      </span>
+                      {stream.tags.slice(0, 2).map((tag, i) => (
+                        <span
+                          key={i}
+                          className={`
+                            px-2 py-0.5 text-[10px] font-medium rounded-md
+                            ${theme === "dark"
+                              ? "bg-gray-800/60 text-gray-400"
+                              : "bg-gray-100 text-gray-600"
+                            }
+                          `}
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                </Card>
+                </div>
               ))}
             </div>
           )}
 
-          {activeTab === "studios" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {nearbyStudios.map((studio) => (
-                <Card
-                  key={studio.id}
-                  hoverable
-                  cover={
-                    <img 
-                      alt={studio.name} 
-                      src={studio.image} 
-                      className="h-48 w-full object-cover"
-                    />
-                  }
-                  onClick={() => {
-                    setSelectedStudio(studio);
-                    setIsStudioDrawerOpen(true);
-                  }}
-                >
-                  <div>
-                    <h3 className="font-bold mb-1">{studio.name}</h3>
-                    <div className="flex items-center text-sm mb-2">
-                      <Rate 
-                        disabled 
-                        defaultValue={studio.rating} 
-                        allowHalf 
-                        character={<StarOutlined />}
-                        className="text-sm mr-2"
-                      />
-                      <span className="text-gray-600">{studio.rating}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">{studio.distance}</span>
-                      <span className="font-medium">{studio.price}</span>
-                    </div>
-                    <div className="mt-3">
-                      {studio.available ? (
-                        <Tag color="green">Available Now</Tag>
-                      ) : (
-                        <Tag color="orange">Booked Today</Tag>
-                      )}
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          )}
-
-          {activeTab === "services" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {instantServices.map((service) => (
-                <Card
-                  key={service.id}
-                  hoverable
-                  onClick={() => setSelectedService(service)}
-                >
-                  <div className="flex items-start gap-3">
-                    <Avatar src={service.avatar} size={64} />
-                    <div className="flex-1">
-                      <h3 className="font-bold mb-1">{service.name}</h3>
-                      <div className="flex items-center text-sm mb-2">
-                        <Rate 
-                          disabled 
-                          defaultValue={service.rating} 
-                          allowHalf 
-                          character={<StarOutlined />}
-                          className="text-sm mr-2"
-                        />
-                        <span className="text-gray-600">{service.rating}</span>
-                      </div>
-                      <div className="flex justify-between text-sm mb-2">
-                        <span className="text-gray-600">{service.distance}</span>
-                        <span className="font-medium">{service.price}</span>
-                      </div>
-                      <div className="flex flex-wrap gap-1">
-                        {service.tags.map((tag, i) => (
-                          <Tag key={i}>{tag}</Tag>
-                        ))}
-                      </div>
-                      <div className="mt-3">
-                        {service.available ? (
-                          <Tag color="green" icon={<WifiOutlined />}>Available Now</Tag>
-                        ) : (
-                          <Tag color="orange" icon={<ClockCircleOutlined />}>Busy</Tag>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          )}
-
-          {activeTab === "gear" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {gearMarketplace.map((gear) => (
-                <Card
-                  key={gear.id}
-                  hoverable
-                  cover={
-                    <img 
-                      alt={gear.name} 
-                      src={gear.image} 
-                      className="h-48 w-full object-contain bg-gray-100 p-4"
-                    />
-                  }
-                >
-                  <div>
-                    <h3 className="font-bold mb-1">{gear.name}</h3>
-                    <div className="flex items-center text-sm mb-2">
-                      <Rate 
-                        disabled 
-                        defaultValue={gear.rating} 
-                        allowHalf 
-                        character={<StarOutlined />}
-                        className="text-sm mr-2"
-                      />
-                      <span className="text-gray-600">{gear.rating}</span>
-                    </div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="text-gray-600">{gear.distance} • {gear.condition}</span>
-                      <span className="font-medium">{gear.price}</span>
-                    </div>
-                    <div className="mt-3 flex justify-between">
-                      <Button icon={<MessageOutlined />}>Message</Button>
-                      <Button type="primary" icon={<ShoppingCartOutlined />}>Buy</Button>
-                    </div>
-                  </div>
-                </Card>
-              ))}
+          {/* Other tabs content placeholders */}
+          {activeTab !== "streams" && (
+            <div className={`
+              text-center py-12 rounded-lg border backdrop-blur-sm
+              ${theme === "dark"
+                ? "bg-gray-950/40 border-gray-800/50"
+                : "bg-white/40 border-gray-200/60"
+              }
+            `}>
+              <Tv className={`w-12 h-12 mx-auto mb-3 ${
+                theme === "dark" ? "text-gray-700" : "text-gray-300"
+              }`} />
+              <p className={`text-[14px] font-medium mb-1 ${
+                theme === "dark" ? "text-gray-400" : "text-gray-600"
+              }`}>
+                Coming Soon
+              </p>
+              <p className={`text-[12px] ${
+                theme === "dark" ? "text-gray-600" : "text-gray-500"
+              }`}>
+                This section is under development
+              </p>
             </div>
           )}
         </div>
       </div>
 
-      {/* Right Sidebar - Currently Streaming */}
-      <div className="w-80 border-l border-gray-200 hidden xl:block p-6 bg-white overflow-y-auto">
+      {/* Right Sidebar */}
+      <div className={`
+        w-80 border-l hidden xl:block p-6 overflow-y-auto
+        ${theme === "dark"
+          ? "bg-black border-gray-800/50"
+          : "bg-white/40 border-gray-200/60"
+        }
+      `}>
         <div className="sticky top-6">
-          <h2 className="text-lg font-bold mb-4">🔥 Live Now</h2>
-          
-          {isStreaming ? (
-            <div className="mb-6 border rounded-lg overflow-hidden">
-              <div className="relative">
-                <video 
-                  ref={videoRef}
-                  autoPlay
-                  muted
-                  className="w-full h-48 bg-black"
-                />
-                <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-md text-xs flex items-center">
-                  <div className="w-2 h-2 bg-white rounded-full mr-1"></div>
-                  LIVE
-                </div>
-                <div className="absolute bottom-2 left-2 bg-black bg-opacity-70 text-white px-2 py-1 rounded-md text-xs">
-                  42 viewers
-                </div>
-              </div>
-              <div className="p-3">
-                <h3 className="font-bold mb-1">Your Live Stream</h3>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">2:45:12</span>
-                  <Button 
-                    danger 
-                    size="small"
-                    onClick={() => setIsStreaming(false)}
-                  >
-                    End Stream
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="mb-6 p-4 border rounded-lg bg-gray-50 text-center">
-              <VideoCameraOutlined className="text-3xl text-gray-400 mb-2" />
-              <p className="text-gray-600 mb-3"> not streaming yet</p>
-              <Button 
-                type="primary" 
-                icon={<VideoCameraOutlined />}
-                onClick={() => setIsLiveModalOpen(true)}
-              >
-                Go Live Now
-              </Button>
-            </div>
-          )}
-          
-          <Divider />
-          
-          <h3 className="font-bold mb-3">Top Live Streams</h3>
-          <div className="space-y-4">
+          <div className="flex items-center gap-2 mb-4">
+            <Zap className={`w-4 h-4 ${theme === "dark" ? "text-red-400" : "text-red-600"}`} />
+            <h2 className={`text-[15px] font-semibold ${
+              theme === "dark" ? "text-gray-200" : "text-gray-900"
+            }`}>
+              Live Now
+            </h2>
+          </div>
+
+          {/* Not Streaming State */}
+          <div className={`
+            p-4 rounded-lg border text-center mb-6
+            ${theme === "dark"
+              ? "bg-gray-900/40 border-gray-800/60"
+              : "bg-gray-50 border-gray-200"
+            }
+          `}>
+            <Video className={`w-8 h-8 mx-auto mb-2 ${
+              theme === "dark" ? "text-gray-600" : "text-gray-400"
+            }`} />
+            <p className={`text-[13px] mb-3 ${
+              theme === "dark" ? "text-gray-500" : "text-gray-600"
+            }`}>
+              You are not streaming yet
+            </p>
+            <button
+              className={`
+                w-full flex items-center justify-center gap-2 px-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-200
+                ${theme === "dark"
+                  ? "bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30"
+                  : "bg-red-50 hover:bg-red-100 text-red-600 border border-red-200"
+                }
+                active:scale-95
+              `}
+            >
+              <Radio className="w-3.5 h-3.5" />
+              Go Live Now
+            </button>
+          </div>
+
+          {/* Divider */}
+          <div className={`h-px my-6 ${
+            theme === "dark" ? "bg-gray-800/60" : "bg-gray-200/60"
+          }`} />
+
+          {/* Top Live Streams */}
+          <h3 className={`text-[15px] font-semibold mb-4 ${
+            theme === "dark" ? "text-gray-200" : "text-gray-900"
+          }`}>
+            Top Live Streams
+          </h3>
+          <div className="space-y-3">
             {liveStreams
               .filter(stream => stream.isLive)
               .sort((a, b) => b.viewers - a.viewers)
               .slice(0, 3)
-              .map(stream => (
-                <div 
-                  key={stream.id} 
-                  className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer"
+              .map((stream) => (
+                <div
+                  key={stream.id}
+                  className={`
+                    flex items-center gap-3 p-2.5 rounded-lg border transition-all duration-200 cursor-pointer
+                    ${theme === "dark"
+                      ? "bg-gray-900/40 border-gray-800/60 hover:bg-gray-900/60"
+                      : "bg-white/50 border-gray-200/60 hover:bg-white/80"
+                    }
+                  `}
                 >
-                  <div className="relative">
-                    <img 
-                      src={stream.thumbnail} 
+                  <div className="relative flex-shrink-0">
+                    <img
+                      src={stream.thumbnail}
                       alt={stream.title}
-                      className="w-16 h-16 object-cover rounded"
+                      className="w-16 h-16 rounded object-cover"
                     />
-                    <div className="absolute bottom-1 left-1 bg-red-500 text-white text-xs px-1 rounded">
+                    <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded text-[8px] font-semibold bg-red-500 text-white">
                       LIVE
                     </div>
                   </div>
-                  <div className="flex-1">
-                    <div className="font-medium text-sm line-clamp-1">{stream.title}</div>
-                    <div className="text-xs text-gray-500">{stream.user.name}</div>
-                    <div className="text-xs text-gray-500 flex items-center">
-                      <UserOutlined className="mr-1" />
-                      {stream.viewers.toLocaleString()} viewers
+                  <div className="flex-1 min-w-0">
+                    <div className={`text-[13px] font-medium line-clamp-1 ${
+                      theme === "dark" ? "text-gray-200" : "text-gray-900"
+                    }`}>
+                      {stream.title}
+                    </div>
+                    <div className={`text-[11px] ${
+                      theme === "dark" ? "text-gray-600" : "text-gray-500"
+                    }`}>
+                      {stream.user.name}
+                    </div>
+                    <div className={`flex items-center gap-1 text-[11px] ${
+                      theme === "dark" ? "text-gray-600" : "text-gray-500"
+                    }`}>
+                      <Users className="w-3 h-3" />
+                      {formatNumber(stream.viewers)}
                     </div>
                   </div>
                 </div>
               ))}
           </div>
-          
-          <Divider />
-          
-          <h3 className="font-bold mb-3">Nearby Studios</h3>
-          <div className="space-y-3">
-            {nearbyStudios
-              .filter(studio => studio.available)
-              .sort((a, b) => parseFloat(a.distance) - parseFloat(b.distance))
-              .slice(0, 2)
-              .map(studio => (
-                <div 
-                  key={studio.id} 
-                  className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer"
-                  onClick={() => {
-                    setSelectedStudio(studio);
-                    setIsStudioDrawerOpen(true);
-                  }}
-                >
-                  <img 
-                    src={studio.image} 
-                    alt={studio.name}
-                    className="w-16 h-16 object-cover rounded"
-                  />
-                  <div className="flex-1">
-                    <div className="font-medium text-sm">{studio.name}</div>
-                    <div className="text-xs text-gray-500 flex items-center">
-                      <EnvironmentOutlined className="mr-1" />
-                      {studio.distance} • {studio.price}
-                    </div>
-                    <div className="flex items-center mt-1">
-                      <Rate 
-                        disabled 
-                        defaultValue={studio.rating} 
-                        allowHalf 
-                        character={<StarOutlined />}
-                        className="text-xs"
-                      />
-                      <span className="text-xs text-gray-500 ml-1">{studio.rating}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            <Button type="link" className="w-full mt-2" onClick={findNearbyStudios}>
-              Find More Studios
-            </Button>
-          </div>
         </div>
       </div>
-
-      {/* Go Live Modal */}
-      <Modal 
-        title="Start a Live Stream" 
-        open={isLiveModalOpen} 
-        onOk={startStreaming}
-        onCancel={() => setIsLiveModalOpen(false)}
-        okText="Go Live"
-        width={600}
-      >
-        <div className="mb-6">
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Stream Title</label>
-            <Input 
-              placeholder="What are you creating today?" 
-              value={streamTitle}
-              onChange={(e) => setStreamTitle(e.target.value)}
-            />
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Genre</label>
-            <Select
-        className="w-full"
-        placeholder="Select genre"
-        value={streamGenre}
-        onChange={(value: string) => setStreamGenre(value)}
-      >
-        <Option value="Hip Hop">Hip Hop</Option>
-        <Option value="R&B">R&B</Option>
-        <Option value="Pop">Pop</Option>
-        <Option value="Trap">Trap</Option>
-        <Option value="Electronic">Electronic</Option>
-        <Option value="Rock">Rock</Option>
-      </Select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Tags</label>
-              <Select
-                mode="tags"
-                style={{ width: '100%' }}
-                placeholder="e.g., Producing, Vocals, Tutorial"
-                value={streamTags}
-                onChange={(value) => setStreamTags(value)}
-              />
-            </div>
-          </div>
-          
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Stream Preview</label>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 flex items-center justify-center h-48 bg-gray-50">
-              {isStreaming ? (
-                <video 
-                  ref={videoRef}
-                  autoPlay
-                  muted
-                  className="h-full"
-                />
-              ) : (
-                <div className="text-center">
-                  <VideoCameraOutlined className="text-3xl text-gray-400 mb-2" />
-                  <p className="text-gray-500">Camera will activate when you go live</p>
-                </div>
-              )}
-            </div>
-          </div>
-          
-          <div className="mb-4">
-            <Switch defaultChecked /> 
-            <span className="text-sm ml-2">Allow viewers to comment</span>
-          </div>
-          <div className="mb-4">
-            <Switch /> 
-            <span className="text-sm ml-2">Make stream private (invite only)</span>
-          </div>
-        </div>
-      </Modal>
-
-
-{selectedStudio && (
-  <Drawer
-    title={selectedStudio?.name || "Studio Details"}
-    placement="right"
-    width={500}
-    onClose={() => setIsStudioDrawerOpen(false)}
-    open={isStudioDrawerOpen}
-  >
-    <div>
-      <img
-        src={selectedStudio.image}
-        alt={selectedStudio.name}
-        className="w-full h-48 object-cover rounded-lg mb-4"
-      />
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <div className="flex items-center">
-            <Rate
-              disabled
-              defaultValue={selectedStudio.rating}
-              allowHalf
-              character={<StarOutlined />}
-              className="text-sm mr-2"
-            />
-            <span className="text-gray-600">{selectedStudio.rating} ({Math.floor(selectedStudio.rating * 20)} reviews)</span>
-          </div>
-          <div className="text-gray-600 mt-1">
-            <EnvironmentOutlined className="mr-1" />
-            {selectedStudio.distance} away
-          </div>
-        </div>
-        <div className="text-xl font-bold">{selectedStudio.price}</div>
-      </div>
-      <Divider />
-      <h3 className="font-bold mb-2">Equipment</h3>
-      <div className="flex flex-wrap gap-2 mb-4">
-        {selectedStudio.equipment.map((item, i) => (
-          <Tag key={i}>{item}</Tag>
-        ))}
-      </div>
-      <Divider />
-      <h3 className="font-bold mb-3">Available Time Slots</h3>
-      {selectedStudio.available ? (
-        <div className="grid grid-cols-3 gap-2 mb-6">
-          {selectedStudio.slots.map((slot, i) => (
-            <Button key={i} className="text-center">
-              {slot.start} - {slot.end}
-            </Button>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-6 bg-gray-50 rounded-lg mb-6">
-          <ClockCircleOutlined className="text-2xl text-gray-400 mb-2" />
-          <p className="text-gray-600">No available slots today</p>
-          <Button type="link" className="mt-2">View Availability</Button>
-        </div>
-      )}
-      <Button type="primary" block size="large" disabled={!selectedStudio.available}>
-        Book Studio Session
-      </Button>
-    </div>
-  </Drawer>
-)}
-
-      {/* Service Provider Modal */}
-      <Modal 
-        title={selectedService ? `Connect with ${selectedService.name}` : "Service Provider"}
-        open={!!selectedService}
-        onCancel={() => setSelectedService(null)}
-        footer={null}
-        width={600}
-      >
-        {selectedService && (
-          <div>
-            <div className="flex items-start gap-4 mb-6">
-              <Avatar src={selectedService.avatar} size={80} />
-              <div>
-                <h3 className="text-xl font-bold">{selectedService.name}</h3>
-                <div className="flex items-center mb-2">
-                  <Rate 
-                    disabled 
-                    defaultValue={selectedService.rating} 
-                    allowHalf 
-                    character={<StarOutlined />}
-                    className="text-sm mr-2"
-                  />
-                  <span className="text-gray-600">{selectedService.rating}</span>
-                </div>
-                <div className="text-gray-600 mb-1">
-                  <EnvironmentOutlined className="mr-1" />
-                  {selectedService.distance} away
-                </div>
-                <div className="text-lg font-bold">{selectedService.price}</div>
-              </div>
-            </div>
-            
-            <Divider />
-            
-            <h3 className="font-bold mb-2">Service</h3>
-            <p className="mb-4">{selectedService.service} Services</p>
-            
-            <h3 className="font-bold mb-2">Tags</h3>
-            <div className="flex flex-wrap gap-2 mb-6">
-              {selectedService.tags.map((tag, i) => (
-                <Tag key={i}>{tag}</Tag>
-              ))}
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <Button icon={<MessageOutlined />}>Send Message</Button>
-              <Button type="primary" icon={<CalendarOutlined />}>Book Session</Button>
-            </div>
-          </div>
-        )}
-      </Modal>
-
-      {/* Finding Studios Modal */}
-      <Modal 
-        title="Finding Nearby Studios" 
-        open={isFindingStudio} 
-        footer={null}
-        closable={false}
-        width={400}
-      >
-        <div className="text-center p-6">
-          <div className="mb-4">
-            <CompassOutlined className="text-4xl text-blue-500 animate-pulse" />
-          </div>
-          <Progress percent={findingProgress} status="active" />
-          <p className="mt-4 text-gray-600">
-            Searching for available studios in your area...
-          </p>
-        </div>
-      </Modal>
     </div>
   );
 }

@@ -230,8 +230,7 @@ export default function StudioList() {
               <img
                 alt={studio.name}
                 src={studio.image}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-              />
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>
               <div className={`
                 absolute top-2 right-2 px-2.5 py-1 rounded-full text-[11px] font-semibold backdrop-blur-sm
                 ${theme === "dark"

@@ -1,28 +1,17 @@
 // components/menu/MenuIcon.tsx
 import React from 'react';
 import {
-  Mail,
-  Tag,
-  FileText,
-  BarChart2,
-  ClipboardList,
-  Calculator,
-  Megaphone,
-  FolderSearch,
-  PhoneCall,
-  ListOrdered,
-  Presentation,
-  Workflow,
-  Wand2,
-  BookOpen,
-  Users,
-  GitBranch,
-  Bot,
-  Library,
-  ShieldCheck,
-  User,
-  Notebook
-} from "lucide-react";
+  BuildingStorefrontIcon,
+  MusicalNoteIcon,
+  StarIcon,
+  CalendarDaysIcon,
+  UsersIcon,
+  WrenchScrewdriverIcon,
+  CogIcon,
+  UserIcon,
+  ChartBarIcon,
+  FolderIcon,
+} from "@heroicons/react/24/outline";
 
 interface MenuIconProps {
   name: string;
@@ -30,23 +19,18 @@ interface MenuIconProps {
 
 export const MenuIcon = ({ name }: MenuIconProps) => {
   const iconMap: Record<string, React.ReactElement> = {
-    Admin: <ClipboardList className="h-4 w-4" />,
-    Invites: <Megaphone className="h-4 w-4" />,
-    default: (
-      <svg
-        className="h-4 w-4"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M4 6h16M4 12h16M4 18h16"
-        />
-      </svg>
-    ),
+    // Only your Refine resources
+    "studios": <BuildingStorefrontIcon className="h-4 w-4" />,
+    "producers": <MusicalNoteIcon className="h-4 w-4" />,
+    "beats": <StarIcon className="h-4 w-4" />,
+    "bookings": <CalendarDaysIcon className="h-4 w-4" />,
+    "collabs": <UsersIcon className="h-4 w-4" />,
+    "equipment": <WrenchScrewdriverIcon className="h-4 w-4" />,
+    "services": <CogIcon className="h-4 w-4" />,
+    "artists": <UserIcon className="h-4 w-4" />,
+    "transactions": <ChartBarIcon className="h-4 w-4" />,
+    
+    default: <FolderIcon className="h-4 w-4" />
   };
 
   return iconMap[name] || iconMap.default;

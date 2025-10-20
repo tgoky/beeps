@@ -14,7 +14,7 @@ export const Controls = ({ collapsed, setCollapsed }: ControlsProps) => {
   return (
     <div className={`flex items-center justify-between px-3 py-2.5 border-b backdrop-blur-sm ${
       theme === "dark" 
-        ? "border-gray-800/50 bg-gray-950/40" 
+        ? "border-gray-800/50 bg-black" 
         : "border-gray-200/60 bg-white/40"
     }`}>
       {!collapsed && (
