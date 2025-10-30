@@ -16,10 +16,8 @@ import {
   ArrowRight, 
   ArrowLeft,
   CheckCircle2,
-  Camera,
-  Star
+  Camera
 } from "lucide-react";
-import { useTheme } from "../../providers/ThemeProvider";
 
 type UserRole = 'artist' | 'producer' | 'studio-owner' | 'instrument-sales' | 'lyricist' | 'other';
 type Genre = 'Hip Hop' | 'Trap' | 'R&B' | 'Electronic' | 'Pop' | 'Jazz' | 'Soul' | 'Rock' | 'Classical' | 'Reggae';
@@ -31,49 +29,42 @@ const roleConfig = {
     icon: Mic2,
     title: "Artist",
     description: "Vocalist, rapper, or singer looking to create and collaborate",
-    fields: ['genres', 'bio', 'socialLinks'],
-    color: "from-purple-500 to-pink-500"
+    fields: ['genres', 'bio', 'socialLinks']
   },
   producer: {
     icon: Music2,
     title: "Producer",
     description: "Create beats, mix tracks, and produce music",
-    fields: ['genres', 'specialties', 'equipment', 'experience'],
-    color: "from-blue-500 to-cyan-500"
+    fields: ['genres', 'specialties', 'equipment', 'experience']
   },
   'studio-owner': {
     icon: Building2,
     title: "Studio Owner",
     description: "Own or manage a recording studio space",
-    fields: ['studioName', 'capacity', 'equipment', 'location', 'hourlyRate'],
-    color: "from-green-500 to-emerald-500"
+    fields: ['studioName', 'capacity', 'equipment', 'location', 'hourlyRate']
   },
   'instrument-sales': {
     icon: Guitar,
     title: "Gear Specialist",
     description: "Sell or rent music instruments and equipment",
-    fields: ['businessName', 'specialties', 'inventory', 'location'],
-    color: "from-orange-500 to-red-500"
+    fields: ['businessName', 'specialties', 'inventory', 'location']
   },
   lyricist: {
     icon: Headphones,
     title: "Lyricist",
     description: "Write lyrics, hooks, and song concepts",
-    fields: ['genres', 'writingStyle', 'collaborationStyle', 'portfolio'],
-    color: "from-indigo-500 to-purple-500"
+    fields: ['genres', 'writingStyle', 'collaborationStyle', 'portfolio']
   },
   other: {
     icon: Users,
     title: "Other",
     description: "Music enthusiast, manager, or other role",
-    fields: ['customRole', 'bio', 'interests'],
-    color: "from-gray-500 to-gray-700"
+    fields: ['customRole', 'bio', 'interests']
   }
 };
 
 export default function SignUp() {
   const router = useRouter();
-  const { theme } = useTheme();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     // Step 1
@@ -169,10 +160,8 @@ export default function SignUp() {
   };
 
   const handleSubmit = async () => {
-    // Here you would integrate with Supabase
     console.log('Form submitted:', formData);
     
-    // Simulate API call
     setTimeout(() => {
       alert('Account created! Please check your email for verification link.');
       router.push('/login');
@@ -190,7 +179,6 @@ export default function SignUp() {
 
   const updateField = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
@@ -204,171 +192,159 @@ export default function SignUp() {
   };
 
   const renderStep1 = () => (
-    <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+    <div className="grid grid-cols-1 lg:grid-cols-5 gap-12">
       {/* Left Side - Role Selection */}
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold text-white mb-2">Choose Your Role</h2>
-          <p className="text-gray-400 text-[15px]">
-            Select how you'll contribute to the music community
+      <div className="lg:col-span-3 space-y-8">
+        <div className="space-y-2">
+          <h2 className="text-2xl font-light tracking-tight text-white">Choose your role</h2>
+          <p className="text-sm font-light text-zinc-500 tracking-wide">
+            Select how you'll contribute to the community
           </p>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           {(Object.entries(roleConfig) as [UserRole, typeof roleConfig.artist][]).map(([key, config]) => {
             const Icon = config.icon;
             const isSelected = formData.role === key;
             return (
-              <div
+              <button
                 key={key}
+                type="button"
                 className={`
-                  p-6 rounded-xl border-2 cursor-pointer transition-all duration-300 relative overflow-hidden group
+                  w-full p-5 rounded-lg border transition-all duration-200 text-left
                   ${isSelected
-                    ? `border-white/20 bg-gradient-to-r ${config.color} bg-opacity-20`
-                    : "border-white/10 bg-black/40 hover:border-white/20 hover:bg-black/60"
+                    ? "border-white bg-zinc-950"
+                    : "border-zinc-800 bg-black hover:border-zinc-700 hover:bg-zinc-950"
                   }
-                  hover:scale-105 active:scale-95
                 `}
                 onClick={() => updateField('role', key)}
               >
-                {/* Gradient overlay */}
-                {isSelected && (
-                  <div className={`absolute inset-0 bg-gradient-to-r ${config.color} opacity-10`} />
-                )}
-                
-                <div className="relative z-10 flex items-center gap-4">
+                <div className="flex items-center gap-4">
                   <div className={`
-                    p-3 rounded-xl transition-all duration-300
-                    ${isSelected
-                      ? "bg-white/20 text-white"
-                      : "bg-white/10 text-gray-400 group-hover:text-white"
-                    }
+                    p-2.5 rounded-md transition-colors
+                    ${isSelected ? "bg-white" : "bg-zinc-900"}
                   `}>
-                    <Icon className="w-6 h-6" />
+                    <Icon className={`w-5 h-5 ${isSelected ? "text-black" : "text-zinc-500"}`} strokeWidth={2} />
                   </div>
                   <div className="flex-1">
-                    <h3 className={`text-lg font-semibold mb-1 transition-colors ${
-                      isSelected ? "text-white" : "text-gray-200 group-hover:text-white"
+                    <h3 className={`text-sm font-medium tracking-wide transition-colors ${
+                      isSelected ? "text-white" : "text-zinc-400"
                     }`}>
                       {config.title}
                     </h3>
-                    <p className={`text-sm transition-colors ${
-                      isSelected ? "text-gray-300" : "text-gray-500 group-hover:text-gray-400"
+                    <p className={`text-xs font-light mt-0.5 tracking-wide transition-colors ${
+                      isSelected ? "text-zinc-400" : "text-zinc-600"
                     }`}>
                       {config.description}
                     </p>
                   </div>
                   {isSelected && (
-                    <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
-                      <CheckCircle2 className="w-4 h-4 text-white" />
-                    </div>
+                    <CheckCircle2 className="w-5 h-5 text-white" strokeWidth={2} />
                   )}
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
-        {errors.role && <p className="text-red-400 text-sm mt-2">{errors.role}</p>}
+        {errors.role && <p className="text-xs font-light text-red-400 tracking-wide">{errors.role}</p>}
       </div>
 
       {/* Right Side - Account Details */}
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold text-white mb-2">Account Details</h2>
-          <p className="text-gray-400 text-[15px]">
-            Create your login credentials
+      <div className="lg:col-span-2 space-y-8">
+        <div className="space-y-2">
+          <h2 className="text-2xl font-light tracking-tight text-white">Account details</h2>
+          <p className="text-sm font-light text-zinc-500 tracking-wide">
+            Create your credentials
           </p>
         </div>
 
         <div className="space-y-6">
-          <div>
-            <label className="block text-[15px] font-medium text-gray-200 mb-3">
+          <div className="space-y-3">
+            <label className="block text-xs font-medium text-zinc-400 tracking-wider uppercase">
               Email Address
             </label>
             <div className="relative">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" strokeWidth={2} />
               <input
                 type="email"
                 value={formData.email}
                 onChange={(e) => updateField('email', e.target.value)}
                 className={`
-                  w-full pl-12 pr-4 py-4 text-[15px] rounded-xl border transition-all duration-200
-                  bg-black/40 border-white/10 text-white placeholder-gray-500
-                  focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20
-                  ${errors.email ? "border-red-500 focus:border-red-500 focus:ring-red-500/20" : ""}
+                  w-full pl-11 pr-4 py-3.5 text-sm font-light rounded-lg border transition-all duration-200
+                  bg-zinc-950 border-zinc-800 text-white placeholder-zinc-600 tracking-wide
+                  focus:outline-none focus:border-white focus:bg-black
+                  ${errors.email ? "border-red-500/50 focus:border-red-500" : ""}
                 `}
                 placeholder="your@email.com"
               />
             </div>
-            {errors.email && <p className="text-red-400 text-sm mt-2">{errors.email}</p>}
+            {errors.email && <p className="text-xs font-light text-red-400 tracking-wide">{errors.email}</p>}
           </div>
 
-          <div>
-            <label className="block text-[15px] font-medium text-gray-200 mb-3">
+          <div className="space-y-3">
+            <label className="block text-xs font-medium text-zinc-400 tracking-wider uppercase">
               Username
             </label>
             <div className="relative">
-              <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+              <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" strokeWidth={2} />
               <input
                 type="text"
                 value={formData.username}
                 onChange={(e) => updateField('username', e.target.value)}
                 className={`
-                  w-full pl-12 pr-4 py-4 text-[15px] rounded-xl border transition-all duration-200
-                  bg-black/40 border-white/10 text-white placeholder-gray-500
-                  focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20
-                  ${errors.username ? "border-red-500 focus:border-red-500 focus:ring-red-500/20" : ""}
+                  w-full pl-11 pr-4 py-3.5 text-sm font-light rounded-lg border transition-all duration-200
+                  bg-zinc-950 border-zinc-800 text-white placeholder-zinc-600 tracking-wide
+                  focus:outline-none focus:border-white focus:bg-black
+                  ${errors.username ? "border-red-500/50 focus:border-red-500" : ""}
                 `}
                 placeholder="Choose a username"
               />
             </div>
-            {errors.username && <p className="text-red-400 text-sm mt-2">{errors.username}</p>}
+            {errors.username && <p className="text-xs font-light text-red-400 tracking-wide">{errors.username}</p>}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-[15px] font-medium text-gray-200 mb-3">
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                <input
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => updateField('password', e.target.value)}
-                  className={`
-                    w-full pl-12 pr-4 py-4 text-[15px] rounded-xl border transition-all duration-200
-                    bg-black/40 border-white/10 text-white placeholder-gray-500
-                    focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20
-                    ${errors.password ? "border-red-500 focus:border-red-500 focus:ring-red-500/20" : ""}
-                  `}
-                  placeholder="Create a password"
-                />
-              </div>
-              {errors.password && <p className="text-red-400 text-sm mt-2">{errors.password}</p>}
+          <div className="space-y-3">
+            <label className="block text-xs font-medium text-zinc-400 tracking-wider uppercase">
+              Password
+            </label>
+            <div className="relative">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" strokeWidth={2} />
+              <input
+                type="password"
+                value={formData.password}
+                onChange={(e) => updateField('password', e.target.value)}
+                className={`
+                  w-full pl-11 pr-4 py-3.5 text-sm font-light rounded-lg border transition-all duration-200
+                  bg-zinc-950 border-zinc-800 text-white placeholder-zinc-600 tracking-wide
+                  focus:outline-none focus:border-white focus:bg-black
+                  ${errors.password ? "border-red-500/50 focus:border-red-500" : ""}
+                `}
+                placeholder="Create a password"
+              />
             </div>
+            {errors.password && <p className="text-xs font-light text-red-400 tracking-wide">{errors.password}</p>}
+          </div>
 
-            <div>
-              <label className="block text-[15px] font-medium text-gray-200 mb-3">
-                Confirm Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                <input
-                  type="password"
-                  value={formData.confirmPassword}
-                  onChange={(e) => updateField('confirmPassword', e.target.value)}
-                  className={`
-                    w-full pl-12 pr-4 py-4 text-[15px] rounded-xl border transition-all duration-200
-                    bg-black/40 border-white/10 text-white placeholder-gray-500
-                    focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20
-                    ${errors.confirmPassword ? "border-red-500 focus:border-red-500 focus:ring-red-500/20" : ""}
-                  `}
-                  placeholder="Confirm your password"
-                />
-              </div>
-              {errors.confirmPassword && <p className="text-red-400 text-sm mt-2">{errors.confirmPassword}</p>}
+          <div className="space-y-3">
+            <label className="block text-xs font-medium text-zinc-400 tracking-wider uppercase">
+              Confirm Password
+            </label>
+            <div className="relative">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" strokeWidth={2} />
+              <input
+                type="password"
+                value={formData.confirmPassword}
+                onChange={(e) => updateField('confirmPassword', e.target.value)}
+                className={`
+                  w-full pl-11 pr-4 py-3.5 text-sm font-light rounded-lg border transition-all duration-200
+                  bg-zinc-950 border-zinc-800 text-white placeholder-zinc-600 tracking-wide
+                  focus:outline-none focus:border-white focus:bg-black
+                  ${errors.confirmPassword ? "border-red-500/50 focus:border-red-500" : ""}
+                `}
+                placeholder="Confirm your password"
+              />
             </div>
+            {errors.confirmPassword && <p className="text-xs font-light text-red-400 tracking-wide">{errors.confirmPassword}</p>}
           </div>
         </div>
       </div>
@@ -380,37 +356,34 @@ export default function SignUp() {
     const config = roleConfig[role];
 
     return (
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
         {/* Left Side - Profile Basics */}
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-2xl font-bold text-white mb-2">Profile Information</h2>
-            <p className="text-gray-400 text-[15px]">
+        <div className="space-y-8">
+          <div className="space-y-2">
+            <h2 className="text-2xl font-light tracking-tight text-white">Profile information</h2>
+            <p className="text-sm font-light text-zinc-500 tracking-wide">
               Tell us about yourself
             </p>
           </div>
 
           <div className="space-y-6">
             {/* Avatar Upload */}
-            <div className="flex items-center gap-6 p-6 rounded-xl border border-white/10 bg-black/40">
-              <div className="w-20 h-20 rounded-2xl flex items-center justify-center border-2 border-dashed border-white/20 bg-black/60">
-                <Camera className="w-8 h-8 text-gray-500" />
+            <div className="flex items-center gap-5 p-5 rounded-lg border border-zinc-800 bg-zinc-950">
+              <div className="w-16 h-16 rounded-lg flex items-center justify-center border-2 border-dashed border-zinc-800 bg-black">
+                <Camera className="w-6 h-6 text-zinc-600" strokeWidth={2} />
               </div>
               <div>
-                <p className="text-[15px] font-medium text-white mb-1">
+                <p className="text-sm font-medium text-white tracking-wide">
                   Profile Picture
                 </p>
-                <p className="text-[13px] text-gray-400">
-                  Click to upload or drag and drop
-                </p>
-                <p className="text-[12px] text-gray-500 mt-1">
+                <p className="text-xs font-light text-zinc-500 mt-1 tracking-wide">
                   Recommended: 500x500px, JPG or PNG
                 </p>
               </div>
             </div>
 
-            <div>
-              <label className="block text-[15px] font-medium text-gray-200 mb-3">
+            <div className="space-y-3">
+              <label className="block text-xs font-medium text-zinc-400 tracking-wider uppercase">
                 Full Name
               </label>
               <input
@@ -418,40 +391,40 @@ export default function SignUp() {
                 value={formData.fullName}
                 onChange={(e) => updateField('fullName', e.target.value)}
                 className={`
-                  w-full px-4 py-4 text-[15px] rounded-xl border transition-all duration-200
-                  bg-black/40 border-white/10 text-white placeholder-gray-500
-                  focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20
-                  ${errors.fullName ? "border-red-500 focus:border-red-500 focus:ring-red-500/20" : ""}
+                  w-full px-4 py-3.5 text-sm font-light rounded-lg border transition-all duration-200
+                  bg-zinc-950 border-zinc-800 text-white placeholder-zinc-600 tracking-wide
+                  focus:outline-none focus:border-white focus:bg-black
+                  ${errors.fullName ? "border-red-500/50 focus:border-red-500" : ""}
                 `}
                 placeholder="Your full name"
               />
-              {errors.fullName && <p className="text-red-400 text-sm mt-2">{errors.fullName}</p>}
+              {errors.fullName && <p className="text-xs font-light text-red-400 tracking-wide">{errors.fullName}</p>}
             </div>
 
-            <div>
-              <label className="block text-[15px] font-medium text-gray-200 mb-3">
+            <div className="space-y-3">
+              <label className="block text-xs font-medium text-zinc-400 tracking-wider uppercase">
                 Location
               </label>
               <div className="relative">
-                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" strokeWidth={2} />
                 <input
                   type="text"
                   value={formData.location}
                   onChange={(e) => updateField('location', e.target.value)}
                   className={`
-                    w-full pl-12 pr-4 py-4 text-[15px] rounded-xl border transition-all duration-200
-                    bg-black/40 border-white/10 text-white placeholder-gray-500
-                    focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20
-                    ${errors.location ? "border-red-500 focus:border-red-500 focus:ring-red-500/20" : ""}
+                    w-full pl-11 pr-4 py-3.5 text-sm font-light rounded-lg border transition-all duration-200
+                    bg-zinc-950 border-zinc-800 text-white placeholder-zinc-600 tracking-wide
+                    focus:outline-none focus:border-white focus:bg-black
+                    ${errors.location ? "border-red-500/50 focus:border-red-500" : ""}
                   `}
                   placeholder="City, State, Country"
                 />
               </div>
-              {errors.location && <p className="text-red-400 text-sm mt-2">{errors.location}</p>}
+              {errors.location && <p className="text-xs font-light text-red-400 tracking-wide">{errors.location}</p>}
             </div>
 
-            <div>
-              <label className="block text-[15px] font-medium text-gray-200 mb-3">
+            <div className="space-y-3">
+              <label className="block text-xs font-medium text-zinc-400 tracking-wider uppercase">
                 Bio
               </label>
               <textarea
@@ -459,9 +432,9 @@ export default function SignUp() {
                 onChange={(e) => updateField('bio', e.target.value)}
                 rows={4}
                 className={`
-                  w-full px-4 py-4 text-[15px] rounded-xl border transition-all duration-200 resize-none
-                  bg-black/40 border-white/10 text-white placeholder-gray-500
-                  focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20
+                  w-full px-4 py-3.5 text-sm font-light rounded-lg border transition-all duration-200 resize-none
+                  bg-zinc-950 border-zinc-800 text-white placeholder-zinc-600 tracking-wide
+                  focus:outline-none focus:border-white focus:bg-black
                 `}
                 placeholder="Tell us about yourself and your music journey..."
               />
@@ -470,10 +443,10 @@ export default function SignUp() {
         </div>
 
         {/* Right Side - Role-specific Fields */}
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-2xl font-bold text-white mb-2">{config.title} Details</h2>
-            <p className="text-gray-400 text-[15px]">
+        <div className="space-y-8">
+          <div className="space-y-2">
+            <h2 className="text-2xl font-light tracking-tight text-white">{config.title} details</h2>
+            <p className="text-sm font-light text-zinc-500 tracking-wide">
               Specific information for your role
             </p>
           </div>
@@ -481,38 +454,37 @@ export default function SignUp() {
           <div className="space-y-6">
             {/* Genres */}
             {config.fields.includes('genres') && (
-              <div>
-                <label className="block text-[15px] font-medium text-gray-200 mb-3">
+              <div className="space-y-3">
+                <label className="block text-xs font-medium text-zinc-400 tracking-wider uppercase">
                   Music Genres
                 </label>
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap gap-2">
                   {genres.map(genre => (
                     <button
                       key={genre}
                       type="button"
                       onClick={() => toggleGenre(genre)}
                       className={`
-                        px-4 py-3 text-[14px] font-medium rounded-xl border transition-all duration-200
+                        px-4 py-2.5 text-xs font-medium rounded-lg border transition-all duration-200 tracking-wide
                         ${formData.genres.includes(genre)
-                          ? "bg-purple-500/20 text-purple-400 border-purple-500/30"
-                          : "bg-black/40 text-gray-400 border-white/10 hover:border-white/20 hover:text-white"
+                          ? "bg-white text-black border-white"
+                          : "bg-zinc-950 text-zinc-500 border-zinc-800 hover:border-zinc-700 hover:text-zinc-300"
                         }
-                        active:scale-95
                       `}
                     >
                       {genre}
                     </button>
                   ))}
                 </div>
-                {errors.genres && <p className="text-red-400 text-sm mt-2">{errors.genres}</p>}
+                {errors.genres && <p className="text-xs font-light text-red-400 tracking-wide">{errors.genres}</p>}
               </div>
             )}
 
             {/* Studio Owner Fields */}
             {config.fields.includes('studioName') && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-[15px] font-medium text-gray-200 mb-3">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <label className="block text-xs font-medium text-zinc-400 tracking-wider uppercase">
                     Studio Name
                   </label>
                   <input
@@ -520,18 +492,18 @@ export default function SignUp() {
                     value={formData.studioName}
                     onChange={(e) => updateField('studioName', e.target.value)}
                     className={`
-                      w-full px-4 py-4 text-[15px] rounded-xl border transition-all duration-200
-                      bg-black/40 border-white/10 text-white placeholder-gray-500
-                      focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20
-                      ${errors.studioName ? "border-red-500 focus:border-red-500 focus:ring-red-500/20" : ""}
+                      w-full px-4 py-3.5 text-sm font-light rounded-lg border transition-all duration-200
+                      bg-zinc-950 border-zinc-800 text-white placeholder-zinc-600 tracking-wide
+                      focus:outline-none focus:border-white focus:bg-black
+                      ${errors.studioName ? "border-red-500/50 focus:border-red-500" : ""}
                     `}
                     placeholder="Your studio name"
                   />
-                  {errors.studioName && <p className="text-red-400 text-sm mt-2">{errors.studioName}</p>}
+                  {errors.studioName && <p className="text-xs font-light text-red-400 tracking-wide">{errors.studioName}</p>}
                 </div>
 
-                <div>
-                  <label className="block text-[15px] font-medium text-gray-200 mb-3">
+                <div className="space-y-3">
+                  <label className="block text-xs font-medium text-zinc-400 tracking-wider uppercase">
                     Capacity
                   </label>
                   <input
@@ -539,9 +511,9 @@ export default function SignUp() {
                     value={formData.capacity}
                     onChange={(e) => updateField('capacity', e.target.value)}
                     className={`
-                      w-full px-4 py-4 text-[15px] rounded-xl border transition-all duration-200
-                      bg-black/40 border-white/10 text-white placeholder-gray-500
-                      focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20
+                      w-full px-4 py-3.5 text-sm font-light rounded-lg border transition-all duration-200
+                      bg-zinc-950 border-zinc-800 text-white placeholder-zinc-600 tracking-wide
+                      focus:outline-none focus:border-white focus:bg-black
                     `}
                     placeholder="e.g., 5 people"
                   />
@@ -551,8 +523,8 @@ export default function SignUp() {
 
             {/* Business Fields */}
             {config.fields.includes('businessName') && (
-              <div>
-                <label className="block text-[15px] font-medium text-gray-200 mb-3">
+              <div className="space-y-3">
+                <label className="block text-xs font-medium text-zinc-400 tracking-wider uppercase">
                   Business Name
                 </label>
                 <input
@@ -560,21 +532,21 @@ export default function SignUp() {
                   value={formData.businessName}
                   onChange={(e) => updateField('businessName', e.target.value)}
                   className={`
-                    w-full px-4 py-4 text-[15px] rounded-xl border transition-all duration-200
-                    bg-black/40 border-white/10 text-white placeholder-gray-500
-                    focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20
-                    ${errors.businessName ? "border-red-500 focus:border-red-500 focus:ring-red-500/20" : ""}
+                    w-full px-4 py-3.5 text-sm font-light rounded-lg border transition-all duration-200
+                    bg-zinc-950 border-zinc-800 text-white placeholder-zinc-600 tracking-wide
+                    focus:outline-none focus:border-white focus:bg-black
+                    ${errors.businessName ? "border-red-500/50 focus:border-red-500" : ""}
                   `}
                   placeholder="Your business name"
                 />
-                {errors.businessName && <p className="text-red-400 text-sm mt-2">{errors.businessName}</p>}
+                {errors.businessName && <p className="text-xs font-light text-red-400 tracking-wide">{errors.businessName}</p>}
               </div>
             )}
 
             {/* Equipment/Specialties */}
             {(config.fields.includes('equipment') || config.fields.includes('specialties')) && (
-              <div>
-                <label className="block text-[15px] font-medium text-gray-200 mb-3">
+              <div className="space-y-3">
+                <label className="block text-xs font-medium text-zinc-400 tracking-wider uppercase">
                   {role === 'producer' ? 'Production Equipment' : 'Studio Equipment'}
                 </label>
                 <input
@@ -582,9 +554,9 @@ export default function SignUp() {
                   value={formData.equipment}
                   onChange={(e) => updateField('equipment', e.target.value)}
                   className={`
-                    w-full px-4 py-4 text-[15px] rounded-xl border transition-all duration-200
-                    bg-black/40 border-white/10 text-white placeholder-gray-500
-                    focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20
+                    w-full px-4 py-3.5 text-sm font-light rounded-lg border transition-all duration-200
+                    bg-zinc-950 border-zinc-800 text-white placeholder-zinc-600 tracking-wide
+                    focus:outline-none focus:border-white focus:bg-black
                   `}
                   placeholder={role === 'producer' ? 'DAW, plugins, hardware...' : 'Mics, consoles, monitors...'}
                 />
@@ -593,32 +565,34 @@ export default function SignUp() {
 
             {/* Social Links */}
             {config.fields.includes('socialLinks') && (
-              <div className="space-y-4">
-                <label className="block text-[15px] font-medium text-gray-200">
+              <div className="space-y-3">
+                <label className="block text-xs font-medium text-zinc-400 tracking-wider uppercase mb-3">
                   Social Links
                 </label>
-                {['instagram', 'youtube', 'soundcloud', 'spotify'].map(platform => (
-                  <div key={platform} className="relative">
-                    <div className={`
-                      absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 rounded
-                      ${platform === 'instagram' ? 'bg-gradient-to-r from-purple-500 to-pink-500' : ''}
-                      ${platform === 'youtube' ? 'bg-red-500' : ''}
-                      ${platform === 'soundcloud' ? 'bg-orange-500' : ''}
-                      ${platform === 'spotify' ? 'bg-green-500' : ''}
-                    `} />
-                    <input
-                      type="text"
-                      value={formData.socialLinks[platform as keyof typeof formData.socialLinks]}
-                      onChange={(e) => updateSocialLink(platform, e.target.value)}
-                      className={`
-                        w-full pl-12 pr-4 py-4 text-[15px] rounded-xl border transition-all duration-200
-                        bg-black/40 border-white/10 text-white placeholder-gray-500
-                        focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20
-                      `}
-                      placeholder={`Your ${platform} username or link`}
-                    />
-                  </div>
-                ))}
+                <div className="space-y-3">
+                  {['instagram', 'youtube', 'soundcloud', 'spotify'].map(platform => (
+                    <div key={platform} className="relative">
+                      <div className={`
+                        absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 rounded
+                        ${platform === 'instagram' ? 'bg-zinc-700' : ''}
+                        ${platform === 'youtube' ? 'bg-zinc-700' : ''}
+                        ${platform === 'soundcloud' ? 'bg-zinc-700' : ''}
+                        ${platform === 'spotify' ? 'bg-zinc-700' : ''}
+                      `} />
+                      <input
+                        type="text"
+                        value={formData.socialLinks[platform as keyof typeof formData.socialLinks]}
+                        onChange={(e) => updateSocialLink(platform, e.target.value)}
+                        className={`
+                          w-full pl-11 pr-4 py-3.5 text-sm font-light rounded-lg border transition-all duration-200
+                          bg-zinc-950 border-zinc-800 text-white placeholder-zinc-600 tracking-wide
+                          focus:outline-none focus:border-white focus:bg-black
+                        `}
+                        placeholder={`Your ${platform} username`}
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -628,104 +602,99 @@ export default function SignUp() {
   };
 
   return (
-    <div className="min-h-screen bg-black p-4 lg:p-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-black flex items-center justify-center p-6">
+      <div className="w-full max-w-6xl py-12">
         {/* Header */}
-        <div className="text-center mb-12">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
-              <Music2 className="w-6 h-6 text-white" />
+        <div className="mb-12">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center">
+              <Music2 className="w-5 h-5 text-black" strokeWidth={2.5} />
             </div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-              Join Beeps
+            <h1 className="text-3xl font-light tracking-tight text-white">
+              Beeps
             </h1>
           </div>
-          <p className="text-xl text-gray-400">
-            Create your account and start your music journey
-          </p>
+          
+          <div className="space-y-2">
+            <h2 className="text-4xl font-light tracking-tight text-white">
+              Create your account
+            </h2>
+            <p className="text-base font-light text-zinc-500 tracking-wide">
+              Join the music community and start collaborating
+            </p>
+          </div>
         </div>
 
         {/* Progress Steps */}
-        <div className="flex items-center justify-center mb-12">
-          <div className="flex items-center gap-8">
-            {[1, 2].map(step => (
-              <div key={step} className="flex items-center gap-4">
-                <div className={`
-                  w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold border-2 transition-all duration-300
-                  ${currentStep >= step
-                    ? "bg-gradient-to-r from-purple-500 to-pink-500 border-transparent text-white shadow-lg shadow-purple-500/25"
-                    : "bg-black border-white/20 text-gray-500"
-                  }
-                `}>
-                  {currentStep > step ? <CheckCircle2 className="w-6 h-6" /> : step}
-                </div>
-                {step < 2 && (
-                  <div className={`
-                    w-24 h-1 rounded-full transition-all duration-300
-                    ${currentStep > step
-                      ? "bg-gradient-to-r from-purple-500 to-pink-500"
-                      : "bg-white/20"
-                    }
-                  `} />
-                )}
+        <div className="flex items-center gap-6 mb-12">
+          {[1, 2].map(step => (
+            <div key={step} className="flex items-center gap-4">
+              <div className={`
+                w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium border transition-all duration-200
+                ${currentStep >= step
+                  ? "bg-white border-white text-black"
+                  : "bg-black border-zinc-800 text-zinc-600"
+                }
+              `}>
+                {currentStep > step ? <CheckCircle2 className="w-5 h-5" strokeWidth={2} /> : step}
               </div>
-            ))}
-          </div>
+              {step < 2 && (
+                <div className={`
+                  w-16 h-px transition-all duration-200
+                  ${currentStep > step ? "bg-white" : "bg-zinc-800"}
+                `} />
+              )}
+            </div>
+          ))}
         </div>
 
-        {/* Form Container */}
-        <div className={`
-          rounded-3xl border transition-all duration-500
-          bg-gradient-to-br from-black via-purple-950/10 to-pink-950/10
-          border-white/10 shadow-2xl shadow-purple-500/10
-        `}>
-          <div className="p-8 lg:p-12">
-            {/* Form Content */}
-            <div className="mb-12">
-              {currentStep === 1 ? renderStep1() : renderStep2()}
-            </div>
+        {/* Form Content */}
+        <div className="mb-12">
+          {currentStep === 1 ? renderStep1() : renderStep2()}
+        </div>
 
-            {/* Navigation Buttons */}
-            <div className="flex gap-6 max-w-2xl mx-auto">
-              {currentStep > 1 && (
-                <button
-                  onClick={handleBack}
-                  className={`
-                    flex items-center gap-3 px-8 py-4 text-[15px] font-semibold rounded-2xl border transition-all duration-300 flex-1
-                    bg-black/40 border-white/10 text-gray-400 hover:text-white hover:border-white/20
-                    hover:shadow-lg hover:scale-105 active:scale-95
-                  `}
-                >
-                  <ArrowLeft className="w-5 h-5" />
-                  Back
-                </button>
-              )}
-              <button
-                onClick={handleNext}
-                className={`
-                  flex items-center gap-3 px-8 py-4 text-[15px] font-semibold rounded-2xl border transition-all duration-300 flex-1
-                  bg-gradient-to-r from-purple-500 to-pink-500 border-transparent text-white
-                  hover:shadow-xl hover:shadow-purple-500/25 hover:scale-105 active:scale-95
-                `}
-              >
-                {currentStep === 2 ? 'Create Account' : 'Continue'}
-                <ArrowRight className="w-5 h-5" />
-              </button>
-            </div>
+        {/* Navigation Buttons */}
+        <div className="flex gap-4">
+          {currentStep > 1 && (
+            <button
+              type="button"
+              onClick={handleBack}
+              className={`
+                flex items-center gap-2.5 px-6 py-3.5 text-sm font-medium rounded-lg border transition-all duration-200
+                bg-zinc-950 border-zinc-800 text-zinc-400 tracking-wide
+                hover:bg-black hover:border-zinc-700 hover:text-white active:scale-[0.98]
+              `}
+            >
+              <ArrowLeft className="w-4 h-4" strokeWidth={2} />
+              <span>Back</span>
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={handleNext}
+            className={`
+              flex items-center gap-2.5 px-6 py-3.5 text-sm font-medium rounded-lg border transition-all duration-200 flex-1
+              bg-black  border border-gray-700 text-white tracking-wide
+              hover:bg-zinc-100 active:scale-[0.98]
+            `}
+          >
+            <span>{currentStep === 2 ? 'Create Account' : 'Continue'}</span>
+            <ArrowRight className="w-4 h-4" strokeWidth={2} />
+          </button>
+        </div>
 
-            {/* Login Link */}
-            <div className="text-center mt-8 pt-8 border-t border-white/10">
-              <p className="text-[15px] text-gray-400">
-                Already have an account?{' '}
-                <button
-                  onClick={() => router.push('/login')}
-                  className="font-semibold text-purple-400 hover:text-purple-300 transition-colors duration-200"
-                >
-                  Sign in
-                </button>
-              </p>
-            </div>
-          </div>
+        {/* Login Link */}
+        <div className="text-center mt-8 pt-8 border-t border-zinc-900">
+          <p className="text-xs font-light text-zinc-600 tracking-wide">
+            Already have an account?{' '}
+            <button
+              type="button"
+              onClick={() => router.push('/login')}
+              className="font-medium text-white hover:text-zinc-300 transition-colors bg-black border border-black"
+            >
+              Sign in
+            </button>
+          </p>
         </div>
       </div>
     </div>

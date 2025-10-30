@@ -9,7 +9,7 @@ import React, { Suspense } from "react";
 import { SidebarProvider } from "../providers/sidebar-provider/sidebar-provider";
 import { authProviderClient } from "@providers/auth-provider/auth-provider.client";
 import { dataProvider } from "@providers/data-provider";
-import { ThemeProvider } from "@providers/ThemeProvider"; // Import ThemeProvider
+import { ThemeProvider } from "@providers/ThemeProvider";
 import "@styles/global.css";
 
 export const metadata: Metadata = {
@@ -26,124 +26,124 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="light"> {/* Default to light, updated by ThemeProvider */}
+    <html lang="en" className="light">
       <body>
         <Suspense>
           <RefineKbarProvider>
             <ThemeProvider>
-                <SidebarProvider>
-              <Refine
-                routerProvider={routerProvider}
-                authProvider={authProviderClient}
-                dataProvider={dataProvider}
-                resources={[
-                  {
-                    name: "studios",
-                    list: "/studios",
-                    create: "/studios/create/:id",
-                    edit: "/studios/edit/:id",
-                    show: "/studios/show/:id",
-                    meta: {
-                      label: "Recording Studios",
-                      canDelete: true,
+              <SidebarProvider>
+                <Refine
+                  routerProvider={routerProvider}
+                  authProvider={authProviderClient}
+                  dataProvider={dataProvider}
+                  resources={[
+                    {
+                      name: "studios",
+                      list: "/studios",
+                      create: "/studios/create/:id",
+                      edit: "/studios/edit/:id",
+                      show: "/studios/show/:id",
+                      meta: {
+                        label: "Recording Studios",
+                        canDelete: true,
+                      },
                     },
-                  },
-                  {
-                    name: "producers",
-                    list: "/producers",
-                    create: "/producers/create/:id",
-                    edit: "/producers/edit/:id",
-                    show: "/producers/show/:id",
-                    meta: {
-                      label: "Producers",
-                      canDelete: true,
+                    {
+                      name: "producers",
+                      list: "/producers",
+                      create: "/producers/create/:id",
+                      edit: "/producers/edit/:id",
+                      show: "/producers/show/:id",
+                      meta: {
+                        label: "Producers",
+                        canDelete: true,
+                      },
                     },
-                  },
-                  {
-                    name: "beats",
-                    list: "/beats",
-                    create: "/beats/upload",
-                    edit: "/beats/edit/:id",
-                    show: "/beats/show/:id",
-                    meta: {
-                      label: "Beats Marketplace",
-                      canDelete: true,
+                    {
+                      name: "beats",
+                      list: "/beats",
+                      create: "/beats/upload",
+                      edit: "/beats/edit/:id",
+                      show: "/beats/show/:id",
+                      meta: {
+                        label: "Beats Marketplace",
+                        canDelete: true,
+                      },
                     },
-                  },
-                  {
-                    name: "bookings",
-                    list: "/bookings",
-                    create: "/bookings/create",
-                    edit: "/bookings/edit/:id",
-                    show: "/bookings/show/:id",
-                    meta: {
-                      label: "Bookings",
-                      canDelete: false,
+                    {
+                      name: "bookings",
+                      list: "/bookings",
+                      create: "/bookings/create",
+                      edit: "/bookings/edit/:id",
+                      show: "/bookings/show/:id",
+                      meta: {
+                        label: "Bookings",
+                        canDelete: false,
+                      },
                     },
-                  },
-                   {
-                    name: "collabs",
-                    list: "/collabs",
-                    create: "/collabs/create",
-                    edit: "/collabs/edit/:id",
-                    show: "/collabs/show/:id",
-                    meta: {
-                      label: "Collabs",
-                      canDelete: false,
+                    {
+                      name: "collabs",
+                      list: "/collabs",
+                      create: "/collabs/create",
+                      edit: "/collabs/edit/:id",
+                      show: "/collabs/show/:id",
+                      meta: {
+                        label: "Collabs",
+                        canDelete: false,
+                      },
                     },
-                  },
-                  {
-                    name: "equipment",
-                    list: "/equipment",
-                    create: "/equipment/list",
-                    edit: "/equipment/edit/:id",
-                    show: "/equipment/show/:id",
-                    meta: {
-                      label: "Gear & Equipments",
-                      canDelete: true,
+                    {
+                      name: "equipment",
+                      list: "/equipment",
+                      create: "/equipment/list",
+                      edit: "/equipment/edit/:id",
+                      show: "/equipment/show/:id",
+                      meta: {
+                        label: "Gear & Equipments",
+                        canDelete: true,
+                      },
                     },
-                  },
-                  {
-                    name: "services",
-                    list: "/services",
-                    create: "/services/offer",
-                    edit: "/services/edit/:id",
-                    show: "/services/show/:id",
-                    meta: {
-                      label: "Music Services",
-                      canDelete: true,
+                    {
+                      name: "services",
+                      list: "/services",
+                      create: "/services/offer",
+                      edit: "/services/edit/:id",
+                      show: "/services/show/:id",
+                      meta: {
+                        label: "Music Services",
+                        canDelete: true,
+                      },
                     },
-                  },
-                  {
-                    name: "artists",
-                    list: "/artists",
-                    show: "/artists/profile/:id",
-                    meta: {
-                      label: "Profile",
-                      canDelete: false,
+                    {
+                      name: "artists",
+                      list: "/artists",
+                      show: "/artists/profile/:id",
+                      meta: {
+                        label: "Profile",
+                        canDelete: false,
+                      },
                     },
-                  },
-                  {
-                    name: "transactions",
-                    list: "/transactions",
-                    show: "/transactions/show/:id",
-                    meta: {
-                      label: "Live Feeds",
-                      canDelete: false,
+                    {
+                      name: "transactions",
+                      list: "/transactions",
+                      show: "/transactions/show/:id",
+                      meta: {
+                        label: "Live Feeds",
+                        canDelete: false,
+                      },
                     },
-                  },
-                ]}
-                options={{
-                  syncWithLocation: true,
-                  warnWhenUnsavedChanges: true,
-                  useNewQueryKeys: true,
-                  projectId: "1qO17T-Aib2M5-IanaeI",
-                }}
-              >
-                {children}
-                <RefineKbar />
-              </Refine>
-                     </SidebarProvider>
+                  ]}
+                  options={{
+                    syncWithLocation: true,
+                    warnWhenUnsavedChanges: true,
+                    useNewQueryKeys: true,
+                    projectId: "1qO17T-Aib2M5-IanaeI",
+                  }}
+                >
+                  {children}
+                  <RefineKbar />
+                </Refine>
+              </SidebarProvider>
             </ThemeProvider>
           </RefineKbarProvider>
         </Suspense>
