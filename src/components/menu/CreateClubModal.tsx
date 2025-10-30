@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import { useTheme } from '../../providers/ThemeProvider';
-import { X, Music, Building2, Users, Sparkles } from 'lucide-react';
+import { X, Music2, ArrowRight } from 'lucide-react';
 
 interface CreateClubModalProps {
   isOpen: boolean;
@@ -17,13 +17,14 @@ interface CreateClubModalProps {
 }
 
 const clubTypes = [
-  { value: 'recording', label: 'Recording Studio', icon: '🎙️' },
-  { value: 'production', label: 'Production House', icon: '🎛️' },
-  { value: 'vocal', label: 'Vocal Studio', icon: '🎤' },
-  { value: 'mixing', label: 'Mixing Studio', icon: '🎚️' },
-  { value: 'mastering', label: 'Mastering Studio', icon: '✨' },
-  { value: 'creative', label: 'Creative Space', icon: '🎨' },
+  { value: 'recording', label: 'Recording', icon: '🎙️' },       // recording sessions
+  { value: 'production', label: 'Production', icon: '🎚️' },      // mixing & mastering
+  { value: 'rental', label: 'Rental', icon: '🏠' },              // studio space rental
+  { value: 'management', label: 'Management', icon: '🧑‍💼' },    // artist/business management
+  { value: 'distribution', label: 'Distribution', icon: '📣' },  // promotion, publicity, reach
+  { value: 'creative', label: 'Creative', icon: '🎨' }           // artistic direction
 ];
+
 
 const clubIcons = ['🎵', '🎸', '🎹', '🎧', '🎼', '🎺', '🎷', '🥁', '🎻', '🎤'];
 
@@ -62,76 +63,71 @@ export const CreateClubModal: React.FC<CreateClubModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className={`
-        relative max-w-lg w-full rounded-2xl border shadow-2xl
+        relative w-full max-w-sm rounded-xl border
         ${theme === 'dark' 
-          ? 'bg-gray-900 border-gray-800' 
-          : 'bg-white border-gray-200'
+          ? 'bg-black border-zinc-800' 
+          : 'bg-white border-zinc-200'
         }
       `}>
         {/* Header */}
         <div className={`
-          p-6 border-b
-          ${theme === 'dark' ? 'border-gray-800' : 'border-gray-200'}
+          p-4 border-b
+          ${theme === 'dark' ? 'border-zinc-800' : 'border-zinc-200'}
         `}>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-white" />
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded bg-white flex items-center justify-center">
+                <Music2 className="w-3 h-3 text-black" strokeWidth={2.5} />
               </div>
               <div>
-                <h2 className={`text-xl font-bold ${
-                  theme === 'dark' ? 'text-white' : 'text-gray-900'
+                <h2 className={`text-base font-light tracking-tight ${
+                  theme === 'dark' ? 'text-white' : 'text-black'
                 }`}>
-                  Create New Club
+                  Create Club
                 </h2>
-                <p className={`text-sm ${
-                  theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                }`}>
-                  Start your creative space
-                </p>
               </div>
             </div>
             <button
               onClick={handleClose}
               className={`
-                p-2 rounded-lg transition-all
+                p-1 rounded transition-all duration-200
                 ${theme === 'dark'
-                  ? 'hover:bg-gray-800 text-gray-400 hover:text-white'
-                  : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
+                  ? 'hover:bg-zinc-800 text-zinc-500 hover:text-white'
+                  : 'hover:bg-zinc-100 text-zinc-600 hover:text-black'
                 }
               `}
             >
-              <X className="w-5 h-5" />
+              <X className="w-3 h-3" strokeWidth={2} />
             </button>
           </div>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="p-4 space-y-4">
           {/* Club Icon Selection */}
-          <div>
-            <label className={`block text-sm font-medium mb-3 ${
-              theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+          <div className="space-y-1">
+            <label className={`block text-xs font-medium tracking-wider uppercase ${
+              theme === 'dark' ? 'text-zinc-400' : 'text-zinc-600'
             }`}>
-              Choose Icon
+              Icon
             </label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1">
               {clubIcons.map((icon) => (
                 <button
                   key={icon}
                   type="button"
                   onClick={() => setSelectedIcon(icon)}
                   className={`
-                    w-12 h-12 rounded-xl flex items-center justify-center text-xl transition-all
+                    w-8 h-8 rounded flex items-center justify-center text-base transition-all duration-150
                     ${selectedIcon === icon
                       ? theme === 'dark'
-                        ? 'bg-purple-500/20 border-2 border-purple-500 scale-110'
-                        : 'bg-purple-50 border-2 border-purple-500 scale-110'
+                        ? 'bg-white text-black'
+                        : 'bg-black text-white'
                       : theme === 'dark'
-                        ? 'bg-gray-800 border-2 border-gray-700 hover:border-gray-600'
-                        : 'bg-gray-50 border-2 border-gray-200 hover:border-gray-300'
+                        ? 'bg-zinc-900 border border-zinc-800 hover:border-zinc-700'
+                        : 'bg-zinc-50 border border-zinc-200 hover:border-zinc-300'
                     }
                   `}
                 >
@@ -142,58 +138,58 @@ export const CreateClubModal: React.FC<CreateClubModalProps> = ({
           </div>
 
           {/* Club Name */}
-          <div>
-            <label className={`block text-sm font-medium mb-2 ${
-              theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+          <div className="space-y-1">
+            <label className={`block text-xs font-medium tracking-wider uppercase ${
+              theme === 'dark' ? 'text-zinc-400' : 'text-zinc-600'
             }`}>
-              Club Name *
+              Name *
             </label>
             <input
               type="text"
               value={clubName}
               onChange={(e) => setClubName(e.target.value)}
               className={`
-                w-full px-4 py-3 rounded-xl border transition-all
-                focus:outline-none focus:ring-2 focus:ring-purple-500
+                w-full px-3 py-2 text-sm font-light rounded border transition-all duration-200 tracking-wide
+                focus:outline-none focus:border-white
                 ${theme === 'dark' 
-                  ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-500' 
-                  : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400'
+                  ? 'bg-zinc-900 border-zinc-800 text-white placeholder-zinc-600 focus:bg-black' 
+                  : 'bg-zinc-50 border-zinc-200 text-black placeholder-zinc-500 focus:bg-white'
                 }
               `}
-              placeholder="e.g., Studio Alpha"
+              placeholder="Studio Alpha"
               required
               autoFocus
             />
           </div>
 
           {/* Club Type */}
-          <div>
-            <label className={`block text-sm font-medium mb-3 ${
-              theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+          <div className="space-y-1">
+            <label className={`block text-xs font-medium tracking-wider uppercase ${
+              theme === 'dark' ? 'text-zinc-400' : 'text-zinc-600'
             }`}>
-              Club Type *
+              Type *
             </label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-1">
               {clubTypes.map((type) => (
                 <button
                   key={type.value}
                   type="button"
                   onClick={() => setClubType(type.label)}
                   className={`
-                    p-3 rounded-xl border transition-all text-left
+                    p-2 rounded border transition-all duration-150 text-center
                     ${clubType === type.label
                       ? theme === 'dark'
-                        ? 'bg-purple-500/10 border-purple-500 text-white'
-                        : 'bg-purple-50 border-purple-500 text-gray-900'
+                        ? 'bg-white border-white text-black'
+                        : 'bg-black border-black text-white'
                       : theme === 'dark'
-                        ? 'bg-gray-800 border-gray-700 text-gray-300 hover:border-gray-600'
-                        : 'bg-gray-50 border-gray-200 text-gray-700 hover:border-gray-300'
+                        ? 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-zinc-700'
+                        : 'bg-zinc-50 border-zinc-200 text-zinc-700 hover:border-zinc-300'
                     }
                   `}
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">{type.icon}</span>
-                    <span className="text-sm font-medium">{type.label}</span>
+                  <div className="flex flex-col items-center gap-0.5">
+                    <span className="text-sm">{type.icon}</span>
+                    <span className="text-[10px] font-light tracking-wide leading-tight">{type.label}</span>
                   </div>
                 </button>
               ))}
@@ -201,38 +197,38 @@ export const CreateClubModal: React.FC<CreateClubModalProps> = ({
           </div>
 
           {/* Description */}
-          <div>
-            <label className={`block text-sm font-medium mb-2 ${
-              theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+          <div className="space-y-1">
+            <label className={`block text-xs font-medium tracking-wider uppercase ${
+              theme === 'dark' ? 'text-zinc-400' : 'text-zinc-600'
             }`}>
-              Description (Optional)
+              Description
             </label>
             <textarea
               value={clubDescription}
               onChange={(e) => setClubDescription(e.target.value)}
               className={`
-                w-full px-4 py-3 rounded-xl border transition-all resize-none
-                focus:outline-none focus:ring-2 focus:ring-purple-500
+                w-full px-3 py-2 text-sm font-light rounded border transition-all duration-200 resize-none tracking-wide
+                focus:outline-none focus:border-white
                 ${theme === 'dark' 
-                  ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-500' 
-                  : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400'
+                  ? 'bg-zinc-900 border-zinc-800 text-white placeholder-zinc-600 focus:bg-black' 
+                  : 'bg-zinc-50 border-zinc-200 text-black placeholder-zinc-500 focus:bg-white'
                 }
               `}
-              rows={3}
+              rows={1}
               placeholder="What makes your club special?"
             />
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-2 pt-2">
             <button
               type="button"
               onClick={handleClose}
               className={`
-                flex-1 px-4 py-3 rounded-xl font-medium border transition-all
+                flex-1 px-3 py-2 text-xs font-light rounded border transition-all duration-200 tracking-wide
                 ${theme === 'dark' 
-                  ? 'border-gray-700 text-gray-300 hover:bg-gray-800' 
-                  : 'border-gray-200 text-gray-700 hover:bg-gray-50'
+                  ? 'border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-white' 
+                  : 'border-zinc-300 text-zinc-600 hover:bg-zinc-100 hover:text-black'
                 }
               `}
             >
@@ -242,14 +238,15 @@ export const CreateClubModal: React.FC<CreateClubModalProps> = ({
               type="submit"
               disabled={!clubName.trim() || !clubType}
               className={`
-                flex-1 px-4 py-3 rounded-xl font-semibold transition-all
-                bg-gradient-to-r from-purple-500 to-pink-600 text-white
-                hover:from-purple-600 hover:to-pink-700
-                disabled:opacity-50 disabled:cursor-not-allowed
-                active:scale-95
+                flex-1 px-3 py-2 text-xs font-medium rounded border transition-all duration-200 tracking-wide
+                bg-white border-white text-black
+                hover:bg-zinc-100 active:scale-[0.98]
+                disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:active:scale-100
+                flex items-center justify-center gap-1
               `}
             >
-              Create Club
+              <span>Create</span>
+              <ArrowRight className="w-3 h-3" strokeWidth={2} />
             </button>
           </div>
         </form>

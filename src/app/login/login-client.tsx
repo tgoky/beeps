@@ -176,7 +176,7 @@ export default function LoginClient() {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded transition-colors duration-200 text-zinc-600 hover:text-white"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded transition-colors duration-200 text-zinc-600 hover:text-white bg-black border border-black"
                     >
                       {showPassword ? (
                         <EyeOff className="w-4 h-4" strokeWidth={2} />
@@ -205,7 +205,7 @@ export default function LoginClient() {
                   </label>
                   <button
                     type="button"
-                    className="text-xs font-light text-zinc-500 hover:text-white transition-colors tracking-wide"
+                    className="text-xs font-light text-zinc-500 hover:text-white transition-colors tracking-wide bg-black border border-black"
                   >
                     Forgot password?
                   </button>
@@ -243,7 +243,7 @@ export default function LoginClient() {
                   Don't have an account?{' '}
                   <button
                     onClick={() => router.push('/register')}
-                    className="font-medium text-white hover:text-zinc-300 transition-colors"
+                    className="font-medium text-white hover:text-zinc-300 transition-colors bg-black border border-black"
                   >
                     Create account
                   </button>
