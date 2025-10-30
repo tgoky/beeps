@@ -1,290 +1,607 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Breadcrumb,
-  Tag,
-  Rate,
-  Button,
-  Card,
-  Tabs,
-  Calendar,
-  Form,
-  Input,
-  DatePicker,
-  TimePicker,
-  message,
-  Divider,
-  Avatar,
-  List,
-  Select,
-} from "antd";
-import {
-  StarFilled,
-  EnvironmentOutlined,
-  ClockCircleOutlined,
-  DollarOutlined,
-  CheckCircleOutlined,
-} from "@ant-design/icons";
 import { useRouter } from "next/navigation";
+import { useTheme } from "../../../../providers/ThemeProvider";
+import { studioData } from "../../studiosjson";
 import dayjs from "dayjs";
-import { studioData } from "@app/studios/studiosjson";// Import the mock data
+import {
+  Star,
+  MapPin,
+  Clock,
+  DollarSign,
+  CheckCircle2,
+  Calendar,
+  Mic2,
+  ArrowLeft,
+  Wifi,
+  Car,
+  Coffee,
+  Users,
+  Volume2,
+} from "lucide-react";
 
-const { TextArea } = Input;
-const { TabPane } = Tabs;
-
+type Studio = {
+  id: number;
+  name: string;
+  location: string;
+  price: string;
+  rating: number;
+  equipment: string[];
+  image: string;
+  lat: number;
+  lon: number;
+  description?: string;
+  amenities?: string[];
+  reviews?: any[];
+  availableHours?: string[];
+};
 
 export default function BookStudio({ params }: { params: { id: string } }) {
   const router = useRouter();
+  const { theme } = useTheme();
   
-  // Find the studio by ID from the mock data
   const studio = studioData.find((s) => s.id === parseInt(params.id));
-
-  const [bookingForm] = Form.useForm();
-  const [activeTab, setActiveTab] = useState("details");
   const [selectedDate, setSelectedDate] = useState(dayjs());
   const [selectedTime, setSelectedTime] = useState("");
+  const [sessionLength, setSessionLength] = useState(2);
+  const [activeTab, setActiveTab] = useState("details");
+  const [showCalendar, setShowCalendar] = useState(true);
+  const [showTimeSlots, setShowTimeSlots] = useState(true);
 
-  const onFinish = (values: any) => {
-    console.log("Booking details:", values);
-    message.success(
-      "Booking request submitted! You'll be notified when the studio owner responds."
+  if (!studio) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center ${
+        theme === "dark" ? "bg-gray-950" : "bg-gray-50"
+      }`}>
+        <div className="text-center">
+          <h1 className={`text-xl font-semibold mb-2 ${
+            theme === "dark" ? "text-gray-200" : "text-gray-900"
+          }`}>
+            Studio not found
+          </h1>
+          <button
+            onClick={() => router.push("/studios")}
+            className={`text-sm ${
+              theme === "dark" ? "text-purple-400" : "text-purple-600"
+            }`}
+          >
+            Return to studios
+          </button>
+        </div>
+      </div>
     );
+  }
+
+  const hourlyRate = parseFloat(studio.price.replace("$", ""));
+  const estimatedTotal = hourlyRate * sessionLength;
+
+  const timeSlots = [
+    "9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", 
+    "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM"
+  ];
+
+  const amenities = [
+    { icon: Wifi, label: "High-speed WiFi" },
+    { icon: Car, label: "Free Parking" },
+    { icon: Coffee, label: "Coffee Bar" },
+    { icon: Users, label: "Green Room" },
+    { icon: Volume2, label: "Sound Proof" },
+  ];
+
+  const handleBooking = () => {
+    // Handle booking logic here
+    alert("Booking request submitted! You'll be notified when the studio owner responds.");
     router.push("/studios");
   };
 
-  const disabledDate = (current: dayjs.Dayjs) => {
-    return current && current < dayjs().startOf("day");
-  };
-
-  // If studio is not found, show not found message
-  if (!studio) {
-    return <div>Studio not found</div>;
-  }
-
-  const timeSlots = studio.availableHours?.map((time) => (
-    <Button
-      key={time}
-      type={selectedTime === time ? "primary" : "default"}
-      onClick={() => setSelectedTime(time)}
-      className="m-1"
-    >
-      {time}
-    </Button>
-  ));
-
   return (
-    <div className="max-w-6xl mx-auto p-4">
-      <Breadcrumb />
-      <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2">
-          <h1 className="text-3xl font-bold mb-2">{studio.name}</h1>
-          <div className="flex items-center mb-4">
-            <Rate
-              disabled
-              defaultValue={studio.rating}
-              allowHalf
-              character={<StarFilled className="text-yellow-400" />}
-            />
-            <span className="ml-2 text-gray-600">
-              {studio.rating} ({studio.reviews.length} reviews)
-            </span>
-            <span className="mx-3 text-gray-300">|</span>
-            <EnvironmentOutlined className="text-gray-500" />
-            <span className="ml-1 text-gray-600">{studio.location}</span>
+    <div className={`min-h-screen ${
+      theme === "dark" ? "bg-gray-950" : "bg-gray-50"
+    }`}>
+      <div className="max-w-7xl mx-auto p-6">
+        {/* Header */}
+        <div className="mb-6">
+          <button
+            onClick={() => router.push("/studios")}
+            className={`flex items-center gap-2 text-sm mb-4 transition-all duration-200 ${
+              theme === "dark" 
+                ? "text-gray-400 hover:text-gray-200" 
+                : "text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to studios
+          </button>
+          
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+            <div>
+              <h1 className={`text-2xl font-bold mb-2 ${
+                theme === "dark" ? "text-gray-100" : "text-gray-900"
+              }`}>
+                {studio.name}
+              </h1>
+              <div className="flex items-center gap-4 flex-wrap">
+                <div className="flex items-center gap-1.5">
+                  <MapPin className={`w-4 h-4 ${
+                    theme === "dark" ? "text-gray-500" : "text-gray-600"
+                  }`} />
+                  <span className={`text-sm ${
+                    theme === "dark" ? "text-gray-400" : "text-gray-600"
+                  }`}>
+                    {studio.location}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+                  <span className={`text-sm font-medium ${
+                    theme === "dark" ? "text-gray-400" : "text-gray-600"
+                  }`}>
+                    {studio.rating}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <DollarSign className={`w-4 h-4 ${
+                    theme === "dark" ? "text-gray-500" : "text-gray-600"
+                  }`} />
+                  <span className={`text-sm ${
+                    theme === "dark" ? "text-gray-400" : "text-gray-600"
+                  }`}>
+                    {studio.price}/hour
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
+        </div>
 
-          <Tabs activeKey={activeTab} onChange={setActiveTab} className="mb-6">
-            <TabPane tab="Details" key="details">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <img
-                    src={studio.image}
-                    alt={studio.name}
-                    className="w-full h-64 object-cover rounded-lg shadow-md"
-                  />
-                  <div className="mt-6">
-                    <h3 className="text-xl font-semibold mb-3">Description</h3>
-                    <p className="text-gray-700">{studio.description}</p>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Studio Image */}
+            <div className={`
+              rounded-xl overflow-hidden border transition-all duration-200
+              ${theme === "dark" 
+                ? "bg-gray-900/40 border-gray-800/60" 
+                : "bg-white/50 border-gray-200/60"
+              }
+            `}>
+              <img
+                src={studio.image}
+                alt={studio.name}
+                className="w-full h-64 lg:h-80 object-cover"
+              />
+            </div>
+
+            {/* Tabs */}
+            <div className={`
+              rounded-xl border backdrop-blur-sm
+             ${theme === "dark" 
+  ? "bg-gray-950 border-gray-800/60"  // ← Use gray-950 instead
+  : "bg-white/50 border-gray-200/60"
+}
+            `}>
+             <div className={`flex border-b ${
+  theme === "dark" ? "border-gray-800/60" : "border-gray-200/60"
+}`}>
+                {["details", "equipment", "reviews"].map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`
+                      flex-1 px-6 py-3 text-sm font-medium transition-all duration-200
+                    ${activeTab === tab
+  ? theme === "dark"
+    ? "text-purple-400 border-b-2 border-purple-400 bg-transparent"
+    : "text-purple-600 border-b-2 border-purple-600 bg-transparent"
+  : theme === "dark"
+    ? "text-gray-500 hover:text-gray-300 bg-transparent hover:bg-gray-800/40"
+    : "text-gray-600 hover:text-gray-900 bg-transparent hover:bg-gray-100"
+}
+                    `}
+                  >
+                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                  </button>
+                ))}
+              </div>
+
+              <div className="p-6">
+                {activeTab === "details" && (
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className={`text-lg font-semibold mb-3 ${
+                        theme === "dark" ? "text-gray-200" : "text-gray-900"
+                      }`}>
+                        About this studio
+                      </h3>
+                      <p className={`text-sm leading-relaxed ${
+                        theme === "dark" ? "text-gray-400" : "text-gray-600"
+                      }`}>
+                        {studio.description || "Professional recording studio with state-of-the-art equipment and comfortable environment for artists and producers."}
+                      </p>
+                    </div>
+
+                    <div>
+                      <h3 className={`text-lg font-semibold mb-3 ${
+                        theme === "dark" ? "text-gray-200" : "text-gray-900"
+                      }`}>
+                        Amenities
+                      </h3>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        {amenities.map((amenity, index) => (
+                          <div
+                            key={index}
+                            className={`flex items-center gap-2 p-3 rounded-lg border transition-all duration-200 ${
+                              theme === "dark"
+                                ? "bg-gray-800/40 border-gray-700/60 text-gray-300"
+                                : "bg-gray-50/50 border-gray-200/60 text-gray-700"
+                            }`}
+                          >
+                            <amenity.icon className="w-4 h-4" />
+                            <span className="text-sm">{amenity.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                  <div className="mt-6">
-                    <h3 className="text-xl font-semibold mb-3">Amenities</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {studio.amenities.map((amenity, index) => (
-                        <Tag
+                )}
+
+                {activeTab === "equipment" && (
+                  <div className="space-y-4">
+                    <h3 className={`text-lg font-semibold ${
+                      theme === "dark" ? "text-gray-200" : "text-gray-900"
+                    }`}>
+                      Featured Equipment
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {studio.equipment.map((item, index) => (
+                        <div
                           key={index}
-                          color="blue"
-                          className="py-1 px-3 rounded-full"
+                          className={`flex items-center gap-2 p-3 rounded-lg border transition-all duration-200 ${
+                            theme === "dark"
+                              ? "bg-gray-800/40 border-gray-700/60 text-gray-300"
+                              : "bg-gray-50/50 border-gray-200/60 text-gray-700"
+                          }`}
                         >
-                          {amenity}
-                        </Tag>
+                          <CheckCircle2 className={`w-4 h-4 ${
+                            theme === "dark" ? "text-green-500" : "text-green-600"
+                          }`} />
+                          <span className="text-sm">{item}</span>
+                        </div>
                       ))}
                     </div>
                   </div>
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold mb-3">Equipment</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    {studio.equipment.map((item, index) => (
+                )}
+
+                {activeTab === "reviews" && (
+                  <div className="space-y-4">
+                    <h3 className={`text-lg font-semibold ${
+                      theme === "dark" ? "text-gray-200" : "text-gray-900"
+                    }`}>
+                      Customer Reviews
+                    </h3>
+                    {studio.reviews?.map((review, index) => (
                       <div
                         key={index}
-                        className="flex items-center bg-gray-50 p-3 rounded-lg"
+                        className={`p-4 rounded-lg border transition-all duration-200 ${
+                          theme === "dark"
+                            ? "bg-gray-800/40 border-gray-700/60"
+                            : "bg-gray-50/50 border-gray-200/60"
+                        }`}
                       >
-                        <CheckCircleOutlined className="text-green-500 mr-2" />
-                        <span>{item}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <Divider />
-                  <h3 className="text-xl font-semibold mb-3">Reviews</h3>
-                  <List
-                    itemLayout="horizontal"
-                    dataSource={studio.reviews}
-                    renderItem={(review) => (
-                      <div className="mb-4">
-                        <div className="flex items-center">
-                          <Avatar src={review.avatar} alt={review.user} />
-                          <div className="ml-3">
-                            <span className="font-medium">{review.user}</span>
-                            <div>
-                              <Rate
-                                disabled
-                                defaultValue={review.rating}
-                                allowHalf
-                                character={
-                                  <StarFilled className="text-yellow-400 text-sm" />
-                                }
-                                className="mb-1"
-                              />
-                              <p className="text-gray-700">{review.content}</p>
-                              <span className="text-gray-400 text-sm">
-                                {dayjs(review.date).format("MMMM D, YYYY")}
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-semibold">
+                            {review.user?.[0] || "U"}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className={`text-sm font-medium ${
+                                theme === "dark" ? "text-gray-200" : "text-gray-900"
+                              }`}>
+                                {review.user || "Anonymous"}
                               </span>
+                              <div className="flex items-center gap-1">
+                                <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
+                                <span className={`text-xs ${
+                                  theme === "dark" ? "text-gray-400" : "text-gray-600"
+                                }`}>
+                                  {review.rating || 5}
+                                </span>
+                              </div>
                             </div>
+                            <span className={`text-xs ${
+                              theme === "dark" ? "text-gray-500" : "text-gray-500"
+                            }`}>
+                              {dayjs(review.date).format("MMMM D, YYYY")}
+                            </span>
                           </div>
                         </div>
+                        <p className={`text-sm ${
+                          theme === "dark" ? "text-gray-400" : "text-gray-600"
+                        }`}>
+                          {review.content || "Great studio with amazing equipment and atmosphere!"}
+                        </p>
                       </div>
+                    )) || (
+                      <p className={`text-sm text-center py-8 ${
+                        theme === "dark" ? "text-gray-500" : "text-gray-500"
+                      }`}>
+                        No reviews yet
+                      </p>
                     )}
-                  />
-                </div>
+                  </div>
+                )}
               </div>
-            </TabPane>
-            <TabPane tab="Availability" key="availability">
-              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-                <h3 className="text-xl font-semibold mb-4">
-                  Select Date & Time
+            </div>
+          </div>
+
+          {/* Booking Sidebar */}
+          <div className="lg:col-span-1">
+            <div className={`
+              rounded-xl border backdrop-blur-sm sticky top-6
+              ${theme === "dark" 
+                ? "bg-gray-900/40 border-gray-800/60" 
+                : "bg-white/50 border-gray-200/60"
+              }
+            `}>
+              <div className="p-6">
+                <h3 className={`text-lg font-semibold mb-4 ${
+                  theme === "dark" ? "text-gray-200" : "text-gray-900"
+                }`}>
+                  Book This Studio
                 </h3>
-                <div className="flex flex-col md:flex-row gap-6">
-                  <div className="w-full md:w-1/2">
-                    <Calendar
-                      fullscreen={false}
-                      value={selectedDate}
-                      onChange={setSelectedDate}
-                      disabledDate={disabledDate}
-                      className="border rounded-lg p-2"
-                    />
-                  </div>
-                  </div>
-                  <div className="w-full md:w-1/2">
-                    <h4>Available Times for {selectedDate.format("MMMM D, YYYY")}</h4>
-                    <div className="flex flex-wrap mb-6">{timeSlots}</div>
-                    <div className="bg-blue-50 p-4 rounded-lg">
-                      <div className="flex items-center mb-2">
-                        <ClockCircleOutlined className="text-blue-500 mr-2" />
-                        <span className="font-medium">Session Length:</span>
-                        <span className="ml-2">Minimum 2 hours</span>
-                      </div>
-                      <div className="flex items-center">
-                        <DollarOutlined className="text-blue-500 mr-2" />
-                        <span className="font-medium">Rate:</span>
-                        <span className="ml-2">{studio.price}/hour</span>
-                      </div>
-                    </div>
+
+                {/* Date Selection */}
+             
+
+             {/* Date Selection */}
+<div className="mb-6">
+  <div className="flex items-center justify-between mb-2">
+    <label className={`text-sm font-medium ${
+      theme === "dark" ? "text-gray-300" : "text-gray-700"
+    }`}>
+      Select Date
+    </label>
+    <button
+      onClick={() => setShowCalendar(!showCalendar)}
+      className={`text-xs px-2 py-1 rounded transition-all duration-200 ${
+        theme === "dark"
+          ? "bg-black text-purple-400 hover:bg-gray-800/40"
+          : "text-purple-600 hover:bg-gray-100"
+      }`}
+    >
+      {showCalendar ? "Pick specific date" : "Show calendar"}
+    </button>
   </div>
+  
+  {showCalendar ? (
+    <>
+      <div className="grid grid-cols-7 gap-2">
+        {/* Generate next 14 days */}
+        {Array.from({ length: 14 }, (_, i) => {
+          const date = dayjs().add(i, 'day');
+          const isSelected = selectedDate.format("YYYY-MM-DD") === date.format("YYYY-MM-DD");
+          
+          return (
+            <button
+              key={i}
+              onClick={() => setSelectedDate(date)}
+              className={`
+                flex flex-col items-center justify-center p-2 rounded-lg border transition-all duration-200
+                ${isSelected
+                  ? theme === "dark"
+                    ? "bg-purple-500/20 text-purple-400 border-purple-500/40"
+                    : "bg-purple-50 text-purple-600 border-purple-200"
+                  : theme === "dark"
+                    ? "bg-gray-800/40 text-gray-400 border-gray-700/60 hover:border-gray-600"
+                    : "bg-gray-50/50 text-gray-600 border-gray-200/60 hover:border-gray-300"
+                }
+              `}
+            >
+              <span className="text-xs font-medium">{date.format("ddd")}</span>
+              <span className={`text-sm font-semibold ${
+                isSelected 
+                  ? theme === "dark" ? "text-purple-300" : "text-purple-700"
+                  : ""
+              }`}>
+                {date.format("D")}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <p className={`text-xs mt-2 ${
+        theme === "dark" ? "text-gray-500" : "text-gray-500"
+      }`}>
+        Selected: {selectedDate.format("MMMM D, YYYY")}
+      </p>
+    </>
+  ) : (
+    <input
+      type="date"
+      value={selectedDate.format("YYYY-MM-DD")}
+      onChange={(e) => setSelectedDate(dayjs(e.target.value))}
+      min={dayjs().format("YYYY-MM-DD")}
+      className={`w-full p-3 rounded-lg border transition-all duration-200 ${
+        theme === "dark"
+          ? "bg-gray-800/40 border-gray-700/60 text-gray-300 [color-scheme:dark]"
+          : "bg-gray-50/50 border-gray-200/60 text-gray-700"
+      }`}
+    />
+  )}
 </div>
-</TabPane>
-</Tabs>
+
+
+                {/* Time Slots */}
+              {/* Time Slots */}
+<div className="mb-6">
+  <div className="flex items-center justify-between mb-2">
+    <label className={`text-sm font-medium ${
+      theme === "dark" ? "text-gray-300" : "text-gray-700"
+    }`}>
+      Available Times
+    </label>
+    <button
+      onClick={() => setShowTimeSlots(!showTimeSlots)}
+      className={`text-xs px-2 py-1 rounded transition-all duration-200 ${
+        theme === "dark"
+          ? "bg-black text-purple-400 hover:bg-gray-800/40"
+          : "text-purple-600 hover:bg-gray-100"
+      }`}
+    >
+      {showTimeSlots ? "Enter custom time" : "Show time slots"}
+    </button>
+  </div>
+  
+  {showTimeSlots ? (
+    <div className="grid grid-cols-3 gap-2">
+      {timeSlots.map((time) => (
+        <button
+          key={time}
+          onClick={() => setSelectedTime(time)}
+          className={`
+            py-2 text-xs rounded-lg border transition-all duration-200
+            ${selectedTime === time
+              ? theme === "dark"
+                ? "bg-purple-500/20 text-purple-400 border-purple-500/40"
+                : "bg-purple-50 text-purple-600 border-purple-200"
+              : theme === "dark"
+                ? "bg-gray-800/40 text-gray-400 border-gray-700/60 hover:border-gray-600"
+                : "bg-gray-50/50 text-gray-600 border-gray-200/60 hover:border-gray-300"
+            }
+          `}
+        >
+          {time}
+        </button>
+      ))}
+    </div>
+  ) : (
+    <input
+      type="time"
+      value={selectedTime ? dayjs(`2000-01-01 ${selectedTime}`).format("HH:mm") : ""}
+      onChange={(e) => {
+        const time24 = e.target.value;
+        const [hours, minutes] = time24.split(':');
+        const hour = parseInt(hours);
+        const period = hour >= 12 ? 'PM' : 'AM';
+        const hour12 = hour % 12 || 12;
+        setSelectedTime(`${hour12}:${minutes} ${period}`);
+      }}
+      className={`w-full p-3 rounded-lg border transition-all duration-200 ${
+        theme === "dark"
+          ? "bg-gray-800/40 border-gray-700/60 text-gray-300 [color-scheme:dark]"
+          : "bg-gray-50/50 border-gray-200/60 text-gray-700"
+      }`}
+    />
+  )}
 </div>
-<div className="lg:col-span-1">
-<Card className="sticky top-4 shadow-lg border border-gray-100">
-<h3 className="text-xl font-semibold mb-4">Book This Studio</h3>
-<Form
-form={bookingForm}
-layout="vertical"
-onFinish={onFinish}
-initialValues={{
-date: dayjs(),
-hours: 2,
-}}
->
-<Form.Item
-label="Select Date"
-name="date"
-rules={[{ required: true, message: "Please select a date" }]}
->
-<DatePicker className="w-full" disabledDate={disabledDate} />
-</Form.Item>
-<Form.Item
-label="Select Time Slot"
-name="time"
-rules={[{ required: true, message: "Please select a time slot" }]}
->
-<Select placeholder="Choose a time slot" className="w-full">
-{studio.availableHours.map((time) => (
-<Select.Option key={time} value={time}>
-{time}
-</Select.Option>
-))}
-</Select>
-</Form.Item>
-<Form.Item
-label="Session Length (hours)"
-name="hours"
-rules={[
-{ required: true, message: "Please select session length" },
-]}
->
-<Select className="w-full">
-<Select.Option value="2">2 hours</Select.Option>
-<Select.Option value="4">4 hours</Select.Option>
-<Select.Option value="8">Full day (8 hours)</Select.Option>
-</Select>
-</Form.Item>
-<Form.Item label="Special Requests" name="requests">
-<TextArea
-rows={4}
-placeholder="Any special equipment or setup requirements?"
-/>
-</Form.Item>
-<Divider />
-<div className="mb-4">
-<div className="flex justify-between mb-2">
-<span className="text-gray-600">Hourly Rate</span>
-<span>{studio.price}</span>
-</div>
-<div className="flex justify-between mb-2">
-<span className="text-gray-600">Estimated Total</span>
-<span className="font-semibold">
-${(parseFloat(studio.price.replace("$", "")) * 2).toFixed(2)}
-</span>
-</div>
-</div>
-<Button
-type="primary"
-htmlType="submit"
-block
-size="large"
-className="bg-black hover:bg-green-600 h-12 font-medium"
->
-Request Booking
-</Button>
-<p className="text-center text-gray-500 text-xs mt-3">
-You will only be charged when the studio owner confirms your booking
-</p>
-</Form>
-</Card>
-</div>
-</div>
-</div>
-);
+
+
+                {/* Session Length */}
+                <div className="mb-6">
+                  <label className={`text-sm font-medium mb-2 block ${
+                    theme === "dark" ? "text-gray-300" : "text-gray-700"
+                  }`}>
+                    Session Length
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[2, 4, 8].map((hours) => (
+                      <button
+                        key={hours}
+                        onClick={() => setSessionLength(hours)}
+                        className={`
+                          py-2 text-xs rounded-lg border transition-all duration-200
+                          ${sessionLength === hours
+                            ? theme === "dark"
+                              ? "bg-purple-500/20 text-purple-400 border-purple-500/40"
+                              : "bg-purple-50 text-purple-600 border-purple-200"
+                            : theme === "dark"
+                              ? "bg-gray-800/40 text-gray-400 border-gray-700/60 hover:border-gray-600"
+                              : "bg-gray-50/50 text-gray-600 border-gray-200/60 hover:border-gray-300"
+                          }
+                        `}
+                      >
+                        {hours} hours
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Price Summary */}
+                <div className={`p-4 rounded-lg mb-6 ${
+                  theme === "dark" 
+                    ? "bg-gray-800/40 border border-gray-700/60" 
+                    : "bg-gray-50/50 border border-gray-200/60"
+                }`}>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className={`text-sm ${
+                      theme === "dark" ? "text-gray-400" : "text-gray-600"
+                    }`}>
+                      {sessionLength} hours × {studio.price}
+                    </span>
+                    <span className={`text-sm font-medium ${
+                      theme === "dark" ? "text-gray-300" : "text-gray-900"
+                    }`}>
+                      ${estimatedTotal.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className={`text-sm ${
+                      theme === "dark" ? "text-gray-400" : "text-gray-600"
+                    }`}>
+                      Service fee
+                    </span>
+                    <span className={`text-sm ${
+                      theme === "dark" ? "text-gray-400" : "text-gray-600"
+                    }`}>
+                      ${(estimatedTotal * 0.1).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="border-t mt-3 pt-3 flex justify-between items-center">
+                    <span className={`font-semibold ${
+                      theme === "dark" ? "text-gray-200" : "text-gray-900"
+                    }`}>
+                      Total
+                    </span>
+                    <span className={`font-semibold ${
+                      theme === "dark" ? "text-gray-200" : "text-gray-900"
+                    }`}>
+                      ${(estimatedTotal * 1.1).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Book Button */}
+                <button
+                  onClick={handleBooking}
+                  disabled={!selectedTime}
+                  className={`
+                    w-full py-3 rounded-lg font-semibold transition-all duration-200
+                    flex items-center justify-center gap-2
+                    ${!selectedTime
+                      ? theme === "dark"
+                        ? "bg-gray-800 text-gray-500 cursor-not-allowed"
+                        : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                      : theme === "dark"
+                        ? "bg-purple-600 hover:bg-purple-700 text-white active:scale-95"
+                        : "bg-purple-600 hover:bg-purple-700 text-white active:scale-95"
+                    }
+                  `}
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  Request to Book
+                </button>
+
+                <p className={`text-center text-xs mt-3 ${
+                  theme === "dark" ? "text-gray-500" : "text-gray-500"
+                }`}>
+                  You will only be charged when the studio confirms
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }

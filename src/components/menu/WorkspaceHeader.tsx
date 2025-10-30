@@ -51,20 +51,24 @@ export const WorkspaceHeader = ({
                 make a beep!
               </span>
             </div>
-            <button
-              onClick={onCreateClub}
-              className={`
-                p-1.5 rounded-lg transition-all duration-200
-                ${theme === "dark" 
-                  ? "bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20" 
-                  : "bg-purple-50 hover:bg-purple-100 text-purple-600 border border-purple-200/50"
-                }
-                active:scale-95
-              `}
-              title="Create New Club"
-            >
-              <Plus className="w-3.5 h-3.5" />
-            </button>
+      
+<button
+  onClick={(e) => {
+    e.stopPropagation();
+    onCreateClub?.();
+  }}
+  className={`
+    p-1.5 rounded-lg transition-all duration-200
+    ${theme === "dark" 
+      ? "bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20" 
+      : "bg-purple-50 hover:bg-purple-100 text-purple-600 border border-purple-200/50"
+    }
+    active:scale-95
+  `}
+  title="Create New Club"
+>
+  <Plus className="w-3.5 h-3.5" />
+</button>
           </div>
 
           {/* Current Club Card */}

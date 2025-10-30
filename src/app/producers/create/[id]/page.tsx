@@ -1,61 +1,58 @@
-// app/producers/[id]/page.tsx
 "use client";
 
 import { useState } from "react";
-import { useParams } from "next/navigation";
-import { Avatar, Card, Tag, Rate, Space, Button, Tabs, Divider, List, Input, message, Collapse, Modal } from "antd";
-import { StarFilled, HeartOutlined, MessageOutlined, ShareAltOutlined, PlayCircleOutlined, UserAddOutlined, MailOutlined, LinkOutlined, ArrowLeftOutlined } from "@ant-design/icons";
-import Image from "next/image";
+import { useParams, useRouter } from "next/navigation";
+import { useTheme } from "../../../../providers/ThemeProvider";
 import { producerData } from "@app/producers/producersdata";
-
-const { TabPane } = Tabs;
-const { Panel } = Collapse;
-
-type Producer = {
-  id: number;
-  name: string;
-  handle: string;
-  avatar: string;
-  cover: string;
-  location: string;
-  rating: number;
-  genres: string[];
-  skills: string[];
-  recentWorks: {
-    title: string;
-    artist: string;
-    plays: number;
-    image: string;
-  }[];
-  social: {
-    followers: number;
-    following: number;
-    posts: number;
-  };
-  online: boolean;
-  lastActive: string;
-  featuredGear?: string[];
-  bio?: string;
-  credits?: string[];
-  services?: {
-    name: string;
-    price: string;
-    description: string;
-  }[];
-};
-
+import {
+  Star,
+  MapPin,
+  Play,
+  Pause,
+  Heart,
+  Share2,
+  MessageCircle,
+  Music,
+  Award,
+  BadgeCheck,
+  TrendingUp,
+  Headphones,
+  ChevronRight,
+} from "lucide-react";
 
 export default function ProducerProfile() {
   const params = useParams();
-  const [activeTab, setActiveTab] = useState("services");
-  const [messageModalVisible, setMessageModalVisible] = useState(false);
-  const [messageText, setMessageText] = useState("");
-  const [messages, setMessages] = useState<Array<{sender: string, text: string, time: string}>>([]);
+  const router = useRouter();
+  const { theme } = useTheme();
+  const [activeTab, setActiveTab] = useState("works");
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [showMessageModal, setShowMessageModal] = useState(false);
+  const [message, setMessage] = useState("");
+  const [currentlyPlaying, setCurrentlyPlaying] = useState<number | null>(null);
+  const [likedTracks, setLikedTracks] = useState<number[]>([]);
   
   const producer = producerData.find(p => p.id === Number(params.id));
 
   if (!producer) {
-    return <div>Producer not found</div>;
+    return (
+      <div className={`min-h-screen flex items-center justify-center ${
+        theme === "dark" ? "bg-black" : "bg-white"
+      }`}>
+        <div className="text-center p-8">
+          <h1 className={`text-xl font-semibold mb-2 ${
+            theme === "dark" ? "text-gray-200" : "text-gray-900"
+          }`}>
+            Producer not found
+          </h1>
+          <button
+            onClick={() => router.push("/producers")}
+            className="px-4 py-2 rounded-lg font-medium bg-purple-600 hover:bg-purple-700 text-white"
+          >
+            Back to Producers
+          </button>
+        </div>
+      </div>
+    );
   }
 
   const formatNumber = (num: number): string => {
@@ -64,280 +61,494 @@ export default function ProducerProfile() {
     return num.toString();
   };
 
-  const sendMessage = () => {
-    if (!messageText.trim()) return;
-    
-    const newMessage = {
-      sender: "You",
-      text: messageText,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-    
-    setMessages([...messages, newMessage]);
-    setMessageText("");
-    message.success("Message sent!");
-    
-    // Simulate reply after 1-3 seconds
-    setTimeout(() => {
-      const reply = {
-        sender: producer.name,
-        text: "Thanks for reaching out! I'll get back to you soon.",
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-      setMessages(prev => [...prev, reply]);
-    }, 1000 + Math.random() * 2000);
+  const togglePlay = (trackIndex: number) => {
+    setCurrentlyPlaying(currentlyPlaying === trackIndex ? null : trackIndex);
+  };
+
+  const toggleLike = (trackIndex: number) => {
+    setLikedTracks(prev => 
+      prev.includes(trackIndex) 
+        ? prev.filter(id => id !== trackIndex)
+        : [...prev, trackIndex]
+    );
   };
 
   return (
-    <div className="max-w-[1200px] mx-auto p-4">
-      <Button 
-        type="text" 
-        icon={<ArrowLeftOutlined />} 
-        onClick={() => window.history.back()}
-        className="mb-4"
-      >
-        Back to Producers
-      </Button>
-
-      {/* Cover and Profile Header */}
-      <div className="relative rounded-lg overflow-hidden mb-6">
+    <div className={`min-h-screen ${theme === "dark" ? "bg-black" : "bg-white"}`}>
+      {/* Hero Section */}
+      <div className="relative h-64 overflow-hidden">
         <img 
           src={producer.cover} 
-          alt={producer.name} 
-          className="w-full h-64 object-cover"
+          alt={producer.name}
+          className="w-full h-full object-cover"
         />
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-6">
-          <div className="flex items-end">
-            <Avatar 
-              src={producer.avatar} 
-              size={100} 
-              className="border-4 border-white mr-4"
-            />
-            <div>
-              <h1 className="text-3xl font-bold text-white mb-1">{producer.name}</h1>
-              <div className="flex items-center space-x-4">
-                <span className="text-gray-300">{producer.handle}</span>
-                <Tag color={producer.online ? "green" : "red"} className="text-xs">
-                  {producer.online ? "Online" : producer.lastActive}
-                </Tag>
-                <Rate 
-                  disabled 
-                  defaultValue={producer.rating} 
-                  allowHalf 
-                  character={<StarFilled />}
-                  className="[&_.ant-rate-star]:mr-0.5 text-sm"
-                />
-                <span className="text-white text-sm">{producer.rating.toFixed(1)}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="flex space-x-4 mb-6">
-        <Button 
-          type="primary" 
-          icon={<MessageOutlined />}
-          onClick={() => setMessageModalVisible(true)}
-        >
-          Send Message
-        </Button>
-        <Button icon={<HeartOutlined />}>Follow</Button>
-        <Button icon={<ShareAltOutlined />}>Share</Button>
-        <Button icon={<UserAddOutlined />}>Collaborate</Button>
+        <div className={`absolute inset-0 ${
+          theme === "dark" 
+            ? "bg-gradient-to-t from-black via-black/50 to-transparent"
+            : "bg-gradient-to-t from-white via-white/50 to-transparent"
+        }`} />
       </div>
 
       {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column */}
-        <div className="lg:col-span-2">
-          <Tabs activeKey={activeTab} onChange={setActiveTab}>
-              <TabPane tab="Services" key="services" />
-            <TabPane tab="Works" key="works" />
-          
-            <TabPane tab="Credits" key="credits" />
-            <TabPane tab="Reviews" key="reviews" />
-          </Tabs>
+      <div className="max-w-6xl mx-auto px-6 -mt-20 relative z-10 pb-12">
+        {/* Profile Header */}
+        <div className="flex flex-col md:flex-row gap-6 mb-12">
+          {/* Avatar */}
+          <div className="relative flex-shrink-0">
+            <img
+              src={producer.avatar}
+              alt={producer.name}
+              className={`w-32 h-32 rounded-2xl object-cover border-4 shadow-2xl ${
+                theme === "dark" ? "border-black" : "border-white"
+              }`}
+            />
+           
+          </div>
 
-          {activeTab === "works" && (
-            <div className="space-y-4">
-              <h2 className="text-xl font-bold mb-4">Recent Works</h2>
-              {producer.recentWorks.map((work, index) => (
-                <Card key={index} className="hover:shadow-md transition-shadow">
-                  <div className="flex">
-                    <div className="relative w-20 h-20 flex-shrink-0">
-                      <Image
-                        src={work.image}
-                        alt={work.title}
-                        width={80}
-                        height={80}
-                        className="rounded object-cover"
-                      />
-                      <PlayCircleOutlined className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white text-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </div>
-                    <div className="ml-4 flex-1">
-                      <h3 className="font-medium">{work.title}</h3>
-                      <p className="text-gray-600 text-sm">{work.artist}</p>
-                      <p className="text-gray-500 text-xs">{formatNumber(work.plays)} plays</p>
-                    </div>
-                    <Button type="text" icon={<HeartOutlined />} />
+          {/* Info */}
+          <div className="flex-1">
+            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4">
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <h1 className={`text-3xl md:text-4xl font-bold ${
+                    theme === "dark" ? "text-white" : "text-gray-900"
+                  }`}>
+                    {producer.name}
+                  </h1>
+                  <BadgeCheck className="w-7 h-7 text-blue-400" />
+                </div>
+                <div className={`flex items-center gap-4 text-sm flex-wrap ${
+                  theme === "dark" ? "text-gray-400" : "text-gray-600"
+                }`}>
+                  <span>@{producer.handle}</span>
+                  <div className="flex items-center gap-1">
+                    <MapPin className="w-4 h-4" />
+                    {producer.location}
                   </div>
-                </Card>
+                  <div className="flex items-center gap-1">
+                    <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+                    <span className={`font-semibold ${
+                      theme === "dark" ? "text-white" : "text-gray-900"
+                    }`}>
+                      {producer.rating}
+                    </span>
+                  </div>
+                   {producer.online ? (
+    <div className="flex items-center gap-1.5">
+      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+      <span className="text-green-500 font-medium">Online</span>
+    </div>
+  ) : (
+    <span className={theme === "dark" ? "text-gray-500" : "text-gray-400"}>
+      Active {producer.lastActive}
+    </span>
+  )}
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setIsFollowing(!isFollowing)}
+                  className={`px-6 py-2.5 rounded-full font-semibold transition-all ${
+                    isFollowing
+                      ? theme === "dark"
+                        ? "bg-white/10 text-white hover:bg-white/20"
+                        : "bg-gray-100 text-gray-900 hover:bg-gray-200"
+                      : theme === "dark"
+                        ? "bg-white text-black hover:bg-gray-200"
+                        : "bg-black text-white hover:bg-gray-800"
+                  }`}
+                >
+                  {isFollowing ? "Following" : "Follow"}
+                </button>
+                <button
+                  onClick={() => setShowMessageModal(true)}
+                  className={`p-2.5 rounded-full transition-all ${
+                    theme === "dark"
+                      ? "bg-white/10 hover:bg-white/20 text-white"
+                      : "bg-gray-100 hover:bg-gray-200 text-gray-900"
+                  }`}
+                >
+                  <MessageCircle className="w-5 h-5" />
+                </button>
+                <button className={`p-2.5 rounded-full transition-all ${
+                  theme === "dark"
+                    ? "bg-white/10 hover:bg-white/20 text-white"
+                    : "bg-gray-100 hover:bg-gray-200 text-gray-900"
+                }`}>
+                  <Share2 className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Stats */}
+            <div className="flex items-center gap-8 mb-4">
+              <div>
+                <div className={`text-2xl font-bold ${
+                  theme === "dark" ? "text-white" : "text-gray-900"
+                }`}>
+                  {formatNumber(producer.social.followers)}
+                </div>
+                <div className={`text-sm ${
+                  theme === "dark" ? "text-gray-400" : "text-gray-600"
+                }`}>
+                  Followers
+                </div>
+              </div>
+              <div>
+                <div className={`text-2xl font-bold ${
+                  theme === "dark" ? "text-white" : "text-gray-900"
+                }`}>
+                  {producer.recentWorks.length}
+                </div>
+                <div className={`text-sm ${
+                  theme === "dark" ? "text-gray-400" : "text-gray-600"
+                }`}>
+                  Tracks
+                </div>
+              </div>
+              <div>
+                <div className={`text-2xl font-bold ${
+                  theme === "dark" ? "text-white" : "text-gray-900"
+                }`}>
+                  {formatNumber(producer.recentWorks.reduce((acc, work) => acc + work.plays, 0))}
+                </div>
+                <div className={`text-sm ${
+                  theme === "dark" ? "text-gray-400" : "text-gray-600"
+                }`}>
+                  Total Plays
+                </div>
+              </div>
+            </div>
+
+            {/* Bio */}
+            {producer.bio && (
+              <p className={`text-sm leading-relaxed max-w-2xl ${
+                theme === "dark" ? "text-gray-400" : "text-gray-600"
+              }`}>
+                {producer.bio}
+              </p>
+            )}
+
+            {/* Tags */}
+            <div className="flex flex-wrap gap-2 mt-4">
+              {producer.genres.map((genre, i) => (
+                <span key={i} className={`px-3 py-1 rounded-full text-xs font-medium ${
+                  theme === "dark"
+                    ? "bg-white/10 text-white"
+                    : "bg-gray-100 text-gray-900"
+                }`}>
+                  {genre}
+                </span>
               ))}
             </div>
-          )}
-
-          {activeTab === "services" && producer.services && (
-            <div className="space-y-4">
-              <h2 className="text-xl font-bold mb-4">Services Offered</h2>
-              {producer.services.map((service, index) => (
-                <Card key={index} className="hover:shadow-md transition-shadow">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-medium">{service.name}</h3>
-                      <p className="text-gray-600 text-sm">{service.description}</p>
-                    </div>
-                    <Tag color="blue" className="text-lg font-semibold">
-                      {service.price}
-                    </Tag>
-                  </div>
-                  <Button type="primary" className="mt-3">
-                    Request Service
-                  </Button>
-                </Card>
-              ))}
-            </div>
-          )}
-
-          {activeTab === "credits" && producer.credits && (
-            <div className="space-y-3">
-              <h2 className="text-xl font-bold mb-4">Credits & Achievements</h2>
-              <List
-                dataSource={producer.credits}
-                renderItem={(item) => (
-                  <List.Item>
-                    <div className="flex items-center">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                      {item}
-                    </div>
-                  </List.Item>
-                )}
-              />
-            </div>
-          )}
+          </div>
         </div>
 
-        {/* Right Column */}
-        <div className="space-y-6">
-          {/* About */}
-          <Card title="About">
-            <p className="text-gray-700 mb-4">{producer.bio}</p>
-            <div className="mb-2">
-              <span className="font-semibold">Location:</span> {producer.location}
-            </div>
-            <div className="mb-2">
-              <span className="font-semibold">Genres:</span> {producer.genres.join(", ")}
-            </div>
-            <div className="mb-2">
-              <span className="font-semibold">Skills:</span> {producer.skills.join(", ")}
-            </div>
-          </Card>
+        {/* Tabs */}
+    {/* Tabs */}
+<div className={`flex gap-2 mb-8 p-1 rounded-xl w-fit ${
+  theme === "dark" ? "bg-white/5" : "bg-gray-100"
+}`}>
+  {[
+    { key: "works", label: "Works" },
+    { key: "services", label: "Services" },
+    { key: "about", label: "About" },
+  ].map(({ key, label }) => (
+    <button
+      key={key}
+      onClick={() => setActiveTab(key)}
+      className={`px-6 py-2.5 font-medium transition-all rounded-lg ${
+        activeTab === key
+          ? theme === "dark"
+            ? "bg-white text-black"
+            : "bg-black text-white"
+          : theme === "dark"
+            ? "text-gray-400 hover:text-gray-200 bg-transparent"
+            : "text-gray-600 hover:text-gray-900 bg-transparent"
+      }`}
+    >
+      {label}
+    </button>
+  ))}
+</div>
 
-          {/* Featured Gear */}
-          {producer.featuredGear && (
-            <Card title="Featured Gear">
-              <List
-                dataSource={producer.featuredGear}
-                renderItem={(item) => (
-                  <List.Item>
-                    <div className="flex items-center">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                      {item}
+        {/* Content */}
+        <div>
+          {/* Recent Works */}
+          {activeTab === "works" && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {producer.recentWorks.map((work, index) => (
+                <div
+                  key={index}
+                  className={`group rounded-xl p-4 transition-all cursor-pointer border ${
+                    theme === "dark"
+                      ? "bg-white/5 hover:bg-white/10 border-white/10"
+                      : "bg-gray-50 hover:bg-gray-100 border-gray-200"
+                  }`}
+                >
+                  <div className="flex items-center gap-3 mb-3">
+                    <button
+                      onClick={() => togglePlay(index)}
+                      className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
+                        currentlyPlaying === index
+                          ? theme === "dark"
+                            ? 'bg-white text-black'
+                            : 'bg-black text-white'
+                          : theme === "dark"
+                            ? 'bg-white/20 text-white hover:bg-white/30'
+                            : 'bg-gray-200 text-gray-900 hover:bg-gray-300'
+                      }`}
+                    >
+                      {currentlyPlaying === index ? (
+                        <Pause className="w-5 h-5" />
+                      ) : (
+                        <Play className="w-5 h-5 ml-0.5" />
+                      )}
+                    </button>
+                    <img
+                      src={work.image}
+                      alt={work.title}
+                      className="w-12 h-12 rounded-lg object-cover"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <h3 className={`font-semibold truncate text-sm ${
+                        theme === "dark" ? "text-white" : "text-gray-900"
+                      }`}>
+                        {work.title}
+                      </h3>
+                      <p className={`text-xs truncate ${
+                        theme === "dark" ? "text-gray-400" : "text-gray-600"
+                      }`}>
+                        {work.artist}
+                      </p>
                     </div>
-                  </List.Item>
-                )}
-              />
-            </Card>
+                  </div>
+                  
+                  <div className={`flex items-center justify-between text-xs ${
+                    theme === "dark" ? "text-gray-400" : "text-gray-600"
+                  }`}>
+                    <div className="flex items-center gap-1">
+                      <Headphones className="w-3 h-3" />
+                      {formatNumber(work.plays)}
+                    </div>
+                    <button
+                      onClick={() => toggleLike(index)}
+                      className={`transition-colors ${
+                        likedTracks.includes(index) ? 'text-red-500' : 'hover:text-red-500'
+                      }`}
+                    >
+                      <Heart className={`w-4 h-4 ${likedTracks.includes(index) ? 'fill-current' : ''}`} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
 
-          {/* Social Stats */}
-          <Card title="Stats">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold">{formatNumber(producer.social.followers)}</div>
-                <div className="text-gray-500 text-sm">Followers</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold">{formatNumber(producer.social.following)}</div>
-                <div className="text-gray-500 text-sm">Following</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold">{producer.social.posts}</div>
-                <div className="text-gray-500 text-sm">Posts</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold">{producer.recentWorks.length}</div>
-                <div className="text-gray-500 text-sm">Tracks</div>
-              </div>
+          {/* Services */}
+          {activeTab === "services" && producer.services && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {producer.services.map((service, index) => (
+                <div
+                  key={index}
+                  className={`rounded-2xl p-6 border transition-all group ${
+                    theme === "dark"
+                      ? "bg-white/5 border-white/10 hover:border-white/20"
+                      : "bg-gray-50 border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
+                      <Music className="w-6 h-6 text-white" />
+                    </div>
+                    <div className={`text-2xl font-bold ${
+                      theme === "dark" ? "text-white" : "text-gray-900"
+                    }`}>
+                      {service.price}
+                    </div>
+                  </div>
+                  
+                  <h3 className={`font-bold text-lg mb-2 ${
+                    theme === "dark" ? "text-white" : "text-gray-900"
+                  }`}>
+                    {service.name}
+                  </h3>
+                  <p className={`text-sm mb-4 ${
+                    theme === "dark" ? "text-gray-400" : "text-gray-600"
+                  }`}>
+                    {service.description}
+                  </p>
+                  
+                  <button className={`w-full py-2.5 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 group-hover:gap-3 ${
+                    theme === "dark"
+                      ? "bg-white text-black hover:bg-gray-200"
+                      : "bg-black text-white hover:bg-gray-800"
+                  }`}>
+                    Book Now
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
             </div>
-          </Card>
+          )}
+
+          {/* About */}
+          {activeTab === "about" && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className={`rounded-2xl p-6 border ${
+                theme === "dark"
+                  ? "bg-white/5 border-white/10"
+                  : "bg-gray-50 border-gray-200"
+              }`}>
+                <h3 className={`font-bold text-lg mb-4 flex items-center gap-2 ${
+                  theme === "dark" ? "text-white" : "text-gray-900"
+                }`}>
+                  <Award className="w-5 h-5 text-yellow-500" />
+                  Specialties
+                </h3>
+                <div className="space-y-3">
+                  {producer.skills.map((skill, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+                      <span className={`text-sm ${
+                        theme === "dark" ? "text-gray-300" : "text-gray-700"
+                      }`}>
+                        {skill}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className={`rounded-2xl p-6 border ${
+                theme === "dark"
+                  ? "bg-white/5 border-white/10"
+                  : "bg-gray-50 border-gray-200"
+              }`}>
+                <h3 className={`font-bold text-lg mb-4 flex items-center gap-2 ${
+                  theme === "dark" ? "text-white" : "text-gray-900"
+                }`}>
+                  <TrendingUp className="w-5 h-5 text-green-500" />
+                  Experience
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <div className={`text-2xl font-bold mb-1 ${
+                      theme === "dark" ? "text-white" : "text-gray-900"
+                    }`}>
+                      10+ Years
+                    </div>
+                    <div className={`text-sm ${
+                      theme === "dark" ? "text-gray-400" : "text-gray-600"
+                    }`}>
+                      Industry Experience
+                    </div>
+                  </div>
+                  <div>
+                    <div className={`text-2xl font-bold mb-1 ${
+                      theme === "dark" ? "text-white" : "text-gray-900"
+                    }`}>
+                      {producer.credits?.length || 247}+
+                    </div>
+                    <div className={`text-sm ${
+                      theme === "dark" ? "text-gray-400" : "text-gray-600"
+                    }`}>
+                      Completed Projects
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {producer.featuredGear && (
+                <div className={`rounded-2xl p-6 border md:col-span-2 ${
+                  theme === "dark"
+                    ? "bg-white/5 border-white/10"
+                    : "bg-gray-50 border-gray-200"
+                }`}>
+                  <h3 className={`font-bold text-lg mb-4 ${
+                    theme === "dark" ? "text-white" : "text-gray-900"
+                  }`}>
+                    Studio Gear
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {producer.featuredGear.map((gear, i) => (
+                      <div key={i} className={`text-sm ${
+                        theme === "dark" ? "text-gray-300" : "text-gray-700"
+                      }`}>
+                        • {gear}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Message Modal */}
-      <Modal
-        title={`Message ${producer.name}`}
-        visible={messageModalVisible}
-        onCancel={() => setMessageModalVisible(false)}
-        footer={[
-          <Button key="cancel" onClick={() => setMessageModalVisible(false)}>
-            Cancel
-          </Button>,
-          <Button 
-            key="send" 
-            type="primary" 
-            onClick={sendMessage}
-            disabled={!messageText.trim()}
-          >
-            Send
-          </Button>,
-        ]}
-      >
-        <div className="h-64 overflow-y-auto mb-4 border rounded p-3 bg-gray-50">
-          {messages.length > 0 ? (
-            messages.map((msg, index) => (
-              <div 
-                key={index} 
-                className={`mb-3 ${msg.sender === "You" ? "text-right" : "text-left"}`}
-              >
-                <div className={`inline-block p-2 rounded-lg ${msg.sender === "You" ? "bg-blue-100" : "bg-gray-200"}`}>
-                  <div className="font-medium text-xs text-gray-500 mb-1">
-                    {msg.sender} • {msg.time}
-                  </div>
-                  <div>{msg.text}</div>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="text-center text-gray-500 py-8">
-              Start a conversation with {producer.name}
+      {showMessageModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className={`w-full max-w-md rounded-2xl border ${
+            theme === "dark" 
+              ? "bg-gray-900 border-gray-800" 
+              : "bg-white border-gray-200"
+          }`}>
+            <div className={`p-6 border-b ${
+              theme === "dark" ? "border-gray-800" : "border-gray-200"
+            }`}>
+              <h3 className={`font-bold text-lg ${
+                theme === "dark" ? "text-white" : "text-gray-900"
+              }`}>
+                Message {producer.name}
+              </h3>
             </div>
-          )}
+            
+            <div className="p-6">
+              <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder={`Hey ${producer.name}! I'd love to work with you on...`}
+                rows={4}
+                className={`w-full p-4 rounded-xl border resize-none ${
+                  theme === "dark"
+                    ? "bg-gray-800 border-gray-700 text-white placeholder-gray-500"
+                    : "bg-white border-gray-300 text-gray-900 placeholder-gray-400"
+                } focus:outline-none focus:ring-2 focus:ring-purple-500`}
+              />
+              
+              <div className="flex gap-3 mt-4">
+                <button
+                  onClick={() => setShowMessageModal(false)}
+                  className={`flex-1 py-2.5 rounded-xl font-medium border transition-colors ${
+                    theme === "dark"
+                      ? "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700"
+                      : "bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    setShowMessageModal(false);
+                    setMessage("");
+                  }}
+                  disabled={!message.trim()}
+                  className={`flex-1 py-2.5 rounded-xl font-medium text-white transition-colors ${
+                    !message.trim()
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : "bg-purple-600 hover:bg-purple-700"
+                  }`}
+                >
+                  Send Message
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-        <Input.TextArea
-          rows={3}
-          value={messageText}
-          onChange={(e) => setMessageText(e.target.value)}
-          placeholder={`Message ${producer.name}...`}
-          onPressEnter={(e) => {
-            if (!e.shiftKey) {
-              e.preventDefault();
-              sendMessage();
-            }
-          }}
-        />
-      </Modal>
+      )}
     </div>
   );
 }

@@ -12,6 +12,7 @@ import { WorkspaceHeader } from "./WorkspaceHeader";
 import { NavigationMenu } from "./NavigationMenu";
 import { UserSection } from "./UserSection";
 import { Power } from "lucide-react";
+import { CreateClubModal } from '@/components/menu/CreateClubModal';
 
 // Simple flat mapping of menu items to their groups
 const getGroupForMenuItem = (itemKey: string): string | null => {
@@ -82,6 +83,8 @@ export const Menu: React.FC = () => {
   const { theme } = useTheme();
   const [showLogoutDialog, setShowLogoutDialog] = useState<boolean>(false);
 
+  const [showCreateClubModal, setShowCreateClubModal] = useState(false);
+
   const selectedItemGroup = useMemo(() => {
     if (!selectedKey) return null;
     return getGroupForMenuItem(selectedKey);
@@ -102,6 +105,12 @@ export const Menu: React.FC = () => {
   const handleLogout = (): void => {
     setShowLogoutDialog(true);
   };
+
+  const handleCreateClub = (clubData: any) => {
+  console.log('Creating club:', clubData);
+  // Add your club creation logic here
+};
+
 
   const toggleGroup = (groupId: string): void => {
     userHasInteractedRef.current = true;
@@ -132,10 +141,16 @@ export const Menu: React.FC = () => {
       {/* Top Section - Fixed height content */}
       <div className="flex-shrink-0">
         <WorkspaceHeader
-          collapsed={collapsed}
-          onCreateClub={() => {}}
-          onSwitchClub={() => {}}
+          collapsed={collapsed} 
+         onCreateClub={() => setShowCreateClubModal(true)}  
+        onSwitchClub={() => {/* switch logic */}}
         />
+
+      <CreateClubModal
+  isOpen={showCreateClubModal}
+  onClose={() => setShowCreateClubModal(false)}
+  onCreateClub={handleCreateClub}
+/>
 
         <Controls collapsed={collapsed} setCollapsed={setCollapsed} />
       </div>
