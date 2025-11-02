@@ -113,424 +113,485 @@ export default function LiveMusicPage() {
   });
 
   return (
-    <div className="flex h-screen">
-      {/* Main Content */}
-      <div className="flex-1 p-6 overflow-auto">
-        <div className="max-w-[1400px] mx-auto">
-          {/* Header */}
-          <div className="mb-6">
-            <div className="flex justify-between items-start">
-              <div>
-                <h1 className={`text-2xl font-semibold mb-1 ${
-                  theme === "dark" ? "text-gray-100" : "text-gray-900"
-                }`}>
-                  Live Music Hub
-                </h1>
-                <p className={`text-[13px] ${
-                  theme === "dark" ? "text-gray-500" : "text-gray-600"
+    <div className={`min-h-screen p-6 transition-colors duration-200 ${
+      theme === "dark" 
+        ? "bg-black text-white" 
+        : "bg-gray-50 text-gray-900"
+    }`}>
+      <div className="max-w-[1600px] mx-auto">
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+          
+          {/* Main Content - 3 columns */}
+          <div className="xl:col-span-3">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-8">
+              <div className="space-y-1">
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                    theme === "dark" ? "bg-white" : "bg-gray-900"
+                  }`}>
+                    <Video className={`w-4 h-4 ${
+                      theme === "dark" ? "text-black" : "text-white"
+                    }`} strokeWidth={2.5} />
+                  </div>
+                  <h1 className="text-2xl font-light tracking-tight">
+                    Live Music Hub
+                  </h1>
+                </div>
+                <p className={`text-sm font-light tracking-wide ${
+                  theme === "dark" ? "text-zinc-500" : "text-gray-600"
                 }`}>
                   Stream, connect, and create in real-time
                 </p>
               </div>
               <button
-                className={`
-                  flex items-center gap-2 px-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-200
-                  ${theme === "dark"
+                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
+                  theme === "dark"
                     ? "bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30"
-                    : "bg-red-50 hover:bg-red-100 text-red-600 border border-red-200"
-                  }
-                  active:scale-95
-                `}
+                    : "bg-red-50 hover:bg-red-100 text-red-600 border border-red-200/50"
+                }`}
               >
-                <Radio className="w-3.5 h-3.5" />
+                <Radio className="w-4 h-4" />
                 Go Live
               </button>
             </div>
 
             {/* Quick Actions */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
               {[
-                { icon: <MapPin className="w-5 h-5" />, label: "Find Studio", color: "blue" },
-                { icon: <Users className="w-5 h-5" />, label: "Find Musicians", color: "purple" },
-                { icon: <Music2 className="w-5 h-5" />, label: "Book Session", color: "green" },
-                { icon: <ShoppingCart className="w-5 h-5" />, label: "Buy Gear", color: "orange" }
-              ].map((action, i) => (
-                <button
-                  key={i}
-                  className={`
-                    p-4 rounded-lg border transition-all duration-200
-                    ${theme === "dark"
-                      ? "bg-gray-900/40 border-gray-800/60 hover:bg-gray-900/60"
-                      : "bg-white border-gray-200 hover:bg-gray-50"
-                    }
-                    active:scale-95
-                  `}
-                >
-                  <div className="flex flex-col items-center gap-2">
-                    <div className={`
-                      ${action.color === "blue" ? theme === "dark" ? "text-blue-400" : "text-blue-600" :
-                        action.color === "purple" ? theme === "dark" ? "text-purple-400" : "text-purple-600" :
-                        action.color === "green" ? theme === "dark" ? "text-green-400" : "text-green-600" :
-                        theme === "dark" ? "text-orange-400" : "text-orange-600"
-                      }
-                    `}>
-                      {action.icon}
-                    </div>
-                    <span className={`text-[13px] font-medium ${
-                      theme === "dark" ? "text-gray-300" : "text-gray-700"
-                    }`}>
-                      {action.label}
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Filters */}
-          <div className={`
-            flex flex-wrap gap-2 mb-6 p-4 rounded-lg border backdrop-blur-sm
-            ${theme === "dark" 
-              ? "bg-gray-950/40 border-gray-800/50" 
-              : "bg-white/40 border-gray-200/60"
-            }
-          `}>
-            {/* Search */}
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 ${
-                theme === "dark" ? "text-gray-500" : "text-gray-400"
-              }`} />
-              <input
-                type="text"
-                placeholder="Search streams..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className={`
-                  w-full pl-9 pr-3 py-2 text-[13px] rounded-lg border transition-all duration-200
-                  ${theme === "dark"
-                    ? "bg-gray-900/40 border-gray-800/60 text-gray-200 placeholder-gray-600 focus:border-purple-500/50"
-                    : "bg-gray-50/50 border-gray-200/60 text-gray-900 placeholder-gray-400 focus:border-purple-300"
-                  }
-                  focus:outline-none focus:ring-2 ${theme === "dark" ? "focus:ring-purple-500/20" : "focus:ring-purple-200"}
-                `}
-              />
-            </div>
-
-            {/* Category Filter */}
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className={`
-                px-3 py-2 text-[13px] rounded-lg border transition-all duration-200 cursor-pointer
-                ${theme === "dark"
-                  ? "bg-gray-900/40 border-gray-800/60 text-gray-200"
-                  : "bg-gray-50/50 border-gray-200/60 text-gray-900"
-                }
-                focus:outline-none focus:ring-2 ${theme === "dark" ? "focus:ring-purple-500/20" : "focus:ring-purple-200"}
-              `}
-            >
-              <option value="all">All Categories</option>
-              <option value="Hip Hop">Hip Hop</option>
-              <option value="R&B">R&B</option>
-              <option value="Pop">Pop</option>
-              <option value="Trap">Trap</option>
-              <option value="Electronic">Electronic</option>
-            </select>
-
-            {/* Tab Filters */}
-            <div className="flex gap-1">
-              {[
-                { key: "streams", label: "Live Streams", icon: <Video className="w-3.5 h-3.5" /> },
-                { key: "studios", label: "Studios", icon: <MapPin className="w-3.5 h-3.5" /> },
-                { key: "services", label: "Services", icon: <Zap className="w-3.5 h-3.5" /> },
-                { key: "gear", label: "Gear", icon: <Package className="w-3.5 h-3.5" /> }
-              ].map((tab) => (
-                <button
-                  key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
-                  className={`
-                    flex items-center gap-1.5 px-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-200
-                    ${activeTab === tab.key
-                      ? theme === "dark"
-                        ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
-                        : "bg-purple-50 text-purple-600 border border-purple-200"
-                      : theme === "dark"
-                        ? "bg-gray-900/40 hover:bg-gray-800/60 text-gray-400 hover:text-gray-300 border border-gray-800/60"
-                        : "bg-gray-50/50 hover:bg-gray-100 text-gray-600 hover:text-gray-900 border border-gray-200/60"
-                    }
-                    active:scale-95
-                  `}
-                >
-                  {tab.icon}
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Results Count */}
-          <div className={`text-[13px] mb-4 ${
-            theme === "dark" ? "text-gray-500" : "text-gray-600"
-          }`}>
-            {filteredStreams.length} {filteredStreams.length === 1 ? "stream" : "streams"} found
-          </div>
-
-          {/* Streams Grid */}
-          {activeTab === "streams" && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filteredStreams.map((stream) => (
-                <div
-                  key={stream.id}
-                  className={`
-                    group rounded-lg border overflow-hidden transition-all duration-200 cursor-pointer
-                    ${theme === "dark"
-                      ? "bg-gray-900/40 border-gray-800/60 hover:border-gray-700/80 hover:bg-gray-900/60"
-                      : "bg-white/50 border-gray-200/60 hover:border-gray-300/80 hover:bg-white/80"
-                    }
-                    hover:shadow-lg active:scale-[0.98]
-                  `}
-                  onClick={() => router.push(`/live/${stream.id}`)}
-                >
-                  {/* Thumbnail */}
-                  <div className="relative h-40 overflow-hidden">
-                    <img
-                      src={stream.thumbnail}
-                      alt={stream.title}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                    
-                    {/* Live Badge */}
-                    {stream.isLive && (
-                      <div className="absolute top-2 left-2 px-2.5 py-1 rounded-full text-[10px] font-semibold backdrop-blur-sm bg-red-500/90 text-white border border-red-400/50 flex items-center gap-1.5">
-                        <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                        LIVE
+                { icon: MapPin, label: "Find Studio", color: "blue" },
+                { icon: Users, label: "Find Musicians", color: "purple" },
+                { icon: Music2, label: "Book Session", color: "green" },
+                { icon: ShoppingCart, label: "Buy Gear", color: "orange" }
+              ].map((action, i) => {
+                const IconComponent = action.icon;
+                return (
+                  <button
+                    key={i}
+                    className={`p-4 rounded-xl border transition-all duration-200 active:scale-95 ${
+                      theme === "dark"
+                        ? "border-zinc-800 bg-zinc-900/40 hover:border-zinc-700 hover:bg-zinc-900/60"
+                        : "border-gray-300 bg-white hover:border-gray-400 hover:bg-gray-50"
+                    }`}
+                  >
+                    <div className="flex flex-col items-center gap-2">
+                      <div className={`
+                        ${action.color === "blue" ? theme === "dark" ? "text-blue-400" : "text-blue-600" :
+                          action.color === "purple" ? theme === "dark" ? "text-purple-400" : "text-purple-600" :
+                          action.color === "green" ? theme === "dark" ? "text-green-400" : "text-green-600" :
+                          theme === "dark" ? "text-orange-400" : "text-orange-600"
+                        }
+                      `}>
+                        <IconComponent className="w-5 h-5" />
                       </div>
-                    )}
-
-                    {/* Viewers Count */}
-                    {stream.isLive && (
-                      <div className="absolute top-2 right-2 px-2.5 py-1 rounded-full text-[10px] font-semibold backdrop-blur-sm bg-black/70 text-white">
-                        {formatNumber(stream.viewers)} viewers
-                      </div>
-                    )}
-
-                    {/* Scheduled Overlay */}
-                    {!stream.isLive && stream.scheduled && (
-                      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex flex-col items-center justify-center text-white">
-                        <Clock className="w-6 h-6 mb-2" />
-                        <div className="text-[11px] font-medium text-center px-2">
-                          {stream.scheduled}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Duration */}
-                    {stream.isLive && stream.duration && (
-                      <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-md text-[10px] font-semibold backdrop-blur-sm bg-black/70 text-white">
-                        {stream.duration}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Content */}
-                  <div className="p-3">
-                    {/* User Info */}
-                    <div className="flex items-center gap-2 mb-2">
-                      <img
-                        src={stream.user.avatar}
-                        alt={stream.user.name}
-                        className="w-6 h-6 rounded-full object-cover"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1">
-                          <span className={`text-[12px] font-medium truncate ${
-                            theme === "dark" ? "text-gray-300" : "text-gray-900"
-                          }`}>
-                            {stream.user.name}
-                          </span>
-                          {stream.user.verified && (
-                            <svg className="w-3 h-3 text-blue-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                            </svg>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Title */}
-                    <h3 className={`text-[14px] font-semibold mb-2 line-clamp-2 ${
-                      theme === "dark" ? "text-gray-200" : "text-gray-900"
-                    }`}>
-                      {stream.title}
-                    </h3>
-
-                    {/* Tags */}
-                    <div className="flex flex-wrap gap-1">
-                      <span
-                        className={`
-                          px-2 py-0.5 text-[10px] font-medium rounded-md
-                          ${theme === "dark"
-                            ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                            : "bg-blue-50 text-blue-600 border border-blue-200/50"
-                          }
-                        `}
-                      >
-                        {stream.genre}
+                      <span className={`text-sm font-light tracking-wide ${
+                        theme === "dark" ? "text-zinc-300" : "text-gray-700"
+                      }`}>
+                        {action.label}
                       </span>
-                      {stream.tags.slice(0, 2).map((tag, i) => (
-                        <span
-                          key={i}
-                          className={`
-                            px-2 py-0.5 text-[10px] font-medium rounded-md
-                            ${theme === "dark"
-                              ? "bg-gray-800/60 text-gray-400"
-                              : "bg-gray-100 text-gray-600"
-                            }
-                          `}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Filters */}
+            <div className={`flex flex-wrap gap-3 mb-8 p-4 rounded-xl border ${
+              theme === "dark"
+                ? "border-zinc-800 bg-zinc-950"
+                : "border-gray-300 bg-white"
+            }`}>
+              {/* Search */}
+              <div className="relative flex-1 min-w-[250px]">
+                <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${
+                  theme === "dark" ? "text-zinc-600" : "text-gray-500"
+                }`} strokeWidth={2} />
+                <input
+                  type="text"
+                  placeholder="Search streams..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className={`w-full pl-10 pr-4 py-3 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide focus:outline-none ${
+                    theme === "dark"
+                      ? "bg-zinc-900 border-zinc-800 text-white placeholder-zinc-600 focus:border-white focus:bg-black"
+                      : "bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-500 focus:border-gray-900 focus:bg-white"
+                  }`}
+                />
+              </div>
+
+              {/* Category Filter */}
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className={`px-4 py-3 text-sm font-light rounded-lg border transition-all duration-200 cursor-pointer tracking-wide focus:outline-none ${
+                  theme === "dark"
+                    ? "bg-zinc-900 border-zinc-800 text-white focus:border-white focus:bg-black"
+                    : "bg-gray-50 border-gray-300 text-gray-900 focus:border-gray-900 focus:bg-white"
+                }`}
+              >
+                <option value="all">All Categories</option>
+                <option value="Hip Hop">Hip Hop</option>
+                <option value="R&B">R&B</option>
+                <option value="Pop">Pop</option>
+                <option value="Trap">Trap</option>
+                <option value="Electronic">Electronic</option>
+              </select>
+
+              {/* Tab Filters */}
+              <div className={`flex items-center gap-1 p-1 rounded-lg border ${
+                theme === "dark" ? "border-zinc-800 bg-zinc-900" : "border-gray-300 bg-gray-100"
+              }`}>
+                {[
+                  { key: "streams", label: "Live Streams", icon: Video },
+                  { key: "studios", label: "Studios", icon: MapPin },
+                  { key: "services", label: "Services", icon: Zap },
+                  { key: "gear", label: "Gear", icon: Package }
+                ].map((tab) => {
+                  const IconComponent = tab.icon;
+                  return (
+                    <button
+                      key={tab.key}
+                      onClick={() => setActiveTab(tab.key)}
+                      className={`
+                        flex items-center gap-2 px-4 py-2 text-sm font-light rounded transition-all duration-200 tracking-wide
+                        ${activeTab === tab.key
+                          ? theme === "dark"
+                            ? "bg-white text-black"
+                            : "bg-black text-white"
+                          : theme === "dark"
+                            ? "text-zinc-400 hover:text-white"
+                            : "text-gray-600 hover:text-black"
+                        }
+                      `}
+                    >
+                      <IconComponent className="w-4 h-4" strokeWidth={2} />
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Results Count */}
+            <div className={`text-sm font-light tracking-wide mb-6 ${
+              theme === "dark" ? "text-zinc-500" : "text-gray-600"
+            }`}>
+              {filteredStreams.length} {filteredStreams.length === 1 ? "stream" : "streams"} found
+            </div>
+
+            {/* Streams Grid */}
+            {activeTab === "streams" && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
+                {filteredStreams.map((stream) => (
+                  <div
+                    key={stream.id}
+                    className={`group rounded-xl border overflow-hidden transition-all duration-200 cursor-pointer active:scale-[0.98] ${
+                      theme === "dark"
+                        ? "border-zinc-800 bg-zinc-950 hover:border-zinc-700 hover:bg-zinc-900"
+                        : "border-gray-300 bg-white hover:border-gray-400 hover:bg-gray-50"
+                    }`}
+                    onClick={() => router.push(`/live/${stream.id}`)}
+                  >
+                    {/* Thumbnail */}
+                    <div className="relative h-48 overflow-hidden">
+                      <img
+                        src={stream.thumbnail}
+                        alt={stream.title}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                      
+                      {/* Live Badge */}
+                      {stream.isLive && (
+                        <div className="absolute top-3 left-3 px-3 py-1.5 rounded-full text-xs font-light tracking-wide backdrop-blur-sm bg-red-500/90 text-white border border-red-400/50 flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                          LIVE
+                        </div>
+                      )}
+
+                      {/* Viewers Count */}
+                      {stream.isLive && (
+                        <div className="absolute top-3 right-3 px-3 py-1.5 rounded-full text-xs font-light tracking-wide backdrop-blur-sm bg-black/70 text-white">
+                          {formatNumber(stream.viewers)} viewers
+                        </div>
+                      )}
+
+                      {/* Scheduled Overlay */}
+                      {!stream.isLive && stream.scheduled && (
+                        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex flex-col items-center justify-center text-white">
+                          <Clock className="w-8 h-8 mb-3" />
+                          <div className="text-sm font-light tracking-wide text-center px-4">
+                            {stream.scheduled}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Duration */}
+                      {stream.isLive && stream.duration && (
+                        <div className="absolute bottom-3 left-3 px-2.5 py-1 rounded text-xs font-light tracking-wide backdrop-blur-sm bg-black/70 text-white">
+                          {stream.duration}
+                        </div>
+                      )}
+
+                      {/* Play Button Overlay */}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 flex items-center justify-center transition-all duration-300">
+                        <button
+                          className="p-4 rounded-full transition-all duration-300 backdrop-blur-sm
+                            bg-white/10 hover:bg-white/20 text-white
+                            opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100"
                         >
-                          {tag}
+                          <Play className="w-6 h-6 ml-0.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="p-4">
+                      {/* User Info */}
+                      <div className="flex items-center gap-3 mb-3">
+                        <img
+                          src={stream.user.avatar}
+                          alt={stream.user.name}
+                          className="w-8 h-8 rounded-full object-cover"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-sm font-light tracking-wide truncate ${
+                              theme === "dark" ? "text-white" : "text-gray-900"
+                            }`}>
+                              {stream.user.name}
+                            </span>
+                            {stream.user.verified && (
+                              <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                                <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                              </div>
+                            )}
+                          </div>
+                          <div className={`text-xs font-light tracking-wide ${
+                            theme === "dark" ? "text-zinc-500" : "text-gray-600"
+                          }`}>
+                            {formatNumber(stream.user.followers)} followers
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Title */}
+                      <h3 className={`text-base font-light tracking-wide mb-3 line-clamp-2 ${
+                        theme === "dark" ? "text-white" : "text-gray-900"
+                      }`}>
+                        {stream.title}
+                      </h3>
+
+                      {/* Tags */}
+                      <div className="flex flex-wrap gap-2">
+                        <span
+                          className={`px-3 py-1.5 text-xs font-light tracking-wide rounded-lg border ${
+                            theme === "dark"
+                              ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                              : "bg-blue-50 text-blue-600 border-blue-200/50"
+                          }`}
+                        >
+                          {stream.genre}
                         </span>
-                      ))}
+                        {stream.tags.slice(0, 2).map((tag, i) => (
+                          <span
+                            key={i}
+                            className={`px-3 py-1.5 text-xs font-light tracking-wide rounded-lg ${
+                              theme === "dark"
+                                ? "bg-zinc-800 text-zinc-300"
+                                : "bg-gray-100 text-gray-700"
+                            }`}
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
 
-          {/* Other tabs content placeholders */}
-          {activeTab !== "streams" && (
-            <div className={`
-              text-center py-12 rounded-lg border backdrop-blur-sm
-              ${theme === "dark"
-                ? "bg-gray-950/40 border-gray-800/50"
-                : "bg-white/40 border-gray-200/60"
-              }
-            `}>
-              <Tv className={`w-12 h-12 mx-auto mb-3 ${
-                theme === "dark" ? "text-gray-700" : "text-gray-300"
-              }`} />
-              <p className={`text-[14px] font-medium mb-1 ${
-                theme === "dark" ? "text-gray-400" : "text-gray-600"
+            {/* Other tabs content placeholders */}
+            {activeTab !== "streams" && (
+              <div className={`text-center py-16 rounded-xl border ${
+                theme === "dark" 
+                  ? "border-zinc-800 bg-zinc-950" 
+                  : "border-gray-300 bg-white"
               }`}>
-                Coming Soon
-              </p>
-              <p className={`text-[12px] ${
-                theme === "dark" ? "text-gray-600" : "text-gray-500"
-              }`}>
-                This section is under development
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Right Sidebar */}
-      <div className={`
-        w-80 border-l hidden xl:block p-6 overflow-y-auto
-        ${theme === "dark"
-          ? "bg-black border-gray-800/50"
-          : "bg-white/40 border-gray-200/60"
-        }
-      `}>
-        <div className="sticky top-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Zap className={`w-4 h-4 ${theme === "dark" ? "text-red-400" : "text-red-600"}`} />
-            <h2 className={`text-[15px] font-semibold ${
-              theme === "dark" ? "text-gray-200" : "text-gray-900"
-            }`}>
-              Live Now
-            </h2>
+                <Tv className={`w-12 h-12 mx-auto mb-3 ${
+                  theme === "dark" ? "text-zinc-700" : "text-gray-400"
+                }`} />
+                <p className={`text-sm font-light tracking-wide mb-1 ${
+                  theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                }`}>
+                  Coming Soon
+                </p>
+                <p className={`text-xs font-light tracking-wide ${
+                  theme === "dark" ? "text-zinc-600" : "text-gray-500"
+                }`}>
+                  This section is under development
+                </p>
+              </div>
+            )}
           </div>
 
-          {/* Not Streaming State */}
-          <div className={`
-            p-4 rounded-lg border text-center mb-6
-            ${theme === "dark"
-              ? "bg-gray-900/40 border-gray-800/60"
-              : "bg-gray-50 border-gray-200"
-            }
-          `}>
-            <Video className={`w-8 h-8 mx-auto mb-2 ${
-              theme === "dark" ? "text-gray-600" : "text-gray-400"
-            }`} />
-            <p className={`text-[13px] mb-3 ${
-              theme === "dark" ? "text-gray-500" : "text-gray-600"
+          {/* Sidebar - 1 column */}
+          <div className="xl:col-span-1 space-y-6">
+            {/* Go Live Card */}
+            <div className={`rounded-xl border p-6 ${
+              theme === "dark" 
+                ? "border-zinc-800 bg-zinc-950" 
+                : "border-gray-300 bg-white"
             }`}>
-              You are not streaming yet
-            </p>
-            <button
-              className={`
-                w-full flex items-center justify-center gap-2 px-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-200
-                ${theme === "dark"
-                  ? "bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30"
-                  : "bg-red-50 hover:bg-red-100 text-red-600 border border-red-200"
-                }
-                active:scale-95
-              `}
-            >
-              <Radio className="w-3.5 h-3.5" />
-              Go Live Now
-            </button>
-          </div>
+              <div className="flex items-center gap-2 mb-4">
+                <Zap className={`w-5 h-5 ${
+                  theme === "dark" ? "text-red-400" : "text-red-600"
+                }`} />
+                <h2 className={`text-lg font-light tracking-wide ${
+                  theme === "dark" ? "text-white" : "text-gray-900"
+                }`}>
+                  Start Streaming
+                </h2>
+              </div>
 
-          {/* Divider */}
-          <div className={`h-px my-6 ${
-            theme === "dark" ? "bg-gray-800/60" : "bg-gray-200/60"
-          }`} />
-
-          {/* Top Live Streams */}
-          <h3 className={`text-[15px] font-semibold mb-4 ${
-            theme === "dark" ? "text-gray-200" : "text-gray-900"
-          }`}>
-            Top Live Streams
-          </h3>
-          <div className="space-y-3">
-            {liveStreams
-              .filter(stream => stream.isLive)
-              .sort((a, b) => b.viewers - a.viewers)
-              .slice(0, 3)
-              .map((stream) => (
-                <div
-                  key={stream.id}
-                  className={`
-                    flex items-center gap-3 p-2.5 rounded-lg border transition-all duration-200 cursor-pointer
-                    ${theme === "dark"
-                      ? "bg-gray-900/40 border-gray-800/60 hover:bg-gray-900/60"
-                      : "bg-white/50 border-gray-200/60 hover:bg-white/80"
-                    }
-                  `}
+              {/* Not Streaming State */}
+              <div className={`p-4 rounded-lg border text-center mb-4 ${
+                theme === "dark"
+                  ? "border-zinc-800 bg-zinc-900/40"
+                  : "border-gray-300 bg-gray-50"
+              }`}>
+                <Video className={`w-8 h-8 mx-auto mb-3 ${
+                  theme === "dark" ? "text-zinc-600" : "text-gray-400"
+                }`} />
+                <p className={`text-sm font-light tracking-wide mb-3 ${
+                  theme === "dark" ? "text-zinc-500" : "text-gray-600"
+                }`}>
+                  You are not streaming yet
+                </p>
+                <button
+                  className={`w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
+                    theme === "dark"
+                      ? "bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30"
+                      : "bg-red-50 hover:bg-red-100 text-red-600 border border-red-200/50"
+                  }`}
                 >
-                  <div className="relative flex-shrink-0">
-                    <img
-                      src={stream.thumbnail}
-                      alt={stream.title}
-                      className="w-16 h-16 rounded object-cover"
-                    />
-                    <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded text-[8px] font-semibold bg-red-500 text-white">
-                      LIVE
+                  <Radio className="w-4 h-4" />
+                  Go Live Now
+                </button>
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div className={`h-px ${
+              theme === "dark" ? "bg-zinc-800" : "bg-gray-300"
+            }`} />
+
+            {/* Top Live Streams */}
+            <div className={`rounded-xl border p-6 ${
+              theme === "dark" 
+                ? "border-zinc-800 bg-zinc-950" 
+                : "border-gray-300 bg-white"
+            }`}>
+              <h3 className={`text-lg font-light tracking-wide mb-4 ${
+                theme === "dark" ? "text-white" : "text-gray-900"
+              }`}>
+                Top Live Streams
+              </h3>
+              <div className="space-y-4">
+                {liveStreams
+                  .filter(stream => stream.isLive)
+                  .sort((a, b) => b.viewers - a.viewers)
+                  .slice(0, 3)
+                  .map((stream) => (
+                    <div
+                      key={stream.id}
+                      className={`flex items-center gap-3 p-3 rounded-lg border transition-all duration-200 cursor-pointer ${
+                        theme === "dark"
+                          ? "border-zinc-800 bg-zinc-900 hover:border-zinc-700 hover:bg-zinc-800"
+                          : "border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100"
+                      }`}
+                      onClick={() => router.push(`/live/${stream.id}`)}
+                    >
+                      <div className="relative flex-shrink-0">
+                        <img
+                          src={stream.thumbnail}
+                          alt={stream.title}
+                          className="w-16 h-16 rounded-lg object-cover"
+                        />
+                        <div className="absolute bottom-1 left-1 px-2 py-0.5 rounded text-[10px] font-light tracking-wide bg-red-500 text-white">
+                          LIVE
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className={`text-sm font-light tracking-wide line-clamp-1 mb-1 ${
+                          theme === "dark" ? "text-white" : "text-gray-900"
+                        }`}>
+                          {stream.title}
+                        </div>
+                        <div className={`text-xs font-light tracking-wide mb-1 ${
+                          theme === "dark" ? "text-zinc-500" : "text-gray-600"
+                        }`}>
+                          {stream.user.name}
+                        </div>
+                        <div className={`flex items-center gap-1 text-xs font-light tracking-wide ${
+                          theme === "dark" ? "text-zinc-600" : "text-gray-500"
+                        }`}>
+                          <Users className="w-3 h-3" />
+                          {formatNumber(stream.viewers)} viewers
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+
+            {/* Quick Stats */}
+            <div className={`rounded-xl border p-6 ${
+              theme === "dark" 
+                ? "border-zinc-800 bg-zinc-950" 
+                : "border-gray-300 bg-white"
+            }`}>
+              <h3 className={`text-lg font-light tracking-wide mb-4 ${
+                theme === "dark" ? "text-white" : "text-gray-900"
+              }`}>
+                Live Stats
+              </h3>
+              <div className="space-y-3">
+                {[
+                  { label: "Active Streams", value: "24", change: "+5" },
+                  { label: "Total Viewers", value: "3.2K", change: "+12%" },
+                  { label: "Avg. Duration", value: "2.1h", change: "+0.3h" }
+                ].map((stat, i) => (
+                  <div key={i} className="flex justify-between items-center">
+                    <span className={`text-sm font-light tracking-wide ${
+                      theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                    }`}>
+                      {stat.label}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-sm font-light tracking-wide ${
+                        theme === "dark" ? "text-white" : "text-gray-900"
+                      }`}>
+                        {stat.value}
+                      </span>
+                      <span className={`text-xs font-light tracking-wide px-2 py-0.5 rounded ${
+                        stat.change.startsWith('+') 
+                          ? theme === "dark" 
+                            ? "bg-green-500/10 text-green-400 border border-green-500/20" 
+                            : "bg-green-50 text-green-600 border border-green-200/50"
+                          : theme === "dark"
+                            ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                            : "bg-red-50 text-red-600 border border-red-200/50"
+                      }`}>
+                        {stat.change}
+                      </span>
                     </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className={`text-[13px] font-medium line-clamp-1 ${
-                      theme === "dark" ? "text-gray-200" : "text-gray-900"
-                    }`}>
-                      {stream.title}
-                    </div>
-                    <div className={`text-[11px] ${
-                      theme === "dark" ? "text-gray-600" : "text-gray-500"
-                    }`}>
-                      {stream.user.name}
-                    </div>
-                    <div className={`flex items-center gap-1 text-[11px] ${
-                      theme === "dark" ? "text-gray-600" : "text-gray-500"
-                    }`}>
-                      <Users className="w-3 h-3" />
-                      {formatNumber(stream.viewers)}
-                    </div>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>

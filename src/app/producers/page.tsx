@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { producerData } from "./producersdata";
 import { useRouter } from "next/navigation";
-import { Search, MapPin, Star, Music2, CheckCircle2, Users, Play, MessageCircle } from "lucide-react";
+import { Search, MapPin, Star, Music2, CheckCircle2, Users, Play, MessageCircle, TrendingUp, Map, UserCheck, Clock } from "lucide-react";
 import { useTheme } from "../../providers/ThemeProvider";
 
 type Producer = {
@@ -11,7 +11,6 @@ type Producer = {
   name: string;
   handle: string;
   avatar: string;
-  cover: string;
   location: string;
   rating: number;
   genres: string[];
@@ -48,369 +47,429 @@ export default function ProducerHub() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGenre, setSelectedGenre] = useState("all");
+  const [selectedSkill, setSelectedSkill] = useState("all");
   const [activeTab, setActiveTab] = useState("trending");
 
   const filteredProducers = producerData.filter(producer => {
     const matchesSearch = producer.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                          producer.handle.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesGenre = selectedGenre === "all" || producer.genres.includes(selectedGenre);
-    return matchesSearch && matchesGenre;
+    const matchesSkill = selectedSkill === "all" || producer.skills.includes(selectedSkill);
+    return matchesSearch && matchesGenre && matchesSkill;
   });
 
+  const tabConfig = [
+    { key: "trending", label: "Trending", icon: TrendingUp },
+    { key: "nearby", label: "Nearby", icon: Map },
+    { key: "new", label: "New", icon: Clock },
+    { key: "verified", label: "Verified", icon: UserCheck },
+  ];
+
+  // Get unique skills from all producers
+  const allSkills = Array.from(new Set(producerData.flatMap(producer => producer.skills)));
+
   return (
-    <div className="p-6 max-w-[1400px] mx-auto">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className={`text-2xl font-semibold mb-1 ${
-          theme === "dark" ? "text-gray-100" : "text-gray-900"
-        }`}>
-          Producer Hub
-        </h1>
-        <p className={`text-[13px] ${
-          theme === "dark" ? "text-gray-500" : "text-gray-600"
-        }`}>
-          Connect with top music producers worldwide
-        </p>
-      </div>
-
-      {/* Filters */}
-      <div className={`
-        flex flex-wrap gap-2 mb-6 p-4 rounded-lg border backdrop-blur-sm
-        ${theme === "dark" 
-          ? "bg-gray-950/40 border-gray-800/50" 
-          : "bg-white/40 border-gray-200/60"
-        }
-      `}>
-        {/* Search */}
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 ${
-            theme === "dark" ? "text-gray-500" : "text-gray-400"
-          }`} />
-          <input
-            type="text"
-            placeholder="Search producers..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className={`
-              w-full pl-9 pr-3 py-2 text-[13px] rounded-lg border transition-all duration-200
-              ${theme === "dark"
-                ? "bg-gray-900/40 border-gray-800/60 text-gray-200 placeholder-gray-600 focus:border-purple-500/50"
-                : "bg-gray-50/50 border-gray-200/60 text-gray-900 placeholder-gray-400 focus:border-purple-300"
-              }
-              focus:outline-none focus:ring-2 ${theme === "dark" ? "focus:ring-purple-500/20" : "focus:ring-purple-200"}
-            `}
-          />
-        </div>
-
-        {/* Genre Filter */}
-        <select
-          value={selectedGenre}
-          onChange={(e) => setSelectedGenre(e.target.value)}
-          className={`
-            px-3 py-2 text-[13px] rounded-lg border transition-all duration-200 cursor-pointer
-            ${theme === "dark"
-              ? "bg-gray-900/40 border-gray-800/60 text-gray-200"
-              : "bg-gray-50/50 border-gray-200/60 text-gray-900"
-            }
-            focus:outline-none focus:ring-2 ${theme === "dark" ? "focus:ring-purple-500/20" : "focus:ring-purple-200"}
-          `}
-        >
-          <option value="all">All Genres</option>
-          <option value="Hip Hop">Hip Hop</option>
-          <option value="Trap">Trap</option>
-          <option value="R&B">R&B</option>
-          <option value="Electronic">Electronic</option>
-          <option value="Pop">Pop</option>
-          <option value="Jazz">Jazz</option>
-          <option value="Soul">Soul</option>
-        </select>
-
-        {/* Tab Filters */}
-        <div className="flex gap-1">
-          {["trending", "nearby", "new", "verified"].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`
-                px-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-200 capitalize
-                ${activeTab === tab
-                  ? theme === "dark"
-                    ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
-                    : "bg-purple-50 text-purple-600 border border-purple-200"
-                  : theme === "dark"
-                    ? "bg-gray-900/40 hover:bg-gray-800/60 text-gray-400 hover:text-gray-300 border border-gray-800/60"
-                    : "bg-gray-50/50 hover:bg-gray-100 text-gray-600 hover:text-gray-900 border border-gray-200/60"
-                }
-                active:scale-95
-              `}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Results Count */}
-      <div className={`text-[13px] mb-4 ${
-        theme === "dark" ? "text-gray-500" : "text-gray-600"
-      }`}>
-        {filteredProducers.length} {filteredProducers.length === 1 ? "producer" : "producers"} found
-      </div>
-
-      {/* Producers Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {filteredProducers.map((producer) => (
-          <div
-            key={producer.id}
-            className={`
-              group rounded-lg border overflow-hidden transition-all duration-200 cursor-pointer
-              ${theme === "dark"
-                ? "bg-gray-900/40 border-gray-800/60 hover:border-gray-700/80 hover:bg-gray-900/60"
-                : "bg-white/50 border-gray-200/60 hover:border-gray-300/80 hover:bg-white/80"
-              }
-              hover:shadow-lg active:scale-[0.98]
-            `}
-            onClick={() => router.push(`/producers/create/${producer.id}`)}
-          >
-            {/* Cover Image with Avatar */}
-            <div className="relative h-32 overflow-hidden">
-              <img
-                alt={producer.name}
-                src={producer.cover}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-              />
-              
-              {/* Status Badge */}
-              <div className={`
-                absolute top-2 right-2 px-2.5 py-1 rounded-full text-[10px] font-semibold backdrop-blur-sm flex items-center gap-1.5
-                ${producer.online
-                  ? theme === "dark"
-                    ? "bg-green-500/20 text-green-400 border border-green-500/30"
-                    : "bg-green-50/90 text-green-700 border border-green-200/50"
-                  : theme === "dark"
-                    ? "bg-gray-900/80 text-gray-400 border border-gray-700/50"
-                    : "bg-white/80 text-gray-600 border border-gray-200/50"
-                }
-              `}>
-                <div className={`w-1.5 h-1.5 rounded-full ${producer.online ? 'bg-green-500' : 'bg-gray-400'}`} />
-                {producer.online ? "Online" : producer.lastActive}
+    <div className={`min-h-screen p-6 transition-colors duration-200 ${
+      theme === "dark" 
+        ? "bg-black text-white" 
+        : "bg-gray-50 text-gray-900"
+    }`}>
+      <div className="max-w-[1400px] mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="space-y-1">
+            <div className="flex items-center gap-3">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                theme === "dark" ? "bg-white" : "bg-gray-900"
+              }`}>
+                <Music2 className={`w-4 h-4 ${
+                  theme === "dark" ? "text-black" : "text-white"
+                }`} strokeWidth={2.5} />
               </div>
+              <h1 className="text-2xl font-light tracking-tight">
+                Producer Hub
+              </h1>
+            </div>
+            <p className={`text-sm font-light tracking-wide ${
+              theme === "dark" ? "text-zinc-500" : "text-gray-600"
+            }`}>
+              Connect with top music producers worldwide
+            </p>
+          </div>
+        </div>
 
-              {/* Avatar Overlay */}
-              <div className="absolute -bottom-6 left-3">
-                <div className="relative">
-                  <img
-                    src={producer.avatar}
-                    alt={producer.name}
-                    className="w-12 h-12 rounded-lg border-2 object-cover shadow-lg"
-                    style={{ borderColor: theme === "dark" ? "#111827" : "#ffffff" }}
-                  />
-                  {producer.online && (
-                    <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 bg-green-500 ${
-                      theme === "dark" ? "border-gray-900" : "border-white"
-                    }`} />
-                  )}
-                </div>
+        {/* Main Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          
+          {/* Sidebar Filters */}
+          <div className="lg:col-span-1 space-y-6">
+            {/* Search */}
+            <div className="space-y-3">
+              <label className={`block text-xs font-medium tracking-wider uppercase ${
+                theme === "dark" ? "text-zinc-400" : "text-gray-600"
+              }`}>
+                Search Producers
+              </label>
+              <div className="relative">
+                <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${
+                  theme === "dark" ? "text-zinc-600" : "text-gray-500"
+                }`} strokeWidth={2} />
+                <input
+                  type="text"
+                  placeholder="Search by name or handle..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className={`w-full pl-10 pr-4 py-3 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide
+                    focus:outline-none ${
+                    theme === "dark" 
+                      ? "bg-zinc-950 border-zinc-800 text-white placeholder-zinc-600 focus:border-white focus:bg-black" 
+                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-gray-900 focus:bg-white"
+                  }`}
+                />
               </div>
             </div>
 
-            {/* Content */}
-            <div className="p-3.5 pt-8">
-              {/* Name & Rating */}
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <div className="flex-1 min-w-0">
-                  <h3 className={`text-[14px] font-semibold truncate ${
-                    theme === "dark" ? "text-gray-200" : "text-gray-900"
-                  }`}>
-                    {producer.name}
-                  </h3>
-                  <p className={`text-[11px] truncate ${
-                    theme === "dark" ? "text-gray-500" : "text-gray-600"
-                  }`}>
-                    {producer.handle}
-                  </p>
-                </div>
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
-                  <span className={`text-[12px] font-medium ${
-                    theme === "dark" ? "text-gray-400" : "text-gray-600"
-                  }`}>
-                    {producer.rating}
-                  </span>
-                </div>
-              </div>
-
-              {/* Location */}
-              <div className={`flex items-center gap-1.5 mb-3 text-[12px] ${
-                theme === "dark" ? "text-gray-500" : "text-gray-600"
+            {/* Genre Filter */}
+            <div className="space-y-3">
+              <label className={`block text-xs font-medium tracking-wider uppercase ${
+                theme === "dark" ? "text-zinc-400" : "text-gray-600"
               }`}>
-                <MapPin className="w-3 h-3" />
-                <span className="truncate">{producer.location}</span>
-              </div>
+                Genre
+              </label>
+              <select
+                value={selectedGenre}
+                onChange={(e) => setSelectedGenre(e.target.value)}
+                className={`w-full px-3 py-3 text-sm font-light rounded-lg border transition-all duration-200 cursor-pointer tracking-wide
+                  focus:outline-none ${
+                  theme === "dark"
+                    ? "bg-zinc-950 border-zinc-800 text-white focus:border-white focus:bg-black"
+                    : "bg-white border-gray-300 text-gray-900 focus:border-gray-900 focus:bg-white"
+                }`}
+              >
+                <option value="all">All Genres</option>
+                <option value="Hip Hop">Hip Hop</option>
+                <option value="Trap">Trap</option>
+                <option value="R&B">R&B</option>
+                <option value="Electronic">Electronic</option>
+                <option value="Pop">Pop</option>
+                <option value="Jazz">Jazz</option>
+                <option value="Soul">Soul</option>
+              </select>
+            </div>
 
-              {/* Social Stats */}
-              <div className={`flex items-center gap-3 mb-3 pb-3 border-b ${
-                theme === "dark" ? "border-gray-800/60" : "border-gray-200/60"
+            {/* Skills Filter */}
+            <div className="space-y-3">
+              <label className={`block text-xs font-medium tracking-wider uppercase ${
+                theme === "dark" ? "text-zinc-400" : "text-gray-600"
               }`}>
-                <div className="flex items-center gap-1">
-                  <Users className={`w-3 h-3 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`} />
-                  <span className={`text-[11px] font-medium ${
-                    theme === "dark" ? "text-gray-400" : "text-gray-600"
-                  }`}>
-                    {formatNumber(producer.social.followers)}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Music2 className={`w-3 h-3 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`} />
-                  <span className={`text-[11px] font-medium ${
-                    theme === "dark" ? "text-gray-400" : "text-gray-600"
-                  }`}>
-                    {producer.social.posts} tracks
-                  </span>
-                </div>
-              </div>
+                Skills
+              </label>
+              <select
+                value={selectedSkill}
+                onChange={(e) => setSelectedSkill(e.target.value)}
+                className={`w-full px-3 py-3 text-sm font-light rounded-lg border transition-all duration-200 cursor-pointer tracking-wide
+                  focus:outline-none ${
+                  theme === "dark"
+                    ? "bg-zinc-950 border-zinc-800 text-white focus:border-white focus:bg-black"
+                    : "bg-white border-gray-300 text-gray-900 focus:border-gray-900 focus:bg-white"
+                }`}
+              >
+                <option value="all">All Skills</option>
+                {allSkills.map((skill) => (
+                  <option key={skill} value={skill}>{skill}</option>
+                ))}
+              </select>
+            </div>
 
-              {/* Genres */}
-              <div className="mb-3">
-                <div className={`flex items-center gap-1 mb-1.5 text-[11px] ${
-                  theme === "dark" ? "text-gray-500" : "text-gray-600"
-                }`}>
-                  <Music2 className="w-3 h-3" />
-                  <span>Genres</span>
-                </div>
-                <div className="flex flex-wrap gap-1">
-                  {producer.genres.slice(0, 3).map((genre, index) => (
-                    <span
-                      key={index}
-                      className={`
-                        px-2 py-0.5 text-[10px] font-medium rounded-md
-                        ${theme === "dark"
-                          ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                          : "bg-blue-50 text-blue-600 border border-blue-200/50"
-                        }
-                      `}
-                    >
-                      {genre}
-                    </span>
-                  ))}
-                  {producer.genres.length > 3 && (
-                    <span
-                      className={`
-                        px-2 py-0.5 text-[10px] font-medium rounded-md
-                        ${theme === "dark"
-                          ? "bg-gray-800/60 text-gray-400"
-                          : "bg-gray-100 text-gray-600"
-                        }
-                      `}
-                    >
-                      +{producer.genres.length - 3}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Recent Work Preview */}
-              {producer.recentWorks && producer.recentWorks.length > 0 && (
-                <div className="mb-3">
-                  <div className={`flex items-center gap-1 mb-1.5 text-[11px] ${
-                    theme === "dark" ? "text-gray-500" : "text-gray-600"
-                  }`}>
-                    <Play className="w-3 h-3" />
-                    <span>Recent Work</span>
-                  </div>
-                  <div className={`
-                    p-2 rounded-lg flex items-center gap-2 border
-                    ${theme === "dark"
-                      ? "bg-gray-800/40 border-gray-800/60"
-                      : "bg-gray-50/50 border-gray-200/60"
-                    }
-                  `}>
-                    <img
-                      src={producer.recentWorks[0].image}
-                      alt={producer.recentWorks[0].title}
-                      className="w-8 h-8 rounded object-cover"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className={`text-[11px] font-medium truncate ${
-                        theme === "dark" ? "text-gray-300" : "text-gray-900"
-                      }`}>
-                        {producer.recentWorks[0].title}
-                      </div>
-                      <div className={`text-[10px] truncate ${
-                        theme === "dark" ? "text-gray-600" : "text-gray-500"
-                      }`}>
-                        {formatNumber(producer.recentWorks[0].plays)} plays
-                      </div>
+            {/* Stats */}
+            <div className={`p-4 rounded-lg border ${
+              theme === "dark" 
+                ? "bg-zinc-950 border-zinc-800" 
+                : "bg-white border-gray-300"
+            }`}>
+              <div className="space-y-3">
+                <h3 className={`text-sm font-light tracking-wide ${
+                  theme === "dark" ? "text-white" : "text-gray-900"
+                }`}>Community</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <div className={`text-lg font-light tracking-tight ${
+                      theme === "dark" ? "text-white" : "text-gray-900"
+                    }`}>
+                      {formatNumber(producerData.reduce((sum, p) => sum + p.social.followers, 0))}
                     </div>
+                    <div className={`text-xs font-light tracking-wider ${
+                      theme === "dark" ? "text-zinc-500" : "text-gray-600"
+                    }`}>Producers</div>
+                  </div>
+                  <div className="space-y-1">
+                    <div className={`text-lg font-light tracking-tight ${
+                      theme === "dark" ? "text-white" : "text-gray-900"
+                    }`}>
+                      {formatNumber(producerData.reduce((sum, p) => sum + p.recentWorks.reduce((wSum, w) => wSum + w.plays, 0), 0))}
+                    </div>
+                    <div className={`text-xs font-light tracking-wider ${
+                      theme === "dark" ? "text-zinc-500" : "text-gray-600"
+                    }`}>Plays</div>
                   </div>
                 </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex gap-1.5">
-                <button
-                  className={`
-                    flex-1 flex items-center justify-center gap-2 px-3 py-2 text-[13px] font-medium rounded-lg transition-all duration-200
-                    ${theme === "dark"
-                      ? "bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20"
-                      : "bg-purple-50 hover:bg-purple-100 text-purple-600 border border-purple-200/50"
-                    }
-                    group-hover:shadow-md active:scale-95
-                  `}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    router.push(`/producers/create/${producer.id}`);
-                  }}
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  View Profile
-                </button>
-                
-                <button
-                  className={`
-                    p-2 rounded-lg transition-all duration-200
-                    ${theme === "dark"
-                      ? "bg-gray-800/60 hover:bg-gray-800 text-gray-400 hover:text-gray-300 border border-gray-800/60"
-                      : "bg-gray-100/80 hover:bg-gray-200 text-gray-600 hover:text-gray-700 border border-gray-200/60"
-                    }
-                    active:scale-95
-                  `}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                  }}
-                >
-                  <MessageCircle className="w-3.5 h-3.5" />
-                </button>
               </div>
             </div>
           </div>
-        ))}
-      </div>
 
-      {/* Empty State */}
-      {filteredProducers.length === 0 && (
-        <div className={`
-          text-center py-12 rounded-lg border backdrop-blur-sm
-          ${theme === "dark"
-            ? "bg-gray-950/40 border-gray-800/50"
-            : "bg-white/40 border-gray-200/60"
-          }
-        `}>
-          <Music2 className={`w-12 h-12 mx-auto mb-3 ${
-            theme === "dark" ? "text-gray-700" : "text-gray-300"
-          }`} />
-          <p className={`text-[14px] font-medium mb-1 ${
-            theme === "dark" ? "text-gray-400" : "text-gray-600"
-          }`}>
-            No producers found
-          </p>
-          <p className={`text-[12px] ${
-            theme === "dark" ? "text-gray-600" : "text-gray-500"
-          }`}>
-            Try adjusting your filters or search query
-          </p>
+          {/* Main Content */}
+          <div className="lg:col-span-3">
+            {/* Tab Navigation */}
+            <div className={`flex items-center gap-1 mb-6 p-1 rounded-lg border w-fit ${
+              theme === "dark" 
+                ? "bg-zinc-950 border-zinc-800" 
+                : "bg-white border-gray-300"
+            }`}>
+              {tabConfig.map((tab) => {
+                const IconComponent = tab.icon;
+                return (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key)}
+                    className={`
+                      flex items-center gap-2 px-4 py-2 text-sm font-light rounded transition-all duration-200 tracking-wide
+                      ${activeTab === tab.key
+                        ? theme === "dark"
+                          ? "bg-white text-black"
+                          : "bg-gray-900 text-white"
+                        : theme === "dark"
+                          ? "text-zinc-400 hover:text-white"
+                          : "text-gray-600 hover:text-gray-900"
+                      }
+                    `}
+                  >
+                    <IconComponent className="w-4 h-4" strokeWidth={2} />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Results Count */}
+            <div className={`text-sm font-light tracking-wide mb-6 ${
+              theme === "dark" ? "text-zinc-500" : "text-gray-600"
+            }`}>
+              {filteredProducers.length} {filteredProducers.length === 1 ? "producer" : "producers"} found
+            </div>
+
+            {/* Producers Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {filteredProducers.map((producer) => (
+                <div
+                  key={producer.id}
+                  className={`group rounded-xl border overflow-hidden transition-all duration-200 cursor-pointer
+                    hover:border-zinc-700 active:scale-[0.98] ${
+                    theme === "dark"
+                      ? "bg-zinc-950 border-zinc-800 hover:bg-zinc-900"
+                      : "bg-white border-gray-300 hover:bg-gray-50 hover:border-gray-400"
+                  }`}
+                  onClick={() => router.push(`/producers/create/${producer.id}`)}
+                >
+                  {/* Header with Avatar and Info */}
+                  <div className={`p-4 border-b ${
+                    theme === "dark" ? "border-zinc-800" : "border-gray-200"
+                  }`}>
+                    <div className="flex items-start gap-3">
+                      {/* Avatar */}
+                      <div className="relative flex-shrink-0">
+                        <img
+                          src={producer.avatar}
+                          alt={producer.name}
+                          className={`w-12 h-12 rounded-lg object-cover border ${
+                            theme === "dark" ? "border-zinc-700" : "border-gray-300"
+                          }`}
+                        />
+                        {producer.online && (
+                          <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 ${
+                            theme === "dark" ? "border-zinc-950" : "border-white"
+                          } bg-green-500`} />
+                        )}
+                      </div>
+
+                      {/* Producer Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <div className="flex-1 min-w-0">
+                            <h3 className={`text-sm font-light tracking-wide truncate ${
+                              theme === "dark" ? "text-white" : "text-gray-900"
+                            }`}>
+                              {producer.name}
+                            </h3>
+                            <p className={`text-xs font-light tracking-wide truncate ${
+                              theme === "dark" ? "text-zinc-500" : "text-gray-600"
+                            }`}>
+                              {producer.handle}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
+                            <span className={`text-xs font-light ${
+                              theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                            }`}>
+                              {producer.rating}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Location */}
+                        <div className="flex items-center gap-1.5 mb-3">
+                          <MapPin className={`w-3 h-3 ${
+                            theme === "dark" ? "text-zinc-600" : "text-gray-500"
+                          }`} />
+                          <span className={`text-xs font-light tracking-wide truncate ${
+                            theme === "dark" ? "text-zinc-500" : "text-gray-600"
+                          }`}>
+                            {producer.location}
+                          </span>
+                        </div>
+
+                        {/* Social Stats */}
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-1">
+                            <Users className={`w-3 h-3 ${
+                              theme === "dark" ? "text-zinc-600" : "text-gray-500"
+                            }`} />
+                            <span className={`text-xs font-light ${
+                              theme === "dark" ? "text-zinc-500" : "text-gray-600"
+                            }`}>
+                              {formatNumber(producer.social.followers)}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Play className={`w-3 h-3 ${
+                              theme === "dark" ? "text-zinc-600" : "text-gray-500"
+                            }`} />
+                            <span className={`text-xs font-light ${
+                              theme === "dark" ? "text-zinc-500" : "text-gray-600"
+                            }`}>
+                              {producer.social.posts}
+                            </span>
+                          </div>
+                          <div className={`text-xs font-light px-2 py-0.5 rounded border ${
+                            producer.online 
+                              ? "bg-green-500/10 text-green-400 border-green-500/20" 
+                              : "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
+                          }`}>
+                            {producer.online ? "Online" : "Away"}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Recent Work */}
+                  <div className="p-4">
+                    <div className="flex items-center gap-1.5 mb-3">
+                      <Play className={`w-3 h-3 ${
+                        theme === "dark" ? "text-zinc-600" : "text-gray-500"
+                      }`} />
+                      <span className={`text-xs font-light tracking-wide ${
+                        theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                      }`}>Recent Work</span>
+                    </div>
+                    
+                    {producer.recentWorks && producer.recentWorks.length > 0 && (
+                      <div className="space-y-2">
+                        {producer.recentWorks.slice(0, 1).map((work, index) => (
+                          <div
+                            key={index}
+                            className={`flex items-center gap-3 p-3 rounded-lg border ${
+                              theme === "dark" 
+                                ? "bg-zinc-900 border-zinc-800" 
+                                : "bg-gray-50 border-gray-200"
+                            }`}
+                          >
+                            <img
+                              src={work.image}
+                              alt={work.title}
+                              className="w-10 h-10 rounded object-cover flex-shrink-0"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className={`text-sm font-light tracking-wide truncate ${
+                                theme === "dark" ? "text-white" : "text-gray-900"
+                              }`}>
+                                {work.title}
+                              </div>
+                              <div className={`text-xs font-light tracking-wide truncate ${
+                                theme === "dark" ? "text-zinc-500" : "text-gray-600"
+                              }`}>
+                                {work.artist}
+                              </div>
+                              <div className={`text-xs font-light tracking-wide ${
+                                theme === "dark" ? "text-zinc-600" : "text-gray-500"
+                              }`}>
+                                {formatNumber(work.plays)} plays
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-2 mt-4">
+                      <button
+                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide
+                          hover:bg-zinc-100 active:scale-95 ${
+                          theme === "dark"
+                            ? "bg-white border-white text-black"
+                            : "bg-gray-900 border-gray-900 text-white hover:bg-gray-800"
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/producers/create/${producer.id}`);
+                        }}
+                      >
+                        <CheckCircle2 className="w-4 h-4" strokeWidth={2} />
+                        View Profile
+                      </button>
+                      
+                      <button
+                        className={`p-2.5 rounded-lg border transition-all duration-200 active:scale-95 ${
+                          theme === "dark"
+                            ? "border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-600"
+                            : "border-gray-300 text-gray-500 hover:text-gray-900 hover:border-gray-400"
+                        }`}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <MessageCircle className="w-4 h-4" strokeWidth={2} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Empty State */}
+            {filteredProducers.length === 0 && (
+              <div className={`text-center py-16 rounded-xl border ${
+                theme === "dark" 
+                  ? "bg-zinc-950 border-zinc-800" 
+                  : "bg-white border-gray-300"
+              }`}>
+                <Music2 className={`w-12 h-12 mx-auto mb-3 ${
+                  theme === "dark" ? "text-zinc-700" : "text-gray-400"
+                }`} />
+                <p className={`text-sm font-light tracking-wide mb-1 ${
+                  theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                }`}>
+                  No producers found
+                </p>
+                <p className={`text-xs font-light tracking-wide ${
+                  theme === "dark" ? "text-zinc-600" : "text-gray-500"
+                }`}>
+                  Try adjusting your filters or search query
+                </p>
+              </div>
+            )}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

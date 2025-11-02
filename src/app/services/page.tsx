@@ -230,639 +230,604 @@ export default function MusicServices() {
   };
 
   return (
-    <div className="flex h-screen">
-      <audio ref={audioRef} src="/sample.mp3" />
-      
-      {/* Main Content */}
-      <div className="flex-1 p-6 overflow-auto">
-        <div className="max-w-[1400px] mx-auto">
-          {/* Header */}
-          <div className="mb-6">
-            <div className="flex justify-between items-start">
-              <div>
-                <h1 className={`text-2xl font-semibold mb-1 ${
-                  theme === "dark" ? "text-gray-100" : "text-gray-900"
-                }`}>
-                  Music Services
-                </h1>
-                <p className={`text-[13px] ${
-                  theme === "dark" ? "text-gray-500" : "text-gray-600"
+    <div className={`min-h-screen p-6 transition-colors duration-200 ${
+      theme === "dark" 
+        ? "bg-black text-white" 
+        : "bg-gray-50 text-gray-900"
+    }`}>
+      <div className="max-w-[1600px] mx-auto">
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+          
+          {/* Main Content - 3 columns */}
+          <div className="xl:col-span-3">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-8">
+              <div className="space-y-1">
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                    theme === "dark" ? "bg-white" : "bg-gray-900"
+                  }`}>
+                    <Music2 className={`w-4 h-4 ${
+                      theme === "dark" ? "text-black" : "text-white"
+                    }`} strokeWidth={2.5} />
+                  </div>
+                  <h1 className="text-2xl font-light tracking-tight">
+                    Music Services
+                  </h1>
+                </div>
+                <p className={`text-sm font-light tracking-wide ${
+                  theme === "dark" ? "text-zinc-500" : "text-gray-600"
                 }`}>
                   Collaborate, create, and connect with music professionals
                 </p>
               </div>
               <button
-                className={`
-                  flex items-center gap-2 px-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-200
-                  ${theme === "dark"
-                    ? "bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20"
-                    : "bg-purple-50 hover:bg-purple-100 text-purple-600 border border-purple-200/50"
-                  }
-                  active:scale-95
-                `}
+                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
+                  theme === "dark"
+                    ? "bg-white border-white text-black hover:bg-zinc-100"
+                    : "bg-black border-black text-white hover:bg-gray-800"
+                }`}
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Plus className="w-4 h-4" strokeWidth={2} />
                 Upload Snippet
               </button>
             </div>
 
-            {/* Stats Bar */}
-            <div className="grid grid-cols-3 gap-3 mt-4">
-              {[
-                { label: "Active Collaborations", value: "1,248" },
-                { label: "Snippets Shared", value: "3,427" },
-                { label: "Successful Matches", value: "892" }
-              ].map((stat, i) => (
-                <div
-                  key={i}
-                  className={`
-                    p-3 rounded-lg border backdrop-blur-sm
-                    ${theme === "dark"
-                      ? "bg-gray-900/40 border-gray-800/60"
-                      : "bg-white/50 border-gray-200/60"
-                    }
-                  `}
-                >
-                  <div className={`text-[11px] mb-1 ${
-                    theme === "dark" ? "text-gray-500" : "text-gray-600"
-                  }`}>
-                    {stat.label}
-                  </div>
-                  <div className={`text-xl font-bold ${
-                    theme === "dark" ? "text-gray-200" : "text-gray-900"
-                  }`}>
-                    {stat.value}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+            {/* Filters */}
+            <div className={`flex flex-wrap gap-3 mb-8 p-4 rounded-xl border ${
+              theme === "dark"
+                ? "border-zinc-800 bg-zinc-950"
+                : "border-gray-300 bg-white"
+            }`}>
+              {/* Search */}
+              <div className="relative flex-1 min-w-[250px]">
+                <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${
+                  theme === "dark" ? "text-zinc-600" : "text-gray-500"
+                }`} strokeWidth={2} />
+                <input
+                  type="text"
+                  placeholder="Search services, users..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className={`w-full pl-10 pr-4 py-3 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide focus:outline-none ${
+                    theme === "dark"
+                      ? "bg-zinc-900 border-zinc-800 text-white placeholder-zinc-600 focus:border-white focus:bg-black"
+                      : "bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-500 focus:border-gray-900 focus:bg-white"
+                  }`}
+                />
+              </div>
 
-          {/* Filters */}
-          <div className={`
-            flex flex-wrap gap-2 mb-6 p-4 rounded-lg border backdrop-blur-sm
-            ${theme === "dark" 
-              ? "bg-gray-950/40 border-gray-800/50" 
-              : "bg-white/40 border-gray-200/60"
-            }
-          `}>
-            {/* Search */}
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 ${
-                theme === "dark" ? "text-gray-500" : "text-gray-400"
-              }`} />
-              <input
-                type="text"
-                placeholder="Search services, users..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className={`
-                  w-full pl-9 pr-3 py-2 text-[13px] rounded-lg border transition-all duration-200
-                  ${theme === "dark"
-                    ? "bg-gray-900/40 border-gray-800/60 text-gray-200 placeholder-gray-600 focus:border-purple-500/50"
-                    : "bg-gray-50/50 border-gray-200/60 text-gray-900 placeholder-gray-400 focus:border-purple-300"
-                  }
-                  focus:outline-none focus:ring-2 ${theme === "dark" ? "focus:ring-purple-500/20" : "focus:ring-purple-200"}
-                `}
-              />
-            </div>
+              {/* Genre Filter */}
+              <select
+                value={selectedGenre}
+                onChange={(e) => setSelectedGenre(e.target.value)}
+                className={`px-4 py-3 text-sm font-light rounded-lg border transition-all duration-200 cursor-pointer tracking-wide focus:outline-none ${
+                  theme === "dark"
+                    ? "bg-zinc-900 border-zinc-800 text-white focus:border-white focus:bg-black"
+                    : "bg-gray-50 border-gray-300 text-gray-900 focus:border-gray-900 focus:bg-white"
+                }`}
+              >
+                <option value="all">All Genres</option>
+                <option value="Pop">Pop</option>
+                <option value="Hip Hop">Hip Hop</option>
+                <option value="R&B">R&B</option>
+                <option value="Rock">Rock</option>
+                <option value="Electronic">Electronic</option>
+              </select>
 
-            {/* Genre Filter */}
-            <select
-              value={selectedGenre}
-              onChange={(e) => setSelectedGenre(e.target.value)}
-              className={`
-                px-3 py-2 text-[13px] rounded-lg border transition-all duration-200 cursor-pointer
-                ${theme === "dark"
-                  ? "bg-gray-900/40 border-gray-800/60 text-gray-200"
-                  : "bg-gray-50/50 border-gray-200/60 text-gray-900"
-                }
-                focus:outline-none focus:ring-2 ${theme === "dark" ? "focus:ring-purple-500/20" : "focus:ring-purple-200"}
-              `}
-            >
-              <option value="all">All Genres</option>
-              <option value="Pop">Pop</option>
-              <option value="Hip Hop">Hip Hop</option>
-              <option value="R&B">R&B</option>
-              <option value="Rock">Rock</option>
-              <option value="Electronic">Electronic</option>
-            </select>
-
-            {/* Tab Filters */}
-            <div className="flex gap-1">
-              {[
-                { key: "snippets", label: "Snippets", icon: <Music2 className="w-3.5 h-3.5" /> },
-                { key: "collabs", label: "Collabs", icon: <Users className="w-3.5 h-3.5" /> },
-                { key: "lyrics", label: "Lyrics", icon: <FileText className="w-3.5 h-3.5" /> },
-                { key: "writers", label: "Writers", icon: <FileText className="w-3.5 h-3.5" /> },
-                { key: "auditions", label: "Auditions", icon: <Mic className="w-3.5 h-3.5" /> },
-                { key: "labels", label: "Labels", icon: <Crown className="w-3.5 h-3.5" /> }
-              ].map((tab) => (
-                <button
-                  key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
-                  className={`
-                    flex items-center gap-1.5 px-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-200
-                    ${activeTab === tab.key
-                      ? theme === "dark"
-                        ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
-                        : "bg-purple-50 text-purple-600 border border-purple-200"
-                      : theme === "dark"
-                        ? "bg-gray-900/40 hover:bg-gray-800/60 text-gray-400 hover:text-gray-300 border border-gray-800/60"
-                        : "bg-gray-50/50 hover:bg-gray-100 text-gray-600 hover:text-gray-900 border border-gray-200/60"
-                    }
-                    active:scale-95
-                  `}
-                >
-                  {tab.icon}
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Results Count */}
-          <div className={`text-[13px] mb-4 ${
-            theme === "dark" ? "text-gray-500" : "text-gray-600"
-          }`}>
-            {filteredServices.length} {filteredServices.length === 1 ? "service" : "services"} found
-          </div>
-
-          {/* Services Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {filteredServices.map((service) => {
-              const typeConfig = getTypeConfig(service.type);
-              
-              return (
-                <div
-                  key={service.id}
-                  className={`
-                    group rounded-lg border overflow-hidden transition-all duration-200 cursor-pointer
-                    ${theme === "dark"
-                      ? "bg-gray-900/40 border-gray-800/60 hover:border-gray-700/80 hover:bg-gray-900/60"
-                      : "bg-white/50 border-gray-200/60 hover:border-gray-300/80 hover:bg-white/80"
-                    }
-                    hover:shadow-lg active:scale-[0.98]
-                  `}
-                  onClick={() => router.push(`/services/${service.id}`)}
-                >
-                  <div className="p-4">
-                    {/* Header */}
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-2.5">
-                        <img
-                          src={service.user.avatar}
-                          alt={service.user.name}
-                          className="w-10 h-10 rounded-full object-cover"
-                        />
-                        <div>
-                          <div className="flex items-center gap-1">
-                            <span className={`text-[13px] font-semibold ${
-                              theme === "dark" ? "text-gray-200" : "text-gray-900"
-                            }`}>
-                              {service.user.name}
-                            </span>
-                            {service.user.verified && (
-                              <CheckCircle className="w-3.5 h-3.5 text-blue-500" />
-                            )}
-                          </div>
-                          <div className={`text-[11px] ${
-                            theme === "dark" ? "text-gray-600" : "text-gray-500"
-                          }`}>
-                            {formatNumber(service.user.followers)} followers
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-semibold border flex items-center gap-1 ${typeConfig.color}`}>
-                          {typeConfig.icon}
-                          {typeConfig.label}
-                        </span>
-                        <span className={`text-[11px] ${
-                          theme === "dark" ? "text-gray-600" : "text-gray-500"
-                        }`}>
-                          {service.date}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Title & Description */}
-                    <h3 className={`text-[15px] font-semibold mb-2 ${
-                      theme === "dark" ? "text-gray-200" : "text-gray-900"
-                    }`}>
-                      {service.title}
-                    </h3>
-                    <p className={`text-[13px] mb-3 line-clamp-2 ${
-                      theme === "dark" ? "text-gray-400" : "text-gray-600"
-                    }`}>
-                      {service.description}
-                    </p>
-
-                    {/* Audio Player for Snippets */}
-                    {service.type === 'snippet' && (
-                      <div className={`
-                        p-3 rounded-lg mb-3 border
-                        ${theme === "dark"
-                          ? "bg-gray-800/40 border-gray-800/60"
-                          : "bg-gray-50/50 border-gray-200/60"
+              {/* Tab Filters */}
+              <div className={`flex items-center gap-1 p-1 rounded-lg border ${
+                theme === "dark" ? "border-zinc-800 bg-zinc-900" : "border-gray-300 bg-gray-100"
+              }`}>
+                {[
+                  { key: "snippets", label: "Snippets", icon: Music2 },
+                  { key: "collabs", label: "Collabs", icon: Users },
+                  { key: "lyrics", label: "Lyrics", icon: FileText },
+                  { key: "writers", label: "Writers", icon: FileText },
+                  { key: "auditions", label: "Auditions", icon: Mic },
+                  { key: "labels", label: "Labels", icon: Crown }
+                ].map((tab) => {
+                  const IconComponent = tab.icon;
+                  return (
+                    <button
+                      key={tab.key}
+                      onClick={() => setActiveTab(tab.key)}
+                      className={`
+                        flex items-center gap-2 px-4 py-2 text-sm font-light rounded transition-all duration-200 tracking-wide
+                        ${activeTab === tab.key
+                          ? theme === "dark"
+                            ? "bg-white text-black"
+                            : "bg-black text-white"
+                          : theme === "dark"
+                            ? "text-zinc-400 hover:text-white"
+                            : "text-gray-600 hover:text-black"
                         }
-                      `}>
-                        <div className="flex items-center justify-between mb-2">
-                          <button
-                            onClick={(e) => togglePlay(service.id, e)}
-                            className={`
-                              p-2 rounded-full transition-colors
-                              ${theme === "dark"
-                                ? "bg-purple-500/20 hover:bg-purple-500/30 text-purple-400"
-                                : "bg-purple-100 hover:bg-purple-200 text-purple-600"
-                              }
-                            `}
-                          >
-                            {isPlaying === service.id ? (
-                              <Pause className="w-4 h-4" />
-                            ) : (
-                              <Play className="w-4 h-4" />
-                            )}
-                          </button>
-                          <span className={`text-[12px] ${
-                            theme === "dark" ? "text-gray-500" : "text-gray-600"
-                          }`}>
-                            {service.duration}
-                          </span>
-                          <span className={`text-[12px] ${
-                            theme === "dark" ? "text-gray-500" : "text-gray-600"
-                          }`}>
-                            {formatNumber(service.plays!)} plays
-                          </span>
-                        </div>
-                        <div className={`h-1 rounded-full overflow-hidden ${
-                          theme === "dark" ? "bg-gray-700" : "bg-gray-200"
-                        }`}>
-                          <div
-                            className={`h-full ${
-                              theme === "dark" ? "bg-purple-500" : "bg-purple-600"
-                            }`}
-                            style={{ width: isPlaying === service.id ? "70%" : "0%" }}
+                      `}
+                    >
+                      <IconComponent className="w-4 h-4" strokeWidth={2} />
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Results Count */}
+            <div className={`text-sm font-light tracking-wide mb-6 ${
+              theme === "dark" ? "text-zinc-500" : "text-gray-600"
+            }`}>
+              {filteredServices.length} {filteredServices.length === 1 ? "service" : "services"} found
+            </div>
+
+            {/* Services Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {filteredServices.map((service) => {
+                const typeConfig = getTypeConfig(service.type);
+                
+                return (
+                  <div
+                    key={service.id}
+                    className={`group rounded-xl border overflow-hidden transition-all duration-200 cursor-pointer active:scale-[0.98] ${
+                      theme === "dark"
+                        ? "border-zinc-800 bg-zinc-950 hover:border-zinc-700 hover:bg-zinc-900"
+                        : "border-gray-300 bg-white hover:border-gray-400 hover:bg-gray-50"
+                    }`}
+                    onClick={() => router.push(`/services/${service.id}`)}
+                  >
+                    <div className="p-4">
+                      {/* Header */}
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-2.5">
+                          <img
+                            src={service.user.avatar}
+                            alt={service.user.name}
+                            className="w-10 h-10 rounded-full object-cover"
                           />
+                          <div>
+                            <div className="flex items-center gap-1">
+                              <span className={`text-sm font-light tracking-wide ${
+                                theme === "dark" ? "text-white" : "text-gray-900"
+                              }`}>
+                                {service.user.name}
+                              </span>
+                              {service.user.verified && (
+                                <CheckCircle className="w-3.5 h-3.5 text-blue-500" />
+                              )}
+                            </div>
+                            <div className={`text-xs font-light tracking-wide ${
+                              theme === "dark" ? "text-zinc-500" : "text-gray-600"
+                            }`}>
+                              {formatNumber(service.user.followers)} followers
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2.5 py-1 rounded-full text-xs font-light tracking-wide border flex items-center gap-1 ${typeConfig.color}`}>
+                            {typeConfig.icon}
+                            {typeConfig.label}
+                          </span>
+                          <span className={`text-xs font-light tracking-wide ${
+                            theme === "dark" ? "text-zinc-500" : "text-gray-600"
+                          }`}>
+                            {service.date}
+                          </span>
                         </div>
                       </div>
-                    )}
 
-                    {/* Lyrics Preview */}
-                    {service.type === 'lyrics' && service.lyrics && (
-                      <div className={`
-                        p-3 rounded-lg mb-3 border italic
-                        ${theme === "dark"
-                          ? "bg-gray-800/40 border-gray-800/60 text-gray-400"
-                          : "bg-gray-50/50 border-gray-200/60 text-gray-600"
-                        }
-                      `}>
-                        <p className="text-[12px] line-clamp-2">{service.lyrics}</p>
-                      </div>
-                    )}
+                      {/* Title & Description */}
+                      <h3 className={`text-base font-light tracking-wide mb-2 ${
+                        theme === "dark" ? "text-white" : "text-gray-900"
+                      }`}>
+                        {service.title}
+                      </h3>
+                      <p className={`text-sm font-light tracking-wide mb-3 line-clamp-2 ${
+                        theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                      }`}>
+                        {service.description}
+                      </p>
 
-                    {/* Tags */}
-                    <div className="flex flex-wrap gap-1 mb-3">
-                      {service.tags.slice(0, 3).map((tag, i) => (
-                        <span
-                          key={i}
-                          className={`
-                            px-2 py-0.5 text-[10px] font-medium rounded-md
-                            ${theme === "dark"
-                              ? "bg-gray-800/60 text-gray-400"
-                              : "bg-gray-100 text-gray-600"
-                            }
-                          `}
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                      {service.genre.map((genre, i) => (
-                        <span
-                          key={`g-${i}`}
-                          className={`
-                            px-2 py-0.5 text-[10px] font-medium rounded-md
-                            ${theme === "dark"
-                              ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                              : "bg-blue-50 text-blue-600 border border-blue-200/50"
-                            }
-                          `}
-                        >
-                          {genre}
-                        </span>
-                      ))}
-                    </div>
-
-                    {/* Footer */}
-                    <div className={`flex items-center justify-between pt-3 border-t ${
-                      theme === "dark" ? "border-gray-800/60" : "border-gray-200/60"
-                    }`}>
-                      <div className="flex items-center gap-3">
-                        <button
-                          onClick={(e) => toggleLike(service.id, e)}
-                          className="flex items-center gap-1"
-                        >
-                          <Heart className={`w-3.5 h-3.5 ${service.liked ? "fill-red-500 text-red-500" : theme === "dark" ? "text-gray-500" : "text-gray-400"}`} />
-                          <span className={`text-[12px] font-medium ${
-                            service.liked ? "text-red-500" : theme === "dark" ? "text-gray-400" : "text-gray-600"
-                          }`}>
-                            {service.likes}
-                          </span>
-                        </button>
-                        {service.comments !== undefined && (
-                          <div className="flex items-center gap-1">
-                            <MessageCircle className={`w-3.5 h-3.5 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`} />
-                            <span className={`text-[12px] font-medium ${
-                              theme === "dark" ? "text-gray-400" : "text-gray-600"
-                            }`}>
-                              {service.comments}
-                            </span>
-                          </div>
-                        )}
-                        {service.collaborators !== undefined && (
-                          <div className="flex items-center gap-1">
-                            <Users className={`w-3.5 h-3.5 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`} />
-                            <span className={`text-[12px] font-medium ${
-                              theme === "dark" ? "text-gray-400" : "text-gray-600"
-                            }`}>
-                              {service.collaborators}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-
-                      <button
-                        className={`
-                          flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium rounded-lg transition-all duration-200
+                      {/* Audio Player for Snippets */}
+                      {service.type === 'snippet' && (
+                        <div className={`
+                          p-3 rounded-lg mb-3 border
                           ${theme === "dark"
-                            ? "bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20"
-                            : "bg-purple-50 hover:bg-purple-100 text-purple-600 border border-purple-200/50"
+                            ? "bg-zinc-900 border-zinc-800"
+                            : "bg-gray-50 border-gray-300"
                           }
-                          active:scale-95
-                        `}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (service.type === 'snippet') {
-                            // Handle snippet action
-                          } else if (service.type === 'collab') {
-                            router.push(`/collabs/create/${service.id}`);
-                          } else if (service.type === 'lyrics') {
-                            router.push(`/services/create/${service.id}`);
-                          } else if (service.type === 'writer') {
-                            router.push(`/services/edit/${service.id}`);
-                          } else if (service.type === 'audition') {
-                            router.push(`/services/auditions/${service.auditionType}/${service.id}`);
+                        `}>
+                          <div className="flex items-center justify-between mb-2">
+                            <button
+                              onClick={(e) => togglePlay(service.id, e)}
+                              className={`
+                                p-2 rounded-full transition-colors
+                                ${theme === "dark"
+                                  ? "bg-purple-500/20 hover:bg-purple-500/30 text-purple-400"
+                                  : "bg-purple-100 hover:bg-purple-200 text-purple-600"
+                                }
+                              `}
+                            >
+                              {isPlaying === service.id ? (
+                                <Pause className="w-4 h-4" />
+                              ) : (
+                                <Play className="w-4 h-4" />
+                              )}
+                            </button>
+                            <span className={`text-xs font-light tracking-wide ${
+                              theme === "dark" ? "text-zinc-500" : "text-gray-600"
+                            }`}>
+                              {service.duration}
+                            </span>
+                            <span className={`text-xs font-light tracking-wide ${
+                              theme === "dark" ? "text-zinc-500" : "text-gray-600"
+                            }`}>
+                              {formatNumber(service.plays!)} plays
+                            </span>
+                          </div>
+                          <div className={`h-1 rounded-full overflow-hidden ${
+                            theme === "dark" ? "bg-zinc-700" : "bg-gray-200"
+                          }`}>
+                            <div
+                              className={`h-full ${
+                                theme === "dark" ? "bg-purple-500" : "bg-purple-600"
+                              }`}
+                              style={{ width: isPlaying === service.id ? "70%" : "0%" }}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Lyrics Preview */}
+                      {service.type === 'lyrics' && service.lyrics && (
+                        <div className={`
+                          p-3 rounded-lg mb-3 border italic
+                          ${theme === "dark"
+                            ? "bg-zinc-900 border-zinc-800 text-zinc-400"
+                            : "bg-gray-50 border-gray-300 text-gray-600"
                           }
-                        }}
-                      >
-                        {service.type === 'snippet' ? 'Request Feature' :
-                         service.type === 'collab' ? 'Join Collab' :
-                         service.type === 'lyrics' ? 'Review Lyrics' :
-                         service.type === 'writer' ? 'Hire Writer' :
-                         service.type === 'audition' ? 'Submit Audition' : 'Contact Label'}
-                      </button>
+                        `}>
+                          <p className="text-xs font-light tracking-wide line-clamp-2">{service.lyrics}</p>
+                        </div>
+                      )}
+
+                      {/* Tags */}
+                      <div className="flex flex-wrap gap-1 mb-3">
+                        {service.tags.slice(0, 3).map((tag, i) => (
+                          <span
+                            key={i}
+                            className={`px-2 py-0.5 text-xs font-light tracking-wide rounded ${
+                              theme === "dark"
+                                ? "bg-zinc-800 text-zinc-400"
+                                : "bg-gray-100 text-gray-600"
+                            }`}
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                        {service.genre.map((genre, i) => (
+                          <span
+                            key={`g-${i}`}
+                            className={`px-2 py-0.5 text-xs font-light tracking-wide rounded border ${
+                              theme === "dark"
+                                ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                                : "bg-blue-50 text-blue-600 border-blue-200/50"
+                            }`}
+                          >
+                            {genre}
+                          </span>
+                        ))}
+                      </div>
+
+                      {/* Footer */}
+                      <div className={`flex items-center justify-between pt-3 border-t ${
+                        theme === "dark" ? "border-zinc-800" : "border-gray-300"
+                      }`}>
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={(e) => toggleLike(service.id, e)}
+                            className="flex items-center gap-1"
+                          >
+                            <Heart className={`w-3.5 h-3.5 ${service.liked ? "fill-red-500 text-red-500" : theme === "dark" ? "text-zinc-500" : "text-gray-500"}`} />
+                            <span className={`text-xs font-light tracking-wide ${
+                              service.liked ? "text-red-500" : theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                            }`}>
+                              {service.likes}
+                            </span>
+                          </button>
+                          {service.comments !== undefined && (
+                            <div className="flex items-center gap-1">
+                              <MessageCircle className={`w-3.5 h-3.5 ${theme === "dark" ? "text-zinc-500" : "text-gray-500"}`} />
+                              <span className={`text-xs font-light tracking-wide ${
+                                theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                              }`}>
+                                {service.comments}
+                              </span>
+                            </div>
+                          )}
+                          {service.collaborators !== undefined && (
+                            <div className="flex items-center gap-1">
+                              <Users className={`w-3.5 h-3.5 ${theme === "dark" ? "text-zinc-500" : "text-gray-500"}`} />
+                              <span className={`text-xs font-light tracking-wide ${
+                                theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                              }`}>
+                                {service.collaborators}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        <button
+                          className={`
+                            flex items-center gap-1.5 px-3 py-1.5 text-xs font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95
+                            ${theme === "dark"
+                              ? "bg-white border-white text-black hover:bg-zinc-100"
+                              : "bg-black border-black text-white hover:bg-gray-800"
+                            }
+                          `}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (service.type === 'snippet') {
+                              // Handle snippet action
+                            } else if (service.type === 'collab') {
+                              router.push(`/collabs/create/${service.id}`);
+                            } else if (service.type === 'lyrics') {
+                              router.push(`/services/create/${service.id}`);
+                            } else if (service.type === 'writer') {
+                              router.push(`/services/edit/${service.id}`);
+                            } else if (service.type === 'audition') {
+                              router.push(`/services/auditions/${service.auditionType}/${service.id}`);
+                            }
+                          }}
+                        >
+                          {service.type === 'snippet' ? 'Request Feature' :
+                           service.type === 'collab' ? 'Join Collab' :
+                           service.type === 'lyrics' ? 'Review Lyrics' :
+                           service.type === 'writer' ? 'Hire Writer' :
+                           service.type === 'audition' ? 'Submit Audition' : 'Contact Label'}
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+
+            {/* Empty State */}
+            {filteredServices.length === 0 && (
+              <div className={`text-center py-16 rounded-xl border ${
+                theme === "dark" 
+                  ? "border-zinc-800 bg-zinc-950" 
+                  : "border-gray-300 bg-white"
+              }`}>
+                <Music2 className={`w-12 h-12 mx-auto mb-3 ${
+                  theme === "dark" ? "text-zinc-700" : "text-gray-400"
+                }`} />
+                <p className={`text-sm font-light tracking-wide mb-1 ${
+                  theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                }`}>
+                  No services found
+                </p>
+                <p className={`text-xs font-light tracking-wide ${
+                  theme === "dark" ? "text-zinc-600" : "text-gray-500"
+                }`}>
+                  Try adjusting your filters or search query
+                </p>
+              </div>
+            )}
           </div>
 
-          {/* Empty State */}
-          {filteredServices.length === 0 && (
-            <div className={`
-              text-center py-12 rounded-lg border backdrop-blur-sm
-              ${theme === "dark"
-                ? "bg-gray-950/40 border-gray-800/50"
-                : "bg-white/40 border-gray-200/60"
-              }
-            `}>
-              <Music2 className={`w-12 h-12 mx-auto mb-3 ${
-                theme === "dark" ? "text-gray-700" : "text-gray-300"
-              }`} />
-              <p className={`text-[14px] font-medium mb-1 ${
-                theme === "dark" ? "text-gray-400" : "text-gray-600"
-              }`}>
-                No services found
-              </p>
-              <p className={`text-[12px] ${
-                theme === "dark" ? "text-gray-600" : "text-gray-500"
-              }`}>
-                Try adjusting your filters or search query
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Activity Sidebar */}
-      <div className={`
-        w-80 border-l hidden xl:block p-6 overflow-y-auto
-        ${theme === "dark"
-          ? "bg-black border-gray-800/50"
-          : "bg-white/40 border-gray-200/60"
-        }
-      `}>
-        <div className="sticky top-6">
-          {/* Trending Snippets */}
-          <div className="mb-6">
-            <div className="flex items-center gap-2 mb-4">
-              <TrendingUp className={`w-4 h-4 ${theme === "dark" ? "text-purple-400" : "text-purple-600"}`} />
-              <h2 className={`text-[15px] font-semibold ${
-                theme === "dark" ? "text-gray-200" : "text-gray-900"
-              }`}>
-                Trending Snippets
-              </h2>
-            </div>
-            <div className="space-y-3">
-              {trendingSnippets.map((snippet) => (
-                <div
-                  key={snippet.id}
-                  className={`
-                    flex items-center gap-3 p-2.5 rounded-lg border transition-all duration-200 cursor-pointer
-                    ${theme === "dark"
-                      ? "bg-gray-900/40 border-gray-800/60 hover:bg-gray-900/60"
-                      : "bg-white/50 border-gray-200/60 hover:bg-white/80"
-                    }
-                  `}
-                >
-                  <div className={`
-                    w-10 h-10 rounded-lg flex items-center justify-center
-                    ${theme === "dark" ? "bg-purple-500/20" : "bg-purple-100"}
-                  `}>
-                    <Play className={`w-4 h-4 ${theme === "dark" ? "text-purple-400" : "text-purple-600"}`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className={`text-[13px] font-medium truncate ${
-                      theme === "dark" ? "text-gray-200" : "text-gray-900"
-                    }`}>
-                      {snippet.title}
+          {/* Sidebar - 1 column */}
+          <div className="xl:col-span-1 space-y-6">
+            {/* Trending Snippets */}
+            <div className={`rounded-xl border p-4 ${
+              theme === "dark" 
+                ? "border-zinc-800 bg-zinc-950" 
+                : "border-gray-300 bg-white"
+            }`}>
+              <div className="flex items-center gap-2 mb-4">
+                <TrendingUp className={`w-4 h-4 ${
+                  theme === "dark" ? "text-purple-400" : "text-purple-600"
+                }`} />
+                <h2 className={`text-lg font-light tracking-wide ${
+                  theme === "dark" ? "text-white" : "text-gray-900"
+                }`}>
+                  Trending Snippets
+                </h2>
+              </div>
+              <div className="space-y-3">
+                {trendingSnippets.map((snippet) => (
+                  <div
+                    key={snippet.id}
+                    className={`flex items-center gap-3 p-2.5 rounded-lg border transition-all duration-200 cursor-pointer ${
+                      theme === "dark"
+                        ? "border-zinc-800 bg-zinc-900 hover:border-zinc-700 hover:bg-zinc-800"
+                        : "border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100"
+                    }`}
+                  >
+                    <div className={`
+                      w-10 h-10 rounded-lg flex items-center justify-center
+                      ${theme === "dark" ? "bg-purple-500/20" : "bg-purple-100"}
+                    `}>
+                      <Play className={`w-4 h-4 ${
+                        theme === "dark" ? "text-purple-400" : "text-purple-600"
+                      }`} />
                     </div>
-                    <div className={`text-[11px] ${
-                      theme === "dark" ? "text-gray-600" : "text-gray-500"
+                    <div className="flex-1 min-w-0">
+                      <div className={`text-sm font-light tracking-wide truncate ${
+                        theme === "dark" ? "text-white" : "text-gray-900"
+                      }`}>
+                        {snippet.title}
+                      </div>
+                      <div className={`text-xs font-light tracking-wide ${
+                        theme === "dark" ? "text-zinc-500" : "text-gray-600"
+                      }`}>
+                        {snippet.user}
+                      </div>
+                    </div>
+                    <div className={`text-xs font-light tracking-wide flex-shrink-0 ${
+                      theme === "dark" ? "text-zinc-500" : "text-gray-600"
                     }`}>
-                      {snippet.user}
+                      {snippet.duration}
                     </div>
                   </div>
-                  <div className={`text-[11px] flex-shrink-0 ${
-                    theme === "dark" ? "text-gray-600" : "text-gray-500"
-                  }`}>
-                    {snippet.duration}
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
+              <button
+                className={`
+                  w-full mt-3 px-3 py-2 text-xs font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95
+                  ${theme === "dark"
+                    ? "border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-600"
+                    : "border-gray-300 text-gray-600 hover:text-black hover:border-gray-400"
+                  }
+                `}
+              >
+                View All
+              </button>
             </div>
-            <button
-              className={`
-                w-full mt-3 px-3 py-2 text-[12px] font-medium rounded-lg transition-all duration-200
-                ${theme === "dark"
-                  ? "bg-gray-800/60 hover:bg-gray-800 text-gray-300 border border-gray-700/60"
-                  : "bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200"
-                }
-                active:scale-95
-              `}
-            >
-              View All
-            </button>
-          </div>
 
-          {/* Divider */}
-          <div className={`h-px my-6 ${
-            theme === "dark" ? "bg-gray-800/60" : "bg-gray-200/60"
-          }`} />
+            {/* Divider */}
+            <div className={`h-px ${
+              theme === "dark" ? "bg-zinc-800" : "bg-gray-300"
+            }`} />
 
-          {/* Half Songs */}
-          <div className="mb-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Music2 className={`w-4 h-4 ${theme === "dark" ? "text-purple-400" : "text-purple-600"}`} />
-              <h2 className={`text-[15px] font-semibold ${
-                theme === "dark" ? "text-gray-200" : "text-gray-900"
-              }`}>
-                Finish These Songs
-              </h2>
+            {/* Half Songs */}
+            <div className={`rounded-xl border p-4 ${
+              theme === "dark" 
+                ? "border-zinc-800 bg-zinc-950" 
+                : "border-gray-300 bg-white"
+            }`}>
+              <div className="flex items-center gap-2 mb-4">
+                <Music2 className={`w-4 h-4 ${
+                  theme === "dark" ? "text-purple-400" : "text-purple-600"
+                }`} />
+                <h2 className={`text-lg font-light tracking-wide ${
+                  theme === "dark" ? "text-white" : "text-gray-900"
+                }`}>
+                  Finish These Songs
+                </h2>
+              </div>
+              <div className="space-y-3">
+                {[
+                  { title: "Midnight Dreams", needs: "Needs Verse", genre: "Pop", progress: 45 },
+                  { title: "City Lights", needs: "Needs Hook", genre: "R&B", progress: 60 },
+                  { title: "Revolution", needs: "Needs Bridge", genre: "Rock", progress: 75 }
+                ].map((song, i) => (
+                  <div
+                    key={i}
+                    className={`p-3 rounded-lg border ${
+                      theme === "dark"
+                        ? "border-zinc-800 bg-zinc-900"
+                        : "border-gray-300 bg-gray-50"
+                    }`}
+                  >
+                    <div className={`text-sm font-light tracking-wide mb-1 ${
+                      theme === "dark" ? "text-white" : "text-gray-900"
+                    }`}>
+                      {song.title} ({song.needs})
+                    </div>
+                    <div className={`text-xs font-light tracking-wide mb-2 ${
+                      theme === "dark" ? "text-zinc-500" : "text-gray-600"
+                    }`}>
+                      {song.genre} • {song.progress}% complete
+                    </div>
+                    <div className={`h-1.5 rounded-full overflow-hidden ${
+                      theme === "dark" ? "bg-zinc-800" : "bg-gray-200"
+                    }`}>
+                      <div
+                        className={`h-full ${
+                          theme === "dark" ? "bg-purple-500" : "bg-purple-600"
+                        }`}
+                        style={{ width: `${song.progress}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <button
+                className={`
+                  w-full mt-3 px-3 py-2 text-xs font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95
+                  ${theme === "dark"
+                    ? "border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-600"
+                    : "border-gray-300 text-gray-600 hover:text-black hover:border-gray-400"
+                  }
+                `}
+              >
+                Browse More
+              </button>
             </div>
-            <div className="space-y-3">
-              {[
-                { title: "Midnight Dreams", needs: "Needs Verse", genre: "Pop", progress: 45 },
-                { title: "City Lights", needs: "Needs Hook", genre: "R&B", progress: 60 },
-                { title: "Revolution", needs: "Needs Bridge", genre: "Rock", progress: 75 }
-              ].map((song, i) => (
-                <div
-                  key={i}
-                  className={`
-                    p-3 rounded-lg border
-                    ${theme === "dark"
-                      ? "bg-gray-900/40 border-gray-800/60"
-                      : "bg-white/50 border-gray-200/60"
-                    }
-                  `}
-                >
-                  <div className={`text-[13px] font-medium mb-1 ${
-                    theme === "dark" ? "text-gray-200" : "text-gray-900"
-                  }`}>
-                    {song.title} ({song.needs})
-                  </div>
-                  <div className={`text-[11px] mb-2 ${
-                    theme === "dark" ? "text-gray-600" : "text-gray-500"
-                  }`}>
-                    {song.genre} • {song.progress}% complete
-                  </div>
-                  <div className={`h-1.5 rounded-full overflow-hidden ${
-                    theme === "dark" ? "bg-gray-800" : "bg-gray-200"
-                  }`}>
-                    <div
-                      className={`h-full ${
-                        theme === "dark" ? "bg-purple-500" : "bg-purple-600"
-                      }`}
-                      style={{ width: `${song.progress}%` }}
+
+            {/* Divider */}
+            <div className={`h-px ${
+              theme === "dark" ? "bg-zinc-800" : "bg-gray-300"
+            }`} />
+
+            {/* Recent Activity */}
+            <div className={`rounded-xl border p-4 ${
+              theme === "dark" 
+                ? "border-zinc-800 bg-zinc-950" 
+                : "border-gray-300 bg-white"
+            }`}>
+              <div className="flex items-center gap-2 mb-4">
+                <Clock className={`w-4 h-4 ${
+                  theme === "dark" ? "text-purple-400" : "text-purple-600"
+                }`} />
+                <h2 className={`text-lg font-light tracking-wide ${
+                  theme === "dark" ? "text-white" : "text-gray-900"
+                }`}>
+                  Recent Activity
+                </h2>
+              </div>
+              <div className="space-y-3">
+                {[
+                  { name: "Beat Master", avatar: "https://randomuser.me/api/portraits/men/41.jpg", action: "liked your snippet", item: "summer vibes", time: "15 min ago" },
+                  { name: "Lyric Queen", avatar: "https://randomuser.me/api/portraits/women/63.jpg", action: "requested to collab on", item: "your track", time: "1 hour ago" },
+                  { name: "Urban Records", avatar: "https://randomuser.me/api/portraits/men/32.jpg", action: "viewed", item: "your profile", time: "3 hours ago" }
+                ].map((activity, i) => (
+                  <div
+                    key={i}
+                    className={`flex items-start gap-3 p-2.5 rounded-lg border transition-all duration-200 ${
+                      theme === "dark"
+                        ? "border-zinc-800 bg-zinc-900"
+                        : "border-gray-300 bg-gray-50"
+                    }`}
+                  >
+                    <img
+                      src={activity.avatar}
+                      alt={activity.name}
+                      className="w-8 h-8 rounded-full object-cover"
                     />
-                  </div>
-                </div>
-              ))}
-            </div>
-            <button
-              className={`
-                w-full mt-3 px-3 py-2 text-[12px] font-medium rounded-lg transition-all duration-200
-                ${theme === "dark"
-                  ? "bg-gray-800/60 hover:bg-gray-800 text-gray-300 border border-gray-700/60"
-                  : "bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200"
-                }
-                active:scale-95
-              `}
-            >
-              Browse More
-            </button>
-          </div>
-
-          {/* Divider */}
-          <div className={`h-px my-6 ${
-            theme === "dark" ? "bg-gray-800/60" : "bg-gray-200/60"
-          }`} />
-
-          {/* Recent Activity */}
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <Clock className={`w-4 h-4 ${theme === "dark" ? "text-purple-400" : "text-purple-600"}`} />
-              <h2 className={`text-[15px] font-semibold ${
-                theme === "dark" ? "text-gray-200" : "text-gray-900"
-              }`}>
-                Recent Activity
-              </h2>
-            </div>
-            <div className="space-y-3">
-              {[
-                { name: "Beat Master", avatar: "https://randomuser.me/api/portraits/men/41.jpg", action: "liked your snippet", item: "summer vibes", time: "15 min ago" },
-                { name: "Lyric Queen", avatar: "https://randomuser.me/api/portraits/women/63.jpg", action: "requested to collab on", item: "your track", time: "1 hour ago" },
-                { name: "Urban Records", avatar: "https://randomuser.me/api/portraits/men/32.jpg", action: "viewed", item: "your profile", time: "3 hours ago" }
-              ].map((activity, i) => (
-                <div
-                  key={i}
-                  className={`
-                    flex items-start gap-3 p-2.5 rounded-lg border transition-all duration-200
-                    ${theme === "dark"
-                      ? "bg-gray-900/40 border-gray-800/60"
-                      : "bg-white/50 border-gray-200/60"
-                    }
-                  `}
-                >
-                  <img
-                    src={activity.avatar}
-                    alt={activity.name}
-                    className="w-8 h-8 rounded-full object-cover"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className={`text-[12px] ${
-                      theme === "dark" ? "text-gray-300" : "text-gray-900"
-                    }`}>
-                      <span className="font-medium">{activity.name}</span>
-                      {' '}
-                      <span className={theme === "dark" ? "text-gray-500" : "text-gray-600"}>
-                        {activity.action}
-                      </span>
-                      {' '}
-                      <span className="font-medium">{activity.item}</span>
-                    </div>
-                    <div className={`text-[11px] mt-0.5 ${
-                      theme === "dark" ? "text-gray-600" : "text-gray-500"
-                    }`}>
-                      {activity.time}
+                    <div className="flex-1 min-w-0">
+                      <div className={`text-xs font-light tracking-wide ${
+                        theme === "dark" ? "text-white" : "text-gray-900"
+                      }`}>
+                        <span className="font-light">{activity.name}</span>
+                        {' '}
+                        <span className={theme === "dark" ? "text-zinc-500" : "text-gray-600"}>
+                          {activity.action}
+                        </span>
+                        {' '}
+                        <span className="font-light">{activity.item}</span>
+                      </div>
+                      <div className={`text-xs font-light tracking-wide mt-0.5 ${
+                        theme === "dark" ? "text-zinc-600" : "text-gray-500"
+                      }`}>
+                        {activity.time}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
+              <button
+                className={`
+                  w-full mt-3 px-3 py-2 text-xs font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95
+                  ${theme === "dark"
+                    ? "border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-600"
+                    : "border-gray-300 text-gray-600 hover:text-black hover:border-gray-400"
+                  }
+                `}
+              >
+                See All Activity
+              </button>
             </div>
-            <button
-              className={`
-                w-full mt-3 px-3 py-2 text-[12px] font-medium rounded-lg transition-all duration-200
-                ${theme === "dark"
-                  ? "bg-gray-800/60 hover:bg-gray-800 text-gray-300 border border-gray-700/60"
-                  : "bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200"
-                }
-                active:scale-95
-              `}
-            >
-              See All Activity
-            </button>
           </div>
         </div>
       </div>
