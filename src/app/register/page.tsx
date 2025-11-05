@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useRegister } from "@refinedev/core";
 import { 
   Music2, 
   Mic2, 
@@ -29,42 +30,50 @@ const roleConfig = {
     icon: Mic2,
     title: "Artist",
     description: "Vocalist, rapper, or singer looking to create and collaborate",
-    fields: ['genres', 'bio', 'socialLinks']
+    fields: ['genres', 'bio', 'socialLinks'],
+    dbRole: 'ARTIST'
   },
   producer: {
     icon: Music2,
     title: "Producer",
     description: "Create beats, mix tracks, and produce music",
-    fields: ['genres', 'specialties', 'equipment', 'experience']
+    fields: ['genres', 'specialties', 'equipment', 'experience'],
+    dbRole: 'PRODUCER'
   },
   'studio-owner': {
     icon: Building2,
     title: "Studio Owner",
     description: "Own or manage a recording studio space",
-    fields: ['studioName', 'capacity', 'equipment', 'location', 'hourlyRate']
+    fields: ['studioName', 'capacity', 'equipment', 'location', 'hourlyRate'],
+    dbRole: 'STUDIO_OWNER'
   },
   'instrument-sales': {
     icon: Guitar,
     title: "Gear Specialist",
     description: "Sell or rent music instruments and equipment",
-    fields: ['businessName', 'specialties', 'inventory', 'location']
+    fields: ['businessName', 'specialties', 'inventory', 'location'],
+    dbRole: 'GEAR_SALES'
   },
   lyricist: {
     icon: Headphones,
     title: "Lyricist",
     description: "Write lyrics, hooks, and song concepts",
-    fields: ['genres', 'writingStyle', 'collaborationStyle', 'portfolio']
+    fields: ['genres', 'writingStyle', 'collaborationStyle', 'portfolio'],
+    dbRole: 'LYRICIST'
   },
   other: {
     icon: Users,
     title: "Other",
     description: "Music enthusiast, manager, or other role",
-    fields: ['customRole', 'bio', 'interests']
+    fields: ['customRole', 'bio', 'interests'],
+    dbRole: 'OTHER'
   }
 };
 
 export default function SignUp() {
   const router = useRouter();
+  const { mutate: register, isLoading } = useRegister();
+  
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     // Step 1
@@ -160,12 +169,46 @@ export default function SignUp() {
   };
 
   const handleSubmit = async () => {
-    console.log('Form submitted:', formData);
+    const role = formData.role as UserRole;
+    const config = roleConfig[role];
     
-    setTimeout(() => {
-      alert('Account created! Please check your email for verification link.');
-      router.push('/login');
-    }, 1000);
+    // Prepare registration payload
+    const payload = {
+      email: formData.email,
+      password: formData.password,
+      username: formData.username,
+      role: config.dbRole,
+      fullName: formData.fullName,
+      location: formData.location,
+      bio: formData.bio,
+      avatar: formData.avatar,
+      genres: formData.genres,
+      specialties: formData.specialties ? [formData.specialties] : [],
+      equipment: formData.equipment ? [formData.equipment] : [],
+      experience: formData.experience,
+      studioName: formData.studioName,
+      capacity: formData.capacity,
+      hourlyRate: formData.hourlyRate,
+      businessName: formData.businessName,
+      inventory: formData.inventory,
+      writingStyle: formData.writingStyle,
+      collaborationStyle: formData.collaborationStyle,
+      portfolio: formData.portfolio,
+      customRole: formData.customRole,
+      interests: formData.interests,
+      socialLinks: formData.socialLinks
+    };
+
+    register(payload, {
+      onSuccess: () => {
+        router.push('/');
+      },
+      onError: (error: any) => {
+        setErrors({ 
+          submit: error?.message || 'Registration failed. Please try again.' 
+        });
+      }
+    });
   };
 
   const toggleGenre = (genre: Genre) => {
@@ -653,16 +696,25 @@ export default function SignUp() {
           {currentStep === 1 ? renderStep1() : renderStep2()}
         </div>
 
+        {/* Error Display */}
+        {errors.submit && (
+          <div className="mb-6 p-4 rounded-lg border border-red-500/50 bg-red-500/10">
+            <p className="text-sm font-light text-red-400 tracking-wide">{errors.submit}</p>
+          </div>
+        )}
+
         {/* Navigation Buttons */}
         <div className="flex gap-4">
           {currentStep > 1 && (
             <button
               type="button"
               onClick={handleBack}
+              disabled={isLoading}
               className={`
                 flex items-center gap-2.5 px-6 py-3.5 text-sm font-medium rounded-lg border transition-all duration-200
                 bg-zinc-950 border-zinc-800 text-zinc-400 tracking-wide
                 hover:bg-black hover:border-zinc-700 hover:text-white active:scale-[0.98]
+                disabled:opacity-50 disabled:cursor-not-allowed
               `}
             >
               <ArrowLeft className="w-4 h-4" strokeWidth={2} />
@@ -672,14 +724,25 @@ export default function SignUp() {
           <button
             type="button"
             onClick={handleNext}
+            disabled={isLoading}
             className={`
               flex items-center gap-2.5 px-6 py-3.5 text-sm font-medium rounded-lg border transition-all duration-200 flex-1
-              bg-black  border border-gray-700 text-white tracking-wide
+              bg-white border-white text-black tracking-wide
               hover:bg-zinc-100 active:scale-[0.98]
+              disabled:opacity-50 disabled:cursor-not-allowed
             `}
           >
-            <span>{currentStep === 2 ? 'Create Account' : 'Continue'}</span>
-            <ArrowRight className="w-4 h-4" strokeWidth={2} />
+            {isLoading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                <span>Creating Account...</span>
+              </>
+            ) : (
+              <>
+                <span>{currentStep === 2 ? 'Create Account' : 'Continue'}</span>
+                <ArrowRight className="w-4 h-4" strokeWidth={2} />
+              </>
+            )}
           </button>
         </div>
 

@@ -1,0 +1,532 @@
+// Prisma Schema for Beeps Music Platform
+// Production-ready with comprehensive models for artists, clubs, and marketplace features
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// USER & AUTHENTICATION MODELS
+// ============================================================================
+
+enum UserRole {
+  ARTIST        // Musicians, vocalists, rappers
+  PRODUCER      // Beat makers, music producers
+  STUDIO_OWNER  // Recording studio owners
+  GEAR_SALES    // Equipment sellers/renters
+  LYRICIST      // Songwriters, lyricists
+  OTHER         // Other music industry roles
+}
+
+enum MembershipTier {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+model User {
+  id            String           @id @default(uuid())
+  email         String           @unique
+  supabaseId    String           @unique @map("supabase_id")
+  
+  // Profile Information
+  username      String           @unique
+  fullName      String?          @map("full_name")
+  avatar        String?
+  coverImage    String?          @map("cover_image")
+  bio           String?
+  location      String?
+  website       String?
+  
+  // User Role & Status
+  primaryRole   UserRole         @map("primary_role")
+  verified      Boolean          @default(false)
+  membershipTier MembershipTier  @default(FREE) @map("membership_tier")
+  
+  // Stats
+  followersCount Int             @default(0) @map("followers_count")
+  followingCount Int             @default(0) @map("following_count")
+  
+  // Timestamps
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+  lastLoginAt   DateTime?        @map("last_login_at")
+  
+  // Relations
+  artistProfile     ArtistProfile?
+  producerProfile   ProducerProfile?
+  studioProfile     StudioOwnerProfile?
+  gearProfile       GearSalesProfile?
+  lyricistProfile   LyricistProfile?
+  
+  clubMemberships   ClubMember[]
+  ownedClubs        Club[]           @relation("ClubOwner")
+  
+  uploadedBeats     Beat[]
+  bookings          Booking[]
+  reviews           Review[]         @relation("ReviewAuthor")
+  receivedReviews   Review[]         @relation("ReviewTarget")
+  
+  transactions      Transaction[]
+  
+  followers         Follow[]         @relation("Following")
+  following         Follow[]         @relation("Follower")
+  
+  activities        Activity[]
+  notifications     Notification[]
+
+  @@map("users")
+}
+
+// ============================================================================
+// ROLE-SPECIFIC PROFILE MODELS
+// ============================================================================
+
+model ArtistProfile {
+  id            String   @id @default(uuid())
+  userId        String   @unique @map("user_id")
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  genres        String[] // Array of music genres
+  skills        String[] // e.g., ["Vocalist", "Songwriter"]
+  
+  socialLinks   Json?    @map("social_links") // { instagram, youtube, soundcloud, spotify }
+  
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("artist_profiles")
+}
+
+model ProducerProfile {
+  id            String   @id @default(uuid())
+  userId        String   @unique @map("user_id")
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  genres        String[]
+  specialties   String[] // e.g., ["Mixing", "Mastering", "Beat Making"]
+  equipment     String[] // List of DAWs, plugins, hardware
+  experience    String?  // Years of experience
+  
+  // Service Rates
+  productionRate  String? @map("production_rate")   // e.g., "$500-$1000"
+  songwritingRate String? @map("songwriting_rate")
+  mixingRate      String? @map("mixing_rate")
+  
+  availability  String?  // e.g., "Available for projects"
+  
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("producer_profiles")
+}
+
+model StudioOwnerProfile {
+  id            String   @id @default(uuid())
+  userId        String   @unique @map("user_id")
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  studioName    String   @map("studio_name")
+  capacity      String?
+  equipment     String[]
+  hourlyRate    String?  @map("hourly_rate")
+  
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  studios       Studio[]
+
+  @@map("studio_owner_profiles")
+}
+
+model GearSalesProfile {
+  id            String   @id @default(uuid())
+  userId        String   @unique @map("user_id")
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  businessName  String   @map("business_name")
+  specialties   String[]
+  inventory     String?
+  
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  equipment     Equipment[]
+
+  @@map("gear_sales_profiles")
+}
+
+model LyricistProfile {
+  id                String   @id @default(uuid())
+  userId            String   @unique @map("user_id")
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  genres            String[]
+  writingStyle      String?  @map("writing_style")
+  collaborationStyle String? @map("collaboration_style")
+  portfolio         String?  // Link to portfolio
+  
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@map("lyricist_profiles")
+}
+
+// ============================================================================
+// CLUB / WORKSPACE MODELS
+// ============================================================================
+
+enum ClubType {
+  RECORDING      // Recording sessions
+  PRODUCTION     // Mixing & mastering
+  RENTAL         // Studio space rental
+  MANAGEMENT     // Artist/business management
+  DISTRIBUTION   // Promotion, publicity
+  CREATIVE       // Artistic direction
+}
+
+enum ClubMemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+model Club {
+  id            String       @id @default(uuid())
+  name          String
+  type          ClubType
+  description   String?
+  icon          String       @default("🎵")
+  
+  ownerId       String       @map("owner_id")
+  owner         User         @relation("ClubOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  
+  isActive      Boolean      @default(true) @map("is_active")
+  
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+  
+  members       ClubMember[]
+  
+  // Club-specific resources
+  studios       Studio[]
+  beats         Beat[]
+  equipment     Equipment[]
+
+  @@map("clubs")
+}
+
+model ClubMember {
+  id        String          @id @default(uuid())
+  
+  clubId    String          @map("club_id")
+  club      Club            @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  
+  userId    String          @map("user_id")
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  role      ClubMemberRole  @default(MEMBER)
+  
+  joinedAt  DateTime        @default(now()) @map("joined_at")
+  
+  @@unique([clubId, userId])
+  @@map("club_members")
+}
+
+// ============================================================================
+// MARKETPLACE MODELS
+// ============================================================================
+
+enum BeatType {
+  LEASE
+  EXCLUSIVE
+}
+
+model Beat {
+  id            String     @id @default(uuid())
+  title         String
+  description   String?
+  
+  producerId    String     @map("producer_id")
+  producer      User       @relation(fields: [producerId], references: [id], onDelete: Cascade)
+  
+  clubId        String?    @map("club_id")
+  club          Club?      @relation(fields: [clubId], references: [id], onDelete: SetNull)
+  
+  bpm           Int
+  key           String?
+  price         Decimal    @db.Decimal(10, 2)
+  type          BeatType
+  
+  genres        String[]
+  moods         String[]
+  tags          String[]
+  
+  imageUrl      String?    @map("image_url")
+  audioUrl      String     @map("audio_url")
+  
+  plays         Int        @default(0)
+  likes         Int        @default(0)
+  
+  isActive      Boolean    @default(true) @map("is_active")
+  
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+
+  @@index([producerId])
+  @@index([clubId])
+  @@map("beats")
+}
+
+model Studio {
+  id            String   @id @default(uuid())
+  name          String
+  description   String?
+  
+  ownerId       String   @map("owner_id")
+  owner         StudioOwnerProfile @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  
+  clubId        String?  @map("club_id")
+  club          Club?    @relation(fields: [clubId], references: [id], onDelete: SetNull)
+  
+  location      String
+  latitude      Decimal? @db.Decimal(10, 8)
+  longitude     Decimal? @db.Decimal(11, 8)
+  
+  hourlyRate    Decimal  @map("hourly_rate") @db.Decimal(10, 2)
+  
+  equipment     String[]
+  capacity      String?
+  
+  imageUrl      String?  @map("image_url")
+  
+  rating        Decimal  @default(0) @db.Decimal(3, 2)
+  reviewsCount  Int      @default(0) @map("reviews_count")
+  
+  isActive      Boolean  @default(true) @map("is_active")
+  
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  bookings      Booking[]
+  reviews       Review[]
+
+  @@index([ownerId])
+  @@index([clubId])
+  @@map("studios")
+}
+
+model Equipment {
+  id            String   @id @default(uuid())
+  name          String
+  description   String?
+  category      String   // e.g., "Microphone", "Interface", "DAW"
+  
+  sellerId      String   @map("seller_id")
+  seller        GearSalesProfile @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  
+  clubId        String?  @map("club_id")
+  club          Club?    @relation(fields: [clubId], references: [id], onDelete: SetNull)
+  
+  price         Decimal  @db.Decimal(10, 2)
+  rentalRate    Decimal? @map("rental_rate") @db.Decimal(10, 2)
+  
+  condition     String   // e.g., "New", "Like New", "Good"
+  
+  imageUrl      String?  @map("image_url")
+  
+  isActive      Boolean  @default(true) @map("is_active")
+  
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([sellerId])
+  @@index([clubId])
+  @@map("equipment")
+}
+
+// ============================================================================
+// BOOKING & TRANSACTION MODELS
+// ============================================================================
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+model Booking {
+  id            String         @id @default(uuid())
+  
+  studioId      String         @map("studio_id")
+  studio        Studio         @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  
+  userId        String         @map("user_id")
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  startTime     DateTime       @map("start_time")
+  endTime       DateTime       @map("end_time")
+  
+  status        BookingStatus  @default(PENDING)
+  
+  totalAmount   Decimal        @map("total_amount") @db.Decimal(10, 2)
+  
+  notes         String?
+  
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  @@index([studioId])
+  @@index([userId])
+  @@map("bookings")
+}
+
+enum TransactionType {
+  BEAT_PURCHASE
+  STUDIO_BOOKING
+  EQUIPMENT_PURCHASE
+  EQUIPMENT_RENTAL
+  SERVICE_PAYMENT
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+model Transaction {
+  id            String             @id @default(uuid())
+  
+  userId        String             @map("user_id")
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type          TransactionType
+  status        TransactionStatus  @default(PENDING)
+  
+  amount        Decimal            @db.Decimal(10, 2)
+  
+  referenceId   String?            @map("reference_id") // ID of beat, studio, equipment, etc.
+  referenceType String?            @map("reference_type")
+  
+  paymentMethod String?            @map("payment_method")
+  
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("transactions")
+}
+
+// ============================================================================
+// SOCIAL & INTERACTION MODELS
+// ============================================================================
+
+model Follow {
+  id          String   @id @default(uuid())
+  
+  followerId  String   @map("follower_id")
+  follower    User     @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  
+  followingId String   @map("following_id")
+  following   User     @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now()) @map("created_at")
+  
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+  @@map("follows")
+}
+
+model Review {
+  id          String   @id @default(uuid())
+  
+  authorId    String   @map("author_id")
+  author      User     @relation("ReviewAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  
+  targetId    String   @map("target_id")
+  target      User     @relation("ReviewTarget", fields: [targetId], references: [id], onDelete: Cascade)
+  
+  studioId    String?  @map("studio_id")
+  studio      Studio?  @relation(fields: [studioId], references: [id], onDelete: SetNull)
+  
+  rating      Int      // 1-5
+  comment     String
+  projectName String?  @map("project_name")
+  
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([authorId])
+  @@index([targetId])
+  @@index([studioId])
+  @@map("reviews")
+}
+
+enum ActivityType {
+  UPLOAD
+  COLLAB
+  LIKE
+  FOLLOW
+  COMPLETE
+  JOIN_CLUB
+  LEAVE_CLUB
+}
+
+model Activity {
+  id          String       @id @default(uuid())
+  
+  userId      String       @map("user_id")
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type        ActivityType
+  title       String
+  description String?
+  
+  referenceId   String?    @map("reference_id")
+  referenceType String?    @map("reference_type")
+  
+  createdAt   DateTime     @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("activities")
+}
+
+enum NotificationType {
+  BOOKING_CONFIRMED
+  BOOKING_CANCELLED
+  NEW_REVIEW
+  NEW_FOLLOWER
+  CLUB_INVITATION
+  TRANSACTION_COMPLETED
+}
+
+model Notification {
+  id          String           @id @default(uuid())
+  
+  userId      String           @map("user_id")
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type        NotificationType
+  title       String
+  message     String
+  
+  isRead      Boolean          @default(false) @map("is_read")
+  
+  referenceId   String?        @map("reference_id")
+  referenceType String?        @map("reference_type")
+  
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
