@@ -52,41 +52,57 @@ export const authProviderClient: AuthProvider = {
       redirectTo: "/login",
     };
   },
-  register: async ({ email, password }) => {
-    try {
-      const { data, error } = await supabaseBrowserClient.auth.signUp({
-        email,
-        password,
-      });
+register: async (params) => {
+  try {
+    // Call YOUR custom API route instead of Supabase directly
+    const response = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(params),
+    });
 
-      if (error) {
-        return {
-          success: false,
-          error,
-        };
-      }
+    const result = await response.json();
 
-      if (data) {
-        return {
-          success: true,
-          redirectTo: "/",
-        };
-      }
-    } catch (error: any) {
+    if (!result.success) {
       return {
         success: false,
-        error,
+        error: {
+          name: 'RegistrationError',
+          message: result.error?.message || 'Registration failed',
+        },
+      };
+    }
+
+    // After successful registration, log the user in
+    const { data: sessionData, error: signInError } = 
+      await supabaseBrowserClient.auth.signInWithPassword({
+        email: params.email,
+        password: params.password,
+      });
+
+    if (signInError) {
+      return {
+        success: false,
+        error: signInError,
       };
     }
 
     return {
+      success: true,
+      redirectTo: "/",
+    };
+  } catch (error: any) {
+    return {
       success: false,
       error: {
-        message: "Register failed",
-        name: "Invalid email or password",
+        name: 'RegistrationError',
+        message: error.message || 'Registration failed',
       },
     };
-  },
+  }
+},
   check: async () => {
     const { data, error } = await supabaseBrowserClient.auth.getUser();
     const { user } = data;
