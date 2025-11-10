@@ -2,7 +2,9 @@
 "use client";
 
 import { useTheme } from "../../providers/ThemeProvider";
-import { Users, Plus, Music, Building2 } from "lucide-react";
+import { Users, Plus, Music, Building2, Mic2, Music2, Guitar, Headphones, User as UserIcon } from "lucide-react";
+import { useGetIdentity, useList } from "@refinedev/core";
+import { useState, useEffect } from "react";
 
 interface WorkspaceHeaderProps {
   collapsed: boolean;
@@ -10,26 +12,91 @@ interface WorkspaceHeaderProps {
   onSwitchClub?: () => void;
 }
 
+// Role icon mapping
+const roleIcons: Record<string, React.ElementType> = {
+  ARTIST: Mic2,
+  PRODUCER: Music2,
+  STUDIO_OWNER: Building2,
+  GEAR_SALES: Guitar,
+  LYRICIST: Headphones,
+  OTHER: UserIcon,
+};
+
+// Role label mapping
+const roleLabels: Record<string, string> = {
+  ARTIST: "Artist",
+  PRODUCER: "Producer",
+  STUDIO_OWNER: "Studio Owner",
+  GEAR_SALES: "Gear Specialist",
+  LYRICIST: "Lyricist",
+  OTHER: "Music Enthusiast",
+};
+
+// Role colors
+const roleColors: Record<string, string> = {
+  ARTIST: "bg-purple-500",
+  PRODUCER: "bg-blue-500",
+  STUDIO_OWNER: "bg-emerald-500",
+  GEAR_SALES: "bg-orange-500",
+  LYRICIST: "bg-pink-500",
+  OTHER: "bg-gray-500",
+};
+
 export const WorkspaceHeader = ({
   collapsed,
   onCreateClub,
   onSwitchClub,
 }: WorkspaceHeaderProps) => {
   const { theme } = useTheme();
+  const { data: identity } = useGetIdentity<any>();
+  const [userData, setUserData] = useState<any>(null);
+  const [clubsCount, setClubsCount] = useState(0);
 
-  const currentClub = {
-    name: "Studio Alpha",
-    type: "Recording Studio",
-    members: 12,
-    color: "bg-purple-500",
-    icon: "🎵"
+  // Fetch user's full data from your database
+  useEffect(() => {
+    if (identity?.id) {
+      // identity.id is the Supabase user ID
+      fetchUserBySupabaseId(identity.id);
+      fetchUserClubsBySupabaseId(identity.id);
+    }
+  }, [identity?.id]);
+
+  const fetchUserBySupabaseId = async (supabaseId: string) => {
+    try {
+      const response = await fetch(`/api/users/by-supabase/${supabaseId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setUserData(data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+    }
   };
 
-  const userClubs = [
-    { name: "Studio Alpha", type: "Recording Studio", members: 12 },
-    { name: "Beat Lab", type: "Production House", members: 8 },
-    { name: "Vocal Booth", type: "Vocal Studio", members: 6 }
-  ];
+  const fetchUserClubsBySupabaseId = async (supabaseId: string) => {
+    try {
+      const response = await fetch(`/api/users/by-supabase/${supabaseId}/clubs`);
+      if (response.ok) {
+        const data = await response.json();
+        setClubsCount(data.data?.length || 0);
+      }
+    } catch (error) {
+      console.error("Error fetching clubs:", error);
+    }
+  };
+
+  // Get current user info - use identity data as fallback
+  const currentUser = {
+    name: userData?.username || identity?.user_metadata?.username || identity?.email?.split('@')[0] || "User",
+    fullName: userData?.fullName || identity?.user_metadata?.full_name || identity?.email?.split('@')[0] || "Music Creator",
+    type: userData?.primaryRole || identity?.user_metadata?.role || "OTHER",
+    avatar: userData?.avatar || identity?.user_metadata?.avatar,
+    icon: "🎵",
+  };
+
+  const RoleIcon = roleIcons[currentUser.type] || UserIcon;
+  const roleLabel = roleLabels[currentUser.type] || "Music Enthusiast";
+  const roleColor = roleColors[currentUser.type] || "bg-gray-500";
 
   return (
     <div
@@ -52,26 +119,26 @@ export const WorkspaceHeader = ({
               </span>
             </div>
       
-<button
-  onClick={(e) => {
-    e.stopPropagation();
-    onCreateClub?.();
-  }}
-  className={`
-    p-1.5 rounded-lg transition-all duration-200
-    ${theme === "dark" 
-      ? "bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20" 
-      : "bg-purple-50 hover:bg-purple-100 text-purple-600 border border-purple-200/50"
-    }
-    active:scale-95
-  `}
-  title="Create New Club"
->
-  <Plus className="w-3.5 h-3.5" />
-</button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onCreateClub?.();
+              }}
+              className={`
+                p-1.5 rounded-lg transition-all duration-200
+                ${theme === "dark" 
+                  ? "bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20" 
+                  : "bg-purple-50 hover:bg-purple-100 text-purple-600 border border-purple-200/50"
+                }
+                active:scale-95
+              `}
+              title="Create New Club"
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
           </div>
 
-          {/* Current Club Card */}
+          {/* Current User Card */}
           <div 
             onClick={onSwitchClub}
             className={`
@@ -84,31 +151,41 @@ export const WorkspaceHeader = ({
             `}
           >
             <div className="flex items-center gap-2.5">
-              {/* Club Icon */}
-              <div className={`w-9 h-9 rounded-lg ${currentClub.color} flex items-center justify-center text-white text-sm`}>
-                {currentClub.icon}
-              </div>
+              {/* User Avatar/Icon */}
+              {userData?.avatar ? (
+                <div className="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0">
+                  <img 
+                    src={userData.avatar} 
+                    alt={currentUser.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className={`w-9 h-9 rounded-lg ${roleColor} flex items-center justify-center text-white text-sm flex-shrink-0`}>
+                  {currentUser.icon}
+                </div>
+              )}
               
-              {/* Club Info */}
+              {/* User Info */}
               <div className="flex-1 min-w-0">
                 <h3 className={`
                   font-medium text-[13px] truncate
                   ${theme === "dark" ? "text-gray-200" : "text-gray-900"}
                 `}>
-                  {currentClub.name}
+                  {currentUser.fullName}
                 </h3>
                 <div className="flex items-center gap-1.5 mt-0.5">
-                  <Building2 className={`w-3 h-3 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`} />
+                  <RoleIcon className={`w-3 h-3 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`} />
                   <span className={`
                     text-[11px]
                     ${theme === "dark" ? "text-gray-500" : "text-gray-600"}
                   `}>
-                    {currentClub.type}
+                    {roleLabel}
                   </span>
                 </div>
               </div>
 
-              {/* Members Count */}
+              {/* Clubs Count */}
               <div className={`
                 flex items-center gap-1 px-2 py-1 rounded-md
                 ${theme === "dark" ? "bg-gray-800/50" : "bg-gray-100"}
@@ -118,7 +195,7 @@ export const WorkspaceHeader = ({
                   text-[11px] font-medium
                   ${theme === "dark" ? "text-gray-400" : "text-gray-600"}
                 `}>
-                  {currentClub.members}
+                  {clubsCount}
                 </span>
               </div>
             </div>
@@ -129,7 +206,7 @@ export const WorkspaceHeader = ({
             flex items-center justify-between text-[10px] px-1
             ${theme === "dark" ? "text-gray-600" : "text-gray-500"}
           `}>
-            <span>{userClubs.length} clubs</span>
+            <span>{clubsCount} {clubsCount === 1 ? 'club' : 'clubs'}</span>
             <span>•</span>
             <span className="flex items-center gap-1">
               <span className={`w-1.5 h-1.5 rounded-full ${theme === "dark" ? "bg-green-500" : "bg-green-600"}`} />
@@ -150,7 +227,7 @@ export const WorkspaceHeader = ({
             </div>
           </div>
 
-          {/* Current Club Icon */}
+          {/* Current User Icon */}
           <div 
             onClick={onSwitchClub}
             className={`
@@ -160,11 +237,21 @@ export const WorkspaceHeader = ({
                 : "hover:bg-gray-100/80"
               }
             `}
-            title={`${currentClub.name} - ${currentClub.type}`}
+            title={`${currentUser.fullName} - ${roleLabel}`}
           >
-            <div className={`w-7 h-7 rounded-md ${currentClub.color} flex items-center justify-center text-white text-xs`}>
-              {currentClub.icon}
-            </div>
+            {userData?.avatar ? (
+              <div className="w-7 h-7 rounded-md overflow-hidden">
+                <img 
+                  src={userData.avatar} 
+                  alt={currentUser.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ) : (
+              <div className={`w-7 h-7 rounded-md ${roleColor} flex items-center justify-center text-white text-xs`}>
+                {currentUser.icon}
+              </div>
+            )}
           </div>
 
           {/* Create Club Button */}

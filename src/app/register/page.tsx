@@ -17,7 +17,9 @@ import {
   ArrowRight, 
   ArrowLeft,
   CheckCircle2,
-  Camera
+  Camera,
+  Inbox,
+  RefreshCw
 } from "lucide-react";
 
 type UserRole = 'artist' | 'producer' | 'studio-owner' | 'instrument-sales' | 'lyricist' | 'other';
@@ -75,6 +77,7 @@ export default function SignUp() {
   const { mutate: register, isLoading } = useRegister();
   
   const [currentStep, setCurrentStep] = useState(1);
+  const [showVerification, setShowVerification] = useState(false);
   const [formData, setFormData] = useState({
     // Step 1
     role: '' as UserRole,
@@ -201,7 +204,7 @@ export default function SignUp() {
 
     register(payload, {
       onSuccess: () => {
-        router.push('/');
+        setShowVerification(true);
       },
       onError: (error: any) => {
         setErrors({ 
@@ -233,6 +236,141 @@ export default function SignUp() {
       socialLinks: { ...prev.socialLinks, [platform]: value }
     }));
   };
+
+  // Email Verification Screen
+  const renderVerificationScreen = () => (
+    <div className="min-h-screen bg-black flex items-center justify-center p-6">
+      <div className="w-full max-w-2xl">
+        {/* Header */}
+        <div className="mb-12 text-center">
+          <div className="flex items-center justify-center gap-3 mb-8">
+            <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center">
+              <Music2 className="w-5 h-5 text-black" strokeWidth={2.5} />
+            </div>
+            <h1 className="text-3xl font-light tracking-tight text-white">
+              Beeps
+            </h1>
+          </div>
+        </div>
+
+        {/* Verification Card */}
+        <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-12">
+          {/* Icon */}
+          <div className="flex justify-center mb-8">
+            <div className="w-20 h-20 rounded-2xl bg-black border border-zinc-800 flex items-center justify-center">
+              <Inbox className="w-10 h-10 text-white" strokeWidth={1.5} />
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="text-center space-y-4 mb-10">
+            <h2 className="text-3xl font-light tracking-tight text-white">
+              Check your email
+            </h2>
+            <p className="text-base font-light text-zinc-400 tracking-wide max-w-md mx-auto">
+              We've sent a verification link to
+            </p>
+            <p className="text-base font-medium text-white tracking-wide">
+              {formData.email}
+            </p>
+          </div>
+
+          {/* Instructions */}
+          <div className="space-y-4 mb-10">
+            <div className="flex items-start gap-4 p-4 rounded-lg bg-black border border-zinc-800">
+              <div className="w-6 h-6 rounded-full bg-zinc-900 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-xs font-medium text-zinc-400">1</span>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-white tracking-wide">
+                  Open your email inbox
+                </p>
+                <p className="text-xs font-light text-zinc-500 mt-1 tracking-wide">
+                  Check your inbox and spam folder for an email from Beeps
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-4 p-4 rounded-lg bg-black border border-zinc-800">
+              <div className="w-6 h-6 rounded-full bg-zinc-900 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-xs font-medium text-zinc-400">2</span>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-white tracking-wide">
+                  Click the verification link
+                </p>
+                <p className="text-xs font-light text-zinc-500 mt-1 tracking-wide">
+                  Click on the link in the email to verify your account
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-4 p-4 rounded-lg bg-black border border-zinc-800">
+              <div className="w-6 h-6 rounded-full bg-zinc-900 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-xs font-medium text-zinc-400">3</span>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-white tracking-wide">
+                  Start collaborating
+                </p>
+                <p className="text-xs font-light text-zinc-500 mt-1 tracking-wide">
+                  Once verified, you'll be redirected to sign in and explore the platform
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="space-y-4">
+            <button
+              type="button"
+              onClick={() => window.open('https://mail.google.com', '_blank')}
+              className="w-full flex items-center justify-center gap-2.5 px-6 py-4 text-sm font-medium rounded-lg border transition-all duration-200 bg-white border-white text-black tracking-wide hover:bg-zinc-100 active:scale-[0.98]"
+            >
+              <Mail className="w-4 h-4" strokeWidth={2} />
+              <span>Open Email App</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => router.push('/login')}
+              className="w-full flex items-center justify-center gap-2.5 px-6 py-4 text-sm font-medium rounded-lg border transition-all duration-200 bg-zinc-900 border-zinc-800 text-zinc-400 tracking-wide hover:bg-black hover:border-zinc-700 hover:text-white active:scale-[0.98]"
+            >
+              <span>I'll verify later</span>
+              <ArrowRight className="w-4 h-4" strokeWidth={2} />
+            </button>
+          </div>
+
+          {/* Help Text */}
+          <div className="mt-8 pt-8 border-t border-zinc-900 text-center">
+            <p className="text-xs font-light text-zinc-600 tracking-wide">
+              Didn't receive the email?{' '}
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={isLoading}
+                className="font-medium text-white hover:text-zinc-300 transition-colors inline-flex items-center gap-1.5"
+              >
+                <RefreshCw className="w-3 h-3" strokeWidth={2} />
+                Resend verification email
+              </button>
+            </p>
+          </div>
+        </div>
+
+        {/* Back to Register */}
+        <div className="text-center mt-8">
+          <button
+            type="button"
+            onClick={() => setShowVerification(false)}
+            className="text-xs font-light text-zinc-600 hover:text-zinc-400 transition-colors tracking-wide"
+          >
+            ← Back to registration
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   const renderStep1 = () => (
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-12">
@@ -643,6 +781,11 @@ export default function SignUp() {
       </div>
     );
   };
+
+  // Show verification screen if registration successful
+  if (showVerification) {
+    return renderVerificationScreen();
+  }
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-6">
