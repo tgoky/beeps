@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Search, MapPin, Star, CheckCircle2, Map, Grid, Navigation, Zap, X, Mic2, Maximize2, Minimize2 } from "lucide-react";
+import { Search, MapPin, Star, CheckCircle2, Map, Plus , Grid, Navigation, Zap, X, Mic2, Maximize2, Minimize2 } from "lucide-react";
 import { useTheme } from "../../providers/ThemeProvider";
+import { usePermissions } from "@/hooks/usePermissions";
+
 
 type Studio = {
   id: number;
@@ -87,6 +89,8 @@ const calculateDistance = (
 export default function StudioList() {
   const router = useRouter();
   const { theme } = useTheme();
+    const permissions = usePermissions(); 
+
 
   const [userLocation, setUserLocation] = useState<{ lat: number; lon: number } | null>(null);
   const [filteredStudios, setFilteredStudios] = useState<Studio[]>(studioData);
@@ -996,22 +1000,22 @@ const MapView = () => {
                     )}
 
                     {/* Quick action button for selected */}
-                    {isSelected && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push(`/studios/create/${studio.id}`);
-                        }}
-                        className={`w-full flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg transition-all duration-200 ${
-                          theme === "dark"
-                            ? "bg-white text-black hover:bg-gray-100"
-                            : "bg-black text-white hover:bg-gray-800"
-                        }`}
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" strokeWidth={2.5} />
-                        Book Now
-                      </button>
-                    )}
+                {permissions.canBookStudios && (
+  <button
+    className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-medium rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
+      theme === "dark"
+        ? "bg-white border-white text-black hover:bg-zinc-100"
+        : "bg-black border-black text-white hover:bg-gray-800"
+    }`}
+    onClick={(e) => {
+      e.stopPropagation();
+      router.push(`/studios/create/${studio.id}`);
+    }}
+  >
+    <CheckCircle2 className="w-4 h-4" strokeWidth={2} />
+    Book Studio
+  </button>
+)}
                   </div>
                 </div>
               )}
@@ -1334,59 +1338,90 @@ const MapView = () => {
         : "bg-gray-50 text-gray-900"
     }`}>
       <div className="max-w-[1400px] mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-light tracking-tight mb-1">
-              Recording Studios
-            </h1>
-            <p className={`text-sm font-light tracking-wide ${
-              theme === "dark" ? "text-zinc-500" : "text-gray-600"
-            }`}>
-              Discover professional studios near you
-            </p>
-          </div>
+       {/* Header with conditional action button */}
+<div className="flex items-center justify-between">
+  <div>
+    <h1 className="text-3xl font-light tracking-tight mb-1">
+      Recording Studios
+    </h1>
+    <p className={`text-sm font-light tracking-wide ${
+      theme === "dark" ? "text-zinc-500" : "text-gray-600"
+    }`}>
+      Discover professional studios near you
+    </p>
+  </div>
 
-          <div className={`flex items-center gap-1 p-1 rounded-lg border backdrop-blur-sm ${
-            theme === "dark"
-              ? "border-zinc-800 bg-zinc-900/40"
-              : "border-gray-300 bg-white/40"
-          }`}>
-            <button
-              onClick={() => setViewMode("grid")}
-              className={`
-                flex items-center gap-2 px-4 py-2 text-xs font-medium rounded-lg transition-all duration-200 tracking-wide
-                ${viewMode === "grid"
-                  ? theme === "dark"
-                    ? "bg-white text-black"
-                    : "bg-black text-white"
-                  : theme === "dark"
-                    ? "text-zinc-400 hover:text-white"
-                    : "text-gray-600 hover:text-black"
-                }
-              `}
-            >
-              <Grid className="w-4 h-4" strokeWidth={2} />
-              Grid
-            </button>
-            <button
-              onClick={() => setViewMode("map")}
-              className={`
-                flex items-center gap-2 px-4 py-2 text-xs font-medium rounded-lg transition-all duration-200 tracking-wide
-                ${viewMode === "map"
-                  ? theme === "dark"
-                    ? "bg-white text-black"
-                    : "bg-black text-white"
-                  : theme === "dark"
-                    ? "text-zinc-400 hover:text-white"
-                    : "text-gray-600 hover:text-black"
-                }
-              `}
-            >
-              <Map className="w-4 h-4" strokeWidth={2} />
-              Map
-            </button>
-          </div>
-        </div>
+  <div className="flex items-center gap-3">
+    {/* Conditional Action Button based on permissions */}
+    {permissions.canCreateStudios ? (
+      <button
+        onClick={() => router.push('/studios/create')}
+        className={`
+          flex items-center gap-2 px-5 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
+          ${theme === "dark"
+            ? "bg-white border-white text-black hover:bg-zinc-100"
+            : "bg-black border-black text-white hover:bg-gray-800"
+          }
+          active:scale-95
+        `}
+      >
+        <Plus className="w-4 h-4" strokeWidth={2} />
+        Create Studio Listing
+      </button>
+    ) : permissions.canBookStudios ? (
+      <div className={`flex items-center gap-2 px-4 py-2.5 text-xs rounded-lg border ${
+        theme === "dark"
+          ? "bg-zinc-900/40 border-zinc-800 text-zinc-400"
+          : "bg-gray-100 border-gray-300 text-gray-600"
+      }`}>
+        <Mic2 className="w-3.5 h-3.5" strokeWidth={2} />
+        <span>Browse to book studios</span>
+      </div>
+    ) : null}
+
+    {/* View Mode Toggle - Your existing toggle */}
+    <div className={`flex items-center gap-1 p-1 rounded-lg border backdrop-blur-sm ${
+      theme === "dark"
+        ? "border-zinc-800 bg-zinc-900/40"
+        : "border-gray-300 bg-white/40"
+    }`}>
+      <button
+        onClick={() => setViewMode("grid")}
+        className={`
+          flex items-center gap-2 px-4 py-2 text-xs font-medium rounded-lg transition-all duration-200 tracking-wide
+          ${viewMode === "grid"
+            ? theme === "dark"
+              ? "bg-white text-black"
+              : "bg-black text-white"
+            : theme === "dark"
+              ? "text-zinc-400 hover:text-white"
+              : "text-gray-600 hover:text-black"
+          }
+        `}
+      >
+        <Grid className="w-4 h-4" strokeWidth={2} />
+        Grid
+      </button>
+      <button
+        onClick={() => setViewMode("map")}
+        className={`
+          flex items-center gap-2 px-4 py-2 text-xs font-medium rounded-lg transition-all duration-200 tracking-wide
+          ${viewMode === "map"
+            ? theme === "dark"
+              ? "bg-white text-black"
+              : "bg-black text-white"
+            : theme === "dark"
+              ? "text-zinc-400 hover:text-white"
+              : "text-gray-600 hover:text-black"
+          }
+        `}
+      >
+        <Map className="w-4 h-4" strokeWidth={2} />
+        Map
+      </button>
+    </div>
+  </div>
+</div>
 
         <div className={`flex flex-wrap gap-3 p-4 rounded-xl border backdrop-blur-sm ${
           theme === "dark"
@@ -1463,6 +1498,21 @@ const MapView = () => {
             {userLocation && radius < 1000 && ` within ${radius} miles`}
           </span>
         </div>
+
+        {/* Permission Notice */}
+{!permissions.canBookStudios && !permissions.canCreateStudios && (
+  <div className={`p-4 rounded-lg border ${
+    theme === "dark"
+      ? "bg-zinc-900/40 border-zinc-800"
+      : "bg-gray-100 border-gray-300"
+  }`}>
+    <p className={`text-sm font-light tracking-wide ${
+      theme === "dark" ? "text-zinc-400" : "text-gray-600"
+    }`}>
+      You're browsing studios. Are you an artist and you have a recording studio? create clubs to enable listings.
+    </p>
+  </div>
+)}
 
         {filteredStudios.length > 0 ? (
           viewMode === "map" ? <MapView /> : <GridView />

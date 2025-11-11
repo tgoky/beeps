@@ -1,4 +1,5 @@
 // Type definitions for Beeps platform
+// Merged with permission system types
 import type { 
   User, 
   UserRole,
@@ -28,7 +29,22 @@ import type {
 } from '@prisma/client';
 
 // ============================================================================
-// REGISTRATION & AUTH TYPES
+// NEW: PERMISSION TYPES (for new permission system)
+// ============================================================================
+
+export interface UserPermissions {
+  canCreateStudios: boolean;
+  canBookStudios: boolean;
+  role: UserRole;
+}
+
+export interface PermissionCheckResult {
+  allowed: boolean;
+  reason?: string;
+}
+
+// ============================================================================
+// REGISTRATION & AUTH TYPES (Updated with permissions)
 // ============================================================================
 
 export interface RegistrationFormData {
@@ -36,7 +52,7 @@ export interface RegistrationFormData {
   email: string;
   username: string;
   password: string;
-  confirmPassword: string;
+  confirmPassword?: string;
   role: UserRole;
   
   // Step 2: Profile Info
@@ -50,6 +66,7 @@ export interface RegistrationFormData {
   specialties?: string[];
   equipment?: string[];
   experience?: string;
+  hasStudio?: boolean; // NEW: For producers
   studioName?: string;
   capacity?: string;
   hourlyRate?: string;
@@ -66,6 +83,10 @@ export interface RegistrationFormData {
     soundcloud?: string;
     spotify?: string;
   };
+  
+  // NEW: Permission flags (calculated during registration)
+  canCreateStudios?: boolean;
+  canBookStudios?: boolean;
 }
 
 export interface LoginFormData {
@@ -75,7 +96,7 @@ export interface LoginFormData {
 }
 
 // ============================================================================
-// USER & PROFILE TYPES
+// USER & PROFILE TYPES (Updated)
 // ============================================================================
 
 export type UserWithProfiles = User & {
@@ -84,6 +105,11 @@ export type UserWithProfiles = User & {
   studioProfile?: StudioOwnerProfile | null;
   gearProfile?: GearSalesProfile | null;
   lyricistProfile?: LyricistProfile | null;
+};
+
+// NEW: User with permissions
+export type UserWithPermissions = UserWithProfiles & {
+  permissions?: UserPermissions;
 };
 
 export interface UserStats {
@@ -258,6 +284,37 @@ export interface CreateActivityPayload {
 }
 
 // ============================================================================
+// AUDITION TYPES (Your existing types)
+// ============================================================================
+
+export type AuditionType = 'artist' | 'producer' | 'lyricist' | 'writer' | 'general';
+
+export interface AuditionBaseProps {
+  jobTitle: string;
+  clientName: string;
+  budget: string;
+  deadline: string;
+  requirements: string[];
+  type: AuditionType;
+}
+
+export interface AuditionSpecificFields {
+  artist?: {
+    vocalRange?: string;  // string as per your spec
+    performanceType?: string[];
+    influences?: string[];
+  };
+  producer?: {
+    genres: string[];
+    equipment?: string;
+  };
+  lyricist?: {
+    languages: string[];
+    specialties?: string[];
+  };
+}
+
+// ============================================================================
 // API RESPONSE TYPES
 // ============================================================================
 
@@ -309,6 +366,61 @@ export interface PaginationParams {
   limit?: number;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
+}
+
+// ============================================================================
+// NEW: PERMISSION CHECKER CLASS
+// ============================================================================
+
+export class PermissionChecker {
+  private permissions: UserPermissions;
+
+  constructor(permissions: UserPermissions) {
+    this.permissions = permissions;
+  }
+
+  canCreateStudios(): PermissionCheckResult {
+    if (this.permissions.canCreateStudios) {
+      return { allowed: true };
+    }
+    return {
+      allowed: false,
+      reason: 'You need studio owner access or be a producer with a studio to create listings'
+    };
+  }
+
+  canBookStudios(): PermissionCheckResult {
+    if (this.permissions.canBookStudios) {
+      return { allowed: true };
+    }
+    return {
+      allowed: false,
+      reason: 'Your account type does not have studio booking access'
+    };
+  }
+
+  canAccessFeature(feature: 'createStudios' | 'bookStudios'): boolean {
+    switch (feature) {
+      case 'createStudios':
+        return this.permissions.canCreateStudios;
+      case 'bookStudios':
+        return this.permissions.canBookStudios;
+      default:
+        return false;
+    }
+  }
+
+  getRoleName(): string {
+    const roleNames: Record<UserRole, string> = {
+      ARTIST: 'Artist',
+      PRODUCER: 'Producer',
+      STUDIO_OWNER: 'Studio Owner',
+      GEAR_SALES: 'Gear Specialist',
+      LYRICIST: 'Lyricist',
+      OTHER: 'Music Enthusiast'
+    };
+    return roleNames[this.permissions.role] || 'User';
+  }
 }
 
 // ============================================================================

@@ -1,8 +1,37 @@
 // Role-based access control utilities
+// Updated to work with new permission system
 import type { User, UserRole, ClubMember, ClubMemberRole } from '@prisma/client';
 
 // ============================================================================
-// ROLE CAPABILITIES
+// NEW: PERMISSION-BASED CAPABILITIES (Recommended)
+// ============================================================================
+
+export interface UserPermissions {
+  canCreateStudios: boolean;
+  canBookStudios: boolean;
+  role: UserRole;
+}
+
+/**
+ * Check if user can perform an action based on their permissions
+ * This is the NEW recommended way to check permissions
+ */
+export function canPerformAction(
+  permissions: UserPermissions,
+  action: 'createStudios' | 'bookStudios'
+): boolean {
+  switch (action) {
+    case 'createStudios':
+      return permissions.canCreateStudios;
+    case 'bookStudios':
+      return permissions.canBookStudios;
+    default:
+      return false;
+  }
+}
+
+// ============================================================================
+// ROLE CAPABILITIES (Legacy - still works but use permissions instead)
 // ============================================================================
 
 export const roleCapabilities = {
@@ -19,7 +48,7 @@ export const roleCapabilities = {
   PRODUCER: {
     canUploadSnippets: true,
     canCreateBeats: true,
-    canCreateStudios: false,
+    canCreateStudios: false, // Default false, can be true if they have a studio
     canSellEquipment: false,
     canBookStudios: true,
     canPurchaseBeats: true,
@@ -41,7 +70,7 @@ export const roleCapabilities = {
     canCreateBeats: false,
     canCreateStudios: false,
     canSellEquipment: true,
-    canBookStudios: false,
+    canBookStudios: true, // Updated: they can book studios
     canPurchaseBeats: true,
     canJoinCollabs: false,
     canCreateClubs: true
@@ -69,7 +98,7 @@ export const roleCapabilities = {
 } as const;
 
 // ============================================================================
-// PERMISSION CHECK FUNCTIONS
+// PERMISSION CHECK FUNCTIONS (Legacy)
 // ============================================================================
 
 export function canUserPerformAction(
@@ -83,8 +112,11 @@ export function canUploadBeats(user: Pick<User, 'primaryRole'>): boolean {
   return canUserPerformAction(user, 'canCreateBeats');
 }
 
+// Updated: Use new permission system for studio creation
 export function canCreateStudio(user: Pick<User, 'primaryRole'>): boolean {
-  return canUserPerformAction(user, 'canCreateStudios');
+  // This is now deprecated - use permissions.canCreateStudios instead
+  // Keeping for backwards compatibility
+  return user.primaryRole === 'STUDIO_OWNER';
 }
 
 export function canSellEquipment(user: Pick<User, 'primaryRole'>): boolean {
@@ -93,6 +125,59 @@ export function canSellEquipment(user: Pick<User, 'primaryRole'>): boolean {
 
 export function canUploadSnippets(user: Pick<User, 'primaryRole'>): boolean {
   return canUserPerformAction(user, 'canUploadSnippets');
+}
+
+// Updated: Use new permission system for booking
+export function canBookStudio(user: Pick<User, 'primaryRole'>): boolean {
+  // This is now deprecated - use permissions.canBookStudios instead
+  // Keeping for backwards compatibility
+  return user.primaryRole !== 'STUDIO_OWNER';
+}
+
+// ============================================================================
+// NEW: PERMISSION HELPERS
+// ============================================================================
+
+/**
+ * Determine if a user can create studios based on role and profile
+ */
+export function determineCanCreateStudios(user: {
+  primaryRole: UserRole;
+  studioProfile?: { id: string } | null;
+}): boolean {
+  // Studio owners can always create
+  if (user.primaryRole === 'STUDIO_OWNER') {
+    return true;
+  }
+
+  // Producers can create if they have a studio profile
+  if (user.primaryRole === 'PRODUCER' && user.studioProfile) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Determine if a user can book studios based on role
+ */
+export function determineCanBookStudios(role: UserRole): boolean {
+  // Studio owners don't book (they own them)
+  return role !== 'STUDIO_OWNER';
+}
+
+/**
+ * Get full permissions object for a user
+ */
+export function getUserPermissions(user: {
+  primaryRole: UserRole;
+  studioProfile?: { id: string } | null;
+}): UserPermissions {
+  return {
+    canCreateStudios: determineCanCreateStudios(user),
+    canBookStudios: determineCanBookStudios(user.primaryRole),
+    role: user.primaryRole
+  };
 }
 
 // ============================================================================
@@ -143,7 +228,7 @@ export function canUserManageClubResource(
     case 'beat':
       return canUploadBeats(user);
     case 'studio':
-      return canCreateStudio(user);
+      return canCreateStudio(user); // Note: This should use new permission system
     case 'equipment':
       return canSellEquipment(user);
     default:
@@ -157,7 +242,8 @@ export function canUserManageClubResource(
 
 export const permissionErrors = {
   CANNOT_UPLOAD_BEATS: 'Only producers can upload beats',
-  CANNOT_CREATE_STUDIOS: 'Only studio owners can create studios',
+  CANNOT_CREATE_STUDIOS: 'You need studio owner access or be a producer with a studio to create listings',
+  CANNOT_BOOK_STUDIOS: 'Your account does not have studio booking access',
   CANNOT_SELL_EQUIPMENT: 'Only gear specialists can sell equipment',
   CANNOT_MANAGE_CLUB: 'You must be an admin or owner to manage this club',
   NOT_CLUB_MEMBER: 'You must be a member of this club',
@@ -181,7 +267,7 @@ export function requirePermission<T extends (...args: any[]) => any>(
     const originalMethod = descriptor.value;
 
     descriptor.value = async function (...args: any[]) {
-      const user = args[0] as User; // Assuming first arg is user
+      const user = args[0] as User;
 
       if (!permissionCheck(user)) {
         throw new Error(errorMessage);
@@ -248,3 +334,56 @@ export const clubRoleDisplayNames: Record<ClubMemberRole, string> = {
 export function getClubRoleDisplayName(role: ClubMemberRole): string {
   return clubRoleDisplayNames[role];
 }
+
+// ============================================================================
+// MIGRATION GUIDE
+// ============================================================================
+
+/*
+MIGRATION FROM OLD TO NEW SYSTEM:
+
+OLD WAY (Role-based):
+```typescript
+if (canCreateStudio(user)) {
+  // Create studio
+}
+```
+
+NEW WAY (Permission-based):
+```typescript
+const permissions = getUserPermissions(user);
+if (permissions.canCreateStudios) {
+  // Create studio
+}
+```
+
+OR in API routes with middleware:
+```typescript
+export async function POST(request: NextRequest) {
+  return withAuth(request, async (req) => {
+    return withPermission('createStudios', async (req) => {
+      // Create studio
+    })(req);
+  });
+}
+```
+
+OR manually check permissions:
+```typescript
+export async function POST(request: NextRequest) {
+  return withAuth(request, async (req) => {
+    if (!req.permissions?.canCreateStudios) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+    // Create studio
+  });
+}
+```
+
+BENEFITS OF NEW SYSTEM:
+1. Producers with studios can create listings
+2. More flexible permission management
+3. Cached in Supabase metadata (faster)
+4. Easy to extend with new permissions
+5. Consistent across client and server
+*/

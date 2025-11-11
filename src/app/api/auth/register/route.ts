@@ -1,5 +1,5 @@
 // API Route: /api/auth/register
-// Handles user registration with role-based profile creation
+// Handles user registration with role-based profile creation and permissions
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
@@ -47,7 +47,10 @@ export async function POST(request: NextRequest) {
         data: {
           username,
           full_name: fullName,
-          role
+          role,
+          // Store permissions in Supabase user metadata
+          can_create_studios: body.canCreateStudios,
+          can_book_studios: body.canBookStudios
         }
       }
     });
@@ -74,7 +77,7 @@ export async function POST(request: NextRequest) {
 
     // Create user in database with transaction for atomicity
     const user = await prisma.$transaction(async (tx) => {
-      // Create base user
+      // Create base user with permissions
       const newUser = await tx.user.create({
         data: {
           email,
@@ -88,7 +91,7 @@ export async function POST(request: NextRequest) {
         }
       });
 
-      // Create role-specific profile
+      // Create role-specific profile with permissions
       await createRoleProfile(tx, newUser.id, role as UserRole, body);
 
       // Create initial activity
@@ -97,7 +100,7 @@ export async function POST(request: NextRequest) {
           userId: newUser.id,
           type: 'UPLOAD',
           title: `${username} joined Beeps!`,
-          description: `Welcome to the music community`
+          description: `Welcome to the music community as ${getRoleLabel(role as UserRole)}`
         }
       });
 
@@ -163,9 +166,24 @@ async function createRoleProfile(
           equipment: data.equipment || [],
           experience: data.experience,
           productionRate: data.hourlyRate,
-          availability: 'Available for projects'
+          availability: data.hasStudio 
+            ? 'Available - Own studio' 
+            : 'Available for projects'
         }
       });
+
+      // If producer has a studio, create studio profile
+      if (data.hasStudio) {
+        await tx.studioOwnerProfile.create({
+          data: {
+            userId,
+            studioName: data.studioName || `${data.fullName}'s Studio`,
+            capacity: data.capacity,
+            equipment: data.equipment || [],
+            hourlyRate: data.hourlyRate
+          }
+        });
+      }
       break;
 
     case 'STUDIO_OWNER':
@@ -207,4 +225,17 @@ async function createRoleProfile(
       // No specific profile for OTHER role
       break;
   }
+}
+
+// Helper to get friendly role label
+function getRoleLabel(role: UserRole): string {
+  const labels: Record<UserRole, string> = {
+    ARTIST: 'an Artist',
+    PRODUCER: 'a Producer',
+    STUDIO_OWNER: 'a Studio Owner',
+    GEAR_SALES: 'a Gear Specialist',
+    LYRICIST: 'a Lyricist',
+    OTHER: 'a Music Enthusiast'
+  };
+  return labels[role] || 'a Member';
 }

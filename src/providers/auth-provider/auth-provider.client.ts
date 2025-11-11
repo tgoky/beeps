@@ -3,6 +3,13 @@
 import type { AuthProvider } from "@refinedev/core";
 import { supabaseBrowserClient } from "@utils/supabase/client";
 
+// Permission interface
+export interface UserPermissions {
+  canCreateStudios: boolean;
+  canBookStudios: boolean;
+  role: string;
+}
+
 export const authProviderClient: AuthProvider = {
   login: async ({ email, password }) => {
     const { data, error } = await supabaseBrowserClient.auth.signInWithPassword(
@@ -37,6 +44,7 @@ export const authProviderClient: AuthProvider = {
       },
     };
   },
+  
   logout: async () => {
     const { error } = await supabaseBrowserClient.auth.signOut();
 
@@ -52,57 +60,59 @@ export const authProviderClient: AuthProvider = {
       redirectTo: "/login",
     };
   },
-register: async (params) => {
-  try {
-    // Call YOUR custom API route instead of Supabase directly
-    const response = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(params),
-    });
+  
+  register: async (params) => {
+    try {
+      // Call YOUR custom API route instead of Supabase directly
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(params),
+      });
 
-    const result = await response.json();
+      const result = await response.json();
 
-    if (!result.success) {
+      if (!result.success) {
+        return {
+          success: false,
+          error: {
+            name: 'RegistrationError',
+            message: result.error?.message || 'Registration failed',
+          },
+        };
+      }
+
+      // After successful registration, log the user in
+      const { data: sessionData, error: signInError } = 
+        await supabaseBrowserClient.auth.signInWithPassword({
+          email: params.email,
+          password: params.password,
+        });
+
+      if (signInError) {
+        return {
+          success: false,
+          error: signInError,
+        };
+      }
+
+      return {
+        success: true,
+        redirectTo: "/",
+      };
+    } catch (error: any) {
       return {
         success: false,
         error: {
           name: 'RegistrationError',
-          message: result.error?.message || 'Registration failed',
+          message: error.message || 'Registration failed',
         },
       };
     }
-
-    // After successful registration, log the user in
-    const { data: sessionData, error: signInError } = 
-      await supabaseBrowserClient.auth.signInWithPassword({
-        email: params.email,
-        password: params.password,
-      });
-
-    if (signInError) {
-      return {
-        success: false,
-        error: signInError,
-      };
-    }
-
-    return {
-      success: true,
-      redirectTo: "/",
-    };
-  } catch (error: any) {
-    return {
-      success: false,
-      error: {
-        name: 'RegistrationError',
-        message: error.message || 'Registration failed',
-      },
-    };
-  }
-},
+  },
+  
   check: async () => {
     const { data, error } = await supabaseBrowserClient.auth.getUser();
     const { user } = data;
@@ -126,15 +136,23 @@ register: async (params) => {
       redirectTo: "/login",
     };
   },
-  getPermissions: async () => {
-    const user = await supabaseBrowserClient.auth.getUser();
+  
+  getPermissions: async (): Promise<UserPermissions | null> => {
+    const { data } = await supabaseBrowserClient.auth.getUser();
 
-    if (user) {
-      return user.data.user?.role;
+    if (data?.user) {
+      const metadata = data.user.user_metadata || {};
+      
+      return {
+        canCreateStudios: metadata.can_create_studios || false,
+        canBookStudios: metadata.can_book_studios || false,
+        role: metadata.role || 'OTHER'
+      };
     }
 
     return null;
   },
+  
   getIdentity: async () => {
     const { data } = await supabaseBrowserClient.auth.getUser();
 
@@ -142,11 +160,18 @@ register: async (params) => {
       return {
         ...data.user,
         name: data.user.email,
+        // Include permissions in identity for easy access
+        permissions: {
+          canCreateStudios: data.user.user_metadata?.can_create_studios || false,
+          canBookStudios: data.user.user_metadata?.can_book_studios || false,
+          role: data.user.user_metadata?.role || 'OTHER'
+        }
       };
     }
 
     return null;
   },
+  
   onError: async (error) => {
     if (error?.code === "PGRST301" || error?.code === 401) {
       return {

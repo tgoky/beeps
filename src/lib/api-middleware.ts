@@ -1,4 +1,5 @@
 // API middleware for authentication and authorization
+// Updated to work with new permission system
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { prisma } from '@/lib/prisma';
@@ -8,6 +9,11 @@ import type { ApiResponse } from '@/types';
 export interface AuthenticatedRequest extends NextRequest {
   user?: User;
   supabaseUser?: any;
+  permissions?: {
+    canCreateStudios: boolean;
+    canBookStudios: boolean;
+    role: string;
+  };
 }
 
 // ============================================================================
@@ -47,9 +53,13 @@ export async function withAuth(
       }, { status: 401 });
     }
 
-    // Get user from database
+    // Get user from database with profiles
     const user = await prisma.user.findUnique({
-      where: { supabaseId: supabaseUser.id }
+      where: { supabaseId: supabaseUser.id },
+      include: {
+        producerProfile: true,
+        studioProfile: true
+      }
     });
 
     if (!user) {
@@ -62,10 +72,18 @@ export async function withAuth(
       }, { status: 404 });
     }
 
-    // Attach user to request
+    // Extract permissions from Supabase user metadata
+    const permissions = {
+      canCreateStudios: supabaseUser.user_metadata?.can_create_studios || false,
+      canBookStudios: supabaseUser.user_metadata?.can_book_studios || false,
+      role: user.primaryRole
+    };
+
+    // Attach user and permissions to request
     const authenticatedRequest = request as AuthenticatedRequest;
     authenticatedRequest.user = user;
     authenticatedRequest.supabaseUser = supabaseUser;
+    authenticatedRequest.permissions = permissions;
 
     // Call handler with authenticated request
     return await handler(authenticatedRequest);
@@ -85,7 +103,55 @@ export async function withAuth(
 }
 
 // ============================================================================
-// ROLE-BASED AUTHORIZATION MIDDLEWARE
+// PERMISSION-BASED AUTHORIZATION MIDDLEWARE
+// ============================================================================
+
+type PermissionAction = 'createStudios' | 'bookStudios';
+
+export function withPermission(
+  requiredPermission: PermissionAction,
+  handler: (request: AuthenticatedRequest) => Promise<NextResponse>
+) {
+  return async (request: AuthenticatedRequest): Promise<NextResponse> => {
+    const permissions = request.permissions;
+
+    if (!permissions) {
+      return NextResponse.json<ApiResponse>({
+        success: false,
+        error: {
+          message: 'Permissions not loaded',
+          code: 'PERMISSIONS_ERROR'
+        }
+      }, { status: 500 });
+    }
+
+    // Check specific permission
+    let hasPermission = false;
+    switch (requiredPermission) {
+      case 'createStudios':
+        hasPermission = permissions.canCreateStudios;
+        break;
+      case 'bookStudios':
+        hasPermission = permissions.canBookStudios;
+        break;
+    }
+
+    if (!hasPermission) {
+      return NextResponse.json<ApiResponse>({
+        success: false,
+        error: {
+          message: `You don't have permission to ${requiredPermission.replace('Studios', ' studios')}`,
+          code: 'INSUFFICIENT_PERMISSIONS'
+        }
+      }, { status: 403 });
+    }
+
+    return await handler(request);
+  };
+}
+
+// ============================================================================
+// ROLE-BASED AUTHORIZATION MIDDLEWARE (Legacy - Use withPermission instead)
 // ============================================================================
 
 import { UserRole } from '@prisma/client';
@@ -195,7 +261,22 @@ export async function GET(request: NextRequest) {
   });
 }
 
-// Example 2: Role-based authorization
+// Example 2: NEW - Permission-based authorization (RECOMMENDED)
+export async function POST(request: NextRequest) {
+  return withAuth(request, async (req) => {
+    return withPermission('createStudios', async (req) => {
+      const user = req.user!;
+      // Only users with studio creation permission can access
+      
+      return NextResponse.json({
+        success: true,
+        data: { message: 'Studio created' }
+      });
+    })(req);
+  });
+}
+
+// Example 3: Role-based authorization (LEGACY - still works)
 export async function POST(request: NextRequest) {
   return withAuth(request, async (req) => {
     return withRole(['PRODUCER'], async (req) => {
@@ -210,7 +291,7 @@ export async function POST(request: NextRequest) {
   });
 }
 
-// Example 3: Club-based authorization
+// Example 4: Club-based authorization
 export async function PUT(
   request: NextRequest,
   { params }: { params: { clubId: string } }
@@ -226,4 +307,60 @@ export async function PUT(
     });
   });
 }
+
+// Example 5: Multiple permission checks
+export async function POST(request: NextRequest) {
+  return withAuth(request, async (req) => {
+    // Check permissions manually if you need complex logic
+    const { permissions } = req;
+    
+    if (!permissions?.canCreateStudios && !permissions?.canBookStudios) {
+      return NextResponse.json({
+        success: false,
+        error: { message: 'No studio access', code: 'NO_ACCESS' }
+      }, { status: 403 });
+    }
+    
+    // Proceed with custom logic
+    return NextResponse.json({
+      success: true,
+      data: { canCreate: permissions.canCreateStudios, canBook: permissions.canBookStudios }
+    });
+  });
+}
 */
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Check if user has specific permission
+ */
+export function hasPermission(
+  request: AuthenticatedRequest,
+  permission: PermissionAction
+): boolean {
+  const permissions = request.permissions;
+  if (!permissions) return false;
+
+  switch (permission) {
+    case 'createStudios':
+      return permissions.canCreateStudios;
+    case 'bookStudios':
+      return permissions.canBookStudios;
+    default:
+      return false;
+  }
+}
+
+/**
+ * Get all permissions for a user
+ */
+export function getUserPermissions(request: AuthenticatedRequest) {
+  return request.permissions || {
+    canCreateStudios: false,
+    canBookStudios: false,
+    role: 'OTHER'
+  };
+}

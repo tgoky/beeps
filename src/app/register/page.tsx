@@ -33,42 +33,54 @@ const roleConfig = {
     title: "Artist",
     description: "Vocalist, rapper, or singer looking to create and collaborate",
     fields: ['genres', 'bio', 'socialLinks'],
-    dbRole: 'ARTIST'
+    dbRole: 'ARTIST',
+    canCreateStudios: false,
+    canBookStudios: true
   },
   producer: {
     icon: Music2,
     title: "Producer",
     description: "Create beats, mix tracks, and produce music",
-    fields: ['genres', 'specialties', 'equipment', 'experience'],
-    dbRole: 'PRODUCER'
+    fields: ['genres', 'specialties', 'equipment', 'experience', 'hasStudio'],
+    dbRole: 'PRODUCER',
+    canCreateStudios: 'conditional', // Based on hasStudio
+    canBookStudios: true
   },
   'studio-owner': {
     icon: Building2,
     title: "Studio Owner",
     description: "Own or manage a recording studio space",
     fields: ['studioName', 'capacity', 'equipment', 'location', 'hourlyRate'],
-    dbRole: 'STUDIO_OWNER'
+    dbRole: 'STUDIO_OWNER',
+    canCreateStudios: true,
+    canBookStudios: false
   },
   'instrument-sales': {
     icon: Guitar,
     title: "Gear Specialist",
     description: "Sell or rent music instruments and equipment",
     fields: ['businessName', 'specialties', 'inventory', 'location'],
-    dbRole: 'GEAR_SALES'
+    dbRole: 'GEAR_SALES',
+    canCreateStudios: false,
+    canBookStudios: true
   },
   lyricist: {
     icon: Headphones,
     title: "Lyricist",
     description: "Write lyrics, hooks, and song concepts",
     fields: ['genres', 'writingStyle', 'collaborationStyle', 'portfolio'],
-    dbRole: 'LYRICIST'
+    dbRole: 'LYRICIST',
+    canCreateStudios: false,
+    canBookStudios: true
   },
   other: {
     icon: Users,
     title: "Other",
     description: "Music enthusiast, manager, or other role",
     fields: ['customRole', 'bio', 'interests'],
-    dbRole: 'OTHER'
+    dbRole: 'OTHER',
+    canCreateStudios: false,
+    canBookStudios: true
   }
 };
 
@@ -97,6 +109,7 @@ export default function SignUp() {
     specialties: '',
     equipment: '',
     experience: '',
+    hasStudio: false,
     studioName: '',
     capacity: '',
     hourlyRate: '',
@@ -175,7 +188,7 @@ export default function SignUp() {
     const role = formData.role as UserRole;
     const config = roleConfig[role];
     
-    // Prepare registration payload
+    // Prepare registration payload with permissions
     const payload = {
       email: formData.email,
       password: formData.password,
@@ -189,6 +202,7 @@ export default function SignUp() {
       specialties: formData.specialties ? [formData.specialties] : [],
       equipment: formData.equipment ? [formData.equipment] : [],
       experience: formData.experience,
+      hasStudio: formData.hasStudio,
       studioName: formData.studioName,
       capacity: formData.capacity,
       hourlyRate: formData.hourlyRate,
@@ -199,7 +213,10 @@ export default function SignUp() {
       portfolio: formData.portfolio,
       customRole: formData.customRole,
       interests: formData.interests,
-      socialLinks: formData.socialLinks
+      socialLinks: formData.socialLinks,
+      // Permission flags based on role configuration
+      canCreateStudios: config.canCreateStudios === true || (config.canCreateStudios === 'conditional' && formData.hasStudio),
+      canBookStudios: config.canBookStudios
     };
 
     register(payload, {
@@ -633,6 +650,48 @@ export default function SignUp() {
           </div>
 
           <div className="space-y-6">
+            {/* Studio Ownership Question for Producers */}
+            {config.fields.includes('hasStudio') && (
+              <div className="space-y-3">
+                <label className="block text-xs font-medium text-zinc-400 tracking-wider uppercase">
+                  Do you own or manage a recording studio?
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => updateField('hasStudio', true)}
+                    className={`
+                      px-4 py-3.5 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
+                      ${formData.hasStudio
+                        ? "bg-white text-black border-white"
+                        : "bg-zinc-950 text-zinc-400 border-zinc-800 hover:border-zinc-700"
+                      }
+                    `}
+                  >
+                    Yes, I have a studio
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => updateField('hasStudio', false)}
+                    className={`
+                      px-4 py-3.5 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
+                      ${!formData.hasStudio
+                        ? "bg-white text-black border-white"
+                        : "bg-zinc-950 text-zinc-400 border-zinc-800 hover:border-zinc-700"
+                      }
+                    `}
+                  >
+                    No studio
+                  </button>
+                </div>
+                <p className="text-xs font-light text-zinc-500 tracking-wide">
+                  {formData.hasStudio 
+                    ? "You'll be able to list your studio and accept bookings" 
+                    : "You can book other studios for your production work"}
+                </p>
+              </div>
+            )}
+
             {/* Genres */}
             {config.fields.includes('genres') && (
               <div className="space-y-3">
