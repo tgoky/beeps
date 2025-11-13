@@ -13,16 +13,18 @@ interface CreateClubModalProps {
     type: string;
     description: string;
     icon: string;
+    grantsRole: string;
   }) => void;
 }
 
+// Club types mapped to roles they grant
 const clubTypes = [
-  { value: 'recording', label: 'Recording', icon: '🎙️' },       // recording sessions
-  { value: 'production', label: 'Production', icon: '🎚️' },      // mixing & mastering
-  { value: 'rental', label: 'Rental', icon: '🏠' },              // studio space rental
-  { value: 'management', label: 'Management', icon: '🧑‍💼' },    // artist/business management
-  { value: 'distribution', label: 'Distribution', icon: '📣' },  // promotion, publicity, reach
-  { value: 'creative', label: 'Creative', icon: '🎨' }           // artistic direction
+  { value: 'recording', label: 'Recording', icon: '🎙️', grantsRole: 'ARTIST' },       // recording sessions → ARTIST
+  { value: 'production', label: 'Production', icon: '🎚️', grantsRole: 'PRODUCER' },      // mixing & mastering → PRODUCER
+  { value: 'rental', label: 'Rental', icon: '🏠', grantsRole: 'STUDIO_OWNER' },              // studio space rental → STUDIO_OWNER
+  { value: 'management', label: 'Management', icon: '🧑‍💼', grantsRole: 'OTHER' },    // artist/business management → OTHER
+  { value: 'distribution', label: 'Distribution', icon: '📣', grantsRole: 'OTHER' },  // promotion, publicity, reach → OTHER
+  { value: 'creative', label: 'Creative', icon: '🎨', grantsRole: 'LYRICIST' }           // artistic direction → LYRICIST
 ];
 
 
@@ -52,11 +54,16 @@ export const CreateClubModal: React.FC<CreateClubModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (clubName.trim() && clubType) {
+      // Find the selected club type to get the role it grants
+      const selectedClubType = clubTypes.find(t => t.label === clubType);
+      const grantsRole = selectedClubType?.grantsRole || 'OTHER';
+
       onCreateClub({
         name: clubName,
         type: clubType,
         description: clubDescription,
         icon: selectedIcon,
+        grantsRole,
       });
       handleClose();
     }

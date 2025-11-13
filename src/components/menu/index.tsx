@@ -16,6 +16,9 @@ import { CreateClubModal } from '@/components/menu/CreateClubModal';
 
 // Simple flat mapping of menu items to their groups
 const getGroupForMenuItem = (itemKey: string): string | null => {
+  if (itemKey.startsWith("community-")) {
+    return "communities";
+  }
   return "beep"; // Changed to match the actual group ID
 };
 
@@ -107,20 +110,20 @@ export const Menu: React.FC = () => {
   };
 
   const handleCreateClub = (clubData: any) => {
-  console.log('Creating club:', clubData);
-  // Add your club creation logic here
-};
+    console.log('Creating club:', clubData);
+    // Add your club creation logic here - save to database
+
+    // Redirect to the community page for the granted role
+    const communityRole = clubData.grantsRole.toLowerCase();
+    router.push(`/community/${communityRole}`);
+  };
 
 
   const toggleGroup = (groupId: string): void => {
     userHasInteractedRef.current = true;
     setExpandedGroups((prev) => {
       if (prev.includes(groupId)) {
-        // Don't allow collapsing if a group item is selected
-        const selectedGroup = getGroupForMenuItem(selectedKey || "");
-        if (selectedGroup === groupId) {
-          return prev; // Keep it expanded
-        }
+        // Allow collapsing even if a group item is selected
         return prev.filter(id => id !== groupId);
       } else {
         return [...prev, groupId];
