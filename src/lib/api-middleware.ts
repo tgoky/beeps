@@ -4,79 +4,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { prisma } from '@/lib/prisma';
 import type { User } from '@prisma/client';
-import type { ApiResponse } from '@/types';
+import type { ApiResponse, UserPermissions } from '@/types';
 
 export interface AuthenticatedRequest extends NextRequest {
   user?: User;
   supabaseUser?: any;
-  permissions?: {
-    canCreateStudios: boolean;
-    canBookStudios: boolean;
-    role: string;
-    // Producer permissions
-    canEditProducerProfile: boolean;
-    canAcceptJobs: boolean;
-    canUploadWorks: boolean;
-    canManagePortfolio: boolean;
-    // Client permissions
-    canRequestProducerService: boolean;
-    canMessageProducers: boolean;
-    canViewProducerDetails: boolean;
-    // Beat marketplace permissions
-    canUploadBeats: boolean;
-    canPurchaseBeats: boolean;
-    canReviewBeats: boolean;
-    canSplitRoyalties: boolean;
-    canListEquipment: boolean;
-    canCommentOnBeats: boolean;
-    canSendLicensingOffers: boolean;
-    canSetAdvancedPricing: boolean;
-    canCreateBeatCollections: boolean;
-    canViewBeatAnalytics: boolean;
-    canCollaborateOnBeats: boolean;
-    canRequestRemixRights: boolean;
-    // Collabs & Deals marketplace permissions
-    canCreateDeals: boolean;
-    canCreateCollabs: boolean;
-    canCreateBids: boolean;
-    canBookSessions: boolean;
-    canMessageSessionHosts: boolean;
-    canNegotiateCollabTerms: boolean;
-    canPlaceBids: boolean;
-    canAcceptBids: boolean;
-    canReportSessions: boolean;
-    canAccessFlashDeals: boolean;
-    canViewSessionAnalytics: boolean;
-    canManageOwnSessions: boolean;
-    // Equipment/Gear marketplace permissions
-    canListGearForSale: boolean;
-    canListGearForRent: boolean;
-    canPurchaseGear: boolean;
-    canRentGear: boolean;
-    canCreateGearAuction: boolean;
-    canPlaceGearBids: boolean;
-    canAcceptGearBids: boolean;
-    canListVintageGear: boolean;
-    canVerifyGearOwnership: boolean;
-    canAccessVIPGearDrops: boolean;
-    canAddGearToClub: boolean;
-    canRemoveGearFromClub: boolean;
-    canRentClubGear: boolean;
-    canManageClubGearInventory: boolean;
-    canInitiateGroupRental: boolean;
-    canJoinGroupRental: boolean;
-    canSplitRentalCosts: boolean;
-    canReviewGear: boolean;
-    canReportGear: boolean;
-    canViewGearAnalytics: boolean;
-    canManageOwnGearListings: boolean;
-    canOfferGearDelivery: boolean;
-    canRequestLocalPickup: boolean;
-    canAccessGeofencedGear: boolean;
-    canAccessPremiumGear: boolean;
-    hasGearCollectorTier: boolean;
-    isCertifiedGearDealer: boolean;
-  };
+  permissions?: UserPermissions;
 }
 
 // ============================================================================

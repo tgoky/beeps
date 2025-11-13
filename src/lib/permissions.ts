@@ -299,7 +299,8 @@ export function canPerformAction(
 // ROLE CAPABILITIES (Legacy - still works but use permissions instead)
 // ============================================================================
 
-export const roleCapabilities = {
+// Define the structure first without Record type to preserve type inference
+const _roleCapabilities = {
   ARTIST: {
     canUploadSnippets: true,
     canCreateBeats: false,
@@ -924,7 +925,10 @@ export const roleCapabilities = {
     isLabelPartner: false,
     isMentor: false,
   }
-} as const;
+};
+
+// Export with proper type to allow indexing by UserRole
+export const roleCapabilities = _roleCapabilities as Record<UserRole, typeof _roleCapabilities.ARTIST>;
 
 // ============================================================================
 // PERMISSION CHECK FUNCTIONS (Legacy)
@@ -932,8 +936,8 @@ export const roleCapabilities = {
 
 // Type to exclude non-boolean fields from roleCapabilities
 type BooleanPermissionKeys = {
-  [K in keyof typeof roleCapabilities.ARTIST]: typeof roleCapabilities.ARTIST[K] extends boolean ? K : never;
-}[keyof typeof roleCapabilities.ARTIST];
+  [K in keyof typeof _roleCapabilities.ARTIST]: typeof _roleCapabilities.ARTIST[K] extends boolean ? K : never;
+}[keyof typeof _roleCapabilities.ARTIST];
 
 export function canUserPerformAction(
   user: Pick<User, 'primaryRole'>,

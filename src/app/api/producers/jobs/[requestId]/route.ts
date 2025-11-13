@@ -193,7 +193,7 @@ export async function DELETE(
       const permissions = req.permissions!;
 
       // Only producers can delete service requests
-      if (!permissions.isProducer) {
+      if (permissions.role !== 'PRODUCER') {
         return NextResponse.json<ApiResponse>({
           success: false,
           error: {

@@ -2,35 +2,7 @@
 
 import type { AuthProvider } from "@refinedev/core";
 import { supabaseBrowserClient } from "@utils/supabase/client";
-
-// ✅ FIXED: Complete permission interface matching your RBAC system
-export interface UserPermissions {
-  canCreateStudios: boolean;
-  canBookStudios: boolean;
-  role: string;
-  // Producer-specific permissions
-  canEditProducerProfile: boolean;
-  canAcceptJobs: boolean;
-  canUploadWorks: boolean;
-  canManagePortfolio: boolean;
-  // Client permissions
-  canRequestProducerService: boolean;
-  canMessageProducers: boolean;
-  canViewProducerDetails: boolean;
-  // Beat marketplace permissions
-  canUploadBeats: boolean;
-  canPurchaseBeats: boolean;
-  canReviewBeats: boolean;
-  canSplitRoyalties: boolean;
-  canListEquipment: boolean;
-  canCommentOnBeats: boolean;
-  canSendLicensingOffers: boolean;
-  canSetAdvancedPricing: boolean;
-  canCreateBeatCollections: boolean;
-  canViewBeatAnalytics: boolean;
-  canCollaborateOnBeats: boolean;
-  canRequestRemixRights: boolean;
-}
+import type { UserPermissions } from "@/types";
 
 // ✅ NEW: Helper function to fetch user permissions from your API
 async function fetchUserPermissions(): Promise<UserPermissions | null> {
@@ -200,31 +172,9 @@ export const authProviderClient: AuthProvider = {
         return permissions;
       }
 
-      // Fallback to default permissions if API call fails
-      return {
-        canCreateStudios: false,
-        canBookStudios: false,
-        role: 'OTHER',
-        canEditProducerProfile: false,
-        canAcceptJobs: false,
-        canUploadWorks: false,
-        canManagePortfolio: false,
-        canRequestProducerService: false,
-        canMessageProducers: true,
-        canViewProducerDetails: true,
-        canUploadBeats: false,
-        canPurchaseBeats: false,
-        canReviewBeats: false,
-        canSplitRoyalties: false,
-        canListEquipment: false,
-        canCommentOnBeats: false,
-        canSendLicensingOffers: false,
-        canSetAdvancedPricing: false,
-        canCreateBeatCollections: false,
-        canViewBeatAnalytics: false,
-        canCollaborateOnBeats: false,
-        canRequestRemixRights: false,
-      };
+      // Fallback to default permissions if API call fails - import from api-middleware to ensure consistency
+      const { getUserPermissions: getDefaultPermissions } = await import('@/lib/api-middleware');
+      return getDefaultPermissions({} as any);
     }
 
     return null;

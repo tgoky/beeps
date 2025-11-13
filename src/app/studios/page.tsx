@@ -89,7 +89,7 @@ const calculateDistance = (
 export default function StudioList() {
   const router = useRouter();
   const { theme } = useTheme();
-   const { permissions, isLoading, isArtist, isProducer, canAccess } = usePermissions();
+   const { permissions, isArtist, isProducer, canAccess } = usePermissions();
 
 
   const [userLocation, setUserLocation] = useState<{ lat: number; lon: number } | null>(null);
