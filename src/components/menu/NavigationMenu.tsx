@@ -83,7 +83,7 @@ const menuGroups: MenuGroupConfig[] = [
     icon: <MusicalNoteIcon className="h-4 w-4" />,
     items: [
       "studios",
-      "producers", 
+      "producers",
       "beats",
       "bookings",
       "collabs",
@@ -92,6 +92,30 @@ const menuGroups: MenuGroupConfig[] = [
       "artists",
       "transactions"
     ],
+  },
+  {
+    id: "communities",
+    label: "Communities",
+    icon: <UsersIcon className="h-4 w-4" />,
+    items: [], // Will be populated dynamically with user's joined communities
+  },
+];
+
+// Mock communities data - in real app, fetch from API based on user's clubs
+const userCommunities: IMenuItem[] = [
+  {
+    key: "community-producer",
+    name: "producers-community",
+    label: "Producers",
+    route: "/community/producer",
+    icon: <MusicalNoteIcon className="h-4 w-4" />,
+  },
+  {
+    key: "community-artist",
+    name: "artists-community",
+    label: "Artists",
+    route: "/community/artist",
+    icon: <UserIcon className="h-4 w-4" />,
   },
 ];
 
@@ -108,7 +132,7 @@ export const NavigationMenu = ({
   const displayMenuItems = getResourceMenuItems(menuItems, selectedKey);
 
   const getMenuItemsByGroup = (groupItems: string[] = []) => {
-    return displayMenuItems.filter((item) => 
+    return displayMenuItems.filter((item) =>
       groupItems.includes(item.name)
     );
   };
@@ -118,10 +142,14 @@ export const NavigationMenu = ({
       <div className={`px-4 py-4 space-y-6 ${theme === "dark" ? "bg-black" : "bg-white"}`}>
         {isClient &&
           menuGroups.map((group) => {
-            const groupItems = getMenuItemsByGroup(group.items || []);
-            
-            if (groupItems.length === 0) return null;
-            
+            // For Communities group, use custom items
+            const groupItems = group.id === "communities"
+              ? userCommunities
+              : getMenuItemsByGroup(group.items || []);
+
+            // Don't show empty groups (except Communities which we always show)
+            if (groupItems.length === 0 && group.id !== "communities") return null;
+
             return (
               <MenuGroup
                 key={group.id}
