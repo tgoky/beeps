@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, ShoppingCart, Heart, Star, MapPin, Clock, TrendingUp, DollarSign, Zap, Package, Truck, Shield, Users, CheckCircle, Share2 } from "lucide-react";
+import { Search, ShoppingCart, Heart, Star, MapPin, Clock, TrendingUp, DollarSign, Zap, Package, Truck, Shield, Users, CheckCircle, Share2, Plus } from "lucide-react";
 import { useTheme } from "../../providers/ThemeProvider";
+import { usePermissions } from "@/hooks/usePermissions";
 
 type Equipment = {
   id: number;
@@ -230,7 +231,8 @@ const formatNumber = (num: number): string => {
 export default function GearMarketplace() {
   const router = useRouter();
   const { theme } = useTheme();
-  
+  const { permissions, isGearSales, isProducer, isStudioOwner } = usePermissions();
+
   const [activeTab, setActiveTab] = useState("rent");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -290,17 +292,105 @@ export default function GearMarketplace() {
                   Rent, buy, or sell professional music equipment
                 </p>
               </div>
-              <button
-                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
-                  theme === "dark"
-                    ? "bg-white border-white text-black hover:bg-zinc-100"
-                    : "bg-black border-black text-white hover:bg-gray-800"
-                }`}
-              >
-                <Package className="w-4 h-4" strokeWidth={2} />
-                List Your Gear
-              </button>
+
+              {/* Create Listing Buttons - Permission Based */}
+              <div className="flex gap-2">
+                {permissions.canListGearForSale && (
+                  <button
+                    className={`flex items-center gap-2 px-4 py-2 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
+                      theme === "dark"
+                        ? "bg-white border-white text-black hover:bg-zinc-100"
+                        : "bg-black border-black text-white hover:bg-gray-800"
+                    }`}
+                    onClick={() => router.push('/equipment/create?type=sale')}
+                  >
+                    <Plus className="w-4 h-4" strokeWidth={2} />
+                    List for Sale
+                  </button>
+                )}
+                {permissions.canListGearForRent && (
+                  <button
+                    className={`flex items-center gap-2 px-4 py-2 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
+                      theme === "dark"
+                        ? "bg-zinc-900 border-zinc-700 text-white hover:bg-zinc-800"
+                        : "bg-gray-100 border-gray-300 text-gray-900 hover:bg-gray-200"
+                    }`}
+                    onClick={() => router.push('/equipment/create?type=rent')}
+                  >
+                    <Plus className="w-4 h-4" strokeWidth={2} />
+                    List for Rent
+                  </button>
+                )}
+                {permissions.canCreateGearAuction && (
+                  <button
+                    className={`flex items-center gap-2 px-4 py-2 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
+                      theme === "dark"
+                        ? "bg-zinc-900 border-zinc-700 text-white hover:bg-zinc-800"
+                        : "bg-gray-100 border-gray-300 text-gray-900 hover:bg-gray-200"
+                    }`}
+                    onClick={() => router.push('/equipment/create?type=auction')}
+                  >
+                    <Plus className="w-4 h-4" strokeWidth={2} />
+                    Create Auction
+                  </button>
+                )}
+              </div>
             </div>
+
+            {/* Permission Info Banners */}
+            {isGearSales && (
+              <div className={`mb-6 p-4 rounded-lg border ${
+                theme === "dark"
+                  ? "bg-emerald-950/20 border-emerald-900/30"
+                  : "bg-emerald-50 border-emerald-200/50"
+              }`}>
+                <div className="flex items-start gap-3">
+                  <Shield className={`w-5 h-5 ${
+                    theme === "dark" ? "text-emerald-400" : "text-emerald-600"
+                  }`} />
+                  <div>
+                    <p className={`text-sm font-medium ${
+                      theme === "dark" ? "text-emerald-300" : "text-emerald-900"
+                    }`}>
+                      Certified Gear Dealer {permissions.isCertifiedGearDealer && "✓"}
+                      {permissions.hasGearCollectorTier && " • Gear Collector Tier"}
+                    </p>
+                    <p className={`text-xs mt-1 ${
+                      theme === "dark" ? "text-emerald-400/70" : "text-emerald-700/70"
+                    }`}>
+                      Full marketplace access: List vintageequipment, create auctions, manage club inventory, VIP gear drops, and full analytics.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {(isProducer || isStudioOwner) && !isGearSales && (
+              <div className={`mb-6 p-4 rounded-lg border ${
+                theme === "dark"
+                  ? "bg-blue-950/20 border-blue-900/30"
+                  : "bg-blue-50 border-blue-200/50"
+              }`}>
+                <div className="flex items-start gap-3">
+                  <Package className={`w-5 h-5 ${
+                    theme === "dark" ? "text-blue-400" : "text-blue-600"
+                  }`} />
+                  <div>
+                    <p className={`text-sm font-medium ${
+                      theme === "dark" ? "text-blue-300" : "text-blue-900"
+                    }`}>
+                      {isProducer ? "Producer" : "Studio Owner"} Marketplace Access
+                    </p>
+                    <p className={`text-xs mt-1 ${
+                      theme === "dark" ? "text-blue-400/70" : "text-blue-700/70"
+                    }`}>
+                      List professional gear for sale/rent, create auctions, access VIP drops, and view analytics on your listings.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
 
             {/* Filters */}
             <div className={`flex flex-wrap gap-3 mb-8 p-4 rounded-xl border ${

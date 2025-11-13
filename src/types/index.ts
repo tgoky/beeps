@@ -71,6 +71,34 @@ export interface UserPermissions {
   canAccessFlashDeals: boolean;
   canViewSessionAnalytics: boolean;
   canManageOwnSessions: boolean;
+  // Equipment/Gear marketplace permissions
+  canListGearForSale: boolean;
+  canListGearForRent: boolean;
+  canPurchaseGear: boolean;
+  canRentGear: boolean;
+  canCreateGearAuction: boolean;
+  canPlaceGearBids: boolean;
+  canAcceptGearBids: boolean;
+  canListVintageGear: boolean;
+  canVerifyGearOwnership: boolean;
+  canAccessVIPGearDrops: boolean;
+  canAddGearToClub: boolean;
+  canRemoveGearFromClub: boolean;
+  canRentClubGear: boolean;
+  canManageClubGearInventory: boolean;
+  canInitiateGroupRental: boolean;
+  canJoinGroupRental: boolean;
+  canSplitRentalCosts: boolean;
+  canReviewGear: boolean;
+  canReportGear: boolean;
+  canViewGearAnalytics: boolean;
+  canManageOwnGearListings: boolean;
+  canOfferGearDelivery: boolean;
+  canRequestLocalPickup: boolean;
+  canAccessGeofencedGear: boolean;
+  canAccessPremiumGear: boolean;
+  hasGearCollectorTier: boolean;
+  isCertifiedGearDealer: boolean;
 }
 
 export interface PermissionCheckResult {
