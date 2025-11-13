@@ -36,6 +36,28 @@ export interface UserPermissions {
   canCreateStudios: boolean;
   canBookStudios: boolean;
   role: UserRole;
+  // Producer-specific permissions
+  canEditProducerProfile: boolean;
+  canAcceptJobs: boolean;
+  canUploadWorks: boolean;
+  canManagePortfolio: boolean;
+  // Client permissions
+  canRequestProducerService: boolean;
+  canMessageProducers: boolean;
+  canViewProducerDetails: boolean;
+  // Beat marketplace permissions
+  canUploadBeats: boolean;
+  canPurchaseBeats: boolean;
+  canReviewBeats: boolean;
+  canSplitRoyalties: boolean;
+  canListEquipment: boolean;
+  canCommentOnBeats: boolean;
+  canSendLicensingOffers: boolean;
+  canSetAdvancedPricing: boolean;
+  canCreateBeatCollections: boolean;
+  canViewBeatAnalytics: boolean;
+  canCollaborateOnBeats: boolean;
+  canRequestRemixRights: boolean;
 }
 
 export interface PermissionCheckResult {
