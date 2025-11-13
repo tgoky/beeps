@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, MapPin, Clock, Heart, DollarSign, TrendingUp, Users, CheckCircle, Star, Music2, Zap } from "lucide-react";
+import { Search, MapPin, Clock, Heart, DollarSign, TrendingUp, Users, CheckCircle, Star, Music2, Zap, Plus } from "lucide-react";
 import { useTheme } from "../../providers/ThemeProvider";
+import { usePermissions } from "@/hooks/usePermissions";
 
 type BookingSession = {
   id: number;
@@ -146,7 +147,8 @@ const activityData: Activity[] = [
 export default function SessionBookings() {
   const router = useRouter();
   const { theme } = useTheme();
-  
+  const { permissions, isProducer, isArtist, isLyricist, isStudioOwner } = usePermissions();
+
   const [activeTab, setActiveTab] = useState("deals");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGenre, setSelectedGenre] = useState("all");
@@ -205,7 +207,129 @@ export default function SessionBookings() {
                   Find deals, collabs, or name your price for studio time
                 </p>
               </div>
+
+              {/* Create Session Buttons */}
+              <div className="flex gap-2">
+                {permissions.canCreateDeals && (
+                  <button
+                    className={`flex items-center gap-2 px-4 py-2 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
+                      theme === "dark"
+                        ? "bg-white border-white text-black hover:bg-zinc-100"
+                        : "bg-black border-black text-white hover:bg-gray-800"
+                    }`}
+                    onClick={() => router.push('/collabs/create/deal')}
+                  >
+                    <Plus className="w-4 h-4" strokeWidth={2} />
+                    Create Deal
+                  </button>
+                )}
+                {permissions.canCreateCollabs && (
+                  <button
+                    className={`flex items-center gap-2 px-4 py-2 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
+                      theme === "dark"
+                        ? "bg-zinc-900 border-zinc-700 text-white hover:bg-zinc-800"
+                        : "bg-gray-100 border-gray-300 text-gray-900 hover:bg-gray-200"
+                    }`}
+                    onClick={() => router.push('/collabs/create/collab')}
+                  >
+                    <Plus className="w-4 h-4" strokeWidth={2} />
+                    Create Collab
+                  </button>
+                )}
+                {permissions.canCreateBids && (
+                  <button
+                    className={`flex items-center gap-2 px-4 py-2 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
+                      theme === "dark"
+                        ? "bg-zinc-900 border-zinc-700 text-white hover:bg-zinc-800"
+                        : "bg-gray-100 border-gray-300 text-gray-900 hover:bg-gray-200"
+                    }`}
+                    onClick={() => router.push('/collabs/create/bid')}
+                  >
+                    <Plus className="w-4 h-4" strokeWidth={2} />
+                    Create Bid
+                  </button>
+                )}
+              </div>
             </div>
+
+            {/* Permission Info Banners */}
+            {isProducer && (
+              <div className={`mb-6 p-4 rounded-lg border ${
+                theme === "dark"
+                  ? "bg-blue-950/20 border-blue-900/30"
+                  : "bg-blue-50 border-blue-200/50"
+              }`}>
+                <div className="flex items-start gap-3">
+                  <Music2 className={`w-5 h-5 ${
+                    theme === "dark" ? "text-blue-400" : "text-blue-600"
+                  }`} />
+                  <div>
+                    <p className={`text-sm font-medium ${
+                      theme === "dark" ? "text-blue-300" : "text-blue-900"
+                    }`}>
+                      Producer Dashboard
+                    </p>
+                    <p className={`text-xs mt-1 ${
+                      theme === "dark" ? "text-blue-400/70" : "text-blue-700/70"
+                    }`}>
+                      You can create deals, collabs, and bids. View analytics on your sessions and manage collaborations.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {isStudioOwner && (
+              <div className={`mb-6 p-4 rounded-lg border ${
+                theme === "dark"
+                  ? "bg-purple-950/20 border-purple-900/30"
+                  : "bg-purple-50 border-purple-200/50"
+              }`}>
+                <div className="flex items-start gap-3">
+                  <Zap className={`w-5 h-5 ${
+                    theme === "dark" ? "text-purple-400" : "text-purple-600"
+                  }`} />
+                  <div>
+                    <p className={`text-sm font-medium ${
+                      theme === "dark" ? "text-purple-300" : "text-purple-900"
+                    }`}>
+                      Studio Owner Dashboard
+                    </p>
+                    <p className={`text-xs mt-1 ${
+                      theme === "dark" ? "text-purple-400/70" : "text-purple-700/70"
+                    }`}>
+                      Create flash deals and bid sessions. Access premium features and session analytics.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {(isArtist || isLyricist) && !isProducer && (
+              <div className={`mb-6 p-4 rounded-lg border ${
+                theme === "dark"
+                  ? "bg-green-950/20 border-green-900/30"
+                  : "bg-green-50 border-green-200/50"
+              }`}>
+                <div className="flex items-start gap-3">
+                  <Users className={`w-5 h-5 ${
+                    theme === "dark" ? "text-green-400" : "text-green-600"
+                  }`} />
+                  <div>
+                    <p className={`text-sm font-medium ${
+                      theme === "dark" ? "text-green-300" : "text-green-900"
+                    }`}>
+                      {isArtist ? "Artist" : "Lyricist"} Dashboard
+                    </p>
+                    <p className={`text-xs mt-1 ${
+                      theme === "dark" ? "text-green-400/70" : "text-green-700/70"
+                    }`}>
+                      Create collabs, book sessions, negotiate terms, and place bids on studio time.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Filters */}
             <div className={`flex flex-wrap gap-3 mb-8 p-4 rounded-xl border ${
@@ -468,25 +592,74 @@ export default function SessionBookings() {
                           </div>
 
                           <div className="flex gap-2">
-                            <button
-                              className={`flex items-center gap-2 px-4 py-2 text-xs font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 w-32 justify-center ${
-                                theme === "dark"
-                                  ? "bg-white border-white text-black hover:bg-zinc-100"
-                                  : "bg-black border-black text-white hover:bg-gray-800"
-                              }`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (session.type === 'bid') {
+                            {/* Book Session Button - Based on session type and permissions */}
+                            {session.type === 'deal' && permissions.canBookSessions && (
+                              <button
+                                className={`flex items-center gap-2 px-4 py-2 text-xs font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 w-32 justify-center ${
+                                  theme === "dark"
+                                    ? "bg-white border-white text-black hover:bg-zinc-100"
+                                    : "bg-black border-black text-white hover:bg-gray-800"
+                                }`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  router.push(`/studios/create/${session.id}`);
+                                }}
+                              >
+                                <CheckCircle className="w-3 h-3" strokeWidth={2} />
+                                Book Now
+                              </button>
+                            )}
+
+                            {/* Request Collab Button - Based on permissions */}
+                            {session.type === 'collab' && permissions.canNegotiateCollabTerms && (
+                              <button
+                                className={`flex items-center gap-2 px-4 py-2 text-xs font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 w-32 justify-center ${
+                                  theme === "dark"
+                                    ? "bg-white border-white text-black hover:bg-zinc-100"
+                                    : "bg-black border-black text-white hover:bg-gray-800"
+                                }`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  router.push(`/collabs/create/${session.id}`);
+                                }}
+                              >
+                                <CheckCircle className="w-3 h-3" strokeWidth={2} />
+                                Request
+                              </button>
+                            )}
+
+                            {/* Place Bid Button - Based on permissions */}
+                            {session.type === 'bid' && permissions.canPlaceBids && (
+                              <button
+                                className={`flex items-center gap-2 px-4 py-2 text-xs font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 w-32 justify-center ${
+                                  theme === "dark"
+                                    ? "bg-white border-white text-black hover:bg-zinc-100"
+                                    : "bg-black border-black text-white hover:bg-gray-800"
+                                }`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   setShowBidModal(true);
-                                } else {
-                                  router.push(session.type === 'collab' ? `/collabs/create/${session.id}` : `/studios/create/${session.id}`);
-                                }
-                              }}
-                            >
-                              <CheckCircle className="w-3 h-3" strokeWidth={2} />
-                              {session.type === 'bid' ? 'Make Offer' : session.type === 'collab' ? 'Request' : 'Book Now'}
-                            </button>
-                            
+                                }}
+                              >
+                                <CheckCircle className="w-3 h-3" strokeWidth={2} />
+                                Make Offer
+                              </button>
+                            )}
+
+                            {/* No Permission State */}
+                            {((session.type === 'deal' && !permissions.canBookSessions) ||
+                              (session.type === 'collab' && !permissions.canNegotiateCollabTerms) ||
+                              (session.type === 'bid' && !permissions.canPlaceBids)) && (
+                              <div className={`flex items-center gap-2 px-4 py-2 text-xs font-light rounded-lg border w-32 justify-center ${
+                                theme === "dark"
+                                  ? "border-zinc-800 text-zinc-600 bg-zinc-900/50"
+                                  : "border-gray-300 text-gray-400 bg-gray-100/50"
+                              }`}>
+                                <CheckCircle className="w-3 h-3" strokeWidth={2} />
+                                {session.type === 'bid' ? 'Make Offer' : session.type === 'collab' ? 'Request' : 'Book Now'}
+                              </div>
+                            )}
+
                             <button
                               className={`p-2 rounded-lg border transition-all duration-200 active:scale-95 ${
                                 theme === "dark"

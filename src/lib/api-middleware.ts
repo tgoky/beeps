@@ -35,6 +35,19 @@ export interface AuthenticatedRequest extends NextRequest {
     canViewBeatAnalytics: boolean;
     canCollaborateOnBeats: boolean;
     canRequestRemixRights: boolean;
+    // Collabs & Deals marketplace permissions
+    canCreateDeals: boolean;
+    canCreateCollabs: boolean;
+    canCreateBids: boolean;
+    canBookSessions: boolean;
+    canMessageSessionHosts: boolean;
+    canNegotiateCollabTerms: boolean;
+    canPlaceBids: boolean;
+    canAcceptBids: boolean;
+    canReportSessions: boolean;
+    canAccessFlashDeals: boolean;
+    canViewSessionAnalytics: boolean;
+    canManageOwnSessions: boolean;
   };
 }
 

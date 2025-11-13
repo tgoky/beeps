@@ -60,6 +60,18 @@ export const usePermissions = () => {
     canViewBeatAnalytics: false,
     canCollaborateOnBeats: false,
     canRequestRemixRights: false,
+    canCreateDeals: false,
+    canCreateCollabs: false,
+    canCreateBids: false,
+    canBookSessions: false,
+    canMessageSessionHosts: false,
+    canNegotiateCollabTerms: false,
+    canPlaceBids: false,
+    canAcceptBids: false,
+    canReportSessions: false,
+    canAccessFlashDeals: false,
+    canViewSessionAnalytics: false,
+    canManageOwnSessions: false,
   };
 
   return {
@@ -153,6 +165,18 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
     canViewBeatAnalytics: false,
     canCollaborateOnBeats: false,
     canRequestRemixRights: false,
+    canCreateDeals: false,
+    canCreateCollabs: false,
+    canCreateBids: false,
+    canBookSessions: false,
+    canMessageSessionHosts: false,
+    canNegotiateCollabTerms: false,
+    canPlaceBids: false,
+    canAcceptBids: false,
+    canReportSessions: false,
+    canAccessFlashDeals: false,
+    canViewSessionAnalytics: false,
+    canManageOwnSessions: false,
   };
 
   return (
