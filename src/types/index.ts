@@ -99,6 +99,39 @@ export interface UserPermissions {
   canAccessPremiumGear: boolean;
   hasGearCollectorTier: boolean;
   isCertifiedGearDealer: boolean;
+  // Music Services marketplace permissions
+  canUploadSnippets: boolean;           // Upload music snippets/previews
+  canPostLyrics: boolean;               // Share lyrics publicly
+  canPostLyricsToClub: boolean;         // Share lyrics to clubs only
+  canPostLyricsToFollowers: boolean;    // Share lyrics to followers only
+  canCreateCollabRequest: boolean;      // Post collaboration requests
+  canCreateWriterGigs: boolean;         // Post songwriter/writer opportunities
+  canHostAuditions: boolean;            // Create audition postings
+  canSubmitToAuditions: boolean;        // Submit to auditions
+  canSubmitAnonymousAudition: boolean;  // Submit anonymously
+  canViewLyrics: boolean;               // View lyrics content
+  canViewPrivateLyrics: boolean;        // View club/follower-only lyrics
+  canGiveFeedback: boolean;             // Leave feedback/comments
+  canGiveProfessionalReview: boolean;   // Paid professional reviews
+  canPostLabelOpportunity: boolean;     // Post as label/industry
+  canUseScoutingMode: boolean;          // Anonymous talent scouting
+  canViewAuditionsByType: boolean;      // View role-specific auditions
+  canProposeRevenueSplit: boolean;      // Propose collab revenue splits
+  canJoinPaidCollabs: boolean;          // Join paid collaborations
+  canInviteToCollab: boolean;           // Invite others to collabs
+  canEditCollabTerms: boolean;          // Edit collab terms after creation
+  canAccessGenreRestricted: boolean;    // Access genre-locked content
+  canEarnSkillBadges: boolean;          // Earn certification badges
+  canFeatureServices: boolean;          // Feature services in trending
+  canViewServiceAnalytics: boolean;     // View analytics on own services
+  canReportServices: boolean;           // Report inappropriate services
+  canModerateServices: boolean;         // Moderate service content
+  // Reputation & Dynamic Tiers (computed)
+  reputationTier: 'newbie' | 'rising' | 'verified' | 'pro' | 'industry';
+  isVerifiedCreator: boolean;           // Verified creator badge
+  isProfessionalReviewer: boolean;      // Professional reviewer certification
+  isLabelPartner: boolean;              // Label/A&R status
+  isMentor: boolean;                    // Mentor/coaching status
 }
 
 export interface PermissionCheckResult {
