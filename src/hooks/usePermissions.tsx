@@ -1,6 +1,9 @@
 // hooks/usePermissions.ts
 // Custom hook for checking user permissions throughout the app
 
+
+"use client";
+
 import { useGetIdentity } from "@refinedev/core";
 
 export interface UserPermissions {
