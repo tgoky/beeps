@@ -172,31 +172,9 @@ export const authProviderClient: AuthProvider = {
         return permissions;
       }
 
-      // Fallback to default permissions if API call fails
-      return {
-        canCreateStudios: false,
-        canBookStudios: false,
-        role: 'OTHER',
-        canEditProducerProfile: false,
-        canAcceptJobs: false,
-        canUploadWorks: false,
-        canManagePortfolio: false,
-        canRequestProducerService: false,
-        canMessageProducers: true,
-        canViewProducerDetails: true,
-        canUploadBeats: false,
-        canPurchaseBeats: false,
-        canReviewBeats: false,
-        canSplitRoyalties: false,
-        canListEquipment: false,
-        canCommentOnBeats: false,
-        canSendLicensingOffers: false,
-        canSetAdvancedPricing: false,
-        canCreateBeatCollections: false,
-        canViewBeatAnalytics: false,
-        canCollaborateOnBeats: false,
-        canRequestRemixRights: false,
-      };
+      // Fallback to default permissions if API call fails - import from api-middleware to ensure consistency
+      const { getUserPermissions: getDefaultPermissions } = await import('@/lib/api-middleware');
+      return getDefaultPermissions({} as any);
     }
 
     return null;
