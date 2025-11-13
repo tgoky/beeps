@@ -28,57 +28,106 @@ import {
   Flame,
   Sparkles,
   Clock,
-  Eye,
-  Bookmark
+  Bookmark,
+  PlayCircle,
+  Pause,
+  Download,
+  ShoppingCart,
+  Handshake,
+  Award,
+  CheckCircle,
+  Briefcase,
+  Volume2,
+  Upload,
+  X
 } from "lucide-react";
 
 // Role display configuration
-const roleConfig: Record<string, { name: string; icon: JSX.Element; color: string; bg: string; accent: string }> = {
+const roleConfig: Record<string, {
+  name: string;
+  icon: JSX.Element;
+  color: string;
+  bg: string;
+  accent: string;
+  postTypes: { icon: JSX.Element; label: string; type: string }[];
+}> = {
   ARTIST: {
     name: "Artists",
     icon: <Mic2 className="w-4 h-4" strokeWidth={2} />,
     color: "text-purple-500",
     bg: "bg-purple-500/10",
-    accent: "border-purple-500/20"
+    accent: "border-purple-500/20",
+    postTypes: [
+      { icon: <Mic2 className="w-4 h-4" />, label: "Vocal Demo", type: "vocal_demo" },
+      { icon: <FileText className="w-4 h-4" />, label: "Lyric Snippet", type: "lyric" },
+      { icon: <VideoIcon className="w-4 h-4" />, label: "Music Video", type: "video" },
+      { icon: <Briefcase className="w-4 h-4" />, label: "Looking for Beats", type: "brief" },
+    ]
   },
   PRODUCER: {
     name: "Producers",
     icon: <Music2 className="w-4 h-4" strokeWidth={2} />,
     color: "text-blue-500",
     bg: "bg-blue-500/10",
-    accent: "border-blue-500/20"
+    accent: "border-blue-500/20",
+    postTypes: [
+      { icon: <Volume2 className="w-4 h-4" />, label: "Beat Snippet", type: "beat" },
+      { icon: <Upload className="w-4 h-4" />, label: "Stem Pack", type: "stems" },
+      { icon: <Handshake className="w-4 h-4" />, label: "Open Collab", type: "collab" },
+      { icon: <TrendingUp className="w-4 h-4" />, label: "Session Analytics", type: "analytics" },
+    ]
   },
   STUDIO_OWNER: {
     name: "Studio Owners",
     icon: <Building2 className="w-4 h-4" strokeWidth={2} />,
     color: "text-emerald-500",
     bg: "bg-emerald-500/10",
-    accent: "border-emerald-500/20"
+    accent: "border-emerald-500/20",
+    postTypes: [
+      { icon: <Zap className="w-4 h-4" />, label: "Flash Deal", type: "deal" },
+      { icon: <Clock className="w-4 h-4" />, label: "Open Slot", type: "availability" },
+      { icon: <ImageIcon className="w-4 h-4" />, label: "Before/After", type: "showcase" },
+      { icon: <Award className="w-4 h-4" />, label: "Client Win", type: "testimonial" },
+    ]
   },
   GEAR_SALES: {
     name: "Gear Specialists",
     icon: <Package className="w-4 h-4" strokeWidth={2} />,
     color: "text-orange-500",
     bg: "bg-orange-500/10",
-    accent: "border-orange-500/20"
+    accent: "border-orange-500/20",
+    postTypes: [
+      { icon: <VideoIcon className="w-4 h-4" />, label: "Gear Demo", type: "demo" },
+      { icon: <ShoppingCart className="w-4 h-4" />, label: "Flash Sale", type: "sale" },
+      { icon: <FileText className="w-4 h-4" />, label: "Maintenance Tip", type: "tip" },
+    ]
   },
   LYRICIST: {
     name: "Lyricists",
     icon: <FileText className="w-4 h-4" strokeWidth={2} />,
     color: "text-pink-500",
     bg: "bg-pink-500/10",
-    accent: "border-pink-500/20"
+    accent: "border-pink-500/20",
+    postTypes: [
+      { icon: <FileText className="w-4 h-4" />, label: "Lyric Excerpt", type: "lyric" },
+      { icon: <Sparkles className="w-4 h-4" />, label: "Theme Idea", type: "theme" },
+      { icon: <Music2 className="w-4 h-4" />, label: "Melody + Words", type: "melody" },
+    ]
   },
   OTHER: {
     name: "Enthusiasts",
     icon: <Headphones className="w-4 h-4" strokeWidth={2} />,
     color: "text-gray-500",
     bg: "bg-gray-500/10",
-    accent: "border-gray-500/20"
+    accent: "border-gray-500/20",
+    postTypes: [
+      { icon: <MessageSquare className="w-4 h-4" />, label: "Discussion", type: "text" },
+      { icon: <ImageIcon className="w-4 h-4" />, label: "Share Media", type: "media" },
+    ]
   }
 };
 
-// Helper function to format timestamps
+// Helper functions
 const formatTimestamp = (dateString: string): string => {
   const date = new Date(dateString);
   const now = new Date();
@@ -107,10 +156,19 @@ interface Post {
     id: string;
     username: string;
     avatar: string | null;
+    badges?: string[]; // verified, grammy, platinum, etc.
   };
   content: string;
+  postType?: string; // beat, vocal_demo, collab, etc.
+  audioUrl?: string | null;
   imageUrl: string | null;
   videoUrl: string | null;
+  metadata?: {
+    bpm?: number;
+    key?: string;
+    genre?: string;
+    price?: number;
+  };
   likesCount: number;
   commentsCount: number;
   sharesCount: number;
@@ -137,13 +195,21 @@ interface CommunityStats {
   trendingClubs: Club[];
 }
 
-// Mock trending topics for engagement
+// Mock trending topics
 const trendingTopics = [
   { tag: "NewRelease", posts: 2841 },
   { tag: "StudioSession", posts: 1923 },
   { tag: "BeatChallenge", posts: 1456 },
   { tag: "MixingTips", posts: 892 }
 ];
+
+// Skill badges
+const badges: Record<string, { icon: JSX.Element; color: string; label: string }> = {
+  verified: { icon: <CheckCircle className="w-3 h-3" />, color: "text-blue-500", label: "Verified" },
+  grammy: { icon: <Award className="w-3 h-3" />, color: "text-yellow-500", label: "GRAMMY Nominated" },
+  platinum: { icon: <Crown className="w-3 h-3" />, color: "text-purple-500", label: "Platinum Producer" },
+  certified: { icon: <Award className="w-3 h-3" />, color: "text-emerald-500", label: "Studio Certified" },
+};
 
 export default function CommunityPage() {
   const params = useParams();
@@ -155,7 +221,10 @@ export default function CommunityPage() {
   const config = roleConfig[role] || roleConfig.OTHER;
 
   const [postContent, setPostContent] = useState("");
-  const [activeTab, setActiveTab] = useState<"feed" | "trending" | "clubs">("feed");
+  const [activeTab, setActiveTab] = useState<"feed" | "trending" | "briefs" | "clubs">("feed");
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [selectedPostType, setSelectedPostType] = useState<string | null>(null);
+  const [playingAudio, setPlayingAudio] = useState<string | null>(null);
 
   // Data states
   const [posts, setPosts] = useState<Post[]>([]);
@@ -236,6 +305,7 @@ export default function CommunityPage() {
         },
         body: JSON.stringify({
           content: postContent,
+          postType: selectedPostType,
         }),
       });
 
@@ -248,12 +318,18 @@ export default function CommunityPage() {
       const result = await response.json();
       setPosts([result.data, ...posts]);
       setPostContent("");
+      setShowCreateModal(false);
+      setSelectedPostType(null);
     } catch (error) {
       console.error('Error creating post:', error);
       alert('An error occurred while creating the post');
     } finally {
       setIsCreatingPost(false);
     }
+  };
+
+  const toggleAudio = (postId: string) => {
+    setPlayingAudio(playingAudio === postId ? null : postId);
   };
 
   return (
@@ -268,7 +344,6 @@ export default function CommunityPage() {
       }`}>
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-3">
           <div className="flex items-center justify-between">
-            {/* Left: Back + Title */}
             <div className="flex items-center gap-4">
               <button
                 onClick={handleGoBack}
@@ -300,7 +375,6 @@ export default function CommunityPage() {
               </div>
             </div>
 
-            {/* Right: Create Club */}
             <button
               onClick={handleCreateClub}
               className={`flex items-center gap-1.5 px-3 py-2 text-xs font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
@@ -322,6 +396,7 @@ export default function CommunityPage() {
           }`}>
             {[
               { key: "feed", label: "Feed", icon: Zap },
+              { key: "briefs", label: "Open Briefs", icon: Briefcase },
               { key: "trending", label: "Trending", icon: TrendingUp },
               { key: "clubs", label: "Clubs", icon: Users }
             ].map((tab) => {
@@ -349,6 +424,105 @@ export default function CommunityPage() {
         </div>
       </div>
 
+      {/* Create Post Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className={`w-full max-w-lg rounded-xl border p-6 ${
+            theme === "dark"
+              ? "bg-zinc-900 border-zinc-800"
+              : "bg-white border-gray-200"
+          }`}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-light tracking-tight">Create Post</h3>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className={`p-1 rounded transition-colors ${
+                  theme === "dark" ? "hover:bg-zinc-800" : "hover:bg-gray-100"
+                }`}
+              >
+                <X className="w-4 h-4" strokeWidth={2} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className={`block text-xs font-light tracking-wide mb-2 ${
+                  theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                }`}>
+                  Post Type
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {config.postTypes.map((type) => (
+                    <button
+                      key={type.type}
+                      onClick={() => setSelectedPostType(type.type)}
+                      className={`flex items-center gap-2 p-3 rounded-lg border text-left transition-all ${
+                        selectedPostType === type.type
+                          ? theme === "dark"
+                            ? "border-white bg-white/5"
+                            : "border-black bg-black/5"
+                          : theme === "dark"
+                            ? "border-zinc-800 hover:border-zinc-700"
+                            : "border-gray-200 hover:border-gray-300"
+                      }`}
+                    >
+                      <div className={selectedPostType === type.type ? config.color :
+                        theme === "dark" ? "text-zinc-500" : "text-gray-500"
+                      }>
+                        {type.icon}
+                      </div>
+                      <span className="text-xs font-light tracking-wide">{type.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <textarea
+                  value={postContent}
+                  onChange={(e) => setPostContent(e.target.value)}
+                  placeholder={`Share ${selectedPostType ? 'your ' + config.postTypes.find(t => t.type === selectedPostType)?.label.toLowerCase() : 'something'}...`}
+                  className={`w-full px-3 py-2 text-sm font-light bg-transparent border rounded-lg resize-none focus:outline-none tracking-wide ${
+                    theme === "dark"
+                      ? "border-zinc-800 text-white placeholder-zinc-600 focus:border-white"
+                      : "border-gray-200 text-gray-900 placeholder-gray-400 focus:border-black"
+                  }`}
+                  rows={4}
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleCreatePost}
+                  disabled={!postContent.trim() || isCreatingPost}
+                  className={`flex-1 px-4 py-2 text-sm font-light rounded-lg transition-all tracking-wide active:scale-95 ${
+                    postContent.trim() && !isCreatingPost
+                      ? theme === "dark"
+                        ? "bg-white text-black hover:bg-zinc-100"
+                        : "bg-black text-white hover:bg-gray-800"
+                      : theme === "dark"
+                        ? "bg-zinc-800 text-zinc-600 cursor-not-allowed"
+                        : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  }`}
+                >
+                  {isCreatingPost ? "Posting..." : "Post"}
+                </button>
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className={`px-4 py-2 text-sm font-light rounded-lg border transition-all tracking-wide active:scale-95 ${
+                    theme === "dark"
+                      ? "border-zinc-800 hover:bg-zinc-800"
+                      : "border-gray-200 hover:bg-gray-100"
+                  }`}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -357,66 +531,47 @@ export default function CommunityPage() {
           <div className="lg:col-span-7 space-y-3">
             {activeTab === "feed" && (
               <>
-                {/* Compact Create Post */}
+                {/* Quick Create */}
                 <div className={`rounded-xl border p-3 ${
                   theme === "dark"
                     ? "border-zinc-800 bg-zinc-950"
                     : "border-gray-200 bg-white"
                 }`}>
-                  <div className="flex gap-2">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${config.bg} ${config.color}`}>
+                  <button
+                    onClick={() => setShowCreateModal(true)}
+                    className={`w-full flex items-center gap-3 text-left ${
+                      theme === "dark" ? "text-zinc-400" : "text-gray-500"
+                    }`}
+                  >
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${config.bg} ${config.color}`}>
                       {config.icon}
                     </div>
-                    <div className="flex-1">
-                      <textarea
-                        value={postContent}
-                        onChange={(e) => setPostContent(e.target.value)}
-                        placeholder="What's happening?"
-                        className={`w-full px-0 py-1 text-sm font-light bg-transparent border-none resize-none focus:outline-none tracking-wide placeholder:font-light ${
+                    <span className="text-sm font-light tracking-wide">What's happening?</span>
+                  </button>
+                  <div className="flex items-center gap-2 mt-3 pt-3 border-t ${
+                    theme === 'dark' ? 'border-zinc-800' : 'border-gray-200'
+                  }">
+                    {config.postTypes.slice(0, 4).map((type, i) => (
+                      <button
+                        key={i}
+                        onClick={() => {
+                          setSelectedPostType(type.type);
+                          setShowCreateModal(true);
+                        }}
+                        className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-light tracking-wide transition-colors ${
                           theme === "dark"
-                            ? "text-white placeholder-zinc-600"
-                            : "text-gray-900 placeholder-gray-400"
+                            ? "hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300"
+                            : "hover:bg-gray-100 text-gray-500 hover:text-gray-700"
                         }`}
-                        rows={2}
-                      />
-                      <div className="flex items-center justify-between mt-2 pt-2 border-t ${
-                        theme === 'dark' ? 'border-zinc-800' : 'border-gray-200'
-                      }">
-                        <div className="flex gap-1">
-                          {[ImageIcon, VideoIcon, Smile].map((Icon, i) => (
-                            <button
-                              key={i}
-                              className={`p-1.5 rounded transition-colors ${
-                                theme === "dark"
-                                  ? "hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300"
-                                  : "hover:bg-gray-100 text-gray-500 hover:text-gray-700"
-                              }`}
-                            >
-                              <Icon className="w-4 h-4" strokeWidth={2} />
-                            </button>
-                          ))}
-                        </div>
-                        <button
-                          onClick={handleCreatePost}
-                          disabled={!postContent.trim() || isCreatingPost}
-                          className={`flex items-center gap-1 px-3 py-1.5 text-xs font-light rounded-full transition-all tracking-wide active:scale-95 ${
-                            postContent.trim() && !isCreatingPost
-                              ? theme === "dark"
-                                ? "bg-white text-black hover:bg-zinc-100"
-                                : "bg-black text-white hover:bg-gray-800"
-                              : theme === "dark"
-                                ? "bg-zinc-800 text-zinc-600 cursor-not-allowed"
-                                : "bg-gray-200 text-gray-400 cursor-not-allowed"
-                          }`}
-                        >
-                          {isCreatingPost ? "Posting..." : "Post"}
-                        </button>
-                      </div>
-                    </div>
+                      >
+                        {type.icon}
+                        {type.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
-                {/* Posts Feed - Twitter-like compact */}
+                {/* Posts Feed */}
                 {isLoadingPosts ? (
                   <div className={`rounded-xl border p-6 text-center ${
                     theme === "dark"
@@ -474,6 +629,11 @@ export default function CommunityPage() {
                               }`}>
                                 {post.author.username}
                               </span>
+                              {post.author.badges?.map((badge) => (
+                                <div key={badge} className={badges[badge]?.color} title={badges[badge]?.label}>
+                                  {badges[badge]?.icon}
+                                </div>
+                              ))}
                               <span className={`text-xs font-light tracking-wide ${
                                 theme === "dark" ? "text-zinc-600" : "text-gray-500"
                               }`}>
@@ -489,6 +649,16 @@ export default function CommunityPage() {
                             </button>
                           </div>
 
+                          {/* Post Type Badge */}
+                          {post.postType && (
+                            <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-light tracking-wide mb-2 ${
+                              theme === "dark" ? "bg-zinc-800 text-zinc-400" : "bg-gray-100 text-gray-600"
+                            }`}>
+                              {config.postTypes.find(t => t.type === post.postType)?.icon}
+                              {config.postTypes.find(t => t.type === post.postType)?.label}
+                            </div>
+                          )}
+
                           {/* Post Content */}
                           <p className={`text-sm font-light leading-relaxed mb-2 tracking-wide ${
                             theme === "dark" ? "text-zinc-200" : "text-gray-800"
@@ -496,11 +666,51 @@ export default function CommunityPage() {
                             {post.content}
                           </p>
 
+                          {/* Audio Player (for beats/vocals) */}
+                          {post.audioUrl && (
+                            <div className={`mb-2 p-3 rounded-lg border ${
+                              theme === "dark" ? "border-zinc-800 bg-zinc-900" : "border-gray-200 bg-gray-50"
+                            }`}>
+                              <div className="flex items-center gap-3">
+                                <button
+                                  onClick={() => toggleAudio(post.id)}
+                                  className={`p-2 rounded-full transition-colors ${
+                                    theme === "dark" ? "bg-white text-black hover:bg-zinc-100" : "bg-black text-white hover:bg-gray-800"
+                                  }`}
+                                >
+                                  {playingAudio === post.id ?
+                                    <Pause className="w-4 h-4" strokeWidth={2} /> :
+                                    <PlayCircle className="w-4 h-4" strokeWidth={2} />
+                                  }
+                                </button>
+                                <div className="flex-1">
+                                  <div className={`h-1 rounded-full ${theme === "dark" ? "bg-zinc-800" : "bg-gray-200"}`}>
+                                    <div className="h-1 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 w-1/3"></div>
+                                  </div>
+                                  {post.metadata && (
+                                    <div className={`flex items-center gap-3 mt-1 text-xs font-light ${
+                                      theme === "dark" ? "text-zinc-500" : "text-gray-500"
+                                    }`}>
+                                      {post.metadata.bpm && <span>{post.metadata.bpm} BPM</span>}
+                                      {post.metadata.key && <span>Key: {post.metadata.key}</span>}
+                                      {post.metadata.genre && <span>{post.metadata.genre}</span>}
+                                    </div>
+                                  )}
+                                </div>
+                                <button className={`p-2 rounded transition-colors ${
+                                  theme === "dark" ? "hover:bg-zinc-800" : "hover:bg-gray-100"
+                                }`}>
+                                  <Download className="w-4 h-4" strokeWidth={2} />
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
                           {/* Media */}
                           {post.imageUrl && (
-                            <div className="mb-2 rounded-lg overflow-hidden border ${
+                            <div className={`mb-2 rounded-lg overflow-hidden border ${
                               theme === 'dark' ? 'border-zinc-800' : 'border-gray-200'
-                            }">
+                            }`}>
                               <img
                                 src={post.imageUrl}
                                 alt="Post content"
@@ -509,7 +719,31 @@ export default function CommunityPage() {
                             </div>
                           )}
 
-                          {/* Actions - Compact */}
+                          {/* Collaboration Actions */}
+                          {(post.postType === 'beat' || post.postType === 'collab') && (
+                            <div className="flex items-center gap-2 mb-2">
+                              <button className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-light transition-all active:scale-95 ${
+                                theme === "dark"
+                                  ? "bg-white text-black hover:bg-zinc-100"
+                                  : "bg-black text-white hover:bg-gray-800"
+                              }`}>
+                                <Handshake className="w-3 h-3" strokeWidth={2} />
+                                Collab
+                              </button>
+                              {post.metadata?.price && (
+                                <button className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-light transition-all active:scale-95 border ${
+                                  theme === "dark"
+                                    ? "border-zinc-700 hover:bg-zinc-800"
+                                    : "border-gray-300 hover:bg-gray-100"
+                                }`}>
+                                  <ShoppingCart className="w-3 h-3" strokeWidth={2} />
+                                  ${post.metadata.price}
+                                </button>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Actions */}
                           <div className="flex items-center gap-6 mt-2">
                             <button className={`flex items-center gap-1 transition-colors group ${
                               theme === "dark"
@@ -549,6 +783,30 @@ export default function CommunityPage() {
                   ))
                 )}
               </>
+            )}
+
+            {activeTab === "briefs" && (
+              <div className="space-y-3">
+                <div className={`rounded-xl border p-8 text-center ${
+                  theme === "dark"
+                    ? "border-zinc-800 bg-zinc-950"
+                    : "border-gray-200 bg-white"
+                }`}>
+                  <Briefcase className={`w-8 h-8 mx-auto mb-2 ${
+                    theme === "dark" ? "text-zinc-700" : "text-gray-300"
+                  }`} strokeWidth={1.5} />
+                  <p className={`text-sm font-light tracking-wide mb-1 ${
+                    theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                  }`}>
+                    No open briefs yet
+                  </p>
+                  <p className={`text-xs font-light tracking-wide ${
+                    theme === "dark" ? "text-zinc-600" : "text-gray-500"
+                  }`}>
+                    Post what you're looking for and let creators apply
+                  </p>
+                </div>
+              </div>
             )}
 
             {activeTab === "trending" && (
@@ -782,30 +1040,22 @@ export default function CommunityPage() {
               </div>
             </div>
 
-            {/* Quick Actions */}
+            {/* Top Creators */}
             <div className={`rounded-xl border p-4 ${
               theme === "dark"
                 ? "border-zinc-800 bg-zinc-950"
                 : "border-gray-200 bg-white"
             }`}>
-              <h3 className="text-sm font-light tracking-wide mb-3">Quick Actions</h3>
+              <div className="flex items-center gap-2 mb-3">
+                <Crown className="w-4 h-4 text-yellow-500" strokeWidth={2} />
+                <h3 className="text-sm font-light tracking-wide">Top Creators</h3>
+              </div>
               <div className="space-y-2">
-                <button className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
-                  theme === "dark"
-                    ? "border-zinc-800 hover:bg-zinc-900 text-zinc-400 hover:text-white"
-                    : "border-gray-200 hover:bg-gray-50 text-gray-600 hover:text-gray-900"
+                <p className={`text-xs font-light tracking-wide ${
+                  theme === "dark" ? "text-zinc-500" : "text-gray-500"
                 }`}>
-                  <UserPlus className="w-3.5 h-3.5" strokeWidth={2} />
-                  Invite Members
-                </button>
-                <button className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
-                  theme === "dark"
-                    ? "border-zinc-800 hover:bg-zinc-900 text-zinc-400 hover:text-white"
-                    : "border-gray-200 hover:bg-gray-50 text-gray-600 hover:text-gray-900"
-                }`}>
-                  <Crown className="w-3.5 h-3.5" strokeWidth={2} />
-                  Leaderboard
-                </button>
+                  Leaderboard coming soon
+                </p>
               </div>
             </div>
           </div>
