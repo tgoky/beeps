@@ -135,9 +135,12 @@ export const NavigationMenu = ({
       try {
         setIsLoadingCommunities(true);
 
-        // Get Supabase user ID
-        const { createClientComponentClient } = await import('@supabase/auth-helpers-nextjs');
-        const supabase = createClientComponentClient();
+        // Get Supabase user ID using @supabase/ssr
+        const { createBrowserClient } = await import('@supabase/ssr');
+        const supabase = createBrowserClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
         const { data: { user } } = await supabase.auth.getUser();
 
         if (!user) {
