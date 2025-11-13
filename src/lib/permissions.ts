@@ -32,6 +32,19 @@ export interface UserPermissions {
   canViewBeatAnalytics: boolean;
   canCollaborateOnBeats: boolean;
   canRequestRemixRights: boolean;
+  // Collabs & Deals marketplace permissions
+  canCreateDeals: boolean;              // Studio owners, producers
+  canCreateCollabs: boolean;            // Producers, artists, lyricists
+  canCreateBids: boolean;               // Studio owners, producers
+  canBookSessions: boolean;             // Most users except studio owners
+  canMessageSessionHosts: boolean;      // Communication rights
+  canNegotiateCollabTerms: boolean;     // Collab agreement drafting
+  canPlaceBids: boolean;                // For bidding sessions
+  canAcceptBids: boolean;               // For session hosts only
+  canReportSessions: boolean;           // All users for moderation
+  canAccessFlashDeals: boolean;         // Premium feature
+  canViewSessionAnalytics: boolean;     // Session creators only
+  canManageOwnSessions: boolean;        // Edit/delete own sessions
 }
 
 /**
@@ -53,6 +66,15 @@ export function canPerformAction(
     | 'sendLicensingOffers'
     | 'viewBeatAnalytics'
     | 'collaborateOnBeats'
+    | 'createDeals'
+    | 'createCollabs'
+    | 'createBids'
+    | 'bookSessions'
+    | 'messageSessionHosts'
+    | 'negotiateCollabTerms'
+    | 'placeBids'
+    | 'acceptBids'
+    | 'viewSessionAnalytics'
 ): boolean {
   switch (action) {
     case 'createStudios':
@@ -79,6 +101,24 @@ export function canPerformAction(
       return permissions.canViewBeatAnalytics;
     case 'collaborateOnBeats':
       return permissions.canCollaborateOnBeats;
+    case 'createDeals':
+      return permissions.canCreateDeals;
+    case 'createCollabs':
+      return permissions.canCreateCollabs;
+    case 'createBids':
+      return permissions.canCreateBids;
+    case 'bookSessions':
+      return permissions.canBookSessions;
+    case 'messageSessionHosts':
+      return permissions.canMessageSessionHosts;
+    case 'negotiateCollabTerms':
+      return permissions.canNegotiateCollabTerms;
+    case 'placeBids':
+      return permissions.canPlaceBids;
+    case 'acceptBids':
+      return permissions.canAcceptBids;
+    case 'viewSessionAnalytics':
+      return permissions.canViewSessionAnalytics;
     default:
       return false;
   }
@@ -119,6 +159,19 @@ export const roleCapabilities = {
     canViewBeatAnalytics: false,
     canCollaborateOnBeats: true,
     canRequestRemixRights: true,
+    // Collabs & Deals permissions
+    canCreateDeals: false,
+    canCreateCollabs: true,              // Artists can create collabs
+    canCreateBids: false,
+    canBookSessions: true,               // Can book sessions
+    canMessageSessionHosts: true,        // Can message hosts
+    canNegotiateCollabTerms: true,       // Can negotiate collab terms
+    canPlaceBids: true,                  // Can place bids
+    canAcceptBids: false,
+    canReportSessions: true,             // Can report sessions
+    canAccessFlashDeals: false,          // Upgrade for premium
+    canViewSessionAnalytics: false,
+    canManageOwnSessions: true,          // Can manage own collabs
   },
   PRODUCER: {
     canUploadSnippets: true,
@@ -150,6 +203,19 @@ export const roleCapabilities = {
     canViewBeatAnalytics: true,
     canCollaborateOnBeats: true,
     canRequestRemixRights: true,
+    // Collabs & Deals permissions
+    canCreateDeals: true,                // Producers can create deals
+    canCreateCollabs: true,              // Producers can create collabs
+    canCreateBids: true,                 // Producers can create bid sessions
+    canBookSessions: true,               // Can book sessions
+    canMessageSessionHosts: true,        // Can message hosts
+    canNegotiateCollabTerms: true,       // Can negotiate collab terms
+    canPlaceBids: true,                  // Can place bids
+    canAcceptBids: true,                 // Producers can accept bids on their sessions
+    canReportSessions: true,             // Can report sessions
+    canAccessFlashDeals: true,           // Producers get premium access
+    canViewSessionAnalytics: true,       // Can view analytics on own sessions
+    canManageOwnSessions: true,          // Can manage own sessions
   },
   STUDIO_OWNER: {
     canUploadSnippets: false,
@@ -181,6 +247,19 @@ export const roleCapabilities = {
     canViewBeatAnalytics: false,
     canCollaborateOnBeats: false,
     canRequestRemixRights: false,
+    // Collabs & Deals permissions
+    canCreateDeals: true,                // Studio owners can create deals
+    canCreateCollabs: false,             // Studios don't collab
+    canCreateBids: true,                 // Can create bid sessions
+    canBookSessions: false,              // Studio owners host, don't book
+    canMessageSessionHosts: false,       // They are the hosts
+    canNegotiateCollabTerms: false,
+    canPlaceBids: false,
+    canAcceptBids: true,                 // Can accept bids on their sessions
+    canReportSessions: true,
+    canAccessFlashDeals: true,           // Studio owners get premium access
+    canViewSessionAnalytics: true,       // Can view analytics on own sessions
+    canManageOwnSessions: true,
   },
   GEAR_SALES: {
     canUploadSnippets: false,
@@ -212,6 +291,19 @@ export const roleCapabilities = {
     canViewBeatAnalytics: false,
     canCollaborateOnBeats: false,
     canRequestRemixRights: false,
+    // Collabs & Deals permissions
+    canCreateDeals: false,               // Gear sales don't create deals
+    canCreateCollabs: false,             // Gear sales don't collab
+    canCreateBids: false,
+    canBookSessions: true,               // Can book sessions
+    canMessageSessionHosts: true,        // Can message hosts
+    canNegotiateCollabTerms: false,
+    canPlaceBids: true,                  // Can place bids
+    canAcceptBids: false,
+    canReportSessions: true,             // Can report sessions
+    canAccessFlashDeals: false,          // Basic tier
+    canViewSessionAnalytics: false,
+    canManageOwnSessions: false,
   },
   LYRICIST: {
     canUploadSnippets: true,
@@ -243,6 +335,19 @@ export const roleCapabilities = {
     canViewBeatAnalytics: false,
     canCollaborateOnBeats: true,
     canRequestRemixRights: true,
+    // Collabs & Deals permissions
+    canCreateDeals: false,
+    canCreateCollabs: true,              // Lyricists can create collabs
+    canCreateBids: false,
+    canBookSessions: true,               // Can book sessions
+    canMessageSessionHosts: true,        // Can message hosts
+    canNegotiateCollabTerms: true,       // Can negotiate collab terms
+    canPlaceBids: true,                  // Can place bids
+    canAcceptBids: false,
+    canReportSessions: true,             // Can report sessions
+    canAccessFlashDeals: false,          // Upgrade for premium
+    canViewSessionAnalytics: false,
+    canManageOwnSessions: true,          // Can manage own collabs
   },
   OTHER: {
     canUploadSnippets: false,
@@ -274,6 +379,19 @@ export const roleCapabilities = {
     canViewBeatAnalytics: false,
     canCollaborateOnBeats: false,
     canRequestRemixRights: false,
+    // Collabs & Deals permissions
+    canCreateDeals: false,
+    canCreateCollabs: false,             // Other users have limited access
+    canCreateBids: false,
+    canBookSessions: true,               // Can book sessions
+    canMessageSessionHosts: false,       // Limited messaging
+    canNegotiateCollabTerms: false,
+    canPlaceBids: false,                 // Cannot bid
+    canAcceptBids: false,
+    canReportSessions: true,             // Can report for moderation
+    canAccessFlashDeals: false,
+    canViewSessionAnalytics: false,
+    canManageOwnSessions: false,
   }
 } as const;
 
@@ -382,6 +500,19 @@ export function getUserPermissions(user: {
     canViewBeatAnalytics: capabilities.canViewBeatAnalytics,
     canCollaborateOnBeats: capabilities.canCollaborateOnBeats,
     canRequestRemixRights: capabilities.canRequestRemixRights,
+    // Collabs & Deals permissions
+    canCreateDeals: capabilities.canCreateDeals,
+    canCreateCollabs: capabilities.canCreateCollabs,
+    canCreateBids: capabilities.canCreateBids,
+    canBookSessions: capabilities.canBookSessions,
+    canMessageSessionHosts: capabilities.canMessageSessionHosts,
+    canNegotiateCollabTerms: capabilities.canNegotiateCollabTerms,
+    canPlaceBids: capabilities.canPlaceBids,
+    canAcceptBids: capabilities.canAcceptBids,
+    canReportSessions: capabilities.canReportSessions,
+    canAccessFlashDeals: capabilities.canAccessFlashDeals,
+    canViewSessionAnalytics: capabilities.canViewSessionAnalytics,
+    canManageOwnSessions: capabilities.canManageOwnSessions,
   };
 }
 

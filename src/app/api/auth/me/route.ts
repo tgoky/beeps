@@ -55,6 +55,19 @@ export async function GET(request: NextRequest) {
             canViewBeatAnalytics: permissions.canViewBeatAnalytics,
             canCollaborateOnBeats: permissions.canCollaborateOnBeats,
             canRequestRemixRights: permissions.canRequestRemixRights,
+            // Collabs & Deals marketplace permissions
+            canCreateDeals: permissions.canCreateDeals,
+            canCreateCollabs: permissions.canCreateCollabs,
+            canCreateBids: permissions.canCreateBids,
+            canBookSessions: permissions.canBookSessions,
+            canMessageSessionHosts: permissions.canMessageSessionHosts,
+            canNegotiateCollabTerms: permissions.canNegotiateCollabTerms,
+            canPlaceBids: permissions.canPlaceBids,
+            canAcceptBids: permissions.canAcceptBids,
+            canReportSessions: permissions.canReportSessions,
+            canAccessFlashDeals: permissions.canAccessFlashDeals,
+            canViewSessionAnalytics: permissions.canViewSessionAnalytics,
+            canManageOwnSessions: permissions.canManageOwnSessions,
           }
         }
       });
