@@ -10,6 +10,28 @@ export interface UserPermissions {
   canCreateStudios: boolean;
   canBookStudios: boolean;
   role: UserRole;
+  // Producer-specific permissions
+  canEditProducerProfile: boolean;
+  canAcceptJobs: boolean;
+  canUploadWorks: boolean;
+  canManagePortfolio: boolean;
+  // Client permissions
+  canRequestProducerService: boolean;
+  canMessageProducers: boolean;
+  canViewProducerDetails: boolean;
+  // Beat marketplace permissions
+  canUploadBeats: boolean;
+  canPurchaseBeats: boolean;
+  canReviewBeats: boolean;
+  canSplitRoyalties: boolean;
+  canListEquipment: boolean;
+  canCommentOnBeats: boolean;
+  canSendLicensingOffers: boolean;
+  canSetAdvancedPricing: boolean;
+  canCreateBeatCollections: boolean;
+  canViewBeatAnalytics: boolean;
+  canCollaborateOnBeats: boolean;
+  canRequestRemixRights: boolean;
 }
 
 /**
@@ -18,13 +40,45 @@ export interface UserPermissions {
  */
 export function canPerformAction(
   permissions: UserPermissions,
-  action: 'createStudios' | 'bookStudios'
+  action:
+    | 'createStudios'
+    | 'bookStudios'
+    | 'editProducerProfile'
+    | 'acceptJobs'
+    | 'requestProducerService'
+    | 'uploadBeats'
+    | 'purchaseBeats'
+    | 'reviewBeats'
+    | 'commentOnBeats'
+    | 'sendLicensingOffers'
+    | 'viewBeatAnalytics'
+    | 'collaborateOnBeats'
 ): boolean {
   switch (action) {
     case 'createStudios':
       return permissions.canCreateStudios;
     case 'bookStudios':
       return permissions.canBookStudios;
+    case 'editProducerProfile':
+      return permissions.canEditProducerProfile;
+    case 'acceptJobs':
+      return permissions.canAcceptJobs;
+    case 'requestProducerService':
+      return permissions.canRequestProducerService;
+    case 'uploadBeats':
+      return permissions.canUploadBeats;
+    case 'purchaseBeats':
+      return permissions.canPurchaseBeats;
+    case 'reviewBeats':
+      return permissions.canReviewBeats;
+    case 'commentOnBeats':
+      return permissions.canCommentOnBeats;
+    case 'sendLicensingOffers':
+      return permissions.canSendLicensingOffers;
+    case 'viewBeatAnalytics':
+      return permissions.canViewBeatAnalytics;
+    case 'collaborateOnBeats':
+      return permissions.canCollaborateOnBeats;
     default:
       return false;
   }
@@ -43,7 +97,28 @@ export const roleCapabilities = {
     canBookStudios: true,
     canPurchaseBeats: true,
     canJoinCollabs: true,
-    canCreateClubs: true
+    canCreateClubs: true,
+    // Producer permissions
+    canEditProducerProfile: false,
+    canAcceptJobs: false,
+    canUploadWorks: false,
+    canManagePortfolio: false,
+    // Client permissions
+    canRequestProducerService: true,
+    canMessageProducers: true,
+    canViewProducerDetails: true,
+    // Beat marketplace permissions
+    canUploadBeats: false,
+    canReviewBeats: true,
+    canSplitRoyalties: true,
+    canListEquipment: false,
+    canCommentOnBeats: true,
+    canSendLicensingOffers: true,
+    canSetAdvancedPricing: false,
+    canCreateBeatCollections: true,
+    canViewBeatAnalytics: false,
+    canCollaborateOnBeats: true,
+    canRequestRemixRights: true,
   },
   PRODUCER: {
     canUploadSnippets: true,
@@ -53,7 +128,28 @@ export const roleCapabilities = {
     canBookStudios: true,
     canPurchaseBeats: true,
     canJoinCollabs: true,
-    canCreateClubs: true
+    canCreateClubs: true,
+    // Producer permissions
+    canEditProducerProfile: true,
+    canAcceptJobs: true,
+    canUploadWorks: true,
+    canManagePortfolio: true,
+    // Client permissions
+    canRequestProducerService: false,
+    canMessageProducers: true,
+    canViewProducerDetails: true,
+    // Beat marketplace permissions
+    canUploadBeats: true,
+    canReviewBeats: true,
+    canSplitRoyalties: true,
+    canListEquipment: false,
+    canCommentOnBeats: true,
+    canSendLicensingOffers: true,
+    canSetAdvancedPricing: true,
+    canCreateBeatCollections: true,
+    canViewBeatAnalytics: true,
+    canCollaborateOnBeats: true,
+    canRequestRemixRights: true,
   },
   STUDIO_OWNER: {
     canUploadSnippets: false,
@@ -63,17 +159,59 @@ export const roleCapabilities = {
     canBookStudios: false,
     canPurchaseBeats: true,
     canJoinCollabs: false,
-    canCreateClubs: true
+    canCreateClubs: true,
+    // Producer permissions
+    canEditProducerProfile: false,
+    canAcceptJobs: false,
+    canUploadWorks: false,
+    canManagePortfolio: false,
+    // Client permissions
+    canRequestProducerService: false,
+    canMessageProducers: true,
+    canViewProducerDetails: true,
+    // Beat marketplace permissions
+    canUploadBeats: false,
+    canReviewBeats: true,
+    canSplitRoyalties: false,
+    canListEquipment: true,
+    canCommentOnBeats: false,
+    canSendLicensingOffers: false,
+    canSetAdvancedPricing: false,
+    canCreateBeatCollections: true,
+    canViewBeatAnalytics: false,
+    canCollaborateOnBeats: false,
+    canRequestRemixRights: false,
   },
   GEAR_SALES: {
     canUploadSnippets: false,
     canCreateBeats: false,
     canCreateStudios: false,
     canSellEquipment: true,
-    canBookStudios: true, // Updated: they can book studios
+    canBookStudios: true,
     canPurchaseBeats: true,
     canJoinCollabs: false,
-    canCreateClubs: true
+    canCreateClubs: true,
+    // Producer permissions
+    canEditProducerProfile: false,
+    canAcceptJobs: false,
+    canUploadWorks: false,
+    canManagePortfolio: false,
+    // Client permissions
+    canRequestProducerService: true,
+    canMessageProducers: true,
+    canViewProducerDetails: true,
+    // Beat marketplace permissions
+    canUploadBeats: false,
+    canReviewBeats: true,
+    canSplitRoyalties: false,
+    canListEquipment: true,
+    canCommentOnBeats: false,
+    canSendLicensingOffers: false,
+    canSetAdvancedPricing: false,
+    canCreateBeatCollections: true,
+    canViewBeatAnalytics: false,
+    canCollaborateOnBeats: false,
+    canRequestRemixRights: false,
   },
   LYRICIST: {
     canUploadSnippets: true,
@@ -83,7 +221,28 @@ export const roleCapabilities = {
     canBookStudios: true,
     canPurchaseBeats: true,
     canJoinCollabs: true,
-    canCreateClubs: true
+    canCreateClubs: true,
+    // Producer permissions
+    canEditProducerProfile: false,
+    canAcceptJobs: false,
+    canUploadWorks: false,
+    canManagePortfolio: false,
+    // Client permissions
+    canRequestProducerService: true,
+    canMessageProducers: true,
+    canViewProducerDetails: true,
+    // Beat marketplace permissions
+    canUploadBeats: false,
+    canReviewBeats: true,
+    canSplitRoyalties: true,
+    canListEquipment: false,
+    canCommentOnBeats: true,
+    canSendLicensingOffers: true,
+    canSetAdvancedPricing: false,
+    canCreateBeatCollections: true,
+    canViewBeatAnalytics: false,
+    canCollaborateOnBeats: true,
+    canRequestRemixRights: true,
   },
   OTHER: {
     canUploadSnippets: false,
@@ -93,7 +252,28 @@ export const roleCapabilities = {
     canBookStudios: true,
     canPurchaseBeats: true,
     canJoinCollabs: true,
-    canCreateClubs: true
+    canCreateClubs: true,
+    // Producer permissions
+    canEditProducerProfile: false,
+    canAcceptJobs: false,
+    canUploadWorks: false,
+    canManagePortfolio: false,
+    // Client permissions
+    canRequestProducerService: true,
+    canMessageProducers: true,
+    canViewProducerDetails: true,
+    // Beat marketplace permissions
+    canUploadBeats: false,
+    canReviewBeats: false,
+    canSplitRoyalties: false,
+    canListEquipment: false,
+    canCommentOnBeats: false,
+    canSendLicensingOffers: false,
+    canSetAdvancedPricing: false,
+    canCreateBeatCollections: true,
+    canViewBeatAnalytics: false,
+    canCollaborateOnBeats: false,
+    canRequestRemixRights: false,
   }
 } as const;
 
@@ -173,10 +353,35 @@ export function getUserPermissions(user: {
   primaryRole: UserRole;
   studioProfile?: { id: string } | null;
 }): UserPermissions {
+  const role = user.primaryRole;
+  const capabilities = roleCapabilities[role];
+
   return {
     canCreateStudios: determineCanCreateStudios(user),
     canBookStudios: determineCanBookStudios(user.primaryRole),
-    role: user.primaryRole
+    role: role,
+    // Producer permissions
+    canEditProducerProfile: capabilities.canEditProducerProfile,
+    canAcceptJobs: capabilities.canAcceptJobs,
+    canUploadWorks: capabilities.canUploadWorks,
+    canManagePortfolio: capabilities.canManagePortfolio,
+    // Client permissions
+    canRequestProducerService: capabilities.canRequestProducerService,
+    canMessageProducers: capabilities.canMessageProducers,
+    canViewProducerDetails: capabilities.canViewProducerDetails,
+    // Beat marketplace permissions
+    canUploadBeats: capabilities.canUploadBeats,
+    canPurchaseBeats: capabilities.canPurchaseBeats,
+    canReviewBeats: capabilities.canReviewBeats,
+    canSplitRoyalties: capabilities.canSplitRoyalties,
+    canListEquipment: capabilities.canListEquipment,
+    canCommentOnBeats: capabilities.canCommentOnBeats,
+    canSendLicensingOffers: capabilities.canSendLicensingOffers,
+    canSetAdvancedPricing: capabilities.canSetAdvancedPricing,
+    canCreateBeatCollections: capabilities.canCreateBeatCollections,
+    canViewBeatAnalytics: capabilities.canViewBeatAnalytics,
+    canCollaborateOnBeats: capabilities.canCollaborateOnBeats,
+    canRequestRemixRights: capabilities.canRequestRemixRights,
   };
 }
 

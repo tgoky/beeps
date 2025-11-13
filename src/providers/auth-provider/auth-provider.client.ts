@@ -3,11 +3,62 @@
 import type { AuthProvider } from "@refinedev/core";
 import { supabaseBrowserClient } from "@utils/supabase/client";
 
-// Permission interface
+// ✅ FIXED: Complete permission interface matching your RBAC system
 export interface UserPermissions {
   canCreateStudios: boolean;
   canBookStudios: boolean;
   role: string;
+  // Producer-specific permissions
+  canEditProducerProfile: boolean;
+  canAcceptJobs: boolean;
+  canUploadWorks: boolean;
+  canManagePortfolio: boolean;
+  // Client permissions
+  canRequestProducerService: boolean;
+  canMessageProducers: boolean;
+  canViewProducerDetails: boolean;
+  // Beat marketplace permissions
+  canUploadBeats: boolean;
+  canPurchaseBeats: boolean;
+  canReviewBeats: boolean;
+  canSplitRoyalties: boolean;
+  canListEquipment: boolean;
+  canCommentOnBeats: boolean;
+  canSendLicensingOffers: boolean;
+  canSetAdvancedPricing: boolean;
+  canCreateBeatCollections: boolean;
+  canViewBeatAnalytics: boolean;
+  canCollaborateOnBeats: boolean;
+  canRequestRemixRights: boolean;
+}
+
+// ✅ NEW: Helper function to fetch user permissions from your API
+async function fetchUserPermissions(): Promise<UserPermissions | null> {
+  try {
+    const response = await fetch('/api/auth/me', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include', // Important for cookies
+    });
+
+    if (!response.ok) {
+      console.error('Failed to fetch user permissions');
+      return null;
+    }
+
+    const result = await response.json();
+
+    if (result.success && result.data?.permissions) {
+      return result.data.permissions;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error fetching user permissions:', error);
+    return null;
+  }
 }
 
 export const authProviderClient: AuthProvider = {
@@ -137,34 +188,83 @@ export const authProviderClient: AuthProvider = {
     };
   },
   
+  // ✅ FIXED: Fetch complete permissions from your database
   getPermissions: async (): Promise<UserPermissions | null> => {
     const { data } = await supabaseBrowserClient.auth.getUser();
 
     if (data?.user) {
-      const metadata = data.user.user_metadata || {};
-      
+      // Fetch from your API instead of user_metadata
+      const permissions = await fetchUserPermissions();
+
+      if (permissions) {
+        return permissions;
+      }
+
+      // Fallback to default permissions if API call fails
       return {
-        canCreateStudios: metadata.can_create_studios || false,
-        canBookStudios: metadata.can_book_studios || false,
-        role: metadata.role || 'OTHER'
+        canCreateStudios: false,
+        canBookStudios: false,
+        role: 'OTHER',
+        canEditProducerProfile: false,
+        canAcceptJobs: false,
+        canUploadWorks: false,
+        canManagePortfolio: false,
+        canRequestProducerService: false,
+        canMessageProducers: true,
+        canViewProducerDetails: true,
+        canUploadBeats: false,
+        canPurchaseBeats: false,
+        canReviewBeats: false,
+        canSplitRoyalties: false,
+        canListEquipment: false,
+        canCommentOnBeats: false,
+        canSendLicensingOffers: false,
+        canSetAdvancedPricing: false,
+        canCreateBeatCollections: false,
+        canViewBeatAnalytics: false,
+        canCollaborateOnBeats: false,
+        canRequestRemixRights: false,
       };
     }
 
     return null;
   },
   
+  // ✅ FIXED: Include complete permissions in identity
   getIdentity: async () => {
     const { data } = await supabaseBrowserClient.auth.getUser();
 
     if (data?.user) {
+      // Fetch complete permissions from your API
+      const permissions = await fetchUserPermissions();
+
       return {
         ...data.user,
         name: data.user.email,
-        // Include permissions in identity for easy access
-        permissions: {
-          canCreateStudios: data.user.user_metadata?.can_create_studios || false,
-          canBookStudios: data.user.user_metadata?.can_book_studios || false,
-          role: data.user.user_metadata?.role || 'OTHER'
+        // Include ALL permissions in identity for easy access
+        permissions: permissions || {
+          canCreateStudios: false,
+          canBookStudios: false,
+          role: 'OTHER',
+          canEditProducerProfile: false,
+          canAcceptJobs: false,
+          canUploadWorks: false,
+          canManagePortfolio: false,
+          canRequestProducerService: false,
+          canMessageProducers: true,
+          canViewProducerDetails: true,
+          canUploadBeats: false,
+          canPurchaseBeats: false,
+          canReviewBeats: false,
+          canSplitRoyalties: false,
+          canListEquipment: false,
+          canCommentOnBeats: false,
+          canSendLicensingOffers: false,
+          canSetAdvancedPricing: false,
+          canCreateBeatCollections: false,
+          canViewBeatAnalytics: false,
+          canCollaborateOnBeats: false,
+          canRequestRemixRights: false,
         }
       };
     }

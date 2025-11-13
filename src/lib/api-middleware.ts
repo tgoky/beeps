@@ -13,6 +13,28 @@ export interface AuthenticatedRequest extends NextRequest {
     canCreateStudios: boolean;
     canBookStudios: boolean;
     role: string;
+    // Producer permissions
+    canEditProducerProfile: boolean;
+    canAcceptJobs: boolean;
+    canUploadWorks: boolean;
+    canManagePortfolio: boolean;
+    // Client permissions
+    canRequestProducerService: boolean;
+    canMessageProducers: boolean;
+    canViewProducerDetails: boolean;
+    // Beat marketplace permissions
+    canUploadBeats: boolean;
+    canPurchaseBeats: boolean;
+    canReviewBeats: boolean;
+    canSplitRoyalties: boolean;
+    canListEquipment: boolean;
+    canCommentOnBeats: boolean;
+    canSendLicensingOffers: boolean;
+    canSetAdvancedPricing: boolean;
+    canCreateBeatCollections: boolean;
+    canViewBeatAnalytics: boolean;
+    canCollaborateOnBeats: boolean;
+    canRequestRemixRights: boolean;
   };
 }
 
@@ -72,11 +94,12 @@ export async function withAuth(
       }, { status: 404 });
     }
 
-    // Extract permissions from Supabase user metadata
+    // 🆕 ENHANCED: Use getUserPermissions from permissions.ts for consistent permission logic
+    const { getUserPermissions } = await import('@/lib/permissions');
+    const allPermissions = getUserPermissions(user);
+
     const permissions = {
-      canCreateStudios: supabaseUser.user_metadata?.can_create_studios || false,
-      canBookStudios: supabaseUser.user_metadata?.can_book_studios || false,
-      role: user.primaryRole
+      ...allPermissions,
     };
 
     // Attach user and permissions to request
@@ -106,7 +129,19 @@ export async function withAuth(
 // PERMISSION-BASED AUTHORIZATION MIDDLEWARE
 // ============================================================================
 
-type PermissionAction = 'createStudios' | 'bookStudios';
+type PermissionAction =
+  | 'createStudios'
+  | 'bookStudios'
+  | 'editProducerProfile'
+  | 'acceptJobs'
+  | 'requestProducerService'
+  | 'uploadBeats'
+  | 'purchaseBeats'
+  | 'reviewBeats'
+  | 'commentOnBeats'
+  | 'sendLicensingOffers'
+  | 'viewBeatAnalytics'
+  | 'collaborateOnBeats';
 
 export function withPermission(
   requiredPermission: PermissionAction,
@@ -133,6 +168,36 @@ export function withPermission(
         break;
       case 'bookStudios':
         hasPermission = permissions.canBookStudios;
+        break;
+      case 'editProducerProfile':
+        hasPermission = permissions.canEditProducerProfile;
+        break;
+      case 'acceptJobs':
+        hasPermission = permissions.canAcceptJobs;
+        break;
+      case 'requestProducerService':
+        hasPermission = permissions.canRequestProducerService;
+        break;
+      case 'uploadBeats':
+        hasPermission = permissions.canUploadBeats;
+        break;
+      case 'purchaseBeats':
+        hasPermission = permissions.canPurchaseBeats;
+        break;
+      case 'reviewBeats':
+        hasPermission = permissions.canReviewBeats;
+        break;
+      case 'commentOnBeats':
+        hasPermission = permissions.canCommentOnBeats;
+        break;
+      case 'sendLicensingOffers':
+        hasPermission = permissions.canSendLicensingOffers;
+        break;
+      case 'viewBeatAnalytics':
+        hasPermission = permissions.canViewBeatAnalytics;
+        break;
+      case 'collaborateOnBeats':
+        hasPermission = permissions.canCollaborateOnBeats;
         break;
     }
 
@@ -349,6 +414,26 @@ export function hasPermission(
       return permissions.canCreateStudios;
     case 'bookStudios':
       return permissions.canBookStudios;
+    case 'editProducerProfile':
+      return permissions.canEditProducerProfile;
+    case 'acceptJobs':
+      return permissions.canAcceptJobs;
+    case 'requestProducerService':
+      return permissions.canRequestProducerService;
+    case 'uploadBeats':
+      return permissions.canUploadBeats;
+    case 'purchaseBeats':
+      return permissions.canPurchaseBeats;
+    case 'reviewBeats':
+      return permissions.canReviewBeats;
+    case 'commentOnBeats':
+      return permissions.canCommentOnBeats;
+    case 'sendLicensingOffers':
+      return permissions.canSendLicensingOffers;
+    case 'viewBeatAnalytics':
+      return permissions.canViewBeatAnalytics;
+    case 'collaborateOnBeats':
+      return permissions.canCollaborateOnBeats;
     default:
       return false;
   }
@@ -361,6 +446,25 @@ export function getUserPermissions(request: AuthenticatedRequest) {
   return request.permissions || {
     canCreateStudios: false,
     canBookStudios: false,
-    role: 'OTHER'
+    role: 'OTHER',
+    canEditProducerProfile: false,
+    canAcceptJobs: false,
+    canUploadWorks: false,
+    canManagePortfolio: false,
+    canRequestProducerService: false,
+    canMessageProducers: true,
+    canViewProducerDetails: true,
+    canUploadBeats: false,
+    canPurchaseBeats: false,
+    canReviewBeats: false,
+    canSplitRoyalties: false,
+    canListEquipment: false,
+    canCommentOnBeats: false,
+    canSendLicensingOffers: false,
+    canSetAdvancedPricing: false,
+    canCreateBeatCollections: false,
+    canViewBeatAnalytics: false,
+    canCollaborateOnBeats: false,
+    canRequestRemixRights: false,
   };
 }
