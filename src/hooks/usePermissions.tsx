@@ -32,6 +32,47 @@ export interface UserPermissions {
   canViewBeatAnalytics: boolean;
   canCollaborateOnBeats: boolean;
   canRequestRemixRights: boolean;
+  // Collabs & Deals permissions
+  canCreateDeals: boolean;
+  canCreateCollabs: boolean;
+  canCreateBids: boolean;
+  canBookSessions: boolean;
+  canMessageSessionHosts: boolean;
+  canNegotiateCollabTerms: boolean;
+  canPlaceBids: boolean;
+  canAcceptBids: boolean;
+  canReportSessions: boolean;
+  canAccessFlashDeals: boolean;
+  canViewSessionAnalytics: boolean;
+  canManageOwnSessions: boolean;
+  // Equipment/Gear permissions
+  canListGearForSale: boolean;
+  canListGearForRent: boolean;
+  canPurchaseGear: boolean;
+  canRentGear: boolean;
+  canCreateGearAuction: boolean;
+  canPlaceGearBids: boolean;
+  canAcceptGearBids: boolean;
+  canListVintageGear: boolean;
+  canVerifyGearOwnership: boolean;
+  canAccessVIPGearDrops: boolean;
+  canAddGearToClub: boolean;
+  canRemoveGearFromClub: boolean;
+  canRentClubGear: boolean;
+  canManageClubGearInventory: boolean;
+  canInitiateGroupRental: boolean;
+  canJoinGroupRental: boolean;
+  canSplitRentalCosts: boolean;
+  canReviewGear: boolean;
+  canReportGear: boolean;
+  canViewGearAnalytics: boolean;
+  canManageOwnGearListings: boolean;
+  canOfferGearDelivery: boolean;
+  canRequestLocalPickup: boolean;
+  canAccessGeofencedGear: boolean;
+  canAccessPremiumGear: boolean;
+  hasGearCollectorTier: boolean;
+  isCertifiedGearDealer: boolean;
 }
 
 export const usePermissions = () => {
@@ -72,6 +113,33 @@ export const usePermissions = () => {
     canAccessFlashDeals: false,
     canViewSessionAnalytics: false,
     canManageOwnSessions: false,
+    canListGearForSale: false,
+    canListGearForRent: false,
+    canPurchaseGear: false,
+    canRentGear: false,
+    canCreateGearAuction: false,
+    canPlaceGearBids: false,
+    canAcceptGearBids: false,
+    canListVintageGear: false,
+    canVerifyGearOwnership: false,
+    canAccessVIPGearDrops: false,
+    canAddGearToClub: false,
+    canRemoveGearFromClub: false,
+    canRentClubGear: false,
+    canManageClubGearInventory: false,
+    canInitiateGroupRental: false,
+    canJoinGroupRental: false,
+    canSplitRentalCosts: false,
+    canReviewGear: false,
+    canReportGear: false,
+    canViewGearAnalytics: false,
+    canManageOwnGearListings: false,
+    canOfferGearDelivery: false,
+    canRequestLocalPickup: false,
+    canAccessGeofencedGear: false,
+    canAccessPremiumGear: false,
+    hasGearCollectorTier: false,
+    isCertifiedGearDealer: false,
   };
 
   return {
@@ -177,6 +245,33 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
     canAccessFlashDeals: false,
     canViewSessionAnalytics: false,
     canManageOwnSessions: false,
+    canListGearForSale: false,
+    canListGearForRent: false,
+    canPurchaseGear: false,
+    canRentGear: false,
+    canCreateGearAuction: false,
+    canPlaceGearBids: false,
+    canAcceptGearBids: false,
+    canListVintageGear: false,
+    canVerifyGearOwnership: false,
+    canAccessVIPGearDrops: false,
+    canAddGearToClub: false,
+    canRemoveGearFromClub: false,
+    canRentClubGear: false,
+    canManageClubGearInventory: false,
+    canInitiateGroupRental: false,
+    canJoinGroupRental: false,
+    canSplitRentalCosts: false,
+    canReviewGear: false,
+    canReportGear: false,
+    canViewGearAnalytics: false,
+    canManageOwnGearListings: false,
+    canOfferGearDelivery: false,
+    canRequestLocalPickup: false,
+    canAccessGeofencedGear: false,
+    canAccessPremiumGear: false,
+    hasGearCollectorTier: false,
+    isCertifiedGearDealer: false,
   };
 
   return (

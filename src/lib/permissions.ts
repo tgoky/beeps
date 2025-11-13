@@ -45,6 +45,34 @@ export interface UserPermissions {
   canAccessFlashDeals: boolean;         // Premium feature
   canViewSessionAnalytics: boolean;     // Session creators only
   canManageOwnSessions: boolean;        // Edit/delete own sessions
+  // Equipment/Gear marketplace permissions
+  canListGearForSale: boolean;          // List equipment for sale
+  canListGearForRent: boolean;          // List equipment for rent
+  canPurchaseGear: boolean;             // Buy equipment
+  canRentGear: boolean;                 // Rent equipment
+  canCreateGearAuction: boolean;        // Create auction listings
+  canPlaceGearBids: boolean;            // Bid on auctions
+  canAcceptGearBids: boolean;           // Accept bids on own auctions
+  canListVintageGear: boolean;          // List vintage/high-value gear (requires verification)
+  canVerifyGearOwnership: boolean;      // Upload proof of ownership
+  canAccessVIPGearDrops: boolean;       // Access exclusive gear drops
+  canAddGearToClub: boolean;            // Add gear to club inventory
+  canRemoveGearFromClub: boolean;       // Remove gear from club inventory
+  canRentClubGear: boolean;             // Rent gear owned by clubs
+  canManageClubGearInventory: boolean;  // Manage club gear as admin
+  canInitiateGroupRental: boolean;      // Start group rental (3+ people)
+  canJoinGroupRental: boolean;          // Join existing group rental
+  canSplitRentalCosts: boolean;         // Participate in cost splitting
+  canReviewGear: boolean;               // Review equipment after rental/purchase
+  canReportGear: boolean;               // Report fraudulent listings
+  canViewGearAnalytics: boolean;        // View analytics on own listings
+  canManageOwnGearListings: boolean;    // Edit/delete own gear listings
+  canOfferGearDelivery: boolean;        // Offer delivery service
+  canRequestLocalPickup: boolean;       // Request local pickup
+  canAccessGeofencedGear: boolean;      // Access location-restricted gear
+  canAccessPremiumGear: boolean;        // Access premium/exclusive gear
+  hasGearCollectorTier: boolean;        // Gear collector tier status
+  isCertifiedGearDealer: boolean;       // Certified dealer status
 }
 
 /**
@@ -75,6 +103,16 @@ export function canPerformAction(
     | 'placeBids'
     | 'acceptBids'
     | 'viewSessionAnalytics'
+    | 'listGearForSale'
+    | 'listGearForRent'
+    | 'purchaseGear'
+    | 'rentGear'
+    | 'createGearAuction'
+    | 'placeGearBids'
+    | 'reviewGear'
+    | 'accessVIPGearDrops'
+    | 'manageClubGearInventory'
+    | 'initiateGroupRental'
 ): boolean {
   switch (action) {
     case 'createStudios':
@@ -119,6 +157,26 @@ export function canPerformAction(
       return permissions.canAcceptBids;
     case 'viewSessionAnalytics':
       return permissions.canViewSessionAnalytics;
+    case 'listGearForSale':
+      return permissions.canListGearForSale;
+    case 'listGearForRent':
+      return permissions.canListGearForRent;
+    case 'purchaseGear':
+      return permissions.canPurchaseGear;
+    case 'rentGear':
+      return permissions.canRentGear;
+    case 'createGearAuction':
+      return permissions.canCreateGearAuction;
+    case 'placeGearBids':
+      return permissions.canPlaceGearBids;
+    case 'reviewGear':
+      return permissions.canReviewGear;
+    case 'accessVIPGearDrops':
+      return permissions.canAccessVIPGearDrops;
+    case 'manageClubGearInventory':
+      return permissions.canManageClubGearInventory;
+    case 'initiateGroupRental':
+      return permissions.canInitiateGroupRental;
     default:
       return false;
   }
@@ -172,6 +230,34 @@ export const roleCapabilities = {
     canAccessFlashDeals: false,          // Upgrade for premium
     canViewSessionAnalytics: false,
     canManageOwnSessions: true,          // Can manage own collabs
+    // Equipment/Gear marketplace permissions
+    canListGearForSale: true,            // Artists can sell personal gear
+    canListGearForRent: true,            // Can rent out gear
+    canPurchaseGear: true,               // Can buy equipment
+    canRentGear: true,                   // Can rent equipment
+    canCreateGearAuction: false,         // No auction creation
+    canPlaceGearBids: true,              // Can bid on auctions
+    canAcceptGearBids: false,            // Cannot accept bids
+    canListVintageGear: false,           // No vintage gear listing
+    canVerifyGearOwnership: true,        // Can verify ownership
+    canAccessVIPGearDrops: false,        // No VIP access
+    canAddGearToClub: true,              // Can add to club
+    canRemoveGearFromClub: false,        // Cannot remove (admin only)
+    canRentClubGear: true,               // Can rent club gear
+    canManageClubGearInventory: false,   // No inventory management
+    canInitiateGroupRental: true,        // Can start group rentals
+    canJoinGroupRental: true,            // Can join group rentals
+    canSplitRentalCosts: true,           // Can split costs
+    canReviewGear: true,                 // Can review gear
+    canReportGear: true,                 // Can report gear
+    canViewGearAnalytics: false,         // No analytics
+    canManageOwnGearListings: true,      // Can manage own listings
+    canOfferGearDelivery: false,         // No delivery service
+    canRequestLocalPickup: true,         // Can request pickup
+    canAccessGeofencedGear: true,        // Can access local gear
+    canAccessPremiumGear: false,         // No premium access
+    hasGearCollectorTier: false,         // No collector status
+    isCertifiedGearDealer: false,        // Not a dealer
   },
   PRODUCER: {
     canUploadSnippets: true,
@@ -216,6 +302,34 @@ export const roleCapabilities = {
     canAccessFlashDeals: true,           // Producers get premium access
     canViewSessionAnalytics: true,       // Can view analytics on own sessions
     canManageOwnSessions: true,          // Can manage own sessions
+    // Equipment/Gear marketplace permissions
+    canListGearForSale: true,            // Producers can sell gear
+    canListGearForRent: true,            // Can rent out gear
+    canPurchaseGear: true,               // Can buy equipment
+    canRentGear: true,                   // Can rent equipment
+    canCreateGearAuction: true,          // Can create auctions
+    canPlaceGearBids: true,              // Can bid on auctions
+    canAcceptGearBids: true,             // Can accept bids on own auctions
+    canListVintageGear: true,            // Can list vintage gear (with verification)
+    canVerifyGearOwnership: true,        // Can verify ownership
+    canAccessVIPGearDrops: true,         // VIP access for producers
+    canAddGearToClub: true,              // Can add to club
+    canRemoveGearFromClub: false,        // Cannot remove (admin only)
+    canRentClubGear: true,               // Can rent club gear
+    canManageClubGearInventory: false,   // No inventory management (admin only)
+    canInitiateGroupRental: true,        // Can start group rentals
+    canJoinGroupRental: true,            // Can join group rentals
+    canSplitRentalCosts: true,           // Can split costs
+    canReviewGear: true,                 // Can review gear
+    canReportGear: true,                 // Can report gear
+    canViewGearAnalytics: true,          // Can view analytics on own listings
+    canManageOwnGearListings: true,      // Can manage own listings
+    canOfferGearDelivery: true,          // Can offer delivery
+    canRequestLocalPickup: true,         // Can request pickup
+    canAccessGeofencedGear: true,        // Can access local gear
+    canAccessPremiumGear: true,          // Premium gear access
+    hasGearCollectorTier: false,         // No auto collector status
+    isCertifiedGearDealer: false,        // Not auto certified
   },
   STUDIO_OWNER: {
     canUploadSnippets: false,
@@ -260,6 +374,34 @@ export const roleCapabilities = {
     canAccessFlashDeals: true,           // Studio owners get premium access
     canViewSessionAnalytics: true,       // Can view analytics on own sessions
     canManageOwnSessions: true,
+    // Equipment/Gear marketplace permissions
+    canListGearForSale: true,            // Can list professional gear
+    canListGearForRent: true,            // Can rent out studio equipment
+    canPurchaseGear: true,               // Can buy equipment
+    canRentGear: true,                   // Can rent equipment
+    canCreateGearAuction: true,          // Can create auctions
+    canPlaceGearBids: true,              // Can bid on auctions
+    canAcceptGearBids: true,             // Can accept bids
+    canListVintageGear: true,            // Can list vintage gear
+    canVerifyGearOwnership: true,        // Can verify ownership
+    canAccessVIPGearDrops: true,         // VIP access
+    canAddGearToClub: true,              // Can add to club
+    canRemoveGearFromClub: true,         // Studio owners can manage club inventory
+    canRentClubGear: false,              // Owns, doesn't rent
+    canManageClubGearInventory: true,    // Can manage inventory as business owner
+    canInitiateGroupRental: false,       // Doesn't rent
+    canJoinGroupRental: false,           // Doesn't rent
+    canSplitRentalCosts: false,          // Doesn't rent
+    canReviewGear: true,                 // Can review gear
+    canReportGear: true,                 // Can report gear
+    canViewGearAnalytics: true,          // Full analytics
+    canManageOwnGearListings: true,      // Can manage own listings
+    canOfferGearDelivery: true,          // Can offer delivery
+    canRequestLocalPickup: false,        // Doesn't need pickup
+    canAccessGeofencedGear: true,        // Can access local gear
+    canAccessPremiumGear: true,          // Premium access
+    hasGearCollectorTier: false,         // Business, not collector
+    isCertifiedGearDealer: false,        // Not auto certified (business entity)
   },
   GEAR_SALES: {
     canUploadSnippets: false,
@@ -304,6 +446,34 @@ export const roleCapabilities = {
     canAccessFlashDeals: false,          // Basic tier
     canViewSessionAnalytics: false,
     canManageOwnSessions: false,
+    // Equipment/Gear marketplace permissions - FULL ACCESS (Primary marketplace)
+    canListGearForSale: true,            // FULL - primary function
+    canListGearForRent: true,            // FULL - can rent gear
+    canPurchaseGear: true,               // Can buy for inventory
+    canRentGear: true,                   // Can rent equipment
+    canCreateGearAuction: true,          // FULL - can create auctions
+    canPlaceGearBids: true,              // Can bid on auctions
+    canAcceptGearBids: true,             // FULL - can accept bids
+    canListVintageGear: true,            // FULL - specialty vintage gear
+    canVerifyGearOwnership: true,        // FULL - can verify authenticity
+    canAccessVIPGearDrops: true,         // FULL - VIP dealer access
+    canAddGearToClub: true,              // Can add to club
+    canRemoveGearFromClub: true,         // Can manage club inventory
+    canRentClubGear: true,               // Can rent club gear
+    canManageClubGearInventory: true,    // FULL - can manage as dealer
+    canInitiateGroupRental: true,        // Can start group rentals
+    canJoinGroupRental: true,            // Can join group rentals
+    canSplitRentalCosts: true,           // Can split costs
+    canReviewGear: true,                 // Can review gear
+    canReportGear: true,                 // Can report gear
+    canViewGearAnalytics: true,          // FULL - analytics on own listings
+    canManageOwnGearListings: true,      // FULL - manage all listings
+    canOfferGearDelivery: true,          // FULL - professional delivery
+    canRequestLocalPickup: true,         // Can request pickup
+    canAccessGeofencedGear: true,        // Can access local gear
+    canAccessPremiumGear: true,          // FULL - premium dealer access
+    hasGearCollectorTier: true,          // FULL - gear collector tier
+    isCertifiedGearDealer: true,         // FULL - certified dealer status
   },
   LYRICIST: {
     canUploadSnippets: true,
@@ -348,6 +518,34 @@ export const roleCapabilities = {
     canAccessFlashDeals: false,          // Upgrade for premium
     canViewSessionAnalytics: false,
     canManageOwnSessions: true,          // Can manage own collabs
+    // Equipment/Gear marketplace permissions
+    canListGearForSale: true,            // Can sell personal gear
+    canListGearForRent: true,            // Can rent out gear
+    canPurchaseGear: true,               // Can buy equipment
+    canRentGear: true,                   // Can rent equipment
+    canCreateGearAuction: false,         // No auction creation
+    canPlaceGearBids: true,              // Can bid on auctions
+    canAcceptGearBids: false,            // Cannot accept bids
+    canListVintageGear: false,           // No vintage gear
+    canVerifyGearOwnership: true,        // Can verify ownership
+    canAccessVIPGearDrops: false,        // No VIP access
+    canAddGearToClub: true,              // Can add to club
+    canRemoveGearFromClub: false,        // Cannot remove
+    canRentClubGear: true,               // Can rent club gear
+    canManageClubGearInventory: false,   // No inventory management
+    canInitiateGroupRental: true,        // Can start group rentals
+    canJoinGroupRental: true,            // Can join group rentals
+    canSplitRentalCosts: true,           // Can split costs
+    canReviewGear: true,                 // Can review gear
+    canReportGear: true,                 // Can report gear
+    canViewGearAnalytics: false,         // No analytics
+    canManageOwnGearListings: true,      // Can manage own listings
+    canOfferGearDelivery: false,         // No delivery service
+    canRequestLocalPickup: true,         // Can request pickup
+    canAccessGeofencedGear: true,        // Can access local gear
+    canAccessPremiumGear: false,         // No premium access
+    hasGearCollectorTier: false,         // No collector status
+    isCertifiedGearDealer: false,        // Not a dealer
   },
   OTHER: {
     canUploadSnippets: false,
@@ -392,6 +590,34 @@ export const roleCapabilities = {
     canAccessFlashDeals: false,
     canViewSessionAnalytics: false,
     canManageOwnSessions: false,
+    // Equipment/Gear marketplace permissions
+    canListGearForSale: false,           // Very limited - cannot sell
+    canListGearForRent: false,           // Cannot rent out
+    canPurchaseGear: true,               // Can buy equipment
+    canRentGear: true,                   // Can rent equipment
+    canCreateGearAuction: false,         // No auction creation
+    canPlaceGearBids: false,             // Cannot bid
+    canAcceptGearBids: false,            // Cannot accept bids
+    canListVintageGear: false,           // No vintage gear
+    canVerifyGearOwnership: false,       // No verification
+    canAccessVIPGearDrops: false,        // No VIP access
+    canAddGearToClub: false,             // Cannot add to club
+    canRemoveGearFromClub: false,        // Cannot remove
+    canRentClubGear: true,               // Can rent club gear
+    canManageClubGearInventory: false,   // No inventory management
+    canInitiateGroupRental: false,       // Cannot start group rentals
+    canJoinGroupRental: true,            // Can join existing group rentals
+    canSplitRentalCosts: true,           // Can split costs
+    canReviewGear: true,                 // Can review gear
+    canReportGear: true,                 // Can report gear
+    canViewGearAnalytics: false,         // No analytics
+    canManageOwnGearListings: false,     // No listings to manage
+    canOfferGearDelivery: false,         // No delivery service
+    canRequestLocalPickup: true,         // Can request pickup
+    canAccessGeofencedGear: true,        // Can access local gear
+    canAccessPremiumGear: false,         // No premium access
+    hasGearCollectorTier: false,         // No collector status
+    isCertifiedGearDealer: false,        // Not a dealer
   }
 } as const;
 
@@ -513,6 +739,34 @@ export function getUserPermissions(user: {
     canAccessFlashDeals: capabilities.canAccessFlashDeals,
     canViewSessionAnalytics: capabilities.canViewSessionAnalytics,
     canManageOwnSessions: capabilities.canManageOwnSessions,
+    // Equipment/Gear marketplace permissions
+    canListGearForSale: capabilities.canListGearForSale,
+    canListGearForRent: capabilities.canListGearForRent,
+    canPurchaseGear: capabilities.canPurchaseGear,
+    canRentGear: capabilities.canRentGear,
+    canCreateGearAuction: capabilities.canCreateGearAuction,
+    canPlaceGearBids: capabilities.canPlaceGearBids,
+    canAcceptGearBids: capabilities.canAcceptGearBids,
+    canListVintageGear: capabilities.canListVintageGear,
+    canVerifyGearOwnership: capabilities.canVerifyGearOwnership,
+    canAccessVIPGearDrops: capabilities.canAccessVIPGearDrops,
+    canAddGearToClub: capabilities.canAddGearToClub,
+    canRemoveGearFromClub: capabilities.canRemoveGearFromClub,
+    canRentClubGear: capabilities.canRentClubGear,
+    canManageClubGearInventory: capabilities.canManageClubGearInventory,
+    canInitiateGroupRental: capabilities.canInitiateGroupRental,
+    canJoinGroupRental: capabilities.canJoinGroupRental,
+    canSplitRentalCosts: capabilities.canSplitRentalCosts,
+    canReviewGear: capabilities.canReviewGear,
+    canReportGear: capabilities.canReportGear,
+    canViewGearAnalytics: capabilities.canViewGearAnalytics,
+    canManageOwnGearListings: capabilities.canManageOwnGearListings,
+    canOfferGearDelivery: capabilities.canOfferGearDelivery,
+    canRequestLocalPickup: capabilities.canRequestLocalPickup,
+    canAccessGeofencedGear: capabilities.canAccessGeofencedGear,
+    canAccessPremiumGear: capabilities.canAccessPremiumGear,
+    hasGearCollectorTier: capabilities.hasGearCollectorTier,
+    isCertifiedGearDealer: capabilities.isCertifiedGearDealer,
   };
 }
 
