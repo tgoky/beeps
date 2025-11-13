@@ -39,7 +39,19 @@ import {
   Briefcase,
   Volume2,
   Upload,
-  X
+  X,
+  DollarSign,
+  Coins,
+  Gift,
+  Filter,
+  Shuffle,
+  Radio,
+  Calendar,
+  Eye,
+  ThumbsUp,
+  Star,
+  Target,
+  Rocket
 } from "lucide-react";
 
 // Role display configuration
@@ -156,10 +168,15 @@ interface Post {
     id: string;
     username: string;
     avatar: string | null;
-    badges?: string[]; // verified, grammy, platinum, etc.
+    badges?: string[];
+    portfolio?: {
+      genre?: string;
+      vocalRange?: string;
+      beatsCatalog?: number;
+    };
   };
   content: string;
-  postType?: string; // beat, vocal_demo, collab, etc.
+  postType?: string;
   audioUrl?: string | null;
   imageUrl: string | null;
   videoUrl: string | null;
@@ -172,6 +189,7 @@ interface Post {
   likesCount: number;
   commentsCount: number;
   sharesCount: number;
+  tipsReceived?: number;
   createdAt: string;
 }
 
@@ -211,6 +229,70 @@ const badges: Record<string, { icon: JSX.Element; color: string; label: string }
   certified: { icon: <Award className="w-3 h-3" />, color: "text-emerald-500", label: "Studio Certified" },
 };
 
+// Live Events - Beat Battles, Vocal Roulette, Speed Dating
+const liveEvents = [
+  {
+    id: 1,
+    type: "beat_battle",
+    title: "Lo-Fi Beat Battle",
+    description: "Vote for the best 60-second beat",
+    timeLeft: "2h 15m",
+    participants: 24,
+    viewers: 892,
+    prize: "$500",
+    status: "live"
+  },
+  {
+    id: 2,
+    type: "vocal_roulette",
+    title: "Vocal Roulette: Trap Edition",
+    description: "Random beats, instant vocals",
+    timeLeft: "Live Now",
+    participants: 12,
+    viewers: 456,
+    status: "live"
+  },
+  {
+    id: 3,
+    type: "speed_dating",
+    title: "Producer x Artist Mixer",
+    description: "60-sec speed collabs",
+    timeLeft: "Tomorrow 8PM",
+    participants: 50,
+    genre: "Hip Hop",
+    status: "upcoming"
+  }
+];
+
+// Smart Discovery - For You suggestions
+const forYouSuggestions = [
+  {
+    id: 1,
+    reason: "Matches your genre (Trap)",
+    creator: {
+      username: "TrapMakerPro",
+      avatar: "https://randomuser.me/api/portraits/men/32.jpg",
+      badges: ["verified", "platinum"]
+    },
+    content: "New trap beat in F# minor, 140 BPM",
+    metadata: { bpm: 140, key: "F#m", genre: "Trap" },
+    audioUrl: "/beats/sample1.mp3",
+    matchScore: 95
+  },
+  {
+    id: 2,
+    reason: "Vocal range match (Tenor)",
+    creator: {
+      username: "VocalistKing",
+      avatar: "https://randomuser.me/api/portraits/men/45.jpg",
+      badges: ["verified"]
+    },
+    content: "Looking for melodic trap beats",
+    metadata: { vocalRange: "Tenor", genre: "Trap" },
+    matchScore: 88
+  }
+];
+
 export default function CommunityPage() {
   const params = useParams();
   const router = useRouter();
@@ -221,10 +303,17 @@ export default function CommunityPage() {
   const config = roleConfig[role] || roleConfig.OTHER;
 
   const [postContent, setPostContent] = useState("");
-  const [activeTab, setActiveTab] = useState<"feed" | "trending" | "briefs" | "clubs">("feed");
+  const [activeTab, setActiveTab] = useState<"feed" | "for-you" | "live" | "briefs" | "trending" | "clubs">("feed");
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showTipModal, setShowTipModal] = useState(false);
   const [selectedPostType, setSelectedPostType] = useState<string | null>(null);
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
+  const [tipAmount, setTipAmount] = useState("5");
+  const [selectedTipPost, setSelectedTipPost] = useState<string | null>(null);
+
+  // Smart Discovery Filters
+  const [genreFilter, setGenreFilter] = useState("all");
+  const [bpmFilter, setBpmFilter] = useState("all");
 
   // Data states
   const [posts, setPosts] = useState<Post[]>([]);
@@ -332,6 +421,14 @@ export default function CommunityPage() {
     setPlayingAudio(playingAudio === postId ? null : postId);
   };
 
+  const handleSendTip = () => {
+    // In production, integrate with payment processor
+    console.log(`Sending $${tipAmount} tip to post ${selectedTipPost}`);
+    setShowTipModal(false);
+    setTipAmount("5");
+    setSelectedTipPost(null);
+  };
+
   return (
     <div className={`min-h-screen ${
       theme === "dark" ? "bg-black text-white" : "bg-gray-50 text-gray-900"
@@ -396,6 +493,8 @@ export default function CommunityPage() {
           }`}>
             {[
               { key: "feed", label: "Feed", icon: Zap },
+              { key: "for-you", label: "For You", icon: Target },
+              { key: "live", label: "Live Events", icon: Radio },
               { key: "briefs", label: "Open Briefs", icon: Briefcase },
               { key: "trending", label: "Trending", icon: TrendingUp },
               { key: "clubs", label: "Clubs", icon: Users }
@@ -423,6 +522,106 @@ export default function CommunityPage() {
           </div>
         </div>
       </div>
+
+      {/* Tip Modal */}
+      {showTipModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className={`w-full max-w-md rounded-xl border p-6 ${
+            theme === "dark"
+              ? "bg-zinc-900 border-zinc-800"
+              : "bg-white border-gray-200"
+          }`}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Gift className={`w-5 h-5 ${theme === "dark" ? "text-yellow-400" : "text-yellow-500"}`} strokeWidth={2} />
+                <h3 className="text-base font-light tracking-tight">Send Tip</h3>
+              </div>
+              <button
+                onClick={() => setShowTipModal(false)}
+                className={`p-1 rounded transition-colors ${
+                  theme === "dark" ? "hover:bg-zinc-800" : "hover:bg-gray-100"
+                }`}
+              >
+                <X className="w-4 h-4" strokeWidth={2} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className={`block text-xs font-light tracking-wide mb-2 ${
+                  theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                }`}>
+                  Amount
+                </label>
+                <div className="grid grid-cols-4 gap-2 mb-3">
+                  {["5", "10", "25", "50"].map((amount) => (
+                    <button
+                      key={amount}
+                      onClick={() => setTipAmount(amount)}
+                      className={`px-3 py-2 rounded-lg text-sm font-light tracking-wide transition-all ${
+                        tipAmount === amount
+                          ? theme === "dark"
+                            ? "bg-white text-black"
+                            : "bg-black text-white"
+                          : theme === "dark"
+                            ? "border border-zinc-800 hover:border-zinc-700"
+                            : "border border-gray-200 hover:border-gray-300"
+                      }`}
+                    >
+                      ${amount}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="number"
+                  value={tipAmount}
+                  onChange={(e) => setTipAmount(e.target.value)}
+                  placeholder="Custom amount"
+                  className={`w-full px-3 py-2 text-sm font-light bg-transparent border rounded-lg focus:outline-none tracking-wide ${
+                    theme === "dark"
+                      ? "border-zinc-800 text-white placeholder-zinc-600 focus:border-white"
+                      : "border-gray-200 text-gray-900 placeholder-gray-400 focus:border-black"
+                  }`}
+                />
+              </div>
+
+              <div className={`p-3 rounded-lg border ${
+                theme === "dark" ? "border-zinc-800 bg-zinc-900/50" : "border-gray-200 bg-gray-50"
+              }`}>
+                <p className={`text-xs font-light tracking-wide ${
+                  theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                }`}>
+                  Tips help support creators directly. 100% goes to the creator.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleSendTip}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-light rounded-lg transition-all tracking-wide active:scale-95 ${
+                    theme === "dark"
+                      ? "bg-white text-black hover:bg-zinc-100"
+                      : "bg-black text-white hover:bg-gray-800"
+                  }`}
+                >
+                  <Gift className="w-4 h-4" strokeWidth={2} />
+                  Send ${tipAmount}
+                </button>
+                <button
+                  onClick={() => setShowTipModal(false)}
+                  className={`px-4 py-2 text-sm font-light rounded-lg border transition-all tracking-wide active:scale-95 ${
+                    theme === "dark"
+                      ? "border-zinc-800 hover:bg-zinc-800"
+                      : "border-gray-200 hover:bg-gray-100"
+                  }`}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Create Post Modal */}
       {showCreateModal && (
@@ -529,6 +728,277 @@ export default function CommunityPage() {
 
           {/* Main Feed - 7 columns */}
           <div className="lg:col-span-7 space-y-3">
+            {/* FOR YOU TAB - Smart Discovery */}
+            {activeTab === "for-you" && (
+              <>
+                {/* Filters */}
+                <div className={`rounded-xl border p-4 ${
+                  theme === "dark"
+                    ? "border-zinc-800 bg-zinc-950"
+                    : "border-gray-200 bg-white"
+                }`}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Filter className="w-4 h-4" strokeWidth={2} />
+                    <h3 className="text-sm font-light tracking-wide">Discovery Filters</h3>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className={`block text-xs font-light tracking-wide mb-1 ${
+                        theme === "dark" ? "text-zinc-500" : "text-gray-600"
+                      }`}>Genre</label>
+                      <select
+                        value={genreFilter}
+                        onChange={(e) => setGenreFilter(e.target.value)}
+                        className={`w-full px-2 py-1.5 text-xs font-light rounded border transition-colors ${
+                          theme === "dark"
+                            ? "bg-zinc-900 border-zinc-800 text-white"
+                            : "bg-white border-gray-200 text-gray-900"
+                        }`}
+                      >
+                        <option value="all">All Genres</option>
+                        <option value="trap">Trap</option>
+                        <option value="lofi">Lo-Fi</option>
+                        <option value="rnb">R&B</option>
+                        <option value="drill">Drill</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className={`block text-xs font-light tracking-wide mb-1 ${
+                        theme === "dark" ? "text-zinc-500" : "text-gray-600"
+                      }`}>BPM</label>
+                      <select
+                        value={bpmFilter}
+                        onChange={(e) => setBpmFilter(e.target.value)}
+                        className={`w-full px-2 py-1.5 text-xs font-light rounded border transition-colors ${
+                          theme === "dark"
+                            ? "bg-zinc-900 border-zinc-800 text-white"
+                            : "bg-white border-gray-200 text-gray-900"
+                        }`}
+                      >
+                        <option value="all">All BPM</option>
+                        <option value="slow">60-90 BPM</option>
+                        <option value="mid">90-130 BPM</option>
+                        <option value="fast">130-180 BPM</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Smart Suggestions */}
+                {forYouSuggestions.map((suggestion) => (
+                  <div
+                    key={suggestion.id}
+                    className={`rounded-xl border p-4 transition-all hover:scale-[1.01] ${
+                      theme === "dark"
+                        ? "border-zinc-800 bg-zinc-950"
+                        : "border-gray-200 bg-white"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-light ${
+                        theme === "dark" ? "bg-purple-500/10 text-purple-400" : "bg-purple-100 text-purple-600"
+                      }`}>
+                        <Rocket className="w-3 h-3" strokeWidth={2} />
+                        {suggestion.matchScore}% Match
+                      </div>
+                      <span className={`text-xs font-light tracking-wide ${
+                        theme === "dark" ? "text-zinc-500" : "text-gray-600"
+                      }`}>
+                        {suggestion.reason}
+                      </span>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <div className={`w-10 h-10 rounded-full flex-shrink-0 ${config.bg} ${config.color} flex items-center justify-center`}>
+                        {suggestion.creator.avatar ? (
+                          <img
+                            src={suggestion.creator.avatar}
+                            alt={suggestion.creator.username}
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          config.icon
+                        )}
+                      </div>
+
+                      <div className="flex-1">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <span className={`text-sm font-light tracking-wide ${
+                            theme === "dark" ? "text-white" : "text-gray-900"
+                          }`}>
+                            {suggestion.creator.username}
+                          </span>
+                          {suggestion.creator.badges?.map((badge) => (
+                            <div key={badge} className={badges[badge]?.color}>
+                              {badges[badge]?.icon}
+                            </div>
+                          ))}
+                        </div>
+                        <p className={`text-sm font-light tracking-wide mb-2 ${
+                          theme === "dark" ? "text-zinc-300" : "text-gray-700"
+                        }`}>
+                          {suggestion.content}
+                        </p>
+                        {suggestion.metadata && (
+                          <div className="flex items-center gap-3 text-xs font-light">
+                            {suggestion.metadata.bpm && (
+                              <span className={theme === "dark" ? "text-zinc-500" : "text-gray-500"}>
+                                {suggestion.metadata.bpm} BPM
+                              </span>
+                            )}
+                            {suggestion.metadata.key && (
+                              <span className={theme === "dark" ? "text-zinc-500" : "text-gray-500"}>
+                                Key: {suggestion.metadata.key}
+                              </span>
+                            )}
+                            {suggestion.metadata.genre && (
+                              <span className={`px-2 py-0.5 rounded ${
+                                theme === "dark" ? "bg-zinc-800 text-zinc-400" : "bg-gray-100 text-gray-600"
+                              }`}>
+                                {suggestion.metadata.genre}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2 mt-3">
+                          <button className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-light transition-all active:scale-95 ${
+                            theme === "dark"
+                              ? "bg-white text-black hover:bg-zinc-100"
+                              : "bg-black text-white hover:bg-gray-800"
+                          }`}>
+                            <Handshake className="w-3 h-3" strokeWidth={2} />
+                            Connect
+                          </button>
+                          <button className={`p-1.5 rounded-full transition-colors ${
+                            theme === "dark" ? "hover:bg-zinc-800" : "hover:bg-gray-100"
+                          }`}>
+                            <Eye className="w-4 h-4" strokeWidth={2} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
+
+            {/* LIVE EVENTS TAB - Beat Battles, Vocal Roulette, Speed Dating */}
+            {activeTab === "live" && (
+              <div className="space-y-3">
+                {liveEvents.map((event) => (
+                  <div
+                    key={event.id}
+                    className={`rounded-xl border p-6 transition-all hover:scale-[1.01] cursor-pointer ${
+                      theme === "dark"
+                        ? "border-zinc-800 bg-zinc-950"
+                        : "border-gray-200 bg-white"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-3 rounded-xl ${
+                          event.status === "live"
+                            ? "bg-red-500/10"
+                            : "bg-purple-500/10"
+                        }`}>
+                          {event.type === "beat_battle" && (
+                            <Volume2 className={`w-5 h-5 ${
+                              event.status === "live" ? "text-red-500" : "text-purple-500"
+                            }`} strokeWidth={2} />
+                          )}
+                          {event.type === "vocal_roulette" && (
+                            <Shuffle className={`w-5 h-5 ${
+                              event.status === "live" ? "text-red-500" : "text-purple-500"
+                            }`} strokeWidth={2} />
+                          )}
+                          {event.type === "speed_dating" && (
+                            <Users className={`w-5 h-5 ${
+                              event.status === "live" ? "text-red-500" : "text-purple-500"
+                            }`} strokeWidth={2} />
+                          )}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className={`text-base font-light tracking-tight ${
+                              theme === "dark" ? "text-white" : "text-gray-900"
+                            }`}>
+                              {event.title}
+                            </h3>
+                            {event.status === "live" && (
+                              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/10">
+                                <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>
+                                <span className="text-xs font-light text-red-500">LIVE</span>
+                              </div>
+                            )}
+                          </div>
+                          <p className={`text-sm font-light tracking-wide ${
+                            theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                          }`}>
+                            {event.description}
+                          </p>
+                        </div>
+                      </div>
+                      {event.prize && (
+                        <div className={`px-3 py-1.5 rounded-lg border ${
+                          theme === "dark"
+                            ? "border-yellow-500/20 bg-yellow-500/10 text-yellow-500"
+                            : "border-yellow-600/20 bg-yellow-100 text-yellow-700"
+                        }`}>
+                          <span className="text-sm font-light tracking-wide">{event.prize}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-6 text-sm font-light">
+                      <div className="flex items-center gap-2">
+                        <Clock className={`w-4 h-4 ${
+                          theme === "dark" ? "text-zinc-500" : "text-gray-500"
+                        }`} strokeWidth={2} />
+                        <span className={theme === "dark" ? "text-zinc-400" : "text-gray-600"}>
+                          {event.timeLeft}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Users className={`w-4 h-4 ${
+                          theme === "dark" ? "text-zinc-500" : "text-gray-500"
+                        }`} strokeWidth={2} />
+                        <span className={theme === "dark" ? "text-zinc-400" : "text-gray-600"}>
+                          {event.participants} participants
+                        </span>
+                      </div>
+                      {event.viewers && (
+                        <div className="flex items-center gap-2">
+                          <Eye className={`w-4 h-4 ${
+                            theme === "dark" ? "text-zinc-500" : "text-gray-500"
+                          }`} strokeWidth={2} />
+                          <span className={theme === "dark" ? "text-zinc-400" : "text-gray-600"}>
+                            {formatNumber(event.viewers)} watching
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mt-4 pt-4 border-t ${
+                      theme === 'dark' ? 'border-zinc-800' : 'border-gray-200'
+                    }">
+                      <button className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-light rounded-lg transition-all tracking-wide active:scale-95 ${
+                        event.status === "live"
+                          ? theme === "dark"
+                            ? "bg-red-500 text-white hover:bg-red-600"
+                            : "bg-red-600 text-white hover:bg-red-700"
+                          : theme === "dark"
+                            ? "bg-white text-black hover:bg-zinc-100"
+                            : "bg-black text-white hover:bg-gray-800"
+                      }`}>
+                        <Radio className="w-4 h-4" strokeWidth={2} />
+                        {event.status === "live" ? "Join Live" : "Set Reminder"}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {activeTab === "feed" && (
               <>
                 {/* Quick Create */}
@@ -548,9 +1018,9 @@ export default function CommunityPage() {
                     </div>
                     <span className="text-sm font-light tracking-wide">What's happening?</span>
                   </button>
-                  <div className="flex items-center gap-2 mt-3 pt-3 border-t ${
+                  <div className={`flex items-center gap-2 mt-3 pt-3 border-t ${
                     theme === 'dark' ? 'border-zinc-800' : 'border-gray-200'
-                  }">
+                  }`}>
                     {config.postTypes.slice(0, 4).map((type, i) => (
                       <button
                         key={i}
@@ -571,7 +1041,7 @@ export default function CommunityPage() {
                   </div>
                 </div>
 
-                {/* Posts Feed */}
+                {/* Posts Feed - With Tip Jars */}
                 {isLoadingPosts ? (
                   <div className={`rounded-xl border p-6 text-center ${
                     theme === "dark"
@@ -606,7 +1076,6 @@ export default function CommunityPage() {
                       }`}
                     >
                       <div className="flex gap-2">
-                        {/* Avatar */}
                         <div className={`w-8 h-8 rounded-full flex-shrink-0 ${config.bg} ${config.color} flex items-center justify-center`}>
                           {post.author.avatar ? (
                             <img
@@ -619,9 +1088,7 @@ export default function CommunityPage() {
                           )}
                         </div>
 
-                        {/* Content */}
                         <div className="flex-1 min-w-0">
-                          {/* Header */}
                           <div className="flex items-center justify-between mb-1">
                             <div className="flex items-center gap-1.5 min-w-0">
                               <span className={`text-sm font-light tracking-wide truncate ${
@@ -649,7 +1116,6 @@ export default function CommunityPage() {
                             </button>
                           </div>
 
-                          {/* Post Type Badge */}
                           {post.postType && (
                             <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-light tracking-wide mb-2 ${
                               theme === "dark" ? "bg-zinc-800 text-zinc-400" : "bg-gray-100 text-gray-600"
@@ -659,14 +1125,12 @@ export default function CommunityPage() {
                             </div>
                           )}
 
-                          {/* Post Content */}
                           <p className={`text-sm font-light leading-relaxed mb-2 tracking-wide ${
                             theme === "dark" ? "text-zinc-200" : "text-gray-800"
                           }`}>
                             {post.content}
                           </p>
 
-                          {/* Audio Player (for beats/vocals) */}
                           {post.audioUrl && (
                             <div className={`mb-2 p-3 rounded-lg border ${
                               theme === "dark" ? "border-zinc-800 bg-zinc-900" : "border-gray-200 bg-gray-50"
@@ -706,7 +1170,6 @@ export default function CommunityPage() {
                             </div>
                           )}
 
-                          {/* Media */}
                           {post.imageUrl && (
                             <div className={`mb-2 rounded-lg overflow-hidden border ${
                               theme === 'dark' ? 'border-zinc-800' : 'border-gray-200'
@@ -719,7 +1182,6 @@ export default function CommunityPage() {
                             </div>
                           )}
 
-                          {/* Collaboration Actions */}
                           {(post.postType === 'beat' || post.postType === 'collab') && (
                             <div className="flex items-center gap-2 mb-2">
                               <button className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-light transition-all active:scale-95 ${
@@ -743,7 +1205,6 @@ export default function CommunityPage() {
                             </div>
                           )}
 
-                          {/* Actions */}
                           <div className="flex items-center gap-6 mt-2">
                             <button className={`flex items-center gap-1 transition-colors group ${
                               theme === "dark"
@@ -768,6 +1229,23 @@ export default function CommunityPage() {
                             }`}>
                               <Share2 className="w-4 h-4" strokeWidth={2} />
                               <span className="text-xs font-light">{formatNumber(post.sharesCount)}</span>
+                            </button>
+                            {/* TIP JAR */}
+                            <button
+                              onClick={() => {
+                                setSelectedTipPost(post.id);
+                                setShowTipModal(true);
+                              }}
+                              className={`flex items-center gap-1 transition-colors group ${
+                                theme === "dark"
+                                  ? "text-zinc-600 hover:text-yellow-400"
+                                  : "text-gray-500 hover:text-yellow-500"
+                              }`}
+                            >
+                              <Coins className="w-4 h-4" strokeWidth={2} />
+                              {post.tipsReceived && post.tipsReceived > 0 && (
+                                <span className="text-xs font-light">${post.tipsReceived}</span>
+                              )}
                             </button>
                             <button className={`ml-auto transition-colors ${
                               theme === "dark"
