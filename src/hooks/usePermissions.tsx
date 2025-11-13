@@ -5,75 +5,7 @@
 "use client";
 
 import { useGetIdentity } from "@refinedev/core";
-
-export interface UserPermissions {
-  canCreateStudios: boolean;
-  canBookStudios: boolean;
-  role: string;
-  // Producer-specific permissions
-  canEditProducerProfile: boolean;
-  canAcceptJobs: boolean;
-  canUploadWorks: boolean;
-  canManagePortfolio: boolean;
-  // Client permissions
-  canRequestProducerService: boolean;
-  canMessageProducers: boolean;
-  canViewProducerDetails: boolean;
-  // Beat marketplace permissions
-  canUploadBeats: boolean;
-  canPurchaseBeats: boolean;
-  canReviewBeats: boolean;
-  canSplitRoyalties: boolean;
-  canListEquipment: boolean;
-  canCommentOnBeats: boolean;
-  canSendLicensingOffers: boolean;
-  canSetAdvancedPricing: boolean;
-  canCreateBeatCollections: boolean;
-  canViewBeatAnalytics: boolean;
-  canCollaborateOnBeats: boolean;
-  canRequestRemixRights: boolean;
-  // Collabs & Deals permissions
-  canCreateDeals: boolean;
-  canCreateCollabs: boolean;
-  canCreateBids: boolean;
-  canBookSessions: boolean;
-  canMessageSessionHosts: boolean;
-  canNegotiateCollabTerms: boolean;
-  canPlaceBids: boolean;
-  canAcceptBids: boolean;
-  canReportSessions: boolean;
-  canAccessFlashDeals: boolean;
-  canViewSessionAnalytics: boolean;
-  canManageOwnSessions: boolean;
-  // Equipment/Gear permissions
-  canListGearForSale: boolean;
-  canListGearForRent: boolean;
-  canPurchaseGear: boolean;
-  canRentGear: boolean;
-  canCreateGearAuction: boolean;
-  canPlaceGearBids: boolean;
-  canAcceptGearBids: boolean;
-  canListVintageGear: boolean;
-  canVerifyGearOwnership: boolean;
-  canAccessVIPGearDrops: boolean;
-  canAddGearToClub: boolean;
-  canRemoveGearFromClub: boolean;
-  canRentClubGear: boolean;
-  canManageClubGearInventory: boolean;
-  canInitiateGroupRental: boolean;
-  canJoinGroupRental: boolean;
-  canSplitRentalCosts: boolean;
-  canReviewGear: boolean;
-  canReportGear: boolean;
-  canViewGearAnalytics: boolean;
-  canManageOwnGearListings: boolean;
-  canOfferGearDelivery: boolean;
-  canRequestLocalPickup: boolean;
-  canAccessGeofencedGear: boolean;
-  canAccessPremiumGear: boolean;
-  hasGearCollectorTier: boolean;
-  isCertifiedGearDealer: boolean;
-}
+import type { UserPermissions } from "@/types";
 
 export const usePermissions = () => {
   const { data: identity } = useGetIdentity<any>();
