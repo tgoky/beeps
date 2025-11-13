@@ -377,7 +377,7 @@ const _roleCapabilities = {
     canPostLyricsToClub: true,           // Can share lyrics to clubs
     canPostLyricsToFollowers: true,      // Can share lyrics to followers
     canCreateCollabRequest: true,        // Can post collab requests
-    canCreateWriterGigs: false,          // Limited to lyricists/writers
+    canCreateWriterGigs: true,           // Artists often write their own lyrics
     canHostAuditions: false,             // Producers/labels host auditions
     canSubmitToAuditions: true,          // Can submit to auditions
     canSubmitAnonymousAudition: true,    // Can submit anonymously
@@ -794,7 +794,7 @@ const _roleCapabilities = {
     canPostLyricsToFollowers: true,      // FULL - privacy controls
     canCreateCollabRequest: true,        // Can post collab requests
     canCreateWriterGigs: true,           // FULL - writer gig posting
-    canHostAuditions: false,             // Limited audition hosting
+    canHostAuditions: true,              // Can host auditions to find artists for lyrics
     canSubmitToAuditions: true,          // Can submit to auditions
     canSubmitAnonymousAudition: true,    // Can submit anonymously
     canViewLyrics: true,                 // Can view public lyrics
