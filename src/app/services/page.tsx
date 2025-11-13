@@ -2,13 +2,14 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Heart, Play, Pause, Music2, Users, FileText, Mic, Award, Crown, MessageCircle, Plus, TrendingUp, Clock, CheckCircle } from "lucide-react";
+import { Search, Heart, Play, Pause, Music2, Users, FileText, Mic, Award, Crown, MessageCircle, Plus, TrendingUp, Clock, CheckCircle, Lock, Globe, UserPlus, Eye, EyeOff, AlertCircle, Info, Pencil, Send } from "lucide-react";
 import { useTheme } from "../../providers/ThemeProvider";
+import { usePermissions } from "../../hooks/usePermissions";
 
 type MusicService = {
   id: number;
   type: 'snippet' | 'collab' | 'lyrics' | 'writer' | 'audition' | 'label';
-  auditionType?: 'artist' | 'producer' | 'lyricist'; 
+  auditionType?: 'artist' | 'producer' | 'lyricist';
   title: string;
   user: {
     name: string;
@@ -25,12 +26,14 @@ type MusicService = {
   duration?: string;
   audioUrl?: string;
   lyrics?: string;
+  lyricsVisibility?: 'public' | 'club' | 'followers'; // Privacy level
   price?: number | string;
   deadline?: string;
   status?: 'open' | 'completed' | 'in-progress';
   collaborators?: number;
   comments?: number;
   date: string;
+  allowsAnonymous?: boolean; // For auditions
 };
 
 // Mock Data
@@ -93,6 +96,7 @@ const musicServices: MusicService[] = [
     likes: 34,
     liked: false,
     lyrics: "You're the rhythm to my blues...",
+    lyricsVisibility: 'public',
     price: "$20-$50",
     date: "3 days ago"
   },
@@ -119,7 +123,7 @@ const musicServices: MusicService[] = [
   {
     id: 5,
     type: 'audition',
-    auditionType: 'producer',
+    auditionType: 'artist',
     title: "Vocalist Auditions for Label",
     user: {
       name: "Urban Sounds Records",
@@ -134,7 +138,8 @@ const musicServices: MusicService[] = [
     liked: false,
     status: 'open',
     deadline: "Ongoing",
-    date: "1 week ago"
+    date: "1 week ago",
+    allowsAnonymous: true
   },
   {
     id: 6,
@@ -153,6 +158,25 @@ const musicServices: MusicService[] = [
     liked: true,
     status: 'open',
     date: "2 weeks ago"
+  },
+  {
+    id: 7,
+    type: 'lyrics',
+    title: "Private Lyrics for Club Members",
+    user: {
+      name: "Secret Wordsmith",
+      avatar: "https://randomuser.me/api/portraits/men/18.jpg",
+      verified: false,
+      followers: 2100
+    },
+    description: "Exclusive lyrics shared only with my club. Join to see the full content!",
+    tags: ["Hip Hop", "Private", "Exclusive"],
+    genre: ["Hip Hop"],
+    likes: 42,
+    liked: false,
+    lyrics: "Hidden behind the curtain...",
+    lyricsVisibility: 'club',
+    date: "4 days ago"
   }
 ];
 
@@ -168,23 +192,46 @@ const formatNumber = (num: number): string => {
   return num.toString();
 };
 
+// Get reputation tier from follower count
+const getReputationTier = (followers: number): 'newbie' | 'rising' | 'verified' | 'pro' | 'industry' => {
+  if (followers >= 500000) return 'industry';
+  if (followers >= 50000) return 'pro';
+  if (followers >= 5000) return 'verified';
+  if (followers >= 100) return 'rising';
+  return 'newbie';
+};
+
+// Get reputation badge config
+const getReputationBadge = (tier: string, theme: string) => {
+  const configs = {
+    newbie: { label: 'Newbie', color: theme === 'dark' ? 'bg-gray-500/10 text-gray-400 border-gray-500/20' : 'bg-gray-100 text-gray-600 border-gray-300' },
+    rising: { label: 'Rising', color: theme === 'dark' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-green-50 text-green-600 border-green-200' },
+    verified: { label: 'Verified', color: theme === 'dark' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-blue-50 text-blue-600 border-blue-200' },
+    pro: { label: 'Pro', color: theme === 'dark' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-purple-50 text-purple-600 border-purple-200' },
+    industry: { label: 'Industry', color: theme === 'dark' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' : 'bg-yellow-50 text-yellow-600 border-yellow-200' }
+  };
+  return configs[tier as keyof typeof configs] || configs.newbie;
+};
+
 export default function MusicServices() {
   const router = useRouter();
   const { theme } = useTheme();
+  const { permissions, isArtist, isProducer, isLyricist } = usePermissions();
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  
+
   const [activeTab, setActiveTab] = useState("snippets");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGenre, setSelectedGenre] = useState("all");
   const [selectedService, setSelectedService] = useState("all");
   const [isPlaying, setIsPlaying] = useState<number | null>(null);
   const [services, setServices] = useState<MusicService[]>(musicServices);
+  const [showPermissionBanner, setShowPermissionBanner] = useState(true);
 
   const toggleLike = (id: number, e: React.MouseEvent) => {
     e.stopPropagation();
-    setServices(services.map(service => 
-      service.id === id ? { 
-        ...service, 
+    setServices(services.map(service =>
+      service.id === id ? {
+        ...service,
         liked: !service.liked,
         likes: service.liked ? service.likes - 1 : service.likes + 1
       } : service
@@ -202,6 +249,30 @@ export default function MusicServices() {
     }
   };
 
+  // Filter auditions by role type
+  const canViewAudition = (audition: MusicService) => {
+    if (!audition.auditionType || !permissions.canViewAuditionsByType) {
+      return permissions.canSubmitToAuditions; // Fallback: can view if can submit
+    }
+
+    // Role-based audition visibility
+    if (audition.auditionType === 'artist' && isArtist) return true;
+    if (audition.auditionType === 'producer' && isProducer) return true;
+    if (audition.auditionType === 'lyricist' && isLyricist) return true;
+
+    // Studio owners and labels can view all auditions
+    return permissions.canHostAuditions;
+  };
+
+  // Filter lyrics by privacy level
+  const canViewLyrics = (lyrics: MusicService) => {
+    if (!lyrics.lyricsVisibility || lyrics.lyricsVisibility === 'public') {
+      return permissions.canViewLyrics;
+    }
+    // For private lyrics, need special permission
+    return permissions.canViewPrivateLyrics;
+  };
+
   const filteredServices = services.filter(service => {
     const matchesSearch = service.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       service.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -214,6 +285,11 @@ export default function MusicServices() {
                        activeTab === "writers" ? service.type === "writer" :
                        activeTab === "auditions" ? service.type === "audition" :
                        activeTab === "labels" ? service.type === "label" : true;
+
+    // Apply permission-based filtering
+    if (service.type === 'audition' && !canViewAudition(service)) return false;
+    if (service.type === 'lyrics' && !canViewLyrics(service)) return false;
+
     return matchesSearch && matchesGenre && matchesService && matchesTab;
   });
 
@@ -229,15 +305,111 @@ export default function MusicServices() {
     return configs[type as keyof typeof configs] || configs.snippet;
   };
 
+  const getPrivacyIcon = (visibility?: string) => {
+    if (visibility === 'club') return <Lock className="w-3 h-3" />;
+    if (visibility === 'followers') return <UserPlus className="w-3 h-3" />;
+    return <Globe className="w-3 h-3" />;
+  };
+
+  const getPrivacyLabel = (visibility?: string) => {
+    if (visibility === 'club') return 'Club Only';
+    if (visibility === 'followers') return 'Followers Only';
+    return 'Public';
+  };
+
   return (
     <div className={`min-h-screen p-6 transition-colors duration-200 ${
-      theme === "dark" 
-        ? "bg-black text-white" 
+      theme === "dark"
+        ? "bg-black text-white"
         : "bg-gray-50 text-gray-900"
     }`}>
       <div className="max-w-[1600px] mx-auto">
+        {/* Permission Banner */}
+        {showPermissionBanner && (
+          <div className={`mb-6 p-4 rounded-xl border ${
+            theme === "dark"
+              ? "border-blue-500/20 bg-blue-500/5"
+              : "border-blue-200 bg-blue-50"
+          }`}>
+            <div className="flex items-start justify-between">
+              <div className="flex items-start gap-3 flex-1">
+                <Info className={`w-5 h-5 mt-0.5 flex-shrink-0 ${
+                  theme === "dark" ? "text-blue-400" : "text-blue-600"
+                }`} />
+                <div>
+                  <h3 className={`text-sm font-medium mb-2 ${
+                    theme === "dark" ? "text-blue-400" : "text-blue-600"
+                  }`}>
+                    Your Music Services Permissions ({permissions.role})
+                  </h3>
+                  <div className={`text-xs space-y-1 ${
+                    theme === "dark" ? "text-blue-300/70" : "text-blue-700/70"
+                  }`}>
+                    <div className="flex flex-wrap gap-2">
+                      {permissions.canUploadSnippets && (
+                        <span className="flex items-center gap-1">
+                          <CheckCircle className="w-3 h-3" /> Upload Snippets
+                        </span>
+                      )}
+                      {permissions.canPostLyrics && (
+                        <span className="flex items-center gap-1">
+                          <CheckCircle className="w-3 h-3" /> Post Lyrics
+                        </span>
+                      )}
+                      {permissions.canCreateWriterGigs && (
+                        <span className="flex items-center gap-1">
+                          <CheckCircle className="w-3 h-3" /> Create Writer Gigs
+                        </span>
+                      )}
+                      {permissions.canHostAuditions && (
+                        <span className="flex items-center gap-1">
+                          <CheckCircle className="w-3 h-3" /> Host Auditions
+                        </span>
+                      )}
+                      {permissions.canSubmitToAuditions && (
+                        <span className="flex items-center gap-1">
+                          <CheckCircle className="w-3 h-3" /> Submit to Auditions
+                        </span>
+                      )}
+                      {permissions.canSubmitAnonymousAudition && (
+                        <span className="flex items-center gap-1">
+                          <CheckCircle className="w-3 h-3" /> Anonymous Submissions
+                        </span>
+                      )}
+                      {permissions.canCreateCollabRequest && (
+                        <span className="flex items-center gap-1">
+                          <CheckCircle className="w-3 h-3" /> Create Collabs
+                        </span>
+                      )}
+                      {permissions.canGiveProfessionalReview && (
+                        <span className="flex items-center gap-1">
+                          <CheckCircle className="w-3 h-3" /> Professional Reviews
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-2">
+                      Reputation Tier: <span className="font-medium">{permissions.reputationTier.charAt(0).toUpperCase() + permissions.reputationTier.slice(1)}</span>
+                      {permissions.isVerifiedCreator && " • Verified Creator"}
+                      {permissions.isProfessionalReviewer && " • Professional Reviewer"}
+                      {permissions.isLabelPartner && " • Label Partner"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowPermissionBanner(false)}
+                className={`text-xs px-2 py-1 rounded hover:bg-black/5 ${
+                  theme === "dark" ? "text-blue-400" : "text-blue-600"
+                }`}
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
-          
+
           {/* Main Content - 3 columns */}
           <div className="xl:col-span-3">
             {/* Header */}
@@ -261,16 +433,46 @@ export default function MusicServices() {
                   Collaborate, create, and connect with music professionals
                 </p>
               </div>
-              <button
-                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
-                  theme === "dark"
-                    ? "bg-white border-white text-black hover:bg-zinc-100"
-                    : "bg-black border-black text-white hover:bg-gray-800"
-                }`}
-              >
-                <Plus className="w-4 h-4" strokeWidth={2} />
-                Upload Snippet
-              </button>
+
+              {/* Multiple Create Buttons based on Permissions */}
+              <div className="flex items-center gap-2">
+                {permissions.canUploadSnippets && (
+                  <button
+                    className={`flex items-center gap-2 px-4 py-2.5 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
+                      theme === "dark"
+                        ? "bg-white border-white text-black hover:bg-zinc-100"
+                        : "bg-black border-black text-white hover:bg-gray-800"
+                    }`}
+                  >
+                    <Plus className="w-4 h-4" strokeWidth={2} />
+                    Upload Snippet
+                  </button>
+                )}
+                {permissions.canPostLyrics && (
+                  <button
+                    className={`flex items-center gap-2 px-4 py-2.5 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
+                      theme === "dark"
+                        ? "border-zinc-700 text-zinc-300 hover:border-zinc-600 hover:bg-zinc-900"
+                        : "border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50"
+                    }`}
+                  >
+                    <Pencil className="w-4 h-4" strokeWidth={2} />
+                    Post Lyrics
+                  </button>
+                )}
+                {permissions.canHostAuditions && (
+                  <button
+                    className={`flex items-center gap-2 px-4 py-2.5 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
+                      theme === "dark"
+                        ? "border-zinc-700 text-zinc-300 hover:border-zinc-600 hover:bg-zinc-900"
+                        : "border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50"
+                    }`}
+                  >
+                    <Mic className="w-4 h-4" strokeWidth={2} />
+                    Host Audition
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Filters */}
@@ -363,7 +565,18 @@ export default function MusicServices() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {filteredServices.map((service) => {
                 const typeConfig = getTypeConfig(service.type);
-                
+                const repTier = getReputationTier(service.user.followers);
+                const repBadge = getReputationBadge(repTier, theme);
+
+                // Determine if user can interact with this service
+                const canInteract =
+                  (service.type === 'snippet' && permissions.canUploadSnippets) ||
+                  (service.type === 'collab' && permissions.canJoinPaidCollabs) ||
+                  (service.type === 'lyrics' && permissions.canGiveFeedback) ||
+                  (service.type === 'writer' && permissions.canCreateWriterGigs) ||
+                  (service.type === 'audition' && permissions.canSubmitToAuditions) ||
+                  (service.type === 'label' && permissions.canPostLabelOpportunity);
+
                 return (
                   <div
                     key={service.id}
@@ -394,10 +607,15 @@ export default function MusicServices() {
                                 <CheckCircle className="w-3.5 h-3.5 text-blue-500" />
                               )}
                             </div>
-                            <div className={`text-xs font-light tracking-wide ${
-                              theme === "dark" ? "text-zinc-500" : "text-gray-600"
-                            }`}>
-                              {formatNumber(service.user.followers)} followers
+                            <div className="flex items-center gap-2">
+                              <div className={`text-xs font-light tracking-wide ${
+                                theme === "dark" ? "text-zinc-500" : "text-gray-600"
+                              }`}>
+                                {formatNumber(service.user.followers)} followers
+                              </div>
+                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-light tracking-wide border ${repBadge.color}`}>
+                                {repBadge.label}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -413,6 +631,34 @@ export default function MusicServices() {
                           </span>
                         </div>
                       </div>
+
+                      {/* Privacy Badge for Lyrics */}
+                      {service.type === 'lyrics' && service.lyricsVisibility && (
+                        <div className="mb-2">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-light tracking-wide border ${
+                            service.lyricsVisibility === 'club'
+                              ? theme === "dark" ? "bg-amber-500/10 text-amber-400 border-amber-500/20" : "bg-amber-50 text-amber-600 border-amber-200"
+                              : service.lyricsVisibility === 'followers'
+                              ? theme === "dark" ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" : "bg-indigo-50 text-indigo-600 border-indigo-200"
+                              : theme === "dark" ? "bg-green-500/10 text-green-400 border-green-500/20" : "bg-green-50 text-green-600 border-green-200"
+                          }`}>
+                            {getPrivacyIcon(service.lyricsVisibility)}
+                            {getPrivacyLabel(service.lyricsVisibility)}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Anonymous Badge for Auditions */}
+                      {service.type === 'audition' && service.allowsAnonymous && permissions.canSubmitAnonymousAudition && (
+                        <div className="mb-2">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-light tracking-wide border ${
+                            theme === "dark" ? "bg-purple-500/10 text-purple-400 border-purple-500/20" : "bg-purple-50 text-purple-600 border-purple-200"
+                          }`}>
+                            <EyeOff className="w-3 h-3" />
+                            Anonymous Submissions Allowed
+                          </span>
+                        </div>
+                      )}
 
                       {/* Title & Description */}
                       <h3 className={`text-base font-light tracking-wide mb-2 ${
@@ -477,7 +723,7 @@ export default function MusicServices() {
                       )}
 
                       {/* Lyrics Preview */}
-                      {service.type === 'lyrics' && service.lyrics && (
+                      {service.type === 'lyrics' && service.lyrics && canViewLyrics(service) && (
                         <div className={`
                           p-3 rounded-lg mb-3 border italic
                           ${theme === "dark"
@@ -486,6 +732,24 @@ export default function MusicServices() {
                           }
                         `}>
                           <p className="text-xs font-light tracking-wide line-clamp-2">{service.lyrics}</p>
+                        </div>
+                      )}
+
+                      {/* Blocked Lyrics Preview */}
+                      {service.type === 'lyrics' && !canViewLyrics(service) && (
+                        <div className={`
+                          p-3 rounded-lg mb-3 border flex items-center gap-2
+                          ${theme === "dark"
+                            ? "bg-zinc-900 border-zinc-800 text-zinc-500"
+                            : "bg-gray-50 border-gray-300 text-gray-500"
+                          }
+                        `}>
+                          <Lock className="w-4 h-4" />
+                          <p className="text-xs font-light tracking-wide">
+                            {service.lyricsVisibility === 'club'
+                              ? 'Join their club to view these lyrics'
+                              : 'Follow this user to view private lyrics'}
+                          </p>
                         </div>
                       )}
 
@@ -555,35 +819,46 @@ export default function MusicServices() {
                           )}
                         </div>
 
-                        <button
-                          className={`
-                            flex items-center gap-1.5 px-3 py-1.5 text-xs font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95
-                            ${theme === "dark"
-                              ? "bg-white border-white text-black hover:bg-zinc-100"
-                              : "bg-black border-black text-white hover:bg-gray-800"
-                            }
-                          `}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (service.type === 'snippet') {
-                              // Handle snippet action
-                            } else if (service.type === 'collab') {
-                              router.push(`/collabs/create/${service.id}`);
-                            } else if (service.type === 'lyrics') {
-                              router.push(`/services/create/${service.id}`);
-                            } else if (service.type === 'writer') {
-                              router.push(`/services/edit/${service.id}`);
-                            } else if (service.type === 'audition') {
-                              router.push(`/services/auditions/${service.auditionType}/${service.id}`);
-                            }
-                          }}
-                        >
-                          {service.type === 'snippet' ? 'Request Feature' :
-                           service.type === 'collab' ? 'Join Collab' :
-                           service.type === 'lyrics' ? 'Review Lyrics' :
-                           service.type === 'writer' ? 'Hire Writer' :
-                           service.type === 'audition' ? 'Submit Audition' : 'Contact Label'}
-                        </button>
+                        {/* Permission-based Action Button */}
+                        {canInteract ? (
+                          <button
+                            className={`
+                              flex items-center gap-1.5 px-3 py-1.5 text-xs font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95
+                              ${theme === "dark"
+                                ? "bg-white border-white text-black hover:bg-zinc-100"
+                                : "bg-black border-black text-white hover:bg-gray-800"
+                              }
+                            `}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (service.type === 'snippet') {
+                                // Handle snippet action
+                              } else if (service.type === 'collab') {
+                                router.push(`/collabs/create/${service.id}`);
+                              } else if (service.type === 'lyrics') {
+                                router.push(`/services/create/${service.id}`);
+                              } else if (service.type === 'writer') {
+                                router.push(`/services/edit/${service.id}`);
+                              } else if (service.type === 'audition') {
+                                router.push(`/services/auditions/${service.auditionType}/${service.id}`);
+                              }
+                            }}
+                          >
+                            <Send className="w-3 h-3" />
+                            {service.type === 'snippet' ? 'Collab' :
+                             service.type === 'collab' ? 'Join Collab' :
+                             service.type === 'lyrics' ? 'Give Feedback' :
+                             service.type === 'writer' ? 'Apply' :
+                             service.type === 'audition' ? 'Submit' : 'Contact'}
+                          </button>
+                        ) : (
+                          <div className={`text-xs font-light tracking-wide flex items-center gap-1 ${
+                            theme === "dark" ? "text-zinc-600" : "text-gray-500"
+                          }`}>
+                            <AlertCircle className="w-3 h-3" />
+                            No Permission
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -594,8 +869,8 @@ export default function MusicServices() {
             {/* Empty State */}
             {filteredServices.length === 0 && (
               <div className={`text-center py-16 rounded-xl border ${
-                theme === "dark" 
-                  ? "border-zinc-800 bg-zinc-950" 
+                theme === "dark"
+                  ? "border-zinc-800 bg-zinc-950"
                   : "border-gray-300 bg-white"
               }`}>
                 <Music2 className={`w-12 h-12 mx-auto mb-3 ${
@@ -619,8 +894,8 @@ export default function MusicServices() {
           <div className="xl:col-span-1 space-y-6">
             {/* Trending Snippets */}
             <div className={`rounded-xl border p-4 ${
-              theme === "dark" 
-                ? "border-zinc-800 bg-zinc-950" 
+              theme === "dark"
+                ? "border-zinc-800 bg-zinc-950"
                 : "border-gray-300 bg-white"
             }`}>
               <div className="flex items-center gap-2 mb-4">
@@ -691,8 +966,8 @@ export default function MusicServices() {
 
             {/* Half Songs */}
             <div className={`rounded-xl border p-4 ${
-              theme === "dark" 
-                ? "border-zinc-800 bg-zinc-950" 
+              theme === "dark"
+                ? "border-zinc-800 bg-zinc-950"
                 : "border-gray-300 bg-white"
             }`}>
               <div className="flex items-center gap-2 mb-4">
@@ -762,8 +1037,8 @@ export default function MusicServices() {
 
             {/* Recent Activity */}
             <div className={`rounded-xl border p-4 ${
-              theme === "dark" 
-                ? "border-zinc-800 bg-zinc-950" 
+              theme === "dark"
+                ? "border-zinc-800 bg-zinc-950"
                 : "border-gray-300 bg-white"
             }`}>
               <div className="flex items-center gap-2 mb-4">
