@@ -10,6 +10,7 @@ import { SidebarProvider } from "../providers/sidebar-provider/sidebar-provider"
 import { authProviderClient } from "@providers/auth-provider/auth-provider.client";
 import { dataProvider } from "@providers/data-provider";
 import { ThemeProvider } from "@providers/ThemeProvider";
+import { PermissionsProvider } from "@/hooks/usePermissions"; 
 import "@styles/global.css";
 
 export const metadata: Metadata = {
@@ -32,6 +33,7 @@ export default function RootLayout({
           <RefineKbarProvider>
             <ThemeProvider>
               <SidebarProvider>
+                {/* ✅ FIXED: Refine must wrap PermissionsProvider */}
                 <Refine
                   routerProvider={routerProvider}
                   authProvider={authProviderClient}
@@ -140,8 +142,11 @@ export default function RootLayout({
                     projectId: "1qO17T-Aib2M5-IanaeI",
                   }}
                 >
-                  {children}
-                  <RefineKbar />
+                  {/* ✅ FIXED: PermissionsProvider INSIDE Refine */}
+                  <PermissionsProvider>
+                    {children}
+                    <RefineKbar />
+                  </PermissionsProvider>
                 </Refine>
               </SidebarProvider>
             </ThemeProvider>

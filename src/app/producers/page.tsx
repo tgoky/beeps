@@ -1,10 +1,29 @@
 "use client";
 
 import { useState } from "react";
-import { producerData } from "./producersdata";
 import { useRouter } from "next/navigation";
-import { Search, MapPin, Star, Music2, CheckCircle2, Users, Play, MessageCircle, TrendingUp, Map, UserCheck, Clock } from "lucide-react";
-import { useTheme } from "../../providers/ThemeProvider";
+import { 
+  Search, 
+  MapPin, 
+  Star, 
+  Music2, 
+  CheckCircle2, 
+  Users, 
+  Play, 
+  MessageCircle, 
+  TrendingUp, 
+  Map, 
+  UserCheck, 
+  Clock,
+  Briefcase,
+  Settings,
+  Edit3
+} from "lucide-react";
+import { useTheme } from "@/providers/ThemeProvider";
+import { usePermissions } from "@/hooks/usePermissions";
+import { producerData } from "./producersdata";
+import { getRoleDisplayName } from '@/lib/permissions';
+import type { UserRole } from '@prisma/client';
 
 type Producer = {
   id: number;
@@ -44,6 +63,7 @@ const formatNumber = (num: number): string => {
 export default function ProducerHub() {
   const router = useRouter();
   const { theme } = useTheme();
+ const { permissions, isProducer } = usePermissions();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGenre, setSelectedGenre] = useState("all");
@@ -67,6 +87,100 @@ export default function ProducerHub() {
 
   // Get unique skills from all producers
   const allSkills = Array.from(new Set(producerData.flatMap(producer => producer.skills)));
+
+  // Producer Card Action Buttons - changes based on user role
+  const ProducerCardActions = ({ producer }: { producer: Producer }) => {
+    // Check if this is the current user's profile (in a real app, check against auth user ID)
+    const isOwnProfile = false; // Replace with actual check: currentUserId === producer.userId
+
+    if (isOwnProfile && permissions.canEditProducerProfile) {
+      // Producer viewing their own card
+      return (
+        <div className="flex gap-2">
+          <button
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-medium rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
+              theme === "dark"
+                ? "bg-white border-white text-black hover:bg-zinc-100"
+                : "bg-black border-black text-white hover:bg-gray-800"
+            }`}
+            onClick={(e) => {
+              e.stopPropagation();
+              router.push(`/producers/edit/${producer.id}`);
+            }}
+          >
+            <Edit3 className="w-4 h-4" strokeWidth={2} />
+            Edit Profile
+          </button>
+          
+          <button
+            className={`p-2.5 rounded-lg border transition-all duration-200 active:scale-95 ${
+              theme === "dark"
+                ? "border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-600"
+                : "border-gray-300 text-gray-500 hover:text-gray-900 hover:border-gray-400"
+            }`}
+            onClick={(e) => {
+              e.stopPropagation();
+              router.push(`/producers/${producer.id}/settings`);
+            }}
+          >
+            <Settings className="w-4 h-4" strokeWidth={2} />
+          </button>
+        </div>
+      );
+    } else if (permissions.canRequestProducerService) {
+      // Other users (artists, lyricists, etc.) viewing producer
+      return (
+        <div className="flex gap-2">
+          <button
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-medium rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
+              theme === "dark"
+                ? "bg-white border-white text-black hover:bg-zinc-100"
+                : "bg-black border-black text-white hover:bg-gray-800"
+            }`}
+            onClick={(e) => {
+              e.stopPropagation();
+              router.push(`/producers/${producer.id}`);
+            }}
+          >
+            <Briefcase className="w-4 h-4" strokeWidth={2} />
+            Request Service
+          </button>
+          
+          <button
+            className={`p-2.5 rounded-lg border transition-all duration-200 active:scale-95 ${
+              theme === "dark"
+                ? "border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-600"
+                : "border-gray-300 text-gray-500 hover:text-gray-900 hover:border-gray-400"
+            }`}
+            onClick={(e) => {
+              e.stopPropagation();
+              router.push(`/messages/${producer.id}`);
+            }}
+          >
+            <MessageCircle className="w-4 h-4" strokeWidth={2} />
+          </button>
+        </div>
+      );
+    } else {
+      // Default view - just view profile button
+      return (
+        <button
+          className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-medium rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
+            theme === "dark"
+              ? "bg-white border-white text-black hover:bg-zinc-100"
+              : "bg-black border-black text-white hover:bg-gray-800"
+          }`}
+          onClick={(e) => {
+            e.stopPropagation();
+            router.push(`/producers/${producer.id}`);
+          }}
+        >
+          <CheckCircle2 className="w-4 h-4" strokeWidth={2} />
+          View Profile
+        </button>
+      );
+    }
+  };
 
   return (
     <div className={`min-h-screen p-6 transition-colors duration-200 ${
@@ -93,10 +207,54 @@ export default function ProducerHub() {
             <p className={`text-sm font-light tracking-wide ${
               theme === "dark" ? "text-zinc-500" : "text-gray-600"
             }`}>
-              Connect with top music producers worldwide
+              {isProducer 
+                ? "Manage your producer profile and connect with clients"
+                : "Connect with top music producers worldwide"}
             </p>
           </div>
+
+          {/* Conditional Header Action */}
+          {isProducer && (
+            <button
+              onClick={() => router.push('/producers/my-profile')}
+              className={`flex items-center gap-2 px-5 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
+                theme === "dark"
+                  ? "bg-white border-white text-black hover:bg-zinc-100"
+                  : "bg-black border-black text-white hover:bg-gray-800"
+              }`}
+            >
+              <Edit3 className="w-4 h-4" strokeWidth={2} />
+              Edit My Profile
+            </button>
+          )}
         </div>
+
+        {/* Permission Info Banner (for non-producers) */}
+        {!isProducer && permissions.canRequestProducerService && (
+          <div className={`mb-6 p-4 rounded-lg border ${
+            theme === "dark"
+              ? "bg-blue-950/20 border-blue-900/30"
+              : "bg-blue-50 border-blue-200/50"
+          }`}>
+            <div className="flex items-start gap-3">
+              <Briefcase className={`w-5 h-5 flex-shrink-0 ${
+                theme === "dark" ? "text-blue-400" : "text-blue-600"
+              }`} strokeWidth={2} />
+              <div>
+                <p className={`text-sm font-medium tracking-wide ${
+                  theme === "dark" ? "text-blue-300" : "text-blue-900"
+                }`}>
+                  Browse and Request Producer Services
+                </p>
+                <p className={`text-xs font-light tracking-wide mt-1 ${
+                  theme === "dark" ? "text-blue-400/70" : "text-blue-700/70"
+                }`}>
+                  As {getRoleDisplayName(permissions.role as UserRole)}, you can view producer profiles, request services, and message directly.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -119,8 +277,7 @@ export default function ProducerHub() {
                   placeholder="Search by name or handle..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className={`w-full pl-10 pr-4 py-3 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide
-                    focus:outline-none ${
+                  className={`w-full pl-10 pr-4 py-3 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide focus:outline-none ${
                     theme === "dark" 
                       ? "bg-zinc-950 border-zinc-800 text-white placeholder-zinc-600 focus:border-white focus:bg-black" 
                       : "bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-gray-900 focus:bg-white"
@@ -139,8 +296,7 @@ export default function ProducerHub() {
               <select
                 value={selectedGenre}
                 onChange={(e) => setSelectedGenre(e.target.value)}
-                className={`w-full px-3 py-3 text-sm font-light rounded-lg border transition-all duration-200 cursor-pointer tracking-wide
-                  focus:outline-none ${
+                className={`w-full px-3 py-3 text-sm font-light rounded-lg border transition-all duration-200 cursor-pointer tracking-wide focus:outline-none ${
                   theme === "dark"
                     ? "bg-zinc-950 border-zinc-800 text-white focus:border-white focus:bg-black"
                     : "bg-white border-gray-300 text-gray-900 focus:border-gray-900 focus:bg-white"
@@ -167,8 +323,7 @@ export default function ProducerHub() {
               <select
                 value={selectedSkill}
                 onChange={(e) => setSelectedSkill(e.target.value)}
-                className={`w-full px-3 py-3 text-sm font-light rounded-lg border transition-all duration-200 cursor-pointer tracking-wide
-                  focus:outline-none ${
+                className={`w-full px-3 py-3 text-sm font-light rounded-lg border transition-all duration-200 cursor-pointer tracking-wide focus:outline-none ${
                   theme === "dark"
                     ? "bg-zinc-950 border-zinc-800 text-white focus:border-white focus:bg-black"
                     : "bg-white border-gray-300 text-gray-900 focus:border-gray-900 focus:bg-white"
@@ -215,6 +370,38 @@ export default function ProducerHub() {
                 </div>
               </div>
             </div>
+
+            {/* Role Info */}
+            <div className={`p-4 rounded-lg border ${
+              theme === "dark" 
+                ? "bg-zinc-950 border-zinc-800" 
+                : "bg-white border-gray-300"
+            }`}>
+              <div className="space-y-2">
+                <h3 className={`text-sm font-light tracking-wide ${
+                  theme === "dark" ? "text-white" : "text-gray-900"
+                }`}>Your Role</h3>
+                <p className={`text-xs font-light tracking-wide ${
+                  theme === "dark" ? "text-zinc-500" : "text-gray-600"
+                }`}>
+                 {getRoleDisplayName(permissions.role as UserRole)}
+                </p>
+                {isProducer && (
+                  <p className={`text-xs font-light tracking-wide ${
+                    theme === "dark" ? "text-green-400" : "text-green-600"
+                  }`}>
+                    ✓ Can accept jobs and manage profile
+                  </p>
+                )}
+                {permissions.canRequestProducerService && (
+                  <p className={`text-xs font-light tracking-wide ${
+                    theme === "dark" ? "text-blue-400" : "text-blue-600"
+                  }`}>
+                    ✓ Can request producer services
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Main Content */}
@@ -231,17 +418,15 @@ export default function ProducerHub() {
                   <button
                     key={tab.key}
                     onClick={() => setActiveTab(tab.key)}
-                    className={`
-                      flex items-center gap-2 px-4 py-2 text-sm font-light rounded transition-all duration-200 tracking-wide
-                      ${activeTab === tab.key
+                    className={`flex items-center gap-2 px-4 py-2 text-sm font-light rounded transition-all duration-200 tracking-wide ${
+                      activeTab === tab.key
                         ? theme === "dark"
                           ? "bg-white text-black"
                           : "bg-gray-900 text-white"
                         : theme === "dark"
                           ? "text-zinc-400 hover:text-white"
                           : "text-gray-600 hover:text-gray-900"
-                      }
-                    `}
+                    }`}
                   >
                     <IconComponent className="w-4 h-4" strokeWidth={2} />
                     {tab.label}
@@ -262,13 +447,12 @@ export default function ProducerHub() {
               {filteredProducers.map((producer) => (
                 <div
                   key={producer.id}
-                  className={`group rounded-xl border overflow-hidden transition-all duration-200 cursor-pointer
-                    hover:border-zinc-700 active:scale-[0.98] ${
+                  className={`group rounded-xl border overflow-hidden transition-all duration-200 cursor-pointer hover:border-zinc-700 active:scale-[0.98] ${
                     theme === "dark"
                       ? "bg-zinc-950 border-zinc-800 hover:bg-zinc-900"
                       : "bg-white border-gray-300 hover:bg-gray-50 hover:border-gray-400"
                   }`}
-                  onClick={() => router.push(`/producers/create/${producer.id}`)}
+                  onClick={() => router.push(`/producers/${producer.id}`)}
                 >
                   {/* Header with Avatar and Info */}
                   <div className={`p-4 border-b ${
@@ -374,7 +558,7 @@ export default function ProducerHub() {
                     </div>
                     
                     {producer.recentWorks && producer.recentWorks.length > 0 && (
-                      <div className="space-y-2">
+                      <div className="space-y-2 mb-4">
                         {producer.recentWorks.slice(0, 1).map((work, index) => (
                           <div
                             key={index}
@@ -411,35 +595,8 @@ export default function ProducerHub() {
                       </div>
                     )}
 
-                    {/* Action Buttons */}
-                    <div className="flex gap-2 mt-4">
-                      <button
-                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide
-                          hover:bg-zinc-100 active:scale-95 ${
-                          theme === "dark"
-                            ? "bg-white border-white text-black"
-                            : "bg-gray-900 border-gray-900 text-white hover:bg-gray-800"
-                        }`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push(`/producers/create/${producer.id}`);
-                        }}
-                      >
-                        <CheckCircle2 className="w-4 h-4" strokeWidth={2} />
-                        View Profile
-                      </button>
-                      
-                      <button
-                        className={`p-2.5 rounded-lg border transition-all duration-200 active:scale-95 ${
-                          theme === "dark"
-                            ? "border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-600"
-                            : "border-gray-300 text-gray-500 hover:text-gray-900 hover:border-gray-400"
-                        }`}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <MessageCircle className="w-4 h-4" strokeWidth={2} />
-                      </button>
-                    </div>
+                    {/* Role-based Action Buttons */}
+                    <ProducerCardActions producer={producer} />
                   </div>
                 </div>
               ))}

@@ -1,5 +1,6 @@
 // Prisma Schema for Beeps Music Platform
 // Production-ready with comprehensive models for artists, clubs, and marketplace features
+// ✅ UPDATED: Added ServiceRequest model, producer service functionality, AND socialLinks on User
 
 generator client {
   provider = "prisma-client-js"
@@ -9,10 +10,7 @@ datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
-
 }
-
-
 
 // ============================================================================
 // USER & AUTHENTICATION MODELS
@@ -46,7 +44,9 @@ model User {
   bio           String?
   location      String?
   website       String?
-  
+  // ✅ FIXED: socialLinks added directly to User (universal, JSON)
+  socialLinks   Json?            @map("social_links")  // { instagram, youtube, soundcloud, spotify }
+
   // User Role & Status
   primaryRole   UserRole         @map("primary_role")
   verified      Boolean          @default(false)
@@ -83,6 +83,10 @@ model User {
   
   activities        Activity[]
   notifications     Notification[]
+  
+  // 🆕 Producer Service Relations
+  sentServiceRequests     ServiceRequest[] @relation("ServiceRequestClient")
+  receivedServiceRequests ServiceRequest[] @relation("ServiceRequestProducer")
 
   @@map("users")
 }
@@ -99,13 +103,18 @@ model ArtistProfile {
   genres        String[] // Array of music genres
   skills        String[] // e.g., ["Vocalist", "Songwriter"]
   
-  socialLinks   Json?    @map("social_links") // { instagram, youtube, soundcloud, spotify }
+  // ❌ REMOVED: socialLinks moved to User
+  // socialLinks   Json?    @map("social_links")
   
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
   @@map("artist_profiles")
 }
+
+// 🆕 ADD socialLinks to ProducerProfile? → NO.
+// We keep it only on User to avoid duplication and confusion.
+// If you later need role-specific social links, you can add then — but not now.
 
 model ProducerProfile {
   id            String   @id @default(uuid())
@@ -179,6 +188,46 @@ model LyricistProfile {
   updatedAt         DateTime @updatedAt @map("updated_at")
 
   @@map("lyricist_profiles")
+}
+
+// ============================================================================
+// 🆕 PRODUCER SERVICE REQUEST MODELS
+// ============================================================================
+
+enum ServiceRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model ServiceRequest {
+  id                  String               @id @default(uuid())
+  
+  clientId            String               @map("client_id")
+  client              User                 @relation("ServiceRequestClient", fields: [clientId], references: [id], onDelete: Cascade)
+  
+  producerId          String               @map("producer_id")
+  producer            User                 @relation("ServiceRequestProducer", fields: [producerId], references: [id], onDelete: Cascade)
+  
+  projectTitle        String               @map("project_title")
+  projectDescription  String               @map("project_description")
+  budget              Decimal?             @db.Decimal(10, 2)
+  deadline            DateTime?
+  
+  status              ServiceRequestStatus @default(PENDING)
+  producerResponse    String?              @map("producer_response")
+  
+  respondedAt         DateTime?            @map("responded_at")
+  createdAt           DateTime             @default(now()) @map("created_at")
+  updatedAt           DateTime             @updatedAt @map("updated_at")
+
+  @@index([clientId])
+  @@index([producerId])
+  @@index([status])
+  @@map("service_requests")
 }
 
 // ============================================================================
@@ -483,6 +532,8 @@ enum ActivityType {
   COMPLETE
   JOIN_CLUB
   LEAVE_CLUB
+  JOB_REQUEST_SENT
+  JOB_STATUS_UPDATED
 }
 
 model Activity {
@@ -512,6 +563,10 @@ enum NotificationType {
   NEW_FOLLOWER
   CLUB_INVITATION
   TRANSACTION_COMPLETED
+  JOB_REQUEST
+  JOB_ACCEPTED
+  JOB_REJECTED
+  JOB_UPDATED
 }
 
 model Notification {
