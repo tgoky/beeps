@@ -1,10 +1,20 @@
 // API Route: /api/clubs
-// Handles club creation and management
+// Handles club creation and management with role assignment
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import type { CreateClubPayload, ApiResponse, ClubWithMembers } from '@/types';
-import { ClubType } from '@prisma/client';
+import { ClubType, UserRole as PrismaUserRole } from '@prisma/client';
+
+// Mapping from ClubType to the UserRole it grants
+const CLUB_TYPE_TO_ROLE_MAP: Record<ClubType, PrismaUserRole> = {
+  RECORDING: 'ARTIST',
+  PRODUCTION: 'PRODUCER',
+  RENTAL: 'STUDIO_OWNER',
+  MANAGEMENT: 'OTHER',
+  DISTRIBUTION: 'OTHER',
+  CREATIVE: 'LYRICIST',
+};
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,6 +48,9 @@ export async function POST(request: NextRequest) {
       }, { status: 404 });
     }
 
+    // Get the role this club grants
+    const grantedRole = CLUB_TYPE_TO_ROLE_MAP[type as ClubType];
+
     // Create club with transaction
     const club = await prisma.$transaction(async (tx) => {
       // Create the club
@@ -70,24 +83,46 @@ export async function POST(request: NextRequest) {
         }
       });
 
+      // Grant the user the role (if they don't already have it)
+      const existingRoleGrant = await tx.userRoleGrant.findUnique({
+        where: {
+          userId_roleType: {
+            userId: ownerId,
+            roleType: grantedRole,
+          },
+        },
+      }).catch(() => null); // Handle if UserRoleGrant table doesn't exist yet
+
+      if (!existingRoleGrant) {
+        await tx.userRoleGrant.create({
+          data: {
+            userId: ownerId,
+            roleType: grantedRole,
+            grantedBy: newClub.id,
+          },
+        }).catch((error) => {
+          console.warn('Could not create role grant (table may not exist yet):', error.message);
+        });
+      }
+
       // Create activity for club creation
       await tx.activity.create({
         data: {
           userId: ownerId,
           type: 'JOIN_CLUB',
           title: `Created club "${name}"`,
-          description: `New ${type.toLowerCase()} workspace`,
+          description: `New ${type.toLowerCase()} workspace - granted ${grantedRole} role`,
           referenceId: newClub.id,
           referenceType: 'club'
         }
       });
 
-      return newClub;
+      return { club: newClub, grantedRole };
     });
 
     // Fetch complete club data with members
     const clubWithMembers = await prisma.club.findUnique({
-      where: { id: club.id },
+      where: { id: club.club.id },
       include: {
         members: {
           include: {
@@ -108,9 +143,12 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    return NextResponse.json<ApiResponse<typeof clubWithMembers>>({
+    return NextResponse.json<ApiResponse>({
       success: true,
-      data: clubWithMembers
+      data: {
+        club: clubWithMembers,
+        grantedRole: club.grantedRole,
+      },
     }, { status: 201 });
 
   } catch (error: any) {

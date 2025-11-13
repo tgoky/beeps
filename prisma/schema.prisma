@@ -83,10 +83,16 @@ model User {
   
   activities        Activity[]
   notifications     Notification[]
-  
+
   // 🆕 Producer Service Relations
   sentServiceRequests     ServiceRequest[] @relation("ServiceRequestClient")
   receivedServiceRequests ServiceRequest[] @relation("ServiceRequestProducer")
+
+  // 🆕 Community Relations
+  roleGrants        UserRoleGrant[]  @relation("UserRoleGrants")
+  communityPosts    CommunityPost[]  @relation("CommunityPosts")
+  communityComments CommunityComment[] @relation("CommunityComments")
+  communityLikes    CommunityLike[]  @relation("CommunityLikes")
 
   @@map("users")
 }
@@ -588,4 +594,94 @@ model Notification {
 
   @@index([userId, isRead])
   @@map("notifications")
+}
+
+// ============================================================================
+// COMMUNITY & SOCIAL FEATURES
+// ============================================================================
+
+// Track user's additional roles (granted by clubs)
+model UserRoleGrant {
+  id        String   @id @default(uuid())
+
+  userId    String   @map("user_id")
+  user      User     @relation("UserRoleGrants", fields: [userId], references: [id], onDelete: Cascade)
+
+  roleType  UserRole @map("role_type")  // The role granted (PRODUCER, ARTIST, etc.)
+  grantedBy String?  @map("granted_by") // Club ID that granted this role
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, roleType])
+  @@index([userId])
+  @@map("user_role_grants")
+}
+
+// Community posts (role-specific)
+model CommunityPost {
+  id          String   @id @default(uuid())
+
+  authorId    String   @map("author_id")
+  author      User     @relation("CommunityPosts", fields: [authorId], references: [id], onDelete: Cascade)
+
+  communityRole UserRole @map("community_role") // Which community (PRODUCER, ARTIST, etc.)
+
+  content     String   @db.Text
+  imageUrl    String?  @map("image_url")
+  videoUrl    String?  @map("video_url")
+
+  likesCount  Int      @default(0) @map("likes_count")
+  commentsCount Int    @default(0) @map("comments_count")
+  sharesCount Int      @default(0) @map("shares_count")
+
+  isActive    Boolean  @default(true) @map("is_active")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  comments    CommunityComment[]
+  likes       CommunityLike[]
+
+  @@index([authorId])
+  @@index([communityRole])
+  @@index([createdAt])
+  @@map("community_posts")
+}
+
+// Comments on community posts
+model CommunityComment {
+  id        String   @id @default(uuid())
+
+  postId    String   @map("post_id")
+  post      CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  authorId  String   @map("author_id")
+  author    User     @relation("CommunityComments", fields: [authorId], references: [id], onDelete: Cascade)
+
+  content   String   @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([postId])
+  @@index([authorId])
+  @@map("community_comments")
+}
+
+// Likes on community posts
+model CommunityLike {
+  id        String   @id @default(uuid())
+
+  postId    String   @map("post_id")
+  post      CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  userId    String   @map("user_id")
+  user      User     @relation("CommunityLikes", fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId])
+  @@map("community_likes")
 }

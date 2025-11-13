@@ -109,13 +109,61 @@ export const Menu: React.FC = () => {
     setShowLogoutDialog(true);
   };
 
-  const handleCreateClub = (clubData: any) => {
-    console.log('Creating club:', clubData);
-    // Add your club creation logic here - save to database
+  const handleCreateClub = async (clubData: any) => {
+    try {
+      console.log('Creating club:', clubData);
 
-    // Redirect to the community page for the granted role
-    const communityRole = clubData.grantsRole.toLowerCase();
-    router.push(`/community/${communityRole}`);
+      // Get Supabase user ID from session
+      const { createClientComponentClient } = await import('@supabase/auth-helpers-nextjs');
+      const supabase = createClientComponentClient();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        console.error('No authenticated user found');
+        return;
+      }
+
+      // Fetch user's database ID from Supabase ID
+      const userResponse = await fetch(`/api/users/by-supabase/${user.id}`);
+      if (!userResponse.ok) {
+        console.error('Failed to fetch user data');
+        return;
+      }
+      const userData = await userResponse.json();
+      const userId = userData.data.id;
+
+      // Create the club via API
+      const response = await fetch('/api/clubs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: clubData.name,
+          type: clubData.type,
+          description: clubData.description,
+          icon: clubData.icon,
+          ownerId: userId,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        console.error('Failed to create club:', error);
+        alert(error.error?.message || 'Failed to create club');
+        return;
+      }
+
+      const result = await response.json();
+      console.log('Club created successfully:', result);
+
+      // Redirect to the community page for the granted role
+      const communityRole = (result.data.grantedRole || clubData.grantsRole).toLowerCase();
+      router.push(`/community/${communityRole}`);
+    } catch (error) {
+      console.error('Error creating club:', error);
+      alert('An error occurred while creating the club');
+    }
   };
 
 
