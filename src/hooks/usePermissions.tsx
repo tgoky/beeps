@@ -183,11 +183,6 @@ export const usePermissions = () => {
     isGearSales: permissions.role === 'GEAR_SALES',
     isLyricist: permissions.role === 'LYRICIST',
     isOther: permissions.role === 'OTHER',
-    // Additional role helpers for Music Services
-    isVerifiedCreator: permissions.isVerifiedCreator,
-    isProfessionalReviewer: permissions.isProfessionalReviewer,
-    isLabelPartner: permissions.isLabelPartner,
-    isMentor: permissions.isMentor,
     // Helper methods
     canAccess: (action:
       | 'createStudios'

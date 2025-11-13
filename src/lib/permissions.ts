@@ -930,11 +930,16 @@ export const roleCapabilities = {
 // PERMISSION CHECK FUNCTIONS (Legacy)
 // ============================================================================
 
+// Type to exclude non-boolean fields from roleCapabilities
+type BooleanPermissionKeys = {
+  [K in keyof typeof roleCapabilities.ARTIST]: typeof roleCapabilities.ARTIST[K] extends boolean ? K : never;
+}[keyof typeof roleCapabilities.ARTIST];
+
 export function canUserPerformAction(
   user: Pick<User, 'primaryRole'>,
-  action: keyof typeof roleCapabilities.ARTIST
+  action: BooleanPermissionKeys
 ): boolean {
-  return roleCapabilities[user.primaryRole][action];
+  return roleCapabilities[user.primaryRole][action] as boolean;
 }
 
 export function canUploadBeats(user: Pick<User, 'primaryRole'>): boolean {
