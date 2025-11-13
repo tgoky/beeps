@@ -1,7 +1,7 @@
 // NavigationMenu.tsx
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useTheme } from "../../providers/ThemeProvider";
 import { MenuGroup } from "./MenuGroup";
 import {
@@ -15,6 +15,7 @@ import {
   UserIcon,
   ChartBarIcon,
 } from "@heroicons/react/24/outline";
+import { Mic2, Music2, Home, Briefcase, PenTool } from "lucide-react";
 
 export interface IMenuItem {
   key: string;
@@ -101,23 +102,18 @@ const menuGroups: MenuGroupConfig[] = [
   },
 ];
 
-// Mock communities data - in real app, fetch from API based on user's clubs
-const userCommunities: IMenuItem[] = [
-  {
-    key: "community-producer",
-    name: "producers-community",
-    label: "Producers",
-    route: "/community/producer",
-    icon: <MusicalNoteIcon className="h-4 w-4" />,
-  },
-  {
-    key: "community-artist",
-    name: "artists-community",
-    label: "Artists",
-    route: "/community/artist",
-    icon: <UserIcon className="h-4 w-4" />,
-  },
-];
+// Helper function to get icon for role
+const getRoleIcon = (roleIcon: string): React.ReactElement => {
+  const iconMap: Record<string, React.ReactElement> = {
+    "ARTIST": <Mic2 className="h-4 w-4" />,
+    "PRODUCER": <Music2 className="h-4 w-4" />,
+    "STUDIO_OWNER": <Home className="h-4 w-4" />,
+    "LYRICIST": <PenTool className="h-4 w-4" />,
+    "GEAR_SALES": <WrenchScrewdriverIcon className="h-4 w-4" />,
+    "OTHER": <Briefcase className="h-4 w-4" />,
+  };
+  return iconMap[roleIcon] || <UsersIcon className="h-4 w-4" />;
+};
 
 export const NavigationMenu = ({
   isClient,
@@ -128,8 +124,70 @@ export const NavigationMenu = ({
   toggleGroup,
 }: NavigationMenuProps) => {
   const { theme } = useTheme();
+  const [userCommunities, setUserCommunities] = useState<IMenuItem[]>([]);
+  const [isLoadingCommunities, setIsLoadingCommunities] = useState<boolean>(true);
 
   const displayMenuItems = getResourceMenuItems(menuItems, selectedKey);
+
+  // Fetch user's communities
+  useEffect(() => {
+    const fetchCommunities = async () => {
+      try {
+        setIsLoadingCommunities(true);
+
+        // Get Supabase user ID
+        const { createClientComponentClient } = await import('@supabase/auth-helpers-nextjs');
+        const supabase = createClientComponentClient();
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) {
+          setUserCommunities([]);
+          return;
+        }
+
+        // Fetch user's database ID
+        const userResponse = await fetch(`/api/users/by-supabase/${user.id}`);
+        if (!userResponse.ok) {
+          console.error('Failed to fetch user data');
+          setUserCommunities([]);
+          return;
+        }
+
+        const userData = await userResponse.json();
+        const userId = userData.data.id;
+
+        // Fetch user's communities
+        const communitiesResponse = await fetch(`/api/users/${userId}/communities`);
+        if (!communitiesResponse.ok) {
+          console.error('Failed to fetch communities');
+          setUserCommunities([]);
+          return;
+        }
+
+        const communitiesData = await communitiesResponse.json();
+
+        // Transform API response to menu items
+        const communities: IMenuItem[] = communitiesData.data.map((community: any) => ({
+          key: `community-${community.role.toLowerCase()}`,
+          name: `${community.role.toLowerCase()}-community`,
+          label: community.label,
+          route: community.route,
+          icon: getRoleIcon(community.icon),
+        }));
+
+        setUserCommunities(communities);
+      } catch (error) {
+        console.error('Error fetching communities:', error);
+        setUserCommunities([]);
+      } finally {
+        setIsLoadingCommunities(false);
+      }
+    };
+
+    if (isClient) {
+      fetchCommunities();
+    }
+  }, [isClient]);
 
   const getMenuItemsByGroup = (groupItems: string[] = []) => {
     return displayMenuItems.filter((item) =>

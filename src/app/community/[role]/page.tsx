@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTheme } from "../../../providers/ThemeProvider";
 import { usePermissions } from "../../../hooks/usePermissions";
@@ -152,6 +152,59 @@ const mockClubs = [
   }
 ];
 
+// Helper function to format timestamps
+const formatTimestamp = (dateString: string): string => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInMs = now.getTime() - date.getTime();
+  const diffInMins = Math.floor(diffInMs / 60000);
+  const diffInHours = Math.floor(diffInMs / 3600000);
+  const diffInDays = Math.floor(diffInMs / 86400000);
+
+  if (diffInMins < 1) return 'Just now';
+  if (diffInMins < 60) return `${diffInMins} ${diffInMins === 1 ? 'minute' : 'minutes'} ago`;
+  if (diffInHours < 24) return `${diffInHours} ${diffInHours === 1 ? 'hour' : 'hours'} ago`;
+  if (diffInDays < 7) return `${diffInDays} ${diffInDays === 1 ? 'day' : 'days'} ago`;
+
+  return date.toLocaleDateString();
+};
+
+interface Post {
+  id: string;
+  author: {
+    id: string;
+    username: string;
+    avatar: string | null;
+  };
+  content: string;
+  imageUrl: string | null;
+  videoUrl: string | null;
+  likesCount: number;
+  commentsCount: number;
+  sharesCount: number;
+  createdAt: string;
+}
+
+interface Club {
+  id: string;
+  name: string;
+  icon: string | null;
+  description: string | null;
+  membersCount: number;
+  owner: {
+    id: string;
+    username: string;
+    avatar: string | null;
+  };
+}
+
+interface CommunityStats {
+  totalMembers: number;
+  totalClubs: number;
+  postsThisWeek: number;
+  trendingClubs: Club[];
+}
+
 export default function CommunityPage() {
   const params = useParams();
   const router = useRouter();
@@ -164,6 +217,65 @@ export default function CommunityPage() {
   const [postContent, setPostContent] = useState("");
   const [activeTab, setActiveTab] = useState<"feed" | "clubs" | "members">("feed");
 
+  // Data states
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [clubs, setClubs] = useState<Club[]>([]);
+  const [stats, setStats] = useState<CommunityStats | null>(null);
+
+  // Loading states
+  const [isLoadingPosts, setIsLoadingPosts] = useState(true);
+  const [isLoadingClubs, setIsLoadingClubs] = useState(true);
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
+  const [isCreatingPost, setIsCreatingPost] = useState(false);
+
+  // Fetch posts
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        setIsLoadingPosts(true);
+        const response = await fetch(`/api/communities/${role.toLowerCase()}/posts`);
+
+        if (!response.ok) {
+          console.error('Failed to fetch posts');
+          return;
+        }
+
+        const data = await response.json();
+        setPosts(data.data || []);
+      } catch (error) {
+        console.error('Error fetching posts:', error);
+      } finally {
+        setIsLoadingPosts(false);
+      }
+    };
+
+    fetchPosts();
+  }, [role]);
+
+  // Fetch community stats (includes trending clubs)
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setIsLoadingStats(true);
+        const response = await fetch(`/api/communities/${role.toLowerCase()}/stats`);
+
+        if (!response.ok) {
+          console.error('Failed to fetch stats');
+          return;
+        }
+
+        const data = await response.json();
+        setStats(data.data);
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      } finally {
+        setIsLoadingStats(false);
+      }
+    };
+
+    fetchStats();
+  }, [role]);
+
   const handleGoBack = () => {
     router.push("/");
   };
@@ -171,6 +283,41 @@ export default function CommunityPage() {
   const handleCreateClub = () => {
     // In real app, open create club modal specific to this community
     console.log("Create club in", role, "community");
+  };
+
+  const handleCreatePost = async () => {
+    if (!postContent.trim()) return;
+
+    try {
+      setIsCreatingPost(true);
+
+      const response = await fetch(`/api/communities/${role.toLowerCase()}/posts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content: postContent,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert(error.error?.message || 'Failed to create post');
+        return;
+      }
+
+      const result = await response.json();
+
+      // Add new post to the beginning of the feed
+      setPosts([result.data, ...posts]);
+      setPostContent("");
+    } catch (error) {
+      console.error('Error creating post:', error);
+      alert('An error occurred while creating the post');
+    } finally {
+      setIsCreatingPost(false);
+    }
   };
 
   return (
@@ -300,9 +447,10 @@ export default function CommunityPage() {
                           </button>
                         </div>
                         <button
-                          disabled={!postContent.trim()}
+                          onClick={handleCreatePost}
+                          disabled={!postContent.trim() || isCreatingPost}
                           className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-                            postContent.trim()
+                            postContent.trim() && !isCreatingPost
                               ? "bg-purple-600 hover:bg-purple-700 text-white"
                               : theme === "dark"
                                 ? "bg-zinc-800 text-zinc-600 cursor-not-allowed"
@@ -310,7 +458,9 @@ export default function CommunityPage() {
                           }`}
                         >
                           <Send className="w-4 h-4" />
-                          <span className="text-sm font-medium">Post</span>
+                          <span className="text-sm font-medium">
+                            {isCreatingPost ? "Posting..." : "Post"}
+                          </span>
                         </button>
                       </div>
                     </div>
@@ -318,98 +468,119 @@ export default function CommunityPage() {
                 </div>
 
                 {/* Posts Feed */}
-                {mockPosts.map((post) => (
-                  <div
-                    key={post.id}
-                    className={`rounded-xl border p-6 ${
-                      theme === "dark"
-                        ? "border-zinc-800 bg-zinc-900/40"
-                        : "border-gray-300 bg-white"
-                    }`}
-                  >
-                    {/* Post Header */}
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex gap-3">
-                        <img
-                          src={post.author.avatar}
-                          alt={post.author.name}
-                          className="w-10 h-10 rounded-full"
-                        />
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-medium">{post.author.name}</h4>
-                            {post.author.verified && (
-                              <Star className="w-4 h-4 text-blue-500 fill-blue-500" />
+                {isLoadingPosts ? (
+                  <div className={`rounded-xl border p-6 text-center ${
+                    theme === "dark"
+                      ? "border-zinc-800 bg-zinc-900/40 text-zinc-400"
+                      : "border-gray-300 bg-white text-gray-600"
+                  }`}>
+                    <p>Loading posts...</p>
+                  </div>
+                ) : posts.length === 0 ? (
+                  <div className={`rounded-xl border p-6 text-center ${
+                    theme === "dark"
+                      ? "border-zinc-800 bg-zinc-900/40 text-zinc-400"
+                      : "border-gray-300 bg-white text-gray-600"
+                  }`}>
+                    <p>No posts yet. Be the first to share something!</p>
+                  </div>
+                ) : (
+                  posts.map((post) => (
+                    <div
+                      key={post.id}
+                      className={`rounded-xl border p-6 ${
+                        theme === "dark"
+                          ? "border-zinc-800 bg-zinc-900/40"
+                          : "border-gray-300 bg-white"
+                      }`}
+                    >
+                      {/* Post Header */}
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex gap-3">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${config.bg} ${config.color}`}>
+                            {post.author.avatar ? (
+                              <img
+                                src={post.author.avatar}
+                                alt={post.author.username}
+                                className="w-10 h-10 rounded-full object-cover"
+                              />
+                            ) : (
+                              config.icon
                             )}
                           </div>
-                          <p className={`text-sm ${
-                            theme === "dark" ? "text-zinc-400" : "text-gray-600"
-                          }`}>
-                            {post.timestamp}
-                          </p>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-medium">{post.author.username}</h4>
+                            </div>
+                            <p className={`text-sm ${
+                              theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                            }`}>
+                              {formatTimestamp(post.createdAt)}
+                            </p>
+                          </div>
                         </div>
+                        <button className={`p-2 rounded-lg transition-colors ${
+                          theme === "dark"
+                            ? "hover:bg-zinc-800 text-zinc-400"
+                            : "hover:bg-gray-100 text-gray-600"
+                        }`}>
+                          <MoreHorizontal className="w-5 h-5" />
+                        </button>
                       </div>
-                      <button className={`p-2 rounded-lg transition-colors ${
-                        theme === "dark"
-                          ? "hover:bg-zinc-800 text-zinc-400"
-                          : "hover:bg-gray-100 text-gray-600"
+
+                      {/* Post Content */}
+                      <p className="mb-4 leading-relaxed">{post.content}</p>
+
+                      {/* Post Media */}
+                      {post.imageUrl && (
+                        <div className="mb-4 rounded-lg overflow-hidden">
+                          <img
+                            src={post.imageUrl}
+                            alt="Post content"
+                            className="w-full h-64 object-cover"
+                          />
+                        </div>
+                      )}
+                      {post.videoUrl && (
+                        <div className={`mb-4 rounded-lg overflow-hidden flex items-center justify-center h-64 ${
+                          theme === "dark" ? "bg-zinc-800" : "bg-gray-200"
+                        }`}>
+                          <Video className="w-12 h-12 text-zinc-500" />
+                        </div>
+                      )}
+
+                      {/* Post Actions */}
+                      <div className={`flex items-center gap-6 pt-4 border-t ${
+                        theme === 'dark' ? 'border-zinc-800' : 'border-gray-200'
                       }`}>
-                        <MoreHorizontal className="w-5 h-5" />
-                      </button>
+                        <button className={`flex items-center gap-2 transition-colors ${
+                          theme === "dark"
+                            ? "text-zinc-400 hover:text-red-400"
+                            : "text-gray-600 hover:text-red-600"
+                        }`}>
+                          <Heart className="w-5 h-5" />
+                          <span className="text-sm font-medium">{post.likesCount}</span>
+                        </button>
+                        <button className={`flex items-center gap-2 transition-colors ${
+                          theme === "dark"
+                            ? "text-zinc-400 hover:text-blue-400"
+                            : "text-gray-600 hover:text-blue-600"
+                        }`}>
+                          <MessageSquare className="w-5 h-5" />
+                          <span className="text-sm font-medium">{post.commentsCount}</span>
+                        </button>
+                        <button className={`flex items-center gap-2 transition-colors ${
+                          theme === "dark"
+                            ? "text-zinc-400 hover:text-green-400"
+                            : "text-gray-600 hover:text-green-600"
+                        }`}>
+                          <Share2 className="w-5 h-5" />
+                          <span className="text-sm font-medium">{post.sharesCount}</span>
+                        </button>
+                      </div>
                     </div>
-
-                    {/* Post Content */}
-                    <p className="mb-4 leading-relaxed">{post.content}</p>
-
-                    {/* Post Media */}
-                    {post.image && (
-                      <div className="mb-4 rounded-lg overflow-hidden">
-                        <img
-                          src={post.image}
-                          alt="Post content"
-                          className="w-full h-64 object-cover"
-                        />
-                      </div>
-                    )}
-                    {post.video && (
-                      <div className={`mb-4 rounded-lg overflow-hidden flex items-center justify-center h-64 ${
-                        theme === "dark" ? "bg-zinc-800" : "bg-gray-200"
-                      }`}>
-                        <Video className="w-12 h-12 text-zinc-500" />
-                      </div>
-                    )}
-
-                    {/* Post Actions */}
-                    <div className="flex items-center gap-6 pt-4 border-t ${
-                      theme === 'dark' ? 'border-zinc-800' : 'border-gray-200'
-                    }">
-                      <button className={`flex items-center gap-2 transition-colors ${
-                        theme === "dark"
-                          ? "text-zinc-400 hover:text-red-400"
-                          : "text-gray-600 hover:text-red-600"
-                      }`}>
-                        <Heart className="w-5 h-5" />
-                        <span className="text-sm font-medium">{post.likes}</span>
-                      </button>
-                      <button className={`flex items-center gap-2 transition-colors ${
-                        theme === "dark"
-                          ? "text-zinc-400 hover:text-blue-400"
-                          : "text-gray-600 hover:text-blue-600"
-                      }`}>
-                        <MessageSquare className="w-5 h-5" />
-                        <span className="text-sm font-medium">{post.comments}</span>
-                      </button>
-                      <button className={`flex items-center gap-2 transition-colors ${
-                        theme === "dark"
-                          ? "text-zinc-400 hover:text-green-400"
-                          : "text-gray-600 hover:text-green-600"
-                      }`}>
-                        <Share2 className="w-5 h-5" />
-                        <span className="text-sm font-medium">{post.shares}</span>
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </>
             )}
 
@@ -490,38 +661,52 @@ export default function CommunityPage() {
                 : "border-gray-300 bg-white"
             }`}>
               <h3 className="font-semibold mb-4">Community Stats</h3>
-              <div className="space-y-4">
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className={`text-sm ${
-                      theme === "dark" ? "text-zinc-400" : "text-gray-600"
-                    }`}>
-                      Total Members
-                    </span>
-                    <span className="font-semibold">12,458</span>
+              {isLoadingStats ? (
+                <div className={`text-center py-4 ${
+                  theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                }`}>
+                  <p className="text-sm">Loading stats...</p>
+                </div>
+              ) : stats ? (
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className={`text-sm ${
+                        theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                      }`}>
+                        Total Members
+                      </span>
+                      <span className="font-semibold">{stats.totalMembers.toLocaleString()}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className={`text-sm ${
+                        theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                      }`}>
+                        Active Clubs
+                      </span>
+                      <span className="font-semibold">{stats.totalClubs.toLocaleString()}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className={`text-sm ${
+                        theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                      }`}>
+                        Posts This Week
+                      </span>
+                      <span className="font-semibold">{stats.postsThisWeek.toLocaleString()}</span>
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className={`text-sm ${
-                      theme === "dark" ? "text-zinc-400" : "text-gray-600"
-                    }`}>
-                      Active Clubs
-                    </span>
-                    <span className="font-semibold">234</span>
-                  </div>
+              ) : (
+                <div className={`text-center py-4 ${
+                  theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                }`}>
+                  <p className="text-sm">Unable to load stats</p>
                 </div>
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className={`text-sm ${
-                      theme === "dark" ? "text-zinc-400" : "text-gray-600"
-                    }`}>
-                      Posts This Week
-                    </span>
-                    <span className="font-semibold">1,893</span>
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Trending Clubs */}
@@ -534,30 +719,44 @@ export default function CommunityPage() {
                 <TrendingUp className="w-5 h-5 text-orange-500" />
                 <h3 className="font-semibold">Trending Clubs</h3>
               </div>
-              <div className="space-y-3">
-                {mockClubs.filter(c => c.trending).map((club) => (
-                  <div
-                    key={club.id}
-                    className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
-                      theme === "dark"
-                        ? "hover:bg-zinc-800"
-                        : "hover:bg-gray-50"
-                    }`}
-                  >
-                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-lg">
-                      {club.icon}
+              {isLoadingStats ? (
+                <div className={`text-center py-4 ${
+                  theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                }`}>
+                  <p className="text-sm">Loading clubs...</p>
+                </div>
+              ) : stats && stats.trendingClubs.length > 0 ? (
+                <div className="space-y-3">
+                  {stats.trendingClubs.map((club) => (
+                    <div
+                      key={club.id}
+                      className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
+                        theme === "dark"
+                          ? "hover:bg-zinc-800"
+                          : "hover:bg-gray-50"
+                      }`}
+                    >
+                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-lg">
+                        {club.icon || '🎵'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-sm truncate">{club.name}</h4>
+                        <p className={`text-xs ${
+                          theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                        }`}>
+                          {club.membersCount.toLocaleString()} members
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-sm truncate">{club.name}</h4>
-                      <p className={`text-xs ${
-                        theme === "dark" ? "text-zinc-400" : "text-gray-600"
-                      }`}>
-                        {club.members.toLocaleString()} members
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className={`text-center py-4 ${
+                  theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                }`}>
+                  <p className="text-sm">No trending clubs yet</p>
+                </div>
+              )}
             </div>
 
             {/* Invite Members */}
