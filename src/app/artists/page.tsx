@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { useTheme } from "../../providers/ThemeProvider";
-import { Edit, Mail, MapPin, Link as LinkIcon, Users, Music2, FileText, Heart, MessageCircle, Clock, CheckCircle, Plus, Star, Crown, Settings, Upload, TrendingUp, Award, Play, Pause, Share2, Download, Eye } from "lucide-react";
+import { usePermissions } from "../../hooks/usePermissions";
+import { Edit, Mail, MapPin, Link as LinkIcon, Users, Music2, FileText, Heart, MessageCircle, Clock, CheckCircle, Plus, Star, Crown, Settings, Upload, TrendingUp, Award, Play, Pause, Share2, Download, Eye, Briefcase, DollarSign, Package, Headphones, Mic, Zap, Shield, Trophy, Target, BarChart3, Calendar, Sparkles, Wrench, Radio } from "lucide-react";
 
-// Mock user data
-const userProfile = {
+// Mock user data (in real app, this would come from API/database)
+const mockUserProfile = {
   id: 1,
   name: "Alex Melody",
   username: "@alexmelody",
@@ -17,13 +18,41 @@ const userProfile = {
   email: "alex@melody.com",
   verified: true,
   proMember: true,
+  primaryRole: "PRODUCER", // This would come from the actual user data
+  secondaryRoles: ["ARTIST", "LYRICIST"], // User has multiple capabilities
+  followers: 12400,
   stats: {
-    followers: 12400,
-    following: 843,
-    snippets: 56,
-    collabs: 32,
-    completedProjects: 78,
-    avgRating: 4.7
+    // PRODUCER stats
+    beatsLicensed: 145,
+    collabCompletionRate: 95,
+    avgSessionRating: 4.8,
+    totalCollabs: 89,
+
+    // ARTIST stats
+    snippetPlays: 45000,
+    fanGrowth: 850,
+    collabRequestsReceived: 23,
+    songsReleased: 34,
+
+    // LYRICIST stats
+    lyricsUsedInSongs: 67,
+    feedbackScore: 4.7,
+    collabROI: "$12.5K",
+    publishedWorks: 45,
+
+    // GEAR_SALES stats
+    rentalUtilization: 87,
+    avgRentalDuration: "4.2 days",
+    damageClaims: 0,
+    itemsListed: 23,
+    transactions: 156,
+    sellerRating: 4.9,
+
+    // STUDIO_OWNER stats
+    bookingsThisMonth: 42,
+    occupancyRate: 78,
+    repeatClients: 65,
+    avgBookingValue: "$450"
   },
   skills: ["Producer", "Songwriter", "Mixing Engineer", "Vocalist"],
   genres: ["Pop", "R&B", "Hip Hop"],
@@ -31,9 +60,19 @@ const userProfile = {
   rates: {
     production: "$500-$1000",
     songwriting: "$300-$700",
-    mixing: "$200-$400"
+    mixing: "$200-$400",
+    studioHourly: "$75/hr"
   },
-  availability: "Available for new projects"
+  availability: "Available for new projects",
+
+  // Badge data
+  badges: {
+    streams: 10000, // For "Verified Artist" badge (10k+)
+    totalCollabs: 89, // For "Certified Producer" (50+)
+    hasInsurance: true,
+    totalRentals: 156, // For "Gear Pro" (20+)
+    publishedWorks: 45 // For "Master Lyricist"
+  }
 };
 
 const userActivity = [
@@ -45,37 +84,37 @@ const userActivity = [
 ];
 
 const userSnippets = [
-  { 
-    id: 1, 
-    title: "Summer Vibes Hook", 
-    plays: 1245, 
-    likes: 342, 
-    duration: "1:02", 
-    genre: "Pop", 
+  {
+    id: 1,
+    title: "Summer Vibes Hook",
+    plays: 1245,
+    likes: 342,
+    duration: "1:02",
+    genre: "Pop",
     date: "2 days ago",
     image: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&q=80",
     bpm: 120,
     key: "C Major"
   },
-  { 
-    id: 2, 
-    title: "R&B Vocal Loop", 
-    plays: 876, 
-    likes: 231, 
-    duration: "0:45", 
-    genre: "R&B", 
+  {
+    id: 2,
+    title: "R&B Vocal Loop",
+    plays: 876,
+    likes: 231,
+    duration: "0:45",
+    genre: "R&B",
     date: "1 week ago",
     image: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&q=80",
     bpm: 95,
     key: "G Minor"
   },
-  { 
-    id: 3, 
-    title: "Trap 808 Pattern", 
-    plays: 765, 
-    likes: 198, 
-    duration: "0:52", 
-    genre: "Hip Hop", 
+  {
+    id: 3,
+    title: "Trap 808 Pattern",
+    plays: 765,
+    likes: 198,
+    duration: "0:52",
+    genre: "Hip Hop",
     date: "2 weeks ago",
     image: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&q=80",
     bpm: 140,
@@ -84,21 +123,21 @@ const userSnippets = [
 ];
 
 const userCollabs = [
-  { 
-    id: 1, 
-    title: "Midnight Dreams", 
-    collaborator: "@vocalqueen", 
-    status: "in-progress", 
-    progress: 65, 
+  {
+    id: 1,
+    title: "Midnight Dreams",
+    collaborator: "@vocalqueen",
+    status: "in-progress",
+    progress: 65,
     date: "1 week ago",
     image: "https://images.unsplash.com/photo-1571974599782-87624638275f?w=400&q=80"
   },
-  { 
-    id: 2, 
-    title: "City Lights", 
-    collaborator: "@urbanrecords", 
-    status: "completed", 
-    progress: 100, 
+  {
+    id: 2,
+    title: "City Lights",
+    collaborator: "@urbanrecords",
+    status: "completed",
+    progress: 100,
     date: "3 weeks ago",
     image: "https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=400&q=80"
   }
@@ -129,11 +168,191 @@ const formatNumber = (num: number): string => {
   return num.toString();
 };
 
+// Role-specific badge generator
+const getRoleBadges = (user: typeof mockUserProfile, role: string) => {
+  const badges = [];
+
+  if (role === "ARTIST" && user.badges.streams >= 10000) {
+    badges.push({
+      icon: <CheckCircle className="w-4 h-4" />,
+      label: "Verified Artist",
+      color: "blue",
+      description: "10k+ streams"
+    });
+  }
+
+  if (role === "PRODUCER" && user.badges.totalCollabs >= 50) {
+    badges.push({
+      icon: <Trophy className="w-4 h-4" />,
+      label: "Certified Producer",
+      color: "purple",
+      description: "50+ collaborations"
+    });
+  }
+
+  if (role === "GEAR_SALES" && user.badges.hasInsurance && user.badges.totalRentals >= 20) {
+    badges.push({
+      icon: <Shield className="w-4 h-4" />,
+      label: "Gear Pro",
+      color: "green",
+      description: "Insured + 20+ rentals"
+    });
+  }
+
+  if (role === "LYRICIST" && user.badges.publishedWorks > 0) {
+    badges.push({
+      icon: <Award className="w-4 h-4" />,
+      label: "Master Lyricist",
+      color: "yellow",
+      description: "Published works"
+    });
+  }
+
+  if (role === "STUDIO_OWNER") {
+    badges.push({
+      icon: <Star className="w-4 h-4" />,
+      label: "Verified Studio",
+      color: "orange",
+      description: "Certified location"
+    });
+  }
+
+  return badges;
+};
+
+// Get role-specific stats
+const getRoleStats = (user: typeof mockUserProfile, role: string) => {
+  switch (role) {
+    case "PRODUCER":
+      return [
+        { label: "Beats Licensed", value: user.stats.beatsLicensed, icon: <Music2 className="w-5 h-5" /> },
+        { label: "Completion Rate", value: `${user.stats.collabCompletionRate}%`, icon: <Target className="w-5 h-5" /> },
+        { label: "Avg. Rating", value: user.stats.avgSessionRating.toFixed(1), icon: <Star className="w-5 h-5" /> },
+        { label: "Total Collabs", value: user.stats.totalCollabs, icon: <Users className="w-5 h-5" /> }
+      ];
+
+    case "ARTIST":
+      return [
+        { label: "Snippet Plays", value: formatNumber(user.stats.snippetPlays), icon: <Play className="w-5 h-5" /> },
+        { label: "Fan Growth", value: `+${user.stats.fanGrowth}`, icon: <TrendingUp className="w-5 h-5" /> },
+        { label: "Collab Requests", value: user.stats.collabRequestsReceived, icon: <Briefcase className="w-5 h-5" /> },
+        { label: "Songs Released", value: user.stats.songsReleased, icon: <Radio className="w-5 h-5" /> }
+      ];
+
+    case "LYRICIST":
+      return [
+        { label: "Lyrics Used", value: user.stats.lyricsUsedInSongs, icon: <FileText className="w-5 h-5" /> },
+        { label: "Feedback Score", value: user.stats.feedbackScore.toFixed(1), icon: <MessageCircle className="w-5 h-5" /> },
+        { label: "Collab ROI", value: user.stats.collabROI, icon: <DollarSign className="w-5 h-5" /> },
+        { label: "Published Works", value: user.stats.publishedWorks, icon: <Award className="w-5 h-5" /> }
+      ];
+
+    case "GEAR_SALES":
+      return [
+        { label: "Rental Util.", value: `${user.stats.rentalUtilization}%`, icon: <BarChart3 className="w-5 h-5" /> },
+        { label: "Avg. Duration", value: user.stats.avgRentalDuration, icon: <Clock className="w-5 h-5" /> },
+        { label: "Damage Claims", value: user.stats.damageClaims, icon: <Shield className="w-5 h-5" /> },
+        { label: "Seller Rating", value: user.stats.sellerRating.toFixed(1), icon: <Star className="w-5 h-5" /> }
+      ];
+
+    case "STUDIO_OWNER":
+      return [
+        { label: "Monthly Bookings", value: user.stats.bookingsThisMonth, icon: <Calendar className="w-5 h-5" /> },
+        { label: "Occupancy", value: `${user.stats.occupancyRate}%`, icon: <TrendingUp className="w-5 h-5" /> },
+        { label: "Repeat Clients", value: `${user.stats.repeatClients}%`, icon: <Users className="w-5 h-5" /> },
+        { label: "Avg. Booking", value: user.stats.avgBookingValue, icon: <DollarSign className="w-5 h-5" /> }
+      ];
+
+    default:
+      return [
+        { label: "Followers", value: formatNumber(user.followers), icon: <Users className="w-5 h-5" /> },
+        { label: "Total Projects", value: user.stats.totalCollabs, icon: <Briefcase className="w-5 h-5" /> },
+        { label: "Avg. Rating", value: user.stats.avgSessionRating.toFixed(1), icon: <Star className="w-5 h-5" /> }
+      ];
+  }
+};
+
+// Get role-specific CTA
+const getRoleCTA = (role: string, viewerRole: string, theme: string) => {
+  const isOwnProfile = role === viewerRole; // In real app, check if viewing own profile
+
+  if (isOwnProfile) {
+    // Own profile - show creation CTAs
+    switch (role) {
+      case "PRODUCER":
+        return { text: "Create Collab", icon: <Plus className="w-5 h-5" />, href: "/collabs/create" };
+      case "ARTIST":
+        return { text: "Find Producer", icon: <Headphones className="w-5 h-5" />, href: "/services?tab=collabs" };
+      case "GEAR_SALES":
+        return { text: "List Equipment", icon: <Package className="w-5 h-5" />, href: "/gear/list" };
+      case "LYRICIST":
+        return { text: "Post Lyrics", icon: <FileText className="w-5 h-5" />, href: "/services/create/lyrics" };
+      case "STUDIO_OWNER":
+        return { text: "Manage Bookings", icon: <Calendar className="w-5 h-5" />, href: "/studios/manage" };
+      default:
+        return { text: "Upload Snippet", icon: <Upload className="w-5 h-5" />, href: "/snippets/upload" };
+    }
+  }
+
+  // Viewing someone else's profile - show interaction CTAs
+  switch (role) {
+    case "PRODUCER":
+      return { text: "Hire Me", icon: <Briefcase className="w-5 h-5" />, href: "#collab-modal" };
+    case "ARTIST":
+      return { text: "Offer Beat", icon: <Music2 className="w-5 h-5" />, href: "#offer-modal" };
+    case "GEAR_SALES":
+      return { text: "Rent Gear", icon: <Package className="w-5 h-5" />, href: "#rental-modal" };
+    case "LYRICIST":
+      return { text: "Request Review", icon: <MessageCircle className="w-5 h-5" />, href: "#review-modal" };
+    case "STUDIO_OWNER":
+      return { text: "Book Session", icon: <Calendar className="w-5 h-5" />, href: "#booking-modal" };
+    default:
+      return { text: "Collaborate", icon: <Users className="w-5 h-5" />, href: "#collab-modal" };
+  }
+};
+
+// Get role display name
+const getRoleDisplayName = (role: string) => {
+  const roleNames: Record<string, string> = {
+    PRODUCER: "Producer",
+    ARTIST: "Artist",
+    LYRICIST: "Lyricist",
+    GEAR_SALES: "Gear Sales",
+    STUDIO_OWNER: "Studio Owner",
+    OTHER: "Member"
+  };
+  return roleNames[role] || role;
+};
+
+// Get role icon
+const getRoleIcon = (role: string, className: string = "w-5 h-5") => {
+  const roleIcons: Record<string, JSX.Element> = {
+    PRODUCER: <Headphones className={className} />,
+    ARTIST: <Mic className={className} />,
+    LYRICIST: <FileText className={className} />,
+    GEAR_SALES: <Package className={className} />,
+    STUDIO_OWNER: <Radio className={className} />,
+    OTHER: <Users className={className} />
+  };
+  return roleIcons[role] || <Users className={className} />;
+};
+
 export default function ProfilePage() {
   const { theme } = useTheme();
-  const [activeTab, setActiveTab] = useState("snippets");
+  const { permissions, isArtist, isProducer, isLyricist, isStudioOwner, isGearSales } = usePermissions();
+
+  // State for role toggle (for hybrid users)
+  const [activeRoleView, setActiveRoleView] = useState(mockUserProfile.primaryRole);
+  const [activeTab, setActiveTab] = useState("overview");
   const [editMode, setEditMode] = useState(false);
   const [currentlyPlaying, setCurrentlyPlaying] = useState<number | null>(null);
+
+  // In real app, this would be the logged-in user's role
+  const viewerRole = permissions.role;
+
+  // Check if user has multiple roles (hybrid user)
+  const isHybridUser = mockUserProfile.secondaryRoles && mockUserProfile.secondaryRoles.length > 0;
+  const availableRoles = [mockUserProfile.primaryRole, ...(mockUserProfile.secondaryRoles || [])];
 
   const getActivityIcon = (type: string) => {
     const icons = {
@@ -150,14 +369,18 @@ export default function ProfilePage() {
     setCurrentlyPlaying(currentlyPlaying === id ? null : id);
   };
 
+  const roleStats = getRoleStats(mockUserProfile, activeRoleView);
+  const roleBadges = getRoleBadges(mockUserProfile, activeRoleView);
+  const roleCTA = getRoleCTA(activeRoleView, viewerRole, theme);
+
   return (
     <div className={`min-h-screen transition-colors duration-200 ${
       theme === "dark" ? "bg-black text-white" : "bg-gray-50 text-gray-900"
     }`}>
       {/* Cover Photo */}
-      <div 
+      <div
         className="h-64 bg-cover bg-center relative"
-        style={{ backgroundImage: `url(${userProfile.coverImage})` }}
+        style={{ backgroundImage: `url(${mockUserProfile.coverImage})` }}
       >
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/60" />
         {editMode && (
@@ -181,19 +404,19 @@ export default function ProfilePage() {
           <div className="flex-shrink-0">
             <div className="relative">
               <img
-                src={userProfile.avatar}
-                alt={userProfile.name}
+                src={mockUserProfile.avatar}
+                alt={mockUserProfile.name}
                 className="w-40 h-40 rounded-full border-4 shadow-xl object-cover"
                 style={{ borderColor: theme === "dark" ? "#000" : "#fff" }}
               />
-              {userProfile.verified && (
+              {mockUserProfile.verified && (
                 <div className="absolute bottom-4 right-4 w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center border-2"
                   style={{ borderColor: theme === "dark" ? "#000" : "#fff" }}
                 >
                   <CheckCircle className="w-5 h-5 text-white" />
                 </div>
               )}
-              {userProfile.proMember && (
+              {mockUserProfile.proMember && (
                 <div className="absolute top-4 left-4 w-8 h-8 rounded-full bg-yellow-500 flex items-center justify-center border-2"
                   style={{ borderColor: theme === "dark" ? "#000" : "#fff" }}
                 >
@@ -216,173 +439,212 @@ export default function ProfilePage() {
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
                   <h1 className="text-3xl font-light tracking-tight">
-                    {userProfile.name}
+                    {mockUserProfile.name}
                   </h1>
                   <div className="flex items-center gap-1">
-                    {userProfile.verified && (
+                    {mockUserProfile.verified && (
                       <CheckCircle className="w-5 h-5 text-blue-500" />
                     )}
-                    {userProfile.proMember && (
+                    {mockUserProfile.proMember && (
                       <Crown className="w-5 h-5 text-yellow-500" />
                     )}
                   </div>
                 </div>
+
+                {/* Role badges and toggle */}
+                <div className="flex items-center gap-3 mb-3">
+                  <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${
+                    theme === "dark"
+                      ? "bg-purple-500/20 border border-purple-500/30"
+                      : "bg-purple-50 border border-purple-200"
+                  }`}>
+                    {getRoleIcon(activeRoleView, "w-4 h-4")}
+                    <span className={`text-sm font-light tracking-wide ${
+                      theme === "dark" ? "text-purple-300" : "text-purple-700"
+                    }`}>
+                      {getRoleDisplayName(activeRoleView)}
+                    </span>
+                  </div>
+
+                  {/* Display role-specific achievement badges */}
+                  {roleBadges.map((badge, i) => (
+                    <div
+                      key={i}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-light tracking-wide ${
+                        badge.color === "blue" ? (theme === "dark" ? "bg-blue-500/20 text-blue-300 border border-blue-500/30" : "bg-blue-50 text-blue-700 border border-blue-200") :
+                        badge.color === "purple" ? (theme === "dark" ? "bg-purple-500/20 text-purple-300 border border-purple-500/30" : "bg-purple-50 text-purple-700 border border-purple-200") :
+                        badge.color === "green" ? (theme === "dark" ? "bg-green-500/20 text-green-300 border border-green-500/30" : "bg-green-50 text-green-700 border border-green-200") :
+                        badge.color === "yellow" ? (theme === "dark" ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/30" : "bg-yellow-50 text-yellow-700 border border-yellow-200") :
+                        badge.color === "orange" ? (theme === "dark" ? "bg-orange-500/20 text-orange-300 border border-orange-500/30" : "bg-orange-50 text-orange-700 border border-orange-200") :
+                        ""
+                      }`}
+                      title={badge.description}
+                    >
+                      {badge.icon}
+                      <span>{badge.label}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Hybrid User Role Toggle */}
+                {isHybridUser && (
+                  <div className="mb-4">
+                    <div className={`inline-flex items-center gap-2 p-1 rounded-lg ${
+                      theme === "dark"
+                        ? "bg-zinc-900/60 border border-zinc-800"
+                        : "bg-white border border-gray-200"
+                    }`}>
+                      <span className={`text-xs font-light tracking-wide px-2 ${
+                        theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                      }`}>
+                        View as:
+                      </span>
+                      {availableRoles.map((role) => (
+                        <button
+                          key={role}
+                          onClick={() => setActiveRoleView(role)}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-light tracking-wide transition-all ${
+                            activeRoleView === role
+                              ? (theme === "dark"
+                                  ? "bg-purple-500 text-white"
+                                  : "bg-purple-600 text-white")
+                              : (theme === "dark"
+                                  ? "text-zinc-400 hover:text-white hover:bg-zinc-800"
+                                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-100")
+                          }`}
+                        >
+                          {getRoleIcon(role, "w-3.5 h-3.5")}
+                          {getRoleDisplayName(role)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className={`text-lg font-light tracking-wide mb-3 ${
                   theme === "dark" ? "text-zinc-400" : "text-gray-600"
                 }`}>
-                  {userProfile.username}
+                  {mockUserProfile.username}
                 </div>
-                
+
                 {/* Bio */}
                 <p className={`text-base font-light tracking-wide mb-4 max-w-2xl ${
                   theme === "dark" ? "text-zinc-300" : "text-gray-700"
                 }`}>
-                  {userProfile.bio}
+                  {mockUserProfile.bio}
                 </p>
 
                 {/* Contact Info */}
                 <div className="flex flex-wrap gap-4 text-sm font-light tracking-wide mb-4">
-                  {userProfile.location && (
+                  {mockUserProfile.location && (
                     <div className={`flex items-center gap-2 ${
                       theme === "dark" ? "text-zinc-400" : "text-gray-600"
                     }`}>
                       <MapPin className="w-4 h-4" />
-                      {userProfile.location}
+                      {mockUserProfile.location}
                     </div>
                   )}
-                  {userProfile.website && (
-                    <div className={`flex items-center gap-2 ${
-                      theme === "dark" ? "text-zinc-400" : "text-gray-600"
-                    }`}>
+                  {mockUserProfile.website && (
+                    <a
+                      href={`https://${mockUserProfile.website}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`flex items-center gap-2 hover:text-purple-500 transition-colors ${
+                        theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                      }`}
+                    >
                       <LinkIcon className="w-4 h-4" />
-                      <a
-                        href={`https://${userProfile.website}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={theme === "dark" ? "text-purple-400 hover:text-purple-300" : "text-purple-600 hover:text-purple-700"}
-                      >
-                        {userProfile.website}
-                      </a>
-                    </div>
+                      {mockUserProfile.website}
+                    </a>
                   )}
-                  {userProfile.email && (
-                    <div className={`flex items-center gap-2 ${
-                      theme === "dark" ? "text-zinc-400" : "text-gray-600"
-                    }`}>
+                  {mockUserProfile.email && (
+                    <a
+                      href={`mailto:${mockUserProfile.email}`}
+                      className={`flex items-center gap-2 hover:text-purple-500 transition-colors ${
+                        theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                      }`}
+                    >
                       <Mail className="w-4 h-4" />
-                      <span>{userProfile.email}</span>
-                    </div>
+                      {mockUserProfile.email}
+                    </a>
                   )}
                 </div>
 
-                {/* Rating */}
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1">
-                    {[...Array(5)].map((_, i) => (
-                      <Star
-                        key={i}
-                        className={`w-5 h-5 ${
-                          i < Math.floor(userProfile.stats.avgRating)
-                            ? "fill-yellow-500 text-yellow-500"
-                            : theme === "dark"
-                              ? "text-zinc-700"
-                              : "text-gray-300"
-                        }`}
-                      />
-                    ))}
-                  </div>
+                {/* Availability Status */}
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse" />
                   <span className={`text-sm font-light tracking-wide ${
-                    theme === "dark" ? "text-zinc-500" : "text-gray-600"
+                    theme === "dark" ? "text-zinc-300" : "text-gray-700"
                   }`}>
-                    {userProfile.stats.avgRating} • {userProfile.stats.completedProjects} projects
+                    {mockUserProfile.availability}
                   </span>
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-2 mt-4 md:mt-0">
-                {!editMode ? (
-                  <>
-                    <button
-                      onClick={() => setEditMode(true)}
-                      className={`flex items-center gap-2 px-6 py-3 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
-                        theme === "dark"
-                          ? "border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-600"
-                          : "border-gray-300 text-gray-600 hover:text-black hover:border-gray-400"
-                      }`}
-                    >
-                      <Edit className="w-4 h-4" />
-                      Edit Profile
-                    </button>
-                    <button
-                      className={`flex items-center gap-2 px-6 py-3 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
-                        theme === "dark"
-                          ? "bg-white border-white text-black hover:bg-zinc-100"
-                          : "bg-black border-black text-white hover:bg-gray-800"
-                      }`}
-                    >
-                      <Mail className="w-4 h-4" />
-                      Contact
-                    </button>
-                  </>
+              <div className="flex gap-3 mt-4 md:mt-0">
+                {editMode ? (
+                  <button
+                    onClick={() => setEditMode(false)}
+                    className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-light tracking-wide transition-all duration-200 active:scale-95 ${
+                      theme === "dark"
+                        ? "bg-green-600 hover:bg-green-700 text-white"
+                        : "bg-green-600 hover:bg-green-700 text-white"
+                    }`}
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    Save Changes
+                  </button>
                 ) : (
                   <>
                     <button
-                      onClick={() => setEditMode(false)}
-                      className={`px-6 py-3 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
+                      onClick={() => setEditMode(true)}
+                      className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-light tracking-wide transition-all duration-200 border active:scale-95 ${
                         theme === "dark"
-                          ? "border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-600"
-                          : "border-gray-300 text-gray-600 hover:text-black hover:border-gray-400"
+                          ? "bg-zinc-900/60 hover:bg-zinc-800 text-white border-zinc-700"
+                          : "bg-white hover:bg-gray-50 text-gray-900 border-gray-300"
                       }`}
                     >
-                      Cancel
+                      <Settings className="w-4 h-4" />
+                      Edit Profile
                     </button>
-                    <button
-                      onClick={() => setEditMode(false)}
-                      className={`px-6 py-3 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
+                    <a
+                      href={roleCTA.href}
+                      className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-light tracking-wide transition-all duration-200 active:scale-95 ${
                         theme === "dark"
-                          ? "bg-white border-white text-black hover:bg-zinc-100"
-                          : "bg-black border-black text-white hover:bg-gray-800"
+                          ? "bg-purple-600 hover:bg-purple-700 text-white"
+                          : "bg-purple-600 hover:bg-purple-700 text-white"
                       }`}
                     >
-                      Save Changes
-                    </button>
+                      {roleCTA.icon}
+                      {roleCTA.text}
+                    </a>
                   </>
                 )}
               </div>
             </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-              {[
-                { label: "Followers", value: userProfile.stats.followers, icon: <Users className="w-4 h-4" /> },
-                { label: "Following", value: userProfile.stats.following, icon: <Users className="w-4 h-4" /> },
-                { label: "Snippets", value: userProfile.stats.snippets, icon: <Music2 className="w-4 h-4" /> },
-                { label: "Collabs", value: userProfile.stats.collabs, icon: <FileText className="w-4 h-4" /> },
-                { label: "Projects", value: userProfile.stats.completedProjects, icon: <Award className="w-4 h-4" /> }
-              ].map((stat, i) => (
+            {/* Role-Specific Stats Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              {roleStats.map((stat, i) => (
                 <div
                   key={i}
-                  className={`p-4 rounded-xl border transition-all duration-200 ${
+                  className={`rounded-xl border p-4 transition-all duration-200 hover:scale-105 ${
                     theme === "dark"
                       ? "border-zinc-800 bg-zinc-900/40 hover:bg-zinc-900/60"
                       : "border-gray-300 bg-white hover:bg-gray-50"
                   }`}
                 >
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className={`p-1.5 rounded-lg ${
-                      theme === "dark" ? "bg-purple-500/20 text-purple-400" : "bg-purple-100 text-purple-600"
-                    }`}>
-                      {stat.icon}
-                    </div>
-                    <div className={`text-2xl font-light tracking-tight ${
-                      theme === "dark" ? "text-white" : "text-gray-900"
-                    }`}>
-                      {formatNumber(stat.value)}
-                    </div>
+                  <div className={`flex items-center gap-2 mb-2 ${
+                    theme === "dark" ? "text-purple-400" : "text-purple-600"
+                  }`}>
+                    {stat.icon}
+                  </div>
+                  <div className="text-2xl font-light tracking-tight mb-1">
+                    {stat.value}
                   </div>
                   <div className={`text-xs font-light tracking-wide ${
-                    theme === "dark" ? "text-zinc-500" : "text-gray-600"
+                    theme === "dark" ? "text-zinc-400" : "text-gray-600"
                   }`}>
                     {stat.label}
                   </div>
@@ -392,14 +654,34 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Divider */}
-        <div className={`h-px my-8 ${
-          theme === "dark" ? "bg-zinc-800" : "bg-gray-300"
-        }`} />
+        {/* Tabs */}
+        <div className={`border-b mb-6 ${
+          theme === "dark" ? "border-zinc-800" : "border-gray-300"
+        }`}>
+          <div className="flex gap-8 overflow-x-auto">
+            {["overview", "snippets", "collabs", "activity", "reviews"].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`pb-4 text-sm font-light tracking-wide whitespace-nowrap transition-all duration-200 border-b-2 ${
+                  activeTab === tab
+                    ? (theme === "dark"
+                        ? "border-purple-500 text-purple-400"
+                        : "border-purple-600 text-purple-600")
+                    : (theme === "dark"
+                        ? "border-transparent text-zinc-400 hover:text-white hover:border-zinc-600"
+                        : "border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-400")
+                }`}
+              >
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* Main Content */}
         <div className="flex flex-col lg:flex-row gap-8 pb-8">
-          {/* Left Sidebar */}
+          {/* Left Sidebar - Role-aware sections */}
           <div className="w-full lg:w-1/3 space-y-6">
             {/* Skills */}
             <div className={`rounded-xl border p-6 ${
@@ -413,10 +695,10 @@ export default function ProfilePage() {
                 }`}>
                   Skills & Services
                 </h2>
-                {editMode && (
+                {editMode && permissions.role === activeRoleView && (
                   <button className={`p-1.5 rounded-lg transition-colors ${
-                    theme === "dark" 
-                      ? "text-purple-400 hover:bg-purple-500/20" 
+                    theme === "dark"
+                      ? "text-purple-400 hover:bg-purple-500/20"
                       : "text-purple-600 hover:bg-purple-100"
                   }`}>
                     <Plus className="w-4 h-4" />
@@ -424,7 +706,7 @@ export default function ProfilePage() {
                 )}
               </div>
               <div className="flex flex-wrap gap-2">
-                {userProfile.skills.map((skill, i) => (
+                {mockUserProfile.skills.map((skill, i) => (
                   <span
                     key={i}
                     className={`px-3 py-2 text-sm font-light tracking-wide rounded-lg border ${
@@ -451,7 +733,7 @@ export default function ProfilePage() {
                 Genres
               </h2>
               <div className="flex flex-wrap gap-2">
-                {userProfile.genres.map((genre, i) => (
+                {mockUserProfile.genres.map((genre, i) => (
                   <span
                     key={i}
                     className={`px-3 py-2 text-sm font-light tracking-wide rounded-lg ${
@@ -466,423 +748,411 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* Equipment */}
-            <div className={`rounded-xl border p-6 ${
-              theme === "dark"
-                ? "border-zinc-800 bg-zinc-900/40"
-                : "border-gray-300 bg-white"
-            }`}>
-              <h2 className={`text-lg font-light tracking-wide mb-4 ${
-                theme === "dark" ? "text-white" : "text-gray-900"
+            {/* Equipment - Only show for PRODUCER, GEAR_SALES, STUDIO_OWNER */}
+            {(activeRoleView === "PRODUCER" || activeRoleView === "GEAR_SALES" || activeRoleView === "STUDIO_OWNER") && (
+              <div className={`rounded-xl border p-6 ${
+                theme === "dark"
+                  ? "border-zinc-800 bg-zinc-900/40"
+                  : "border-gray-300 bg-white"
               }`}>
-                Equipment
-              </h2>
-              <div className="flex flex-wrap gap-2">
-                {userProfile.equipment.map((item, i) => (
-                  <span
-                    key={i}
-                    className={`px-3 py-2 text-sm font-light tracking-wide rounded-lg border ${
-                      theme === "dark"
-                        ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
-                        : "bg-purple-50 text-purple-600 border-purple-200/50"
-                    }`}
-                  >
-                    {item}
-                  </span>
-                ))}
+                <h2 className={`text-lg font-light tracking-wide mb-4 ${
+                  theme === "dark" ? "text-white" : "text-gray-900"
+                }`}>
+                  Equipment
+                </h2>
+                <div className="flex flex-wrap gap-2">
+                  {mockUserProfile.equipment.map((item, i) => (
+                    <span
+                      key={i}
+                      className={`px-3 py-2 text-sm font-light tracking-wide rounded-lg border ${
+                        theme === "dark"
+                          ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
+                          : "bg-purple-50 text-purple-600 border-purple-200/50"
+                      }`}
+                    >
+                      {item}
+                    </span>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Rates */}
-            <div className={`rounded-xl border p-6 ${
-              theme === "dark"
-                ? "border-zinc-800 bg-zinc-900/40"
-                : "border-gray-300 bg-white"
-            }`}>
-              <div className="flex justify-between items-center mb-4">
-                <h2 className={`text-lg font-light tracking-wide ${
+            {/* Rates - Audience-aware (only show to non-peers or verified users) */}
+            {(viewerRole !== activeRoleView || editMode) && activeRoleView !== "OTHER" && (
+              <div className={`rounded-xl border p-6 ${
+                theme === "dark"
+                  ? "border-zinc-800 bg-zinc-900/40"
+                  : "border-gray-300 bg-white"
+              }`}>
+                <h2 className={`text-lg font-light tracking-wide mb-4 ${
                   theme === "dark" ? "text-white" : "text-gray-900"
                 }`}>
                   Service Rates
                 </h2>
-                {editMode && (
-                  <button className={`p-1.5 rounded-lg transition-colors ${
-                    theme === "dark" 
-                      ? "text-purple-400 hover:bg-purple-500/20" 
-                      : "text-purple-600 hover:bg-purple-100"
-                  }`}>
-                    <Edit className="w-4 h-4" />
-                  </button>
-                )}
+                <div className="space-y-3">
+                  {activeRoleView === "PRODUCER" && (
+                    <>
+                      <div className="flex justify-between items-center">
+                        <span className={`text-sm font-light tracking-wide ${
+                          theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                        }`}>
+                          Production
+                        </span>
+                        <span className={`text-sm font-light tracking-wide ${
+                          theme === "dark" ? "text-white" : "text-gray-900"
+                        }`}>
+                          {mockUserProfile.rates.production}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className={`text-sm font-light tracking-wide ${
+                          theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                        }`}>
+                          Mixing
+                        </span>
+                        <span className={`text-sm font-light tracking-wide ${
+                          theme === "dark" ? "text-white" : "text-gray-900"
+                        }`}>
+                          {mockUserProfile.rates.mixing}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                  {activeRoleView === "LYRICIST" && (
+                    <div className="flex justify-between items-center">
+                      <span className={`text-sm font-light tracking-wide ${
+                        theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                      }`}>
+                        Songwriting
+                      </span>
+                      <span className={`text-sm font-light tracking-wide ${
+                        theme === "dark" ? "text-white" : "text-gray-900"
+                      }`}>
+                        {mockUserProfile.rates.songwriting}
+                      </span>
+                    </div>
+                  )}
+                  {activeRoleView === "STUDIO_OWNER" && (
+                    <div className="flex justify-between items-center">
+                      <span className={`text-sm font-light tracking-wide ${
+                        theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                      }`}>
+                        Studio Hourly
+                      </span>
+                      <span className={`text-sm font-light tracking-wide ${
+                        theme === "dark" ? "text-white" : "text-gray-900"
+                      }`}>
+                        {mockUserProfile.rates.studioHourly}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="space-y-3">
-                {Object.entries(userProfile.rates).map(([service, rate]) => (
-                  <div key={service} className="flex justify-between items-center">
-                    <span className={`text-sm font-light tracking-wide capitalize ${
-                      theme === "dark" ? "text-zinc-400" : "text-gray-600"
-                    }`}>
-                      {service}
-                    </span>
-                    <span className={`text-sm font-light tracking-wide ${
-                      theme === "dark" ? "text-white" : "text-gray-900"
-                    }`}>
-                      {rate}
-                    </span>
+            )}
+          </div>
+
+          {/* Main Content Area */}
+          <div className="flex-1">
+            {activeTab === "overview" && (
+              <div className="space-y-6">
+                {/* Recent Activity */}
+                <div className={`rounded-xl border p-6 ${
+                  theme === "dark"
+                    ? "border-zinc-800 bg-zinc-900/40"
+                    : "border-gray-300 bg-white"
+                }`}>
+                  <h2 className={`text-xl font-light tracking-wide mb-6 ${
+                    theme === "dark" ? "text-white" : "text-gray-900"
+                  }`}>
+                    Recent Activity
+                  </h2>
+                  <div className="space-y-4">
+                    {userActivity.map((activity) => (
+                      <div
+                        key={activity.id}
+                        className={`flex items-start gap-4 p-4 rounded-lg transition-colors ${
+                          theme === "dark"
+                            ? "bg-zinc-800/40 hover:bg-zinc-800/60"
+                            : "bg-gray-50 hover:bg-gray-100"
+                        }`}
+                      >
+                        <div className={`p-2 rounded-lg ${
+                          theme === "dark" ? "bg-purple-500/20" : "bg-purple-100"
+                        }`}>
+                          {getActivityIcon(activity.type)}
+                        </div>
+                        <div className="flex-1">
+                          <p className={`text-sm font-light tracking-wide mb-1 ${
+                            theme === "dark" ? "text-white" : "text-gray-900"
+                          }`}>
+                            {activity.title}
+                          </p>
+                          <p className={`text-xs font-light tracking-wide ${
+                            theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                          }`}>
+                            {activity.date}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "snippets" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {userSnippets.map((snippet) => (
+                  <div
+                    key={snippet.id}
+                    className={`rounded-xl border overflow-hidden transition-all duration-200 hover:scale-105 ${
+                      theme === "dark"
+                        ? "border-zinc-800 bg-zinc-900/40"
+                        : "border-gray-300 bg-white"
+                    }`}
+                  >
+                    <div className="relative">
+                      <img
+                        src={snippet.image}
+                        alt={snippet.title}
+                        className="w-full h-48 object-cover"
+                      />
+                      <button
+                        onClick={() => togglePlay(snippet.id)}
+                        className="absolute inset-0 flex items-center justify-center bg-black/40 hover:bg-black/60 transition-colors"
+                      >
+                        {currentlyPlaying === snippet.id ? (
+                          <Pause className="w-12 h-12 text-white" />
+                        ) : (
+                          <Play className="w-12 h-12 text-white" />
+                        )}
+                      </button>
+                      <div className="absolute top-4 right-4 flex gap-2">
+                        <span className={`px-2 py-1 text-xs font-light tracking-wide rounded ${
+                          theme === "dark" ? "bg-black/60 text-white" : "bg-white/90 text-gray-900"
+                        }`}>
+                          {snippet.duration}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <h3 className={`text-lg font-light tracking-wide mb-2 ${
+                        theme === "dark" ? "text-white" : "text-gray-900"
+                      }`}>
+                        {snippet.title}
+                      </h3>
+                      <div className="flex items-center justify-between text-sm font-light tracking-wide mb-3">
+                        <span className={theme === "dark" ? "text-zinc-400" : "text-gray-600"}>
+                          {snippet.genre}
+                        </span>
+                        <span className={theme === "dark" ? "text-zinc-400" : "text-gray-600"}>
+                          {snippet.bpm} BPM • {snippet.key}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4 text-sm font-light tracking-wide">
+                          <div className={`flex items-center gap-1 ${
+                            theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                          }`}>
+                            <Play className="w-4 h-4" />
+                            {formatNumber(snippet.plays)}
+                          </div>
+                          <div className={`flex items-center gap-1 ${
+                            theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                          }`}>
+                            <Heart className="w-4 h-4" />
+                            {formatNumber(snippet.likes)}
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button className={`p-2 rounded-lg transition-colors ${
+                            theme === "dark"
+                              ? "hover:bg-zinc-800 text-zinc-400 hover:text-white"
+                              : "hover:bg-gray-100 text-gray-600 hover:text-gray-900"
+                          }`}>
+                            <Share2 className="w-4 h-4" />
+                          </button>
+                          <button className={`p-2 rounded-lg transition-colors ${
+                            theme === "dark"
+                              ? "hover:bg-zinc-800 text-zinc-400 hover:text-white"
+                              : "hover:bg-gray-100 text-gray-600 hover:text-gray-900"
+                          }`}>
+                            <Download className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
-            </div>
+            )}
 
-            {/* Availability */}
-            <div className={`rounded-xl border p-6 ${
-              theme === "dark"
-                ? "border-zinc-800 bg-zinc-900/40"
-                : "border-gray-300 bg-white"
-            }`}>
-              <h2 className={`text-lg font-light tracking-wide mb-4 ${
-                theme === "dark" ? "text-white" : "text-gray-900"
-              }`}>
-                Availability
-              </h2>
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
-                <span className={`text-sm font-light tracking-wide ${
-                  theme === "dark" ? "text-zinc-300" : "text-gray-700"
-                }`}>
-                  {userProfile.availability}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Main Content */}
-          <div className="w-full lg:w-2/3">
-            {/* Tabs */}
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex gap-1 p-1 rounded-lg border bg-zinc-900/40 border-zinc-800">
-                {[
-                  { key: "snippets", label: "Snippets", icon: Music2 },
-                  { key: "collabs", label: "Collabs", icon: Users },
-                  { key: "activity", label: "Activity", icon: Clock },
-                  { key: "reviews", label: "Reviews", icon: Star }
-                ].map((tab) => {
-                  const IconComponent = tab.icon;
-                  return (
-                    <button
-                      key={tab.key}
-                      onClick={() => setActiveTab(tab.key)}
-                      className={`
-                        flex items-center gap-2 px-6 py-3 text-sm font-light rounded-lg transition-all duration-200 tracking-wide
-                        ${activeTab === tab.key
-                          ? theme === "dark"
-                            ? "bg-white text-black"
-                            : "bg-black text-white"
-                          : theme === "dark"
-                            ? "text-zinc-400 hover:text-white"
-                            : "text-gray-600 hover:text-black"
-                        }
-                      `}
-                    >
-                      <IconComponent className="w-4 h-4" strokeWidth={2} />
-                      {tab.label}
-                    </button>
-                  );
-                })}
-              </div>
-              {!editMode && activeTab === "snippets" && (
-                <button
-                  className={`flex items-center gap-2 px-6 py-3 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
-                    theme === "dark"
-                      ? "bg-white border-white text-black hover:bg-zinc-100"
-                      : "bg-black border-black text-white hover:bg-gray-800"
-                  }`}
-                >
-                  <Plus className="w-4 h-4" />
-                  Upload Snippet
-                </button>
-              )}
-            </div>
-
-            {/* Tab Content */}
-            <div className="space-y-4">
-              {activeTab === "snippets" && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {userSnippets.map((snippet) => (
-                    <div
-                      key={snippet.id}
-                      className={`group rounded-xl border overflow-hidden transition-all duration-200 cursor-pointer active:scale-[0.98] ${
-                        theme === "dark"
-                          ? "border-zinc-800 bg-zinc-900/40 hover:border-zinc-700 hover:bg-zinc-900/60"
-                          : "border-gray-300 bg-white hover:border-gray-400 hover:bg-gray-50"
-                      }`}
-                    >
-                      <div className="relative h-48 overflow-hidden">
-                        <img
-                          src={snippet.image}
-                          alt={snippet.title}
-                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                        
-                        {/* Play Button */}
-                        <button
-                          onClick={() => togglePlay(snippet.id)}
-                          className="absolute top-4 right-4 p-3 rounded-full backdrop-blur-sm bg-white/10 hover:bg-white/20 text-white transition-all duration-200"
-                        >
-                          {currentlyPlaying === snippet.id ? (
-                            <Pause className="w-5 h-5" />
-                          ) : (
-                            <Play className="w-5 h-5 ml-0.5" />
-                          )}
-                        </button>
-
-                        {/* Track Info */}
-                        <div className="absolute bottom-4 left-4 right-4">
-                          <h3 className="text-lg font-light text-white tracking-wide mb-1">
-                            {snippet.title}
-                          </h3>
-                          <div className="flex items-center gap-3 text-xs font-light text-zinc-300">
-                            <span>{snippet.bpm} BPM</span>
-                            <span>•</span>
-                            <span>{snippet.key}</span>
-                            <span>•</span>
-                            <span>{snippet.duration}</span>
+            {activeTab === "collabs" && (
+              <div className="space-y-4">
+                {userCollabs.map((collab) => (
+                  <div
+                    key={collab.id}
+                    className={`rounded-xl border p-6 transition-all duration-200 hover:scale-[1.02] ${
+                      theme === "dark"
+                        ? "border-zinc-800 bg-zinc-900/40"
+                        : "border-gray-300 bg-white"
+                    }`}
+                  >
+                    <div className="flex items-start gap-4">
+                      <img
+                        src={collab.image}
+                        alt={collab.title}
+                        className="w-20 h-20 rounded-lg object-cover"
+                      />
+                      <div className="flex-1">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <h3 className={`text-lg font-light tracking-wide mb-1 ${
+                              theme === "dark" ? "text-white" : "text-gray-900"
+                            }`}>
+                              {collab.title}
+                            </h3>
+                            <p className={`text-sm font-light tracking-wide ${
+                              theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                            }`}>
+                              with {collab.collaborator}
+                            </p>
                           </div>
-                        </div>
-                      </div>
-
-                      <div className="p-4">
-                        <div className="flex items-center justify-between mb-3">
                           <span className={`px-3 py-1 text-xs font-light tracking-wide rounded-full ${
-                            theme === "dark"
-                              ? "bg-zinc-800 text-zinc-300"
-                              : "bg-gray-100 text-gray-700"
+                            collab.status === "completed"
+                              ? (theme === "dark" ? "bg-green-500/20 text-green-300" : "bg-green-100 text-green-700")
+                              : (theme === "dark" ? "bg-blue-500/20 text-blue-300" : "bg-blue-100 text-blue-700")
                           }`}>
-                            {snippet.genre}
-                          </span>
-                          <span className={`text-xs font-light tracking-wide ${
-                            theme === "dark" ? "text-zinc-500" : "text-gray-500"
-                          }`}>
-                            {snippet.date}
+                            {collab.status === "completed" ? "Completed" : "In Progress"}
                           </span>
                         </div>
-
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4 text-xs font-light tracking-wide">
-                            <div className="flex items-center gap-1">
-                              <Play className="w-3 h-3" />
-                              <span>{formatNumber(snippet.plays)}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Heart className="w-3 h-3" />
-                              <span>{snippet.likes}</span>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button className={`p-2 rounded-lg transition-colors ${
-                              theme === "dark"
-                                ? "text-zinc-400 hover:text-white hover:bg-zinc-800"
-                                : "text-gray-500 hover:text-black hover:bg-gray-200"
-                            }`}>
-                              <Share2 className="w-4 h-4" />
-                            </button>
-                            <button className={`p-2 rounded-lg transition-colors ${
-                              theme === "dark"
-                                ? "text-zinc-400 hover:text-white hover:bg-zinc-800"
-                                : "text-gray-500 hover:text-black hover:bg-gray-200"
-                            }`}>
-                              <Download className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {activeTab === "collabs" && (
-                <div className="space-y-4">
-                  {userCollabs.map((collab) => (
-                    <div
-                      key={collab.id}
-                      className={`rounded-xl border overflow-hidden transition-all duration-200 ${
-                        theme === "dark"
-                          ? "border-zinc-800 bg-zinc-900/40"
-                          : "border-gray-300 bg-white"
-                      }`}
-                    >
-                      <div className="flex flex-col md:flex-row">
-                        <div className="md:w-48 h-48 flex-shrink-0">
-                          <img
-                            src={collab.image}
-                            alt={collab.title}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div className="flex-1 p-6">
-                          <div className="flex items-start justify-between mb-4">
-                            <div>
-                              <h3 className={`text-xl font-light tracking-wide mb-1 ${
-                                theme === "dark" ? "text-white" : "text-gray-900"
-                              }`}>
-                                {collab.title}
-                              </h3>
-                              <p className={`text-sm font-light tracking-wide ${
-                                theme === "dark" ? "text-zinc-400" : "text-gray-600"
-                              }`}>
-                                with {collab.collaborator}
-                              </p>
-                            </div>
-                            <span className={`px-3 py-1 text-xs font-light tracking-wide rounded-full ${
-                              collab.status === 'completed'
-                                ? theme === "dark"
-                                  ? "bg-green-500/10 text-green-400 border border-green-500/20"
-                                  : "bg-green-50 text-green-600 border border-green-200/50"
-                                : theme === "dark"
-                                  ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                                  : "bg-blue-50 text-blue-600 border border-blue-200/50"
-                            }`}>
-                              {collab.status.replace('-', ' ')}
+                        <div className="mb-2">
+                          <div className="flex items-center justify-between text-sm font-light tracking-wide mb-1">
+                            <span className={theme === "dark" ? "text-zinc-400" : "text-gray-600"}>
+                              Progress
+                            </span>
+                            <span className={theme === "dark" ? "text-white" : "text-gray-900"}>
+                              {collab.progress}%
                             </span>
                           </div>
-
-                          <div className="mb-4">
-                            <div className="flex items-center justify-between text-sm font-light tracking-wide mb-2">
-                              <span className={theme === "dark" ? "text-zinc-400" : "text-gray-600"}>
-                                Progress
-                              </span>
-                              <span className={theme === "dark" ? "text-zinc-400" : "text-gray-600"}>
-                                {collab.progress}%
-                              </span>
-                            </div>
-                            <div className={`w-full h-2 rounded-full overflow-hidden ${
-                              theme === "dark" ? "bg-zinc-800" : "bg-gray-200"
-                            }`}>
-                              <div
-                                className={`h-full ${
-                                  collab.status === 'completed'
-                                    ? "bg-green-500"
-                                    : theme === "dark"
-                                      ? "bg-purple-500"
-                                      : "bg-purple-600"
-                                }`}
-                                style={{ width: `${collab.progress}%` }}
-                              />
-                            </div>
-                          </div>
-
-                          <div className={`text-xs font-light tracking-wide ${
-                            theme === "dark" ? "text-zinc-500" : "text-gray-500"
+                          <div className={`w-full h-2 rounded-full overflow-hidden ${
+                            theme === "dark" ? "bg-zinc-800" : "bg-gray-200"
                           }`}>
-                            Started {collab.date}
+                            <div
+                              className="h-full bg-purple-500 transition-all duration-300"
+                              style={{ width: `${collab.progress}%` }}
+                            />
                           </div>
                         </div>
+                        <p className={`text-xs font-light tracking-wide ${
+                          theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                        }`}>
+                          Started {collab.date}
+                        </p>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                  </div>
+                ))}
+              </div>
+            )}
 
-              {activeTab === "activity" && (
-                <div className="space-y-3">
-                  {userActivity.map((activity) => (
-                    <div
-                      key={activity.id}
-                      className={`flex items-start gap-4 p-4 rounded-xl border transition-all duration-200 ${
-                        theme === "dark"
-                          ? "border-zinc-800 bg-zinc-900/40 hover:bg-zinc-900/60"
-                          : "border-gray-300 bg-white hover:bg-gray-50"
-                      }`}
-                    >
-                      <div className={`p-3 rounded-lg ${
-                        theme === "dark" ? "bg-purple-500/20 text-purple-400" : "bg-purple-100 text-purple-600"
+            {activeTab === "activity" && (
+              <div className="space-y-4">
+                {userActivity.map((activity) => (
+                  <div
+                    key={activity.id}
+                    className={`flex items-start gap-4 p-4 rounded-lg transition-colors ${
+                      theme === "dark"
+                        ? "bg-zinc-900/40 hover:bg-zinc-900/60 border border-zinc-800"
+                        : "bg-white hover:bg-gray-50 border border-gray-300"
+                    }`}
+                  >
+                    <div className={`p-2 rounded-lg ${
+                      theme === "dark" ? "bg-purple-500/20" : "bg-purple-100"
+                    }`}>
+                      {getActivityIcon(activity.type)}
+                    </div>
+                    <div className="flex-1">
+                      <p className={`text-sm font-light tracking-wide mb-1 ${
+                        theme === "dark" ? "text-white" : "text-gray-900"
                       }`}>
-                        {getActivityIcon(activity.type)}
-                      </div>
-                      <div className="flex-1">
-                        <div className={`text-base font-light tracking-wide mb-1 ${
-                          theme === "dark" ? "text-white" : "text-gray-900"
-                        }`}>
-                          {activity.title}
-                        </div>
-                        <div className={`text-sm font-light tracking-wide ${
-                          theme === "dark" ? "text-zinc-500" : "text-gray-500"
-                        }`}>
-                          {activity.date}
-                        </div>
-                      </div>
+                        {activity.title}
+                      </p>
+                      <p className={`text-xs font-light tracking-wide ${
+                        theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                      }`}>
+                        {activity.date}
+                      </p>
                     </div>
-                  ))}
-                </div>
-              )}
+                  </div>
+                ))}
+              </div>
+            )}
 
-              {activeTab === "reviews" && (
-                <div className="space-y-4">
-                  {userReviews.map((review) => (
-                    <div
-                      key={review.id}
-                      className={`rounded-xl border p-6 ${
-                        theme === "dark"
-                          ? "border-zinc-800 bg-zinc-900/40"
-                          : "border-gray-300 bg-white"
-                      }`}
-                    >
-                      <div className="flex items-start gap-4 mb-4">
-                        <img
-                          src={review.user.avatar}
-                          alt={review.user.name}
-                          className="w-12 h-12 rounded-full object-cover"
-                        />
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className={`text-lg font-light tracking-wide ${
+            {activeTab === "reviews" && (
+              <div className="space-y-6">
+                {userReviews.map((review) => (
+                  <div
+                    key={review.id}
+                    className={`rounded-xl border p-6 ${
+                      theme === "dark"
+                        ? "border-zinc-800 bg-zinc-900/40"
+                        : "border-gray-300 bg-white"
+                    }`}
+                  >
+                    <div className="flex items-start gap-4">
+                      <img
+                        src={review.user.avatar}
+                        alt={review.user.name}
+                        className="w-12 h-12 rounded-full object-cover"
+                      />
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <h4 className={`text-sm font-light tracking-wide ${
                               theme === "dark" ? "text-white" : "text-gray-900"
                             }`}>
                               {review.user.name}
-                            </span>
+                            </h4>
                             {review.user.verified && (
                               <CheckCircle className="w-4 h-4 text-blue-500" />
                             )}
                           </div>
-                          <div className="flex items-center gap-2">
-                            <div className="flex items-center gap-0.5">
-                              {[...Array(5)].map((_, i) => (
-                                <Star
-                                  key={i}
-                                  className={`w-4 h-4 ${
-                                    i < review.rating
-                                      ? "fill-yellow-500 text-yellow-500"
-                                      : theme === "dark"
-                                        ? "text-zinc-700"
-                                        : "text-gray-300"
-                                  }`}
-                                />
-                              ))}
-                            </div>
-                            <span className={`text-sm font-light tracking-wide ${
-                              theme === "dark" ? "text-zinc-500" : "text-gray-500"
-                            }`}>
-                              • {review.project}
-                            </span>
+                          <div className="flex items-center gap-1">
+                            {[...Array(5)].map((_, i) => (
+                              <Star
+                                key={i}
+                                className={`w-4 h-4 ${
+                                  i < review.rating
+                                    ? "fill-yellow-500 text-yellow-500"
+                                    : (theme === "dark" ? "text-zinc-700" : "text-gray-300")
+                                }`}
+                              />
+                            ))}
                           </div>
                         </div>
-                      </div>
-                      <p className={`text-base font-light tracking-wide mb-4 ${
-                        theme === "dark" ? "text-zinc-300" : "text-gray-700"
-                      }`}>
-                        {review.comment}
-                      </p>
-                      <div className={`text-sm font-light tracking-wide ${
-                        theme === "dark" ? "text-zinc-500" : "text-gray-500"
-                      }`}>
-                        {review.date}
+                        <p className={`text-sm font-light tracking-wide mb-2 ${
+                          theme === "dark" ? "text-zinc-300" : "text-gray-700"
+                        }`}>
+                          {review.comment}
+                        </p>
+                        <div className="flex items-center gap-3 text-xs font-light tracking-wide">
+                          <span className={theme === "dark" ? "text-zinc-400" : "text-gray-600"}>
+                            Project: {review.project}
+                          </span>
+                          <span className={theme === "dark" ? "text-zinc-600" : "text-gray-400"}>
+                            •
+                          </span>
+                          <span className={theme === "dark" ? "text-zinc-400" : "text-gray-600"}>
+                            {review.date}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
