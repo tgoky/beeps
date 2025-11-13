@@ -73,6 +73,39 @@ export interface UserPermissions {
   canAccessPremiumGear: boolean;        // Access premium/exclusive gear
   hasGearCollectorTier: boolean;        // Gear collector tier status
   isCertifiedGearDealer: boolean;       // Certified dealer status
+  // Music Services marketplace permissions
+  canUploadSnippets: boolean;           // Upload music snippets/previews
+  canPostLyrics: boolean;               // Share lyrics publicly
+  canPostLyricsToClub: boolean;         // Share lyrics to clubs only
+  canPostLyricsToFollowers: boolean;    // Share lyrics to followers only
+  canCreateCollabRequest: boolean;      // Post collaboration requests
+  canCreateWriterGigs: boolean;         // Post songwriter/writer opportunities
+  canHostAuditions: boolean;            // Create audition postings
+  canSubmitToAuditions: boolean;        // Submit to auditions
+  canSubmitAnonymousAudition: boolean;  // Submit anonymously
+  canViewLyrics: boolean;               // View lyrics content
+  canViewPrivateLyrics: boolean;        // View club/follower-only lyrics
+  canGiveFeedback: boolean;             // Leave feedback/comments
+  canGiveProfessionalReview: boolean;   // Paid professional reviews
+  canPostLabelOpportunity: boolean;     // Post as label/industry
+  canUseScoutingMode: boolean;          // Anonymous talent scouting
+  canViewAuditionsByType: boolean;      // View role-specific auditions
+  canProposeRevenueSplit: boolean;      // Propose collab revenue splits
+  canJoinPaidCollabs: boolean;          // Join paid collaborations
+  canInviteToCollab: boolean;           // Invite others to collabs
+  canEditCollabTerms: boolean;          // Edit collab terms after creation
+  canAccessGenreRestricted: boolean;    // Access genre-locked content
+  canEarnSkillBadges: boolean;          // Earn certification badges
+  canFeatureServices: boolean;          // Feature services in trending
+  canViewServiceAnalytics: boolean;     // View analytics on own services
+  canReportServices: boolean;           // Report inappropriate services
+  canModerateServices: boolean;         // Moderate service content
+  // Reputation & Dynamic Tiers (computed)
+  reputationTier: 'newbie' | 'rising' | 'verified' | 'pro' | 'industry';
+  isVerifiedCreator: boolean;           // Verified creator badge
+  isProfessionalReviewer: boolean;      // Professional reviewer certification
+  isLabelPartner: boolean;              // Label/A&R status
+  isMentor: boolean;                    // Mentor/coaching status
 }
 
 /**
@@ -113,6 +146,33 @@ export function canPerformAction(
     | 'accessVIPGearDrops'
     | 'manageClubGearInventory'
     | 'initiateGroupRental'
+    // Music Services permissions
+    | 'uploadSnippets'
+    | 'postLyrics'
+    | 'postLyricsToClub'
+    | 'postLyricsToFollowers'
+    | 'createCollabRequest'
+    | 'createWriterGigs'
+    | 'hostAuditions'
+    | 'submitToAuditions'
+    | 'submitAnonymousAudition'
+    | 'viewLyrics'
+    | 'viewPrivateLyrics'
+    | 'giveFeedback'
+    | 'giveProfessionalReview'
+    | 'postLabelOpportunity'
+    | 'useScoutingMode'
+    | 'viewAuditionsByType'
+    | 'proposeRevenueSplit'
+    | 'joinPaidCollabs'
+    | 'inviteToCollab'
+    | 'editCollabTerms'
+    | 'accessGenreRestricted'
+    | 'earnSkillBadges'
+    | 'featureServices'
+    | 'viewServiceAnalytics'
+    | 'reportServices'
+    | 'moderateServices'
 ): boolean {
   switch (action) {
     case 'createStudios':
@@ -177,6 +237,59 @@ export function canPerformAction(
       return permissions.canManageClubGearInventory;
     case 'initiateGroupRental':
       return permissions.canInitiateGroupRental;
+    // Music Services permissions
+    case 'uploadSnippets':
+      return permissions.canUploadSnippets;
+    case 'postLyrics':
+      return permissions.canPostLyrics;
+    case 'postLyricsToClub':
+      return permissions.canPostLyricsToClub;
+    case 'postLyricsToFollowers':
+      return permissions.canPostLyricsToFollowers;
+    case 'createCollabRequest':
+      return permissions.canCreateCollabRequest;
+    case 'createWriterGigs':
+      return permissions.canCreateWriterGigs;
+    case 'hostAuditions':
+      return permissions.canHostAuditions;
+    case 'submitToAuditions':
+      return permissions.canSubmitToAuditions;
+    case 'submitAnonymousAudition':
+      return permissions.canSubmitAnonymousAudition;
+    case 'viewLyrics':
+      return permissions.canViewLyrics;
+    case 'viewPrivateLyrics':
+      return permissions.canViewPrivateLyrics;
+    case 'giveFeedback':
+      return permissions.canGiveFeedback;
+    case 'giveProfessionalReview':
+      return permissions.canGiveProfessionalReview;
+    case 'postLabelOpportunity':
+      return permissions.canPostLabelOpportunity;
+    case 'useScoutingMode':
+      return permissions.canUseScoutingMode;
+    case 'viewAuditionsByType':
+      return permissions.canViewAuditionsByType;
+    case 'proposeRevenueSplit':
+      return permissions.canProposeRevenueSplit;
+    case 'joinPaidCollabs':
+      return permissions.canJoinPaidCollabs;
+    case 'inviteToCollab':
+      return permissions.canInviteToCollab;
+    case 'editCollabTerms':
+      return permissions.canEditCollabTerms;
+    case 'accessGenreRestricted':
+      return permissions.canAccessGenreRestricted;
+    case 'earnSkillBadges':
+      return permissions.canEarnSkillBadges;
+    case 'featureServices':
+      return permissions.canFeatureServices;
+    case 'viewServiceAnalytics':
+      return permissions.canViewServiceAnalytics;
+    case 'reportServices':
+      return permissions.canReportServices;
+    case 'moderateServices':
+      return permissions.canModerateServices;
     default:
       return false;
   }
@@ -258,6 +371,38 @@ export const roleCapabilities = {
     canAccessPremiumGear: false,         // No premium access
     hasGearCollectorTier: false,         // No collector status
     isCertifiedGearDealer: false,        // Not a dealer
+    // Music Services permissions
+    canPostLyrics: true,                 // Can share lyrics publicly
+    canPostLyricsToClub: true,           // Can share lyrics to clubs
+    canPostLyricsToFollowers: true,      // Can share lyrics to followers
+    canCreateCollabRequest: true,        // Can post collab requests
+    canCreateWriterGigs: false,          // Limited to lyricists/writers
+    canHostAuditions: false,             // Producers/labels host auditions
+    canSubmitToAuditions: true,          // Can submit to auditions
+    canSubmitAnonymousAudition: true,    // Can submit anonymously
+    canViewLyrics: true,                 // Can view public lyrics
+    canViewPrivateLyrics: false,         // Needs follower/club membership
+    canGiveFeedback: true,               // Can leave feedback/comments
+    canGiveProfessionalReview: false,    // Needs certification
+    canPostLabelOpportunity: false,      // Labels only
+    canUseScoutingMode: false,           // Labels only
+    canViewAuditionsByType: true,        // Can view artist auditions
+    canProposeRevenueSplit: true,        // Can propose revenue splits
+    canJoinPaidCollabs: true,            // Can join paid collaborations
+    canInviteToCollab: true,             // Can invite others to collabs
+    canEditCollabTerms: true,            // Can edit collab terms
+    canAccessGenreRestricted: false,     // Needs genre certification
+    canEarnSkillBadges: true,            // Can earn skill badges
+    canFeatureServices: false,           // Premium/verified only
+    canViewServiceAnalytics: true,       // Can view own analytics
+    canReportServices: true,             // Can report inappropriate content
+    canModerateServices: false,          // Admin only
+    // Reputation & Dynamic Tiers (defaults, computed at runtime)
+    reputationTier: 'newbie' as const,
+    isVerifiedCreator: false,
+    isProfessionalReviewer: false,
+    isLabelPartner: false,
+    isMentor: false,
   },
   PRODUCER: {
     canUploadSnippets: true,
@@ -330,6 +475,38 @@ export const roleCapabilities = {
     canAccessPremiumGear: true,          // Premium gear access
     hasGearCollectorTier: false,         // No auto collector status
     isCertifiedGearDealer: false,        // Not auto certified
+    // Music Services permissions
+    canPostLyrics: true,                 // Can share lyrics publicly
+    canPostLyricsToClub: true,           // Can share lyrics to clubs
+    canPostLyricsToFollowers: true,      // Can share lyrics to followers
+    canCreateCollabRequest: true,        // Can post collab requests
+    canCreateWriterGigs: true,           // Producers can post writer gigs
+    canHostAuditions: true,              // FULL - Producers host auditions
+    canSubmitToAuditions: true,          // Can also submit to auditions
+    canSubmitAnonymousAudition: true,    // Can submit anonymously
+    canViewLyrics: true,                 // Can view public lyrics
+    canViewPrivateLyrics: false,         // Needs follower/club membership
+    canGiveFeedback: true,               // Can leave feedback/comments
+    canGiveProfessionalReview: false,    // Needs certification
+    canPostLabelOpportunity: false,      // Labels only
+    canUseScoutingMode: false,           // Labels only
+    canViewAuditionsByType: true,        // Can view producer auditions
+    canProposeRevenueSplit: true,        // FULL - Can propose revenue splits
+    canJoinPaidCollabs: true,            // Can join paid collaborations
+    canInviteToCollab: true,             // FULL - Can invite others to collabs
+    canEditCollabTerms: true,            // Can edit collab terms
+    canAccessGenreRestricted: false,     // Needs genre certification
+    canEarnSkillBadges: true,            // Can earn skill badges
+    canFeatureServices: false,           // Premium/verified only
+    canViewServiceAnalytics: true,       // FULL - Can view own analytics
+    canReportServices: true,             // Can report inappropriate content
+    canModerateServices: false,          // Admin only
+    // Reputation & Dynamic Tiers (defaults, computed at runtime)
+    reputationTier: 'newbie' as const,
+    isVerifiedCreator: false,
+    isProfessionalReviewer: false,
+    isLabelPartner: false,
+    isMentor: false,
   },
   STUDIO_OWNER: {
     canUploadSnippets: false,
@@ -402,6 +579,38 @@ export const roleCapabilities = {
     canAccessPremiumGear: true,          // Premium access
     hasGearCollectorTier: false,         // Business, not collector
     isCertifiedGearDealer: false,        // Not auto certified (business entity)
+    // Music Services permissions - LIMITED (business-focused)
+    canPostLyrics: false,                // Limited creative content
+    canPostLyricsToClub: false,          // Limited creative content
+    canPostLyricsToFollowers: false,     // Limited creative content
+    canCreateCollabRequest: false,       // Business entity
+    canCreateWriterGigs: false,          // Limited posting
+    canHostAuditions: true,              // Can host auditions for studio work
+    canSubmitToAuditions: false,         // Business entity
+    canSubmitAnonymousAudition: false,   // Business entity
+    canViewLyrics: true,                 // Can view public lyrics
+    canViewPrivateLyrics: false,         // Limited access
+    canGiveFeedback: true,               // Can leave feedback
+    canGiveProfessionalReview: false,    // Needs certification
+    canPostLabelOpportunity: false,      // Not a label
+    canUseScoutingMode: false,           // Limited talent scouting
+    canViewAuditionsByType: true,        // Can view all auditions
+    canProposeRevenueSplit: false,       // Business model
+    canJoinPaidCollabs: false,           // Business entity
+    canInviteToCollab: false,            // Business entity
+    canEditCollabTerms: false,           // Business entity
+    canAccessGenreRestricted: false,     // Limited access
+    canEarnSkillBadges: false,           // Business entity
+    canFeatureServices: false,           // Premium/verified only
+    canViewServiceAnalytics: true,       // Can view analytics
+    canReportServices: true,             // Can report content
+    canModerateServices: false,          // Admin only
+    // Reputation & Dynamic Tiers (defaults, computed at runtime)
+    reputationTier: 'newbie' as const,
+    isVerifiedCreator: false,
+    isProfessionalReviewer: false,
+    isLabelPartner: false,
+    isMentor: false,
   },
   GEAR_SALES: {
     canUploadSnippets: false,
@@ -474,6 +683,38 @@ export const roleCapabilities = {
     canAccessPremiumGear: true,          // FULL - premium dealer access
     hasGearCollectorTier: true,          // FULL - gear collector tier
     isCertifiedGearDealer: true,         // FULL - certified dealer status
+    // Music Services permissions - VERY LIMITED (gear sales focus)
+    canPostLyrics: false,                // No creative content
+    canPostLyricsToClub: false,          // No creative content
+    canPostLyricsToFollowers: false,     // No creative content
+    canCreateCollabRequest: false,       // Gear sales don't collab
+    canCreateWriterGigs: false,          // No gig posting
+    canHostAuditions: false,             // No audition hosting
+    canSubmitToAuditions: false,         // Gear sales role
+    canSubmitAnonymousAudition: false,   // Gear sales role
+    canViewLyrics: true,                 // Can view public lyrics
+    canViewPrivateLyrics: false,         // Limited access
+    canGiveFeedback: true,               // Can leave feedback
+    canGiveProfessionalReview: false,    // Not a music reviewer
+    canPostLabelOpportunity: false,      // Not a label
+    canUseScoutingMode: false,           // Limited access
+    canViewAuditionsByType: false,       // Limited access
+    canProposeRevenueSplit: false,       // No collab features
+    canJoinPaidCollabs: false,           // No collab features
+    canInviteToCollab: false,            // No collab features
+    canEditCollabTerms: false,           // No collab features
+    canAccessGenreRestricted: false,     // Limited access
+    canEarnSkillBadges: false,           // Gear sales role
+    canFeatureServices: false,           // Limited access
+    canViewServiceAnalytics: false,      // Limited access
+    canReportServices: true,             // Can report content
+    canModerateServices: false,          // Admin only
+    // Reputation & Dynamic Tiers (defaults, computed at runtime)
+    reputationTier: 'newbie' as const,
+    isVerifiedCreator: false,
+    isProfessionalReviewer: false,
+    isLabelPartner: false,
+    isMentor: false,
   },
   LYRICIST: {
     canUploadSnippets: true,
@@ -546,6 +787,38 @@ export const roleCapabilities = {
     canAccessPremiumGear: false,         // No premium access
     hasGearCollectorTier: false,         // No collector status
     isCertifiedGearDealer: false,        // Not a dealer
+    // Music Services permissions - FULL LYRICS & WRITING ACCESS
+    canPostLyrics: true,                 // FULL - primary function
+    canPostLyricsToClub: true,           // FULL - privacy controls
+    canPostLyricsToFollowers: true,      // FULL - privacy controls
+    canCreateCollabRequest: true,        // Can post collab requests
+    canCreateWriterGigs: true,           // FULL - writer gig posting
+    canHostAuditions: false,             // Limited audition hosting
+    canSubmitToAuditions: true,          // Can submit to auditions
+    canSubmitAnonymousAudition: true,    // Can submit anonymously
+    canViewLyrics: true,                 // Can view public lyrics
+    canViewPrivateLyrics: false,         // Needs follower/club membership
+    canGiveFeedback: true,               // Can leave feedback/comments
+    canGiveProfessionalReview: false,    // Needs certification
+    canPostLabelOpportunity: false,      // Labels only
+    canUseScoutingMode: false,           // Labels only
+    canViewAuditionsByType: true,        // Can view lyricist auditions
+    canProposeRevenueSplit: true,        // FULL - Can propose revenue splits
+    canJoinPaidCollabs: true,            // Can join paid collaborations
+    canInviteToCollab: true,             // Can invite others to collabs
+    canEditCollabTerms: true,            // Can edit collab terms
+    canAccessGenreRestricted: false,     // Needs genre certification
+    canEarnSkillBadges: true,            // Can earn skill badges
+    canFeatureServices: false,           // Premium/verified only
+    canViewServiceAnalytics: true,       // Can view own analytics
+    canReportServices: true,             // Can report inappropriate content
+    canModerateServices: false,          // Admin only
+    // Reputation & Dynamic Tiers (defaults, computed at runtime)
+    reputationTier: 'newbie' as const,
+    isVerifiedCreator: false,
+    isProfessionalReviewer: false,
+    isLabelPartner: false,
+    isMentor: false,
   },
   OTHER: {
     canUploadSnippets: false,
@@ -618,6 +891,38 @@ export const roleCapabilities = {
     canAccessPremiumGear: false,         // No premium access
     hasGearCollectorTier: false,         // No collector status
     isCertifiedGearDealer: false,        // Not a dealer
+    // Music Services permissions - VERY LIMITED (view-only mostly)
+    canPostLyrics: false,                // No posting
+    canPostLyricsToClub: false,          // No posting
+    canPostLyricsToFollowers: false,     // No posting
+    canCreateCollabRequest: false,       // No posting
+    canCreateWriterGigs: false,          // No posting
+    canHostAuditions: false,             // No hosting
+    canSubmitToAuditions: false,         // No submissions
+    canSubmitAnonymousAudition: false,   // No submissions
+    canViewLyrics: true,                 // Can view public lyrics
+    canViewPrivateLyrics: false,         // No private access
+    canGiveFeedback: false,              // Limited feedback
+    canGiveProfessionalReview: false,    // No reviewing
+    canPostLabelOpportunity: false,      // No label features
+    canUseScoutingMode: false,           // No scouting
+    canViewAuditionsByType: false,       // Limited audition viewing
+    canProposeRevenueSplit: false,       // No collab features
+    canJoinPaidCollabs: false,           // No collab features
+    canInviteToCollab: false,            // No collab features
+    canEditCollabTerms: false,           // No collab features
+    canAccessGenreRestricted: false,     // No restricted access
+    canEarnSkillBadges: false,           // No skill progression
+    canFeatureServices: false,           // No featuring
+    canViewServiceAnalytics: false,      // No analytics
+    canReportServices: true,             // Can report content
+    canModerateServices: false,          // Admin only
+    // Reputation & Dynamic Tiers (defaults, computed at runtime)
+    reputationTier: 'newbie' as const,
+    isVerifiedCreator: false,
+    isProfessionalReviewer: false,
+    isLabelPartner: false,
+    isMentor: false,
   }
 } as const;
 
@@ -767,6 +1072,39 @@ export function getUserPermissions(user: {
     canAccessPremiumGear: capabilities.canAccessPremiumGear,
     hasGearCollectorTier: capabilities.hasGearCollectorTier,
     isCertifiedGearDealer: capabilities.isCertifiedGearDealer,
+    // Music Services marketplace permissions
+    canUploadSnippets: capabilities.canUploadSnippets,
+    canPostLyrics: capabilities.canPostLyrics,
+    canPostLyricsToClub: capabilities.canPostLyricsToClub,
+    canPostLyricsToFollowers: capabilities.canPostLyricsToFollowers,
+    canCreateCollabRequest: capabilities.canCreateCollabRequest,
+    canCreateWriterGigs: capabilities.canCreateWriterGigs,
+    canHostAuditions: capabilities.canHostAuditions,
+    canSubmitToAuditions: capabilities.canSubmitToAuditions,
+    canSubmitAnonymousAudition: capabilities.canSubmitAnonymousAudition,
+    canViewLyrics: capabilities.canViewLyrics,
+    canViewPrivateLyrics: capabilities.canViewPrivateLyrics,
+    canGiveFeedback: capabilities.canGiveFeedback,
+    canGiveProfessionalReview: capabilities.canGiveProfessionalReview,
+    canPostLabelOpportunity: capabilities.canPostLabelOpportunity,
+    canUseScoutingMode: capabilities.canUseScoutingMode,
+    canViewAuditionsByType: capabilities.canViewAuditionsByType,
+    canProposeRevenueSplit: capabilities.canProposeRevenueSplit,
+    canJoinPaidCollabs: capabilities.canJoinPaidCollabs,
+    canInviteToCollab: capabilities.canInviteToCollab,
+    canEditCollabTerms: capabilities.canEditCollabTerms,
+    canAccessGenreRestricted: capabilities.canAccessGenreRestricted,
+    canEarnSkillBadges: capabilities.canEarnSkillBadges,
+    canFeatureServices: capabilities.canFeatureServices,
+    canViewServiceAnalytics: capabilities.canViewServiceAnalytics,
+    canReportServices: capabilities.canReportServices,
+    canModerateServices: capabilities.canModerateServices,
+    // Reputation & Dynamic Tiers (computed from capabilities defaults)
+    reputationTier: capabilities.reputationTier,
+    isVerifiedCreator: capabilities.isVerifiedCreator,
+    isProfessionalReviewer: capabilities.isProfessionalReviewer,
+    isLabelPartner: capabilities.isLabelPartner,
+    isMentor: capabilities.isMentor,
   };
 }
 
