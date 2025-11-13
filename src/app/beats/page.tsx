@@ -2,8 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Music2, Play, Pause, Heart, ShoppingCart, TrendingUp, DollarSign, Plus, Upload as UploadIcon, Users } from "lucide-react";
+import {
+  Search, Music2, Play, Pause, Heart, ShoppingCart, TrendingUp, DollarSign,
+  Plus, Upload as UploadIcon, Users, Edit3, BarChart3, MessageCircle, Briefcase
+} from "lucide-react";
 import { useTheme } from "../../providers/ThemeProvider";
+import { usePermissions } from "@/hooks/usePermissions";
+import { getRoleDisplayName } from '@/lib/permissions';
 
 type Beat = {
   id: number;
@@ -155,7 +160,8 @@ const formatNumber = (num: number): string => {
 export default function BeatMarketplace() {
   const router = useRouter();
   const { theme } = useTheme();
-  
+  const { permissions, isProducer, isArtist, isLyricist } = usePermissions();
+
   const [activeTab, setActiveTab] = useState("trending");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGenre, setSelectedGenre] = useState("all");
@@ -176,12 +182,112 @@ export default function BeatMarketplace() {
   };
 
   const filteredBeats = beats.filter(beat => {
-    const matchesSearch = beat.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    const matchesSearch = beat.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          beat.producer.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesGenre = selectedGenre === "all" || beat.genre.includes(selectedGenre);
     const matchesMood = selectedMood === "all" || beat.mood.includes(selectedMood);
     return matchesSearch && matchesGenre && matchesMood;
   });
+
+  // Beat Card Actions Component - Role-based buttons
+  const BeatCardActions = ({ beat }: { beat: Beat }) => {
+    // Check if this is the current user's beat (TODO: Replace with actual user ID check)
+    const isOwnBeat = false; // Replace with: currentUser?.id === beat.producerId
+
+    // Producer viewing their own beat
+    if (isOwnBeat && permissions.canUploadBeats) {
+      return (
+        <div className="flex gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              router.push(`/beats/${beat.id}/edit`);
+            }}
+            className={`flex items-center gap-2 px-3 py-2 text-xs font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
+              theme === "dark"
+                ? "bg-white border-white text-black hover:bg-zinc-100"
+                : "bg-black border-black text-white hover:bg-gray-800"
+            }`}
+          >
+            <Edit3 className="w-3 h-3" strokeWidth={2} />
+            Edit
+          </button>
+
+          {permissions.canViewBeatAnalytics && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push(`/beats/${beat.id}/analytics`);
+              }}
+              className={`p-2 rounded-lg border transition-all duration-200 active:scale-95 ${
+                theme === "dark"
+                  ? "border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-600"
+                  : "border-gray-300 text-gray-500 hover:text-gray-900 hover:border-gray-400"
+              }`}
+            >
+              <BarChart3 className="w-3 h-3" strokeWidth={2} />
+            </button>
+          )}
+        </div>
+      );
+    }
+
+    // Other users viewing beats
+    return (
+      <div className="flex gap-2">
+        {permissions.canPurchaseBeats && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              // TODO: Add to cart logic
+            }}
+            className={`flex items-center gap-2 px-3 py-2 text-xs font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
+              theme === "dark"
+                ? "bg-white border-white text-black hover:bg-zinc-100"
+                : "bg-black border-black text-white hover:bg-gray-800"
+            }`}
+          >
+            <ShoppingCart className="w-3 h-3" strokeWidth={2} />
+            Add to Cart
+          </button>
+        )}
+
+        {permissions.canSendLicensingOffers && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              // TODO: Send offer logic
+            }}
+            className={`p-2 rounded-lg border transition-all duration-200 active:scale-95 ${
+              theme === "dark"
+                ? "border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-600"
+                : "border-gray-300 text-gray-500 hover:text-gray-900 hover:border-gray-400"
+            }`}
+            title="Make Offer"
+          >
+            <DollarSign className="w-3 h-3" strokeWidth={2} />
+          </button>
+        )}
+
+        {permissions.canMessageProducers && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              router.push(`/messages/${beat.producer.name}`);
+            }}
+            className={`p-2 rounded-lg border transition-all duration-200 active:scale-95 ${
+              theme === "dark"
+                ? "border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-600"
+                : "border-gray-300 text-gray-500 hover:text-gray-900 hover:border-gray-400"
+            }`}
+            title="Message Producer"
+          >
+            <MessageCircle className="w-3 h-3" strokeWidth={2} />
+          </button>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className={`min-h-screen p-6 transition-colors duration-200 ${
@@ -215,17 +321,75 @@ export default function BeatMarketplace() {
                   Discover and license premium beats from top producers
                 </p>
               </div>
-              <button
-                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
-                  theme === "dark"
-                    ? "bg-white border-white text-black hover:bg-zinc-100"
-                    : "bg-black border-black text-white hover:bg-gray-800"
-                }`}
-              >
-                <Plus className="w-4 h-4" strokeWidth={2} />
-                Upload Beat
-              </button>
+
+              {/* Upload Beat Button - Producers Only */}
+              {permissions.canUploadBeats && (
+                <button
+                  onClick={() => router.push('/beats/upload')}
+                  className={`flex items-center gap-2 px-4 py-2.5 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
+                    theme === "dark"
+                      ? "bg-white border-white text-black hover:bg-zinc-100"
+                      : "bg-black border-black text-white hover:bg-gray-800"
+                  }`}
+                >
+                  <Plus className="w-4 h-4" strokeWidth={2} />
+                  Upload Beat
+                </button>
+              )}
             </div>
+
+            {/* Permission Info Banner */}
+            {isProducer && permissions.canUploadBeats && (
+              <div className={`mb-6 p-4 rounded-lg border ${
+                theme === "dark"
+                  ? "bg-blue-950/20 border-blue-900/30"
+                  : "bg-blue-50 border-blue-200/50"
+              }`}>
+                <div className="flex items-start gap-3">
+                  <Music2 className={`w-5 h-5 flex-shrink-0 ${
+                    theme === "dark" ? "text-blue-400" : "text-blue-600"
+                  }`} strokeWidth={2} />
+                  <div>
+                    <p className={`text-sm font-medium tracking-wide ${
+                      theme === "dark" ? "text-blue-300" : "text-blue-900"
+                    }`}>
+                      Producer Dashboard
+                    </p>
+                    <p className={`text-xs font-light tracking-wide mt-1 ${
+                      theme === "dark" ? "text-blue-400/70" : "text-blue-700/70"
+                    }`}>
+                      You can upload beats, view analytics, and manage pricing. Your beats will appear with edit options.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {(isArtist || isLyricist) && permissions.canPurchaseBeats && (
+              <div className={`mb-6 p-4 rounded-lg border ${
+                theme === "dark"
+                  ? "bg-purple-950/20 border-purple-900/30"
+                  : "bg-purple-50 border-purple-200/50"
+              }`}>
+                <div className="flex items-start gap-3">
+                  <Briefcase className={`w-5 h-5 flex-shrink-0 ${
+                    theme === "dark" ? "text-purple-400" : "text-purple-600"
+                  }`} strokeWidth={2} />
+                  <div>
+                    <p className={`text-sm font-medium tracking-wide ${
+                      theme === "dark" ? "text-purple-300" : "text-purple-900"
+                    }`}>
+                      {getRoleDisplayName(permissions.role as any)} Access
+                    </p>
+                    <p className={`text-xs font-light tracking-wide mt-1 ${
+                      theme === "dark" ? "text-purple-400/70" : "text-purple-700/70"
+                    }`}>
+                      Purchase beats, send licensing offers, comment on tracks, and request collaborations.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Filters */}
             <div className={`flex flex-wrap gap-3 mb-8 p-4 rounded-xl border ${
@@ -489,19 +653,8 @@ export default function BeatMarketplace() {
                             )}
                           </div>
 
-                          <button
-                            className={`flex items-center gap-2 px-4 py-2 text-xs font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 w-32 justify-center ${
-                              theme === "dark"
-                                ? "bg-white border-white text-black hover:bg-zinc-100"
-                                : "bg-black border-black text-white hover:bg-gray-800"
-                            }`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                            }}
-                          >
-                            <ShoppingCart className="w-3 h-3" strokeWidth={2} />
-                            Add to Cart
-                          </button>
+                          {/* Role-based Action Buttons */}
+                          <BeatCardActions beat={beat} />
                         </div>
                       </div>
                     </div>
