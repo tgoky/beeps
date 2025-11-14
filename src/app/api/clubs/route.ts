@@ -83,27 +83,24 @@ export async function POST(request: NextRequest) {
         }
       });
 
-      // Grant the user the role (if they don't already have it)
-      const existingRoleGrant = await tx.userRoleGrant.findUnique({
+      // Grant the user the role (using upsert to avoid conflicts)
+      await tx.userRoleGrant.upsert({
         where: {
           userId_roleType: {
             userId: ownerId,
             roleType: grantedRole,
           },
         },
-      }).catch(() => null); // Handle if UserRoleGrant table doesn't exist yet
-
-      if (!existingRoleGrant) {
-        await tx.userRoleGrant.create({
-          data: {
-            userId: ownerId,
-            roleType: grantedRole,
-            grantedBy: newClub.id,
-          },
-        }).catch((error) => {
-          console.warn('Could not create role grant (table may not exist yet):', error.message);
-        });
-      }
+        update: {
+          // If it exists, update the grantedBy to the latest club
+          grantedBy: newClub.id,
+        },
+        create: {
+          userId: ownerId,
+          roleType: grantedRole,
+          grantedBy: newClub.id,
+        },
+      });
 
       // Create activity for club creation
       await tx.activity.create({
