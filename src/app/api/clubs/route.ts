@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
             roleType: grantedRole,
             grantedBy: newClub.id,
           },
-        }).catch((error) => {
+        }).catch((error: any) => {
           console.warn('Could not create role grant (table may not exist yet):', error.message);
         });
       }
