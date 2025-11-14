@@ -13,6 +13,7 @@ import { NavigationMenu } from "./NavigationMenu";
 import { UserSection } from "./UserSection";
 import { Power } from "lucide-react";
 import { CreateClubModal } from '@/components/menu/CreateClubModal';
+import { createBrowserClient } from '@supabase/ssr';
 
 // Simple flat mapping of menu items to their groups
 const getGroupForMenuItem = (itemKey: string): string | null => {
@@ -114,8 +115,10 @@ export const Menu: React.FC = () => {
       console.log('Creating club:', clubData);
 
       // Get Supabase user ID from session
-      const { createClientComponentClient } = await import('@supabase/auth-helpers-nextjs');
-      const supabase = createClientComponentClient();
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
