@@ -17,14 +17,14 @@ interface CreateClubModalProps {
   }) => void;
 }
 
-// Club types mapped to roles they grant
+// Club types mapped to roles they grant (using Prisma enum values)
 const clubTypes = [
-  { value: 'recording', label: 'Recording', icon: '🎙️', grantsRole: 'ARTIST' },       // recording sessions → ARTIST
-  { value: 'production', label: 'Production', icon: '🎚️', grantsRole: 'PRODUCER' },      // mixing & mastering → PRODUCER
-  { value: 'rental', label: 'Rental', icon: '🏠', grantsRole: 'STUDIO_OWNER' },              // studio space rental → STUDIO_OWNER
-  { value: 'management', label: 'Management', icon: '🧑‍💼', grantsRole: 'OTHER' },    // artist/business management → OTHER
-  { value: 'distribution', label: 'Distribution', icon: '📣', grantsRole: 'OTHER' },  // promotion, publicity, reach → OTHER
-  { value: 'creative', label: 'Creative', icon: '🎨', grantsRole: 'LYRICIST' }           // artistic direction → LYRICIST
+  { value: 'RECORDING', label: 'Recording', icon: '🎙️', grantsRole: 'ARTIST' },       // recording sessions → ARTIST
+  { value: 'PRODUCTION', label: 'Production', icon: '🎚️', grantsRole: 'PRODUCER' },      // mixing & mastering → PRODUCER
+  { value: 'RENTAL', label: 'Rental', icon: '🏠', grantsRole: 'STUDIO_OWNER' },              // studio space rental → STUDIO_OWNER
+  { value: 'MANAGEMENT', label: 'Management', icon: '🧑‍💼', grantsRole: 'OTHER' },    // artist/business management → OTHER
+  { value: 'DISTRIBUTION', label: 'Distribution', icon: '📣', grantsRole: 'OTHER' },  // promotion, publicity, reach → OTHER
+  { value: 'CREATIVE', label: 'Creative', icon: '🎨', grantsRole: 'LYRICIST' }           // artistic direction → LYRICIST
 ];
 
 
@@ -55,7 +55,7 @@ export const CreateClubModal: React.FC<CreateClubModalProps> = ({
     e.preventDefault();
     if (clubName.trim() && clubType) {
       // Find the selected club type to get the role it grants
-      const selectedClubType = clubTypes.find(t => t.label === clubType);
+      const selectedClubType = clubTypes.find(t => t.value === clubType);
       const grantsRole = selectedClubType?.grantsRole || 'OTHER';
 
       onCreateClub({
@@ -181,10 +181,10 @@ export const CreateClubModal: React.FC<CreateClubModalProps> = ({
                 <button
                   key={type.value}
                   type="button"
-                  onClick={() => setClubType(type.label)}
+                  onClick={() => setClubType(type.value)}
                   className={`
                     p-2 rounded border transition-all duration-150 text-center
-                    ${clubType === type.label
+                    ${clubType === type.value
                       ? theme === 'dark'
                         ? 'bg-white border-white text-black'
                         : 'bg-black border-black text-white'
