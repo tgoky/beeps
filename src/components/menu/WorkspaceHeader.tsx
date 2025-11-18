@@ -3,8 +3,9 @@
 
 import { useTheme } from "../../providers/ThemeProvider";
 import { Users, Plus, Music, Building2, Mic2, Music2, Guitar, Headphones, User as UserIcon } from "lucide-react";
-import { useGetIdentity, useList } from "@refinedev/core";
-import { useState, useEffect } from "react";
+import { useGetIdentity } from "@refinedev/core";
+import { useUserBySupabaseId } from "@/hooks/api/useUserData";
+import { useClubs } from "@/hooks/api/useClubs";
 
 interface WorkspaceHeaderProps {
   collapsed: boolean;
@@ -49,41 +50,18 @@ export const WorkspaceHeader = ({
 }: WorkspaceHeaderProps) => {
   const { theme } = useTheme();
   const { data: identity } = useGetIdentity<any>();
-  const [userData, setUserData] = useState<any>(null);
-  const [clubsCount, setClubsCount] = useState(0);
 
-  // Fetch user's full data from your database
-  useEffect(() => {
-    if (identity?.id) {
-      // identity.id is the Supabase user ID
-      fetchUserBySupabaseId(identity.id);
-      fetchUserClubsBySupabaseId(identity.id);
-    }
-  }, [identity?.id]);
+  // Fetch user data with TanStack Query
+  const { data: userData } = useUserBySupabaseId(identity?.id, {
+    enabled: !!identity?.id,
+  });
 
-  const fetchUserBySupabaseId = async (supabaseId: string) => {
-    try {
-      const response = await fetch(`/api/users/by-supabase/${supabaseId}`);
-      if (response.ok) {
-        const data = await response.json();
-        setUserData(data.data);
-      }
-    } catch (error) {
-      console.error("Error fetching user data:", error);
-    }
-  };
+  // Fetch user's clubs with TanStack Query
+  const { data: clubsData } = useClubs(userData?.id, {
+    enabled: !!userData?.id,
+  });
 
-  const fetchUserClubsBySupabaseId = async (supabaseId: string) => {
-    try {
-      const response = await fetch(`/api/users/by-supabase/${supabaseId}/clubs`);
-      if (response.ok) {
-        const data = await response.json();
-        setClubsCount(data.data?.length || 0);
-      }
-    } catch (error) {
-      console.error("Error fetching clubs:", error);
-    }
-  };
+  const clubsCount = clubsData?.length || 0;
 
   // Get current user info - use identity data as fallback
   const currentUser = {

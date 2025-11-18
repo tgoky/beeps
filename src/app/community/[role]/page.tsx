@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTheme } from "../../../providers/ThemeProvider";
 import { usePermissions } from "../../../hooks/usePermissions";
+import { useCommunityPosts, useCreateCommunityPost, useCommunityStats } from "@/hooks/api/useCommunityPosts";
 import {
   ArrowLeft,
   Plus,
@@ -315,63 +316,13 @@ export default function CommunityPage() {
   const [genreFilter, setGenreFilter] = useState("all");
   const [bpmFilter, setBpmFilter] = useState("all");
 
-  // Data states
-  const [posts, setPosts] = useState<Post[]>([]);
+  // Club state (not using TanStack Query yet)
   const [clubs, setClubs] = useState<Club[]>([]);
-  const [stats, setStats] = useState<CommunityStats | null>(null);
 
-  // Loading states
-  const [isLoadingPosts, setIsLoadingPosts] = useState(true);
-  const [isLoadingStats, setIsLoadingStats] = useState(true);
-  const [isCreatingPost, setIsCreatingPost] = useState(false);
-
-  // Fetch posts
-  useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        setIsLoadingPosts(true);
-        const response = await fetch(`/api/communities/${role.toLowerCase()}/posts`);
-
-        if (!response.ok) {
-          console.error('Failed to fetch posts');
-          return;
-        }
-
-        const data = await response.json();
-        setPosts(data.data || []);
-      } catch (error) {
-        console.error('Error fetching posts:', error);
-      } finally {
-        setIsLoadingPosts(false);
-      }
-    };
-
-    fetchPosts();
-  }, [role]);
-
-  // Fetch community stats
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        setIsLoadingStats(true);
-        const response = await fetch(`/api/communities/${role.toLowerCase()}/stats`);
-
-        if (!response.ok) {
-          console.error('Failed to fetch stats');
-          return;
-        }
-
-        const data = await response.json();
-        setStats(data.data);
-      } catch (error) {
-        console.error('Error fetching stats:', error);
-      } finally {
-        setIsLoadingStats(false);
-      }
-    };
-
-    fetchStats();
-  }, [role]);
+  // TanStack Query hooks - with automatic caching, deduplication, and background refetching
+  const { data: posts = [], isLoading: isLoadingPosts } = useCommunityPosts(role.toLowerCase());
+  const { data: stats = null, isLoading: isLoadingStats } = useCommunityStats(role.toLowerCase());
+  const createPostMutation = useCreateCommunityPost();
 
   const handleGoBack = () => {
     router.push("/");
@@ -384,37 +335,24 @@ export default function CommunityPage() {
   const handleCreatePost = async () => {
     if (!postContent.trim()) return;
 
-    try {
-      setIsCreatingPost(true);
-
-      const response = await fetch(`/api/communities/${role.toLowerCase()}/posts`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+    // Use TanStack Query mutation with optimistic updates
+    createPostMutation.mutate(
+      {
+        content: postContent,
+        role: role.toLowerCase(),
+      },
+      {
+        onSuccess: () => {
+          setPostContent("");
+          setShowCreateModal(false);
+          setSelectedPostType(null);
         },
-        body: JSON.stringify({
-          content: postContent,
-          postType: selectedPostType,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        alert(error.error?.message || 'Failed to create post');
-        return;
+        onError: (error: any) => {
+          console.error('Error creating post:', error);
+          alert(error.message || 'Failed to create post');
+        },
       }
-
-      const result = await response.json();
-      setPosts([result.data, ...posts]);
-      setPostContent("");
-      setShowCreateModal(false);
-      setSelectedPostType(null);
-    } catch (error) {
-      console.error('Error creating post:', error);
-      alert('An error occurred while creating the post');
-    } finally {
-      setIsCreatingPost(false);
-    }
+    );
   };
 
   const toggleAudio = (postId: string) => {
