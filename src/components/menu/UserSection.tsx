@@ -2,21 +2,31 @@
 
 import { useTheme } from "../../providers/ThemeProvider";
 import { LogOut, User, Settings } from "lucide-react";
+import { useGetIdentity } from "@refinedev/core";
 
 interface UserSectionProps {
   collapsed: boolean;
   handleLogout: () => void;
 }
 
+interface UserIdentity {
+  id: string;
+  name: string | null;
+  email: string;
+  imageUrl: string | null;
+  roles: string[];
+}
+
 export const UserSection = ({ collapsed, handleLogout }: UserSectionProps) => {
   const { theme } = useTheme();
+  const { data: identity } = useGetIdentity<UserIdentity>();
 
-  // Mock user data - replace with actual user data from your auth context
+  // Use real user data from auth, with fallbacks
   const user = {
-    name: "John Doe",
-    email: "john.doe@example.com",
-    avatar: "/images/avatar-placeholder.png",
-    role: "Admin"
+    name: identity?.name || "User",
+    email: identity?.email || "",
+    avatar: identity?.imageUrl || null,
+    role: identity?.roles?.[0] || "Member"
   };
 
   return (

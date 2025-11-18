@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Search, MapPin, Star, CheckCircle2, Map, Plus , Grid, Navigation, Zap, X, Mic2, Maximize2, Minimize2 } from "lucide-react";
 import { useTheme } from "../../providers/ThemeProvider";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useStudios } from "@/hooks/useStudios";
 
 
 type Studio = {
@@ -46,14 +47,14 @@ export default function StudioList() {
    const { permissions, isArtist, isProducer, canAccess } = usePermissions();
 
 
+  // Fetch studios with React Query
+  const { data: studios = [], isLoading: isLoadingStudios } = useStudios();
+
   const [userLocation, setUserLocation] = useState<{ lat: number; lon: number } | null>(null);
-  const [studios, setStudios] = useState<Studio[]>([]);
-  const [filteredStudios, setFilteredStudios] = useState<Studio[]>([]);
   const [radius, setRadius] = useState(1000);
   const [searchQuery, setSearchQuery] = useState("");
   const [locationFilter, setLocationFilter] = useState("all");
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
-  const [isLoadingStudios, setIsLoadingStudios] = useState(true);
   const [viewMode, setViewMode] = useState<"map" | "grid">("map");
   const [selectedStudio, setSelectedStudio] = useState<Studio | null>(null);
   const [hoveredStudio, setHoveredStudio] = useState<number | null>(null);
@@ -80,29 +81,8 @@ export default function StudioList() {
     }
   };
 
-  // Filter studios
-  // Fetch studios from API
-  useEffect(() => {
-    const fetchStudios = async () => {
-      try {
-        setIsLoadingStudios(true);
-        const response = await fetch("/api/studios");
-        const data = await response.json();
-
-        if (response.ok && data.studios) {
-          setStudios(data.studios);
-        }
-      } catch (error) {
-        console.error("Error fetching studios:", error);
-      } finally {
-        setIsLoadingStudios(false);
-      }
-    };
-
-    fetchStudios();
-  }, []);
-
-  useEffect(() => {
+  // Filter studios with useMemo for performance
+  const filteredStudios = useMemo(() => {
     let filtered = studios;
 
     if (userLocation && radius < 1000) {
@@ -131,8 +111,8 @@ export default function StudioList() {
       );
     }
 
-    setFilteredStudios(filtered);
-  }, [userLocation, radius, locationFilter, searchQuery]);
+    return filtered;
+  }, [studios, userLocation, radius, locationFilter, searchQuery]);
 
   // Calculate map center from all filtered studios
   const getMapCenter = () => {
