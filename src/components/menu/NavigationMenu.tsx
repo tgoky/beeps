@@ -1,9 +1,11 @@
 // NavigationMenu.tsx
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useMemo } from "react";
 import { useTheme } from "../../providers/ThemeProvider";
 import { MenuGroup } from "./MenuGroup";
+import { useUserBySupabaseId } from "@/hooks/api/useUserData";
+import { useUserCommunities } from "@/hooks/api/useUserCommunities";
 import {
   BuildingStorefrontIcon,
   MusicalNoteIcon,
@@ -124,73 +126,52 @@ export const NavigationMenu = ({
   toggleGroup,
 }: NavigationMenuProps) => {
   const { theme } = useTheme();
-  const [userCommunities, setUserCommunities] = useState<IMenuItem[]>([]);
-  const [isLoadingCommunities, setIsLoadingCommunities] = useState<boolean>(true);
+  const [supabaseUser, setSupabaseUser] = React.useState<any>(null);
 
-  const displayMenuItems = getResourceMenuItems(menuItems, selectedKey);
-
-  // Fetch user's communities
-  useEffect(() => {
-    const fetchCommunities = async () => {
-      try {
-        setIsLoadingCommunities(true);
-
-        // Get Supabase user ID using @supabase/ssr
-        const { createBrowserClient } = await import('@supabase/ssr');
-        const supabase = createBrowserClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        );
-        const { data: { user } } = await supabase.auth.getUser();
-
-        if (!user) {
-          setUserCommunities([]);
-          return;
-        }
-
-        // Fetch user's database ID
-        const userResponse = await fetch(`/api/users/by-supabase/${user.id}`);
-        if (!userResponse.ok) {
-          console.error('Failed to fetch user data');
-          setUserCommunities([]);
-          return;
-        }
-
-        const userData = await userResponse.json();
-        const userId = userData.data.id;
-
-        // Fetch user's communities
-        const communitiesResponse = await fetch(`/api/users/${userId}/communities`);
-        if (!communitiesResponse.ok) {
-          console.error('Failed to fetch communities');
-          setUserCommunities([]);
-          return;
-        }
-
-        const communitiesData = await communitiesResponse.json();
-
-        // Transform API response to menu items
-        const communities: IMenuItem[] = communitiesData.data.map((community: any) => ({
-          key: `community-${community.role.toLowerCase()}`,
-          name: `${community.role.toLowerCase()}-community`,
-          label: community.label,
-          route: community.route,
-          icon: getRoleIcon(community.icon),
-        }));
-
-        setUserCommunities(communities);
-      } catch (error) {
-        console.error('Error fetching communities:', error);
-        setUserCommunities([]);
-      } finally {
-        setIsLoadingCommunities(false);
-      }
+  // Get Supabase user ID
+  React.useEffect(() => {
+    const getSupabaseUser = async () => {
+      const { createBrowserClient } = await import('@supabase/ssr');
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+      const { data: { user } } = await supabase.auth.getUser();
+      setSupabaseUser(user);
     };
 
     if (isClient) {
-      fetchCommunities();
+      getSupabaseUser();
     }
   }, [isClient]);
+
+  // Fetch user data with TanStack Query
+  const { data: userData } = useUserBySupabaseId(supabaseUser?.id, {
+    enabled: isClient && !!supabaseUser?.id,
+  });
+
+  // Fetch user's communities with TanStack Query
+  const { data: communitiesData, isLoading: isLoadingCommunities } = useUserCommunities(
+    userData?.id,
+    {
+      enabled: isClient && !!userData?.id,
+    }
+  );
+
+  const displayMenuItems = getResourceMenuItems(menuItems, selectedKey);
+
+  // Transform communities data to menu items
+  const userCommunities = useMemo(() => {
+    if (!communitiesData) return [];
+
+    return (communitiesData as any).data?.map((community: any) => ({
+      key: `community-${community.role.toLowerCase()}`,
+      name: `${community.role.toLowerCase()}-community`,
+      label: community.label,
+      route: community.route,
+      icon: getRoleIcon(community.icon),
+    })) || [];
+  }, [communitiesData]);
 
   const getMenuItemsByGroup = (groupItems: string[] = []) => {
     return displayMenuItems.filter((item) =>

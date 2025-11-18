@@ -14,6 +14,8 @@ import { UserSection } from "./UserSection";
 import { Power } from "lucide-react";
 import { CreateClubModal } from '@/components/menu/CreateClubModal';
 import { createBrowserClient } from '@supabase/ssr';
+import { useUserBySupabaseId } from "@/hooks/api/useUserData";
+import { useCreateClub } from "@/hooks/api/useClubs";
 
 // Simple flat mapping of menu items to their groups
 const getGroupForMenuItem = (itemKey: string): string | null => {
@@ -86,8 +88,14 @@ export const Menu: React.FC = () => {
   const userHasInteractedRef = useRef<boolean>(false);
   const { theme } = useTheme();
   const [showLogoutDialog, setShowLogoutDialog] = useState<boolean>(false);
-
   const [showCreateClubModal, setShowCreateClubModal] = useState(false);
+  const [supabaseUser, setSupabaseUser] = useState<any>(null);
+
+  // TanStack Query hooks
+  const { data: userData } = useUserBySupabaseId(supabaseUser?.id, {
+    enabled: !!supabaseUser?.id,
+  });
+  const createClubMutation = useCreateClub();
 
   const selectedItemGroup = useMemo(() => {
     if (!selectedKey) return null;
@@ -96,6 +104,18 @@ export const Menu: React.FC = () => {
 
   useEffect(() => {
     setIsClient(true);
+
+    // Load Supabase user
+    const loadUser = async () => {
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+      const { data: { user } } = await supabase.auth.getUser();
+      setSupabaseUser(user);
+    };
+
+    loadUser();
   }, []);
 
   useEffect(() => {
@@ -111,62 +131,38 @@ export const Menu: React.FC = () => {
   };
 
   const handleCreateClub = async (clubData: any) => {
-    try {
-      console.log('Creating club:', clubData);
-
-      // Get Supabase user ID from session
-      const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      );
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        console.error('No authenticated user found');
-        return;
-      }
-
-      // Fetch user's database ID from Supabase ID
-      const userResponse = await fetch(`/api/users/by-supabase/${user.id}`);
-      if (!userResponse.ok) {
-        console.error('Failed to fetch user data');
-        return;
-      }
-      const userData = await userResponse.json();
-      const userId = userData.data.id;
-
-      // Create the club via API
-      const response = await fetch('/api/clubs', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: clubData.name,
-          type: clubData.type,
-          description: clubData.description,
-          icon: clubData.icon,
-          ownerId: userId,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        console.error('Failed to create club:', error);
-        alert(error.error?.message || 'Failed to create club');
-        return;
-      }
-
-      const result = await response.json();
-      console.log('Club created successfully:', result);
-
-      // Redirect to the community page for the granted role
-      const communityRole = (result.data.grantedRole || clubData.grantsRole).toLowerCase();
-      router.push(`/community/${communityRole}`);
-    } catch (error) {
-      console.error('Error creating club:', error);
-      alert('An error occurred while creating the club');
+    if (!userData?.id) {
+      console.error('No user data available');
+      alert('Please wait while we load your profile...');
+      return;
     }
+
+    console.log('Creating club:', clubData);
+
+    // Use TanStack Query mutation with optimistic updates
+    createClubMutation.mutate(
+      {
+        name: clubData.name,
+        type: clubData.type,
+        description: clubData.description,
+        icon: clubData.icon,
+        ownerId: userData.id,
+      },
+      {
+        onSuccess: (result: any) => {
+          console.log('Club created successfully:', result);
+          setShowCreateClubModal(false);
+
+          // Redirect to the community page for the granted role
+          const communityRole = (result.grantedRole || clubData.grantsRole || 'producer').toLowerCase();
+          router.push(`/community/${communityRole}`);
+        },
+        onError: (error: any) => {
+          console.error('Failed to create club:', error);
+          alert(error.message || 'Failed to create club');
+        },
+      }
+    );
   };
 
 
