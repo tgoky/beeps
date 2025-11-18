@@ -27,7 +27,8 @@ async function fetchUserCommunities(userId: string): Promise<Community[]> {
     throw new Error("Failed to fetch communities");
   }
 
-  return response.json();
+  const json = await response.json();
+  return json.data || json; // Extract data field if present
 }
 
 /**

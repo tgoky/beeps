@@ -33,7 +33,8 @@ async function fetchUserBySupabaseId(supabaseId: string): Promise<UserData> {
     throw new Error("Failed to fetch user");
   }
 
-  return response.json();
+  const json = await response.json();
+  return json.data; // Extract the data field from API response
 }
 
 // Fetch user by database ID
@@ -44,7 +45,8 @@ async function fetchUserById(userId: string): Promise<UserData> {
     throw new Error("Failed to fetch user");
   }
 
-  return response.json();
+  const json = await response.json();
+  return json.data; // Extract the data field from API response
 }
 
 /**

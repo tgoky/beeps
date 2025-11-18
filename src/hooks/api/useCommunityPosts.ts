@@ -42,7 +42,8 @@ async function fetchCommunityPosts(role: string): Promise<CommunityPost[]> {
     throw new Error("Failed to fetch posts");
   }
 
-  return response.json();
+  const json = await response.json();
+  return json.data || json; // Extract data field if present
 }
 
 // Create a new post
@@ -60,7 +61,8 @@ async function createCommunityPost(data: CreatePostData): Promise<CommunityPost>
     throw new Error(error.message || "Failed to create post");
   }
 
-  return response.json();
+  const json = await response.json();
+  return json.data || json; // Extract data field if present
 }
 
 // Fetch community stats
@@ -71,7 +73,8 @@ async function fetchCommunityStats(role: string): Promise<CommunityStats> {
     throw new Error("Failed to fetch stats");
   }
 
-  return response.json();
+  const json = await response.json();
+  return json.data || json; // Extract data field if present
 }
 
 /**

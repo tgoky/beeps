@@ -164,7 +164,8 @@ export const NavigationMenu = ({
   const userCommunities = useMemo(() => {
     if (!communitiesData) return [];
 
-    return (communitiesData as any).data?.map((community: any) => ({
+    // communitiesData is already the array (data extracted in hook)
+    return (communitiesData as any[])?.map((community: any) => ({
       key: `community-${community.role.toLowerCase()}`,
       name: `${community.role.toLowerCase()}-community`,
       label: community.label,
