@@ -320,13 +320,9 @@ export default function CommunityPage() {
   const [clubs, setClubs] = useState<Club[]>([]);
 
   // TanStack Query hooks - with automatic caching, deduplication, and background refetching
-  const { data: postsResponse, isLoading: isLoadingPosts } = useCommunityPosts(role.toLowerCase());
-  const { data: statsResponse, isLoading: isLoadingStats } = useCommunityStats(role.toLowerCase());
+  const { data: posts = [], isLoading: isLoadingPosts } = useCommunityPosts(role.toLowerCase());
+  const { data: stats = null, isLoading: isLoadingStats } = useCommunityStats(role.toLowerCase());
   const createPostMutation = useCreateCommunityPost();
-
-  // Extract data from responses
-  const posts = (postsResponse as any)?.data || [];
-  const stats = (statsResponse as any)?.data || null;
 
   const handleGoBack = () => {
     router.push("/");

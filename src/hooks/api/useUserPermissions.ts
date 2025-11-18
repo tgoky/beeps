@@ -30,7 +30,8 @@ async function fetchUserPermissions(): Promise<UserPermissions> {
     throw new Error("Failed to fetch permissions");
   }
 
-  return response.json();
+  const json = await response.json();
+  return json.data || json; // Extract data field if present
 }
 
 /**

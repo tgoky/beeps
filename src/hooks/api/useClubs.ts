@@ -41,7 +41,8 @@ async function fetchClubs(userId?: string): Promise<Club[]> {
     throw new Error("Failed to fetch clubs");
   }
 
-  return response.json();
+  const json = await response.json();
+  return json.data || json; // Extract data field if present
 }
 
 // Create a new club
@@ -59,7 +60,8 @@ async function createClub(clubData: CreateClubData): Promise<Club> {
     throw new Error(error.message || "Failed to create club");
   }
 
-  return response.json();
+  const json = await response.json();
+  return json.data || json; // Extract data field if present
 }
 
 /**
