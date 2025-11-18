@@ -4,12 +4,13 @@
 import { useBreadcrumb } from "@refinedev/core";
 import Link from "next/link";
 import { ChevronRight, Home } from "lucide-react";
+import { NotificationBell } from "../NotificationBell";
 
 export const Breadcrumb = () => {
   const { breadcrumbs } = useBreadcrumb();
 
   return (
-    <div className="flex items-center px-4 py-2.5 backdrop-blur-sm  dark:bg-black border border-gray-200/60 dark:border-gray-800/50 ">
+    <div className="flex items-center justify-between px-4 py-2.5 backdrop-blur-sm  dark:bg-black border border-gray-200/60 dark:border-gray-800/50 ">
       <nav className="flex" aria-label="Breadcrumb">
         <ol className="inline-flex items-center">
           {breadcrumbs.map((breadcrumb, index) => (
@@ -43,6 +44,7 @@ export const Breadcrumb = () => {
           ))}
         </ol>
       </nav>
+      <NotificationBell />
     </div>
   );
 };

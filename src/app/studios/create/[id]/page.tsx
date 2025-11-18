@@ -89,10 +89,76 @@ export default function BookStudio({ params }: { params: { id: string } }) {
     { icon: Volume2, label: "Sound Proof" },
   ];
 
-  const handleBooking = () => {
-    // Handle booking logic here
-    alert("Booking request submitted! You'll be notified when the studio owner responds.");
-    router.push("/studios");
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [bookingError, setBookingError] = useState("");
+
+  const handleBooking = async () => {
+    if (!selectedTime) {
+      setBookingError("Please select a time slot");
+      return;
+    }
+
+    try {
+      setBookingLoading(true);
+      setBookingError("");
+
+      // Parse selected time to 24-hour format
+      const timeParts = selectedTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
+      if (!timeParts) {
+        setBookingError("Invalid time format");
+        return;
+      }
+
+      let hours = parseInt(timeParts[1]);
+      const minutes = parseInt(timeParts[2]);
+      const period = timeParts[3].toUpperCase();
+
+      if (period === "PM" && hours !== 12) hours += 12;
+      if (period === "AM" && hours === 12) hours = 0;
+
+      // Create start and end times
+      const startTime = selectedDate
+        .hour(hours)
+        .minute(minutes)
+        .second(0)
+        .toDate();
+
+      const endTime = selectedDate
+        .hour(hours)
+        .minute(minutes)
+        .add(sessionLength, "hour")
+        .second(0)
+        .toDate();
+
+      // Make API call to create booking
+      const response = await fetch("/api/bookings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          studioId: studio.id.toString(), // Convert to string UUID if needed
+          startTime: startTime.toISOString(),
+          endTime: endTime.toISOString(),
+          notes: "",
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to create booking");
+      }
+
+      // Show success message
+      alert("Booking request submitted! You'll be notified when the studio owner responds.");
+      router.push("/bookings");
+    } catch (error: any) {
+      console.error("Booking error:", error);
+      setBookingError(error.message || "Failed to create booking. Please try again.");
+    } finally {
+      setBookingLoading(false);
+    }
   };
 
   return (
@@ -571,14 +637,25 @@ export default function BookStudio({ params }: { params: { id: string } }) {
                   </div>
                 </div>
 
+                {/* Error Message */}
+                {bookingError && (
+                  <div className={`mb-4 p-3 rounded-lg ${
+                    theme === "dark"
+                      ? "bg-red-500/10 border border-red-500/20 text-red-400"
+                      : "bg-red-50 border border-red-200 text-red-600"
+                  }`}>
+                    <p className="text-xs">{bookingError}</p>
+                  </div>
+                )}
+
                 {/* Book Button */}
                 <button
                   onClick={handleBooking}
-                  disabled={!selectedTime}
+                  disabled={!selectedTime || bookingLoading}
                   className={`
                     w-full py-3 rounded-lg font-semibold transition-all duration-200
                     flex items-center justify-center gap-2
-                    ${!selectedTime
+                    ${!selectedTime || bookingLoading
                       ? theme === "dark"
                         ? "bg-gray-800 text-gray-500 cursor-not-allowed"
                         : "bg-gray-200 text-gray-400 cursor-not-allowed"
@@ -588,8 +665,17 @@ export default function BookStudio({ params }: { params: { id: string } }) {
                     }
                   `}
                 >
-                  <CheckCircle2 className="w-4 h-4" />
-                  Request to Book
+                  {bookingLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      Request to Book
+                    </>
+                  )}
                 </button>
 
                 <p className={`text-center text-xs mt-3 ${

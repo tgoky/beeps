@@ -8,64 +8,18 @@ import { usePermissions } from "@/hooks/usePermissions";
 
 
 type Studio = {
-  id: number;
+  id: string;
   name: string;
   location: string;
-  price: string;
+  hourlyRate: number;
   rating: number;
   equipment: string[];
-  image: string;
-  lat: number;
-  lon: number;
+  imageUrl: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  description?: string;
+  capacity?: string;
 };
-
-// Sample studio data - replace with your actual data
-const studioData: Studio[] = [
-  {
-    id: 1,
-    name: "Sunset Sound Studios",
-    location: "Los Angeles, CA",
-    price: "$150/hr",
-    rating: 4.9,
-    equipment: ["SSL Console", "Pro Tools", "Neumann U87"],
-    image: "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=800&q=80",
-    lat: 34.0522,
-    lon: -118.2437
-  },
-  {
-    id: 2,
-    name: "Electric Lady Studios",
-    location: "New York, NY",
-    price: "$200/hr",
-    rating: 5.0,
-    equipment: ["Neve Console", "Logic Pro", "Telefunken U47"],
-    image: "https://images.unsplash.com/photo-1519892300165-cb5542fb47c7?w=800&q=80",
-    lat: 40.7282,
-    lon: -73.9942
-  },
-  {
-    id: 3,
-    name: "Abbey Road Studios",
-    location: "London, UK",
-    price: "$300/hr",
-    rating: 5.0,
-    equipment: ["API Console", "Ableton Live", "AKG C414"],
-    image: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=800&q=80",
-    lat: 51.5320,
-    lon: -0.1778
-  },
-  {
-    id: 4,
-    name: "Ocean Way Recording",
-    location: "Nashville, TN",
-    price: "$175/hr",
-    rating: 4.8,
-    equipment: ["Solid State Logic", "Pro Tools HDX", "Shure SM7B"],
-    image: "https://images.unsplash.com/photo-1478737270239-2f02b77fc618?w=800&q=80",
-    lat: 36.1627,
-    lon: -86.7816
-  }
-];
 
 // Haversine formula to calculate distance between two coordinates (in miles)
 const calculateDistance = (
@@ -93,11 +47,13 @@ export default function StudioList() {
 
 
   const [userLocation, setUserLocation] = useState<{ lat: number; lon: number } | null>(null);
-  const [filteredStudios, setFilteredStudios] = useState<Studio[]>(studioData);
+  const [studios, setStudios] = useState<Studio[]>([]);
+  const [filteredStudios, setFilteredStudios] = useState<Studio[]>([]);
   const [radius, setRadius] = useState(1000);
   const [searchQuery, setSearchQuery] = useState("");
   const [locationFilter, setLocationFilter] = useState("all");
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+  const [isLoadingStudios, setIsLoadingStudios] = useState(true);
   const [viewMode, setViewMode] = useState<"map" | "grid">("map");
   const [selectedStudio, setSelectedStudio] = useState<Studio | null>(null);
   const [hoveredStudio, setHoveredStudio] = useState<number | null>(null);
@@ -125,16 +81,38 @@ export default function StudioList() {
   };
 
   // Filter studios
+  // Fetch studios from API
   useEffect(() => {
-    let filtered = studioData;
+    const fetchStudios = async () => {
+      try {
+        setIsLoadingStudios(true);
+        const response = await fetch("/api/studios");
+        const data = await response.json();
+
+        if (response.ok && data.studios) {
+          setStudios(data.studios);
+        }
+      } catch (error) {
+        console.error("Error fetching studios:", error);
+      } finally {
+        setIsLoadingStudios(false);
+      }
+    };
+
+    fetchStudios();
+  }, []);
+
+  useEffect(() => {
+    let filtered = studios;
 
     if (userLocation && radius < 1000) {
       filtered = filtered.filter((studio) => {
+        if (!studio.latitude || !studio.longitude) return false;
         const distance = calculateDistance(
           userLocation.lat,
           userLocation.lon,
-          studio.lat,
-          studio.lon
+          studio.latitude,
+          studio.longitude
         );
         return distance <= radius;
       });
@@ -807,11 +785,12 @@ const MapView = () => {
 
       {/* Studio Markers with PREMIUM Hover Effects */}
       {filteredStudios.map((studio) => {
-        const position = getPosition(studio.lat, studio.lon);
+        if (!studio.latitude || !studio.longitude) return null;
+        const position = getPosition(studio.latitude, studio.longitude);
         const isSelected = selectedStudio?.id === studio.id;
         const isHovered = hoveredStudio === studio.id;
-        const distance = userLocation 
-          ? calculateDistance(userLocation.lat, userLocation.lon, studio.lat, studio.lon)
+        const distance = userLocation
+          ? calculateDistance(userLocation.lat, userLocation.lon, studio.latitude, studio.longitude)
           : null;
 
         return (
@@ -977,7 +956,7 @@ const MapView = () => {
                           ? "text-red-500"
                           : theme === "dark" ? "text-zinc-300" : "text-gray-700"
                       }`}>
-                        {studio.price}
+                        ${studio.hourlyRate}/hr
                       </span>
                     </div>
 
@@ -1225,8 +1204,8 @@ const MapView = () => {
   const GridView = () => (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       {filteredStudios.map((studio) => {
-        const distance = userLocation 
-          ? calculateDistance(userLocation.lat, userLocation.lon, studio.lat, studio.lon)
+        const distance = userLocation && studio.latitude && studio.longitude
+          ? calculateDistance(userLocation.lat, userLocation.lon, studio.latitude, studio.longitude)
           : null;
 
         return (
@@ -1242,7 +1221,7 @@ const MapView = () => {
             <div className="relative h-44 overflow-hidden">
               <img
                 alt={studio.name}
-                src={studio.image}
+                src={studio.imageUrl || "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=800&q=80"}
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
               />
               <div className={`absolute top-3 right-3 px-2.5 py-1 rounded-lg text-xs font-light tracking-wide backdrop-blur-sm ${
@@ -1250,7 +1229,7 @@ const MapView = () => {
                   ? "bg-black/80 text-white border border-zinc-800"
                   : "bg-white/80 text-black border border-gray-300"
               }`}>
-                {studio.price}
+                ${studio.hourlyRate}/hr
               </div>
             </div>
 
@@ -1355,7 +1334,7 @@ const MapView = () => {
     {/* Conditional Action Button based on permissions */}
     {permissions.canCreateStudios ? (
       <button
-        onClick={() => router.push('/studios/create')}
+        onClick={() => router.push('/studios/list-studio')}
         className={`
           flex items-center gap-2 px-5 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
           ${theme === "dark"
