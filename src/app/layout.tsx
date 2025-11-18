@@ -154,6 +154,7 @@ export default function RootLayout({
               </ThemeProvider>
             </QueryProvider>
           </RefineKbarProvider>
+        </ReactQueryProvider>
         </Suspense>
       </body>
     </html>
