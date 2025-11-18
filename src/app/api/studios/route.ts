@@ -8,6 +8,9 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const search = searchParams.get("search");
     const location = searchParams.get("location");
+    const country = searchParams.get("country");
+    const state = searchParams.get("state");
+    const city = searchParams.get("city");
     const minRate = searchParams.get("minRate");
     const maxRate = searchParams.get("maxRate");
     const ownerId = searchParams.get("ownerId");
@@ -26,6 +29,17 @@ export async function GET(req: NextRequest) {
 
     if (location) {
       where.location = { contains: location, mode: "insensitive" };
+    }
+
+    // Enhanced location filtering
+    if (country) {
+      where.country = { contains: country, mode: "insensitive" };
+    }
+    if (state) {
+      where.state = { contains: state, mode: "insensitive" };
+    }
+    if (city) {
+      where.city = { contains: city, mode: "insensitive" };
     }
 
     if (minRate || maxRate) {
@@ -131,11 +145,17 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
       });
     }
 
+    // Extract location fields from request
+    const { country, state, city } = body;
+
     const studio = await prisma.studio.create({
       data: {
         name,
         description,
         location,
+        country: country || null,
+        state: state || null,
+        city: city || null,
         latitude: latitude ? parseFloat(latitude) : null,
         longitude: longitude ? parseFloat(longitude) : null,
         hourlyRate: parseFloat(hourlyRate),
