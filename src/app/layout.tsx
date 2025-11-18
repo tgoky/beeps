@@ -10,7 +10,8 @@ import { SidebarProvider } from "../providers/sidebar-provider/sidebar-provider"
 import { authProviderClient } from "@providers/auth-provider/auth-provider.client";
 import { dataProvider } from "@providers/data-provider";
 import { ThemeProvider } from "@providers/ThemeProvider";
-import { PermissionsProvider } from "@/hooks/usePermissions"; 
+import { PermissionsProvider } from "@/hooks/usePermissions";
+import { ReactQueryProvider } from "@/providers/query-provider";
 import "@styles/global.css";
 
 export const metadata: Metadata = {
@@ -30,9 +31,10 @@ export default function RootLayout({
     <html lang="en" className="light">
       <body>
         <Suspense>
-          <RefineKbarProvider>
-            <ThemeProvider>
-              <SidebarProvider>
+          <ReactQueryProvider>
+            <RefineKbarProvider>
+              <ThemeProvider>
+                <SidebarProvider>
                 {/* ✅ FIXED: Refine must wrap PermissionsProvider */}
                 <Refine
                   routerProvider={routerProvider}
@@ -151,6 +153,7 @@ export default function RootLayout({
               </SidebarProvider>
             </ThemeProvider>
           </RefineKbarProvider>
+        </ReactQueryProvider>
         </Suspense>
       </body>
     </html>
