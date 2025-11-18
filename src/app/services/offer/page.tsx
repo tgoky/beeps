@@ -5,27 +5,31 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "@/providers/ThemeProvider";
 import { usePermissions } from "@/hooks/usePermissions";
 import { LocationSelector, type LocationData } from "@/components/LocationSelector";
-import { Package, Upload, Loader2, CheckCircle2, DollarSign, MapPin } from "lucide-react";
+import { Briefcase, Clock, DollarSign, Loader2, CheckCircle2, MapPin } from "lucide-react";
 
 const CATEGORIES = [
-  "Microphone", "Audio Interface", "MIDI Controller", "Synthesizer",
-  "Drum Machine", "Headphones", "Monitors", "Plugin", "DAW", "Other"
+  "Mixing & Mastering",
+  "Music Production",
+  "Vocal Recording",
+  "Beat Making",
+  "Audio Engineering",
+  "Songwriting",
+  "Sound Design",
+  "Podcast Production",
+  "Other"
 ];
 
-const CONDITIONS = ["New", "Like New", "Good", "Fair"];
-
-export default function ListEquipment() {
+export default function OfferService() {
   const router = useRouter();
   const { theme } = useTheme();
   const { permissions } = usePermissions();
 
   const [formData, setFormData] = useState({
-    name: "",
+    title: "",
     description: "",
-    category: "Microphone",
+    category: "Mixing & Mastering",
     price: "",
-    rentalRate: "",
-    condition: "New",
+    deliveryTime: "3",
     imageUrl: "",
     location: "",
     country: "",
@@ -62,23 +66,27 @@ export default function ListEquipment() {
     setSuccess(false);
 
     try {
-      if (!formData.name || !formData.price) {
+      if (!formData.title || !formData.price || !formData.deliveryTime) {
         throw new Error("Please fill in all required fields");
       }
 
-      const response = await fetch("/api/equipment", {
+      const response = await fetch("/api/services", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          price: parseFloat(formData.price),
+          deliveryTime: parseInt(formData.deliveryTime),
+        }),
       });
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Failed to list equipment");
+      if (!response.ok) throw new Error(data.error || "Failed to offer service");
 
       setSuccess(true);
-      setTimeout(() => router.push("/equipment"), 2000);
+      setTimeout(() => router.push("/services"), 2000);
     } catch (error: any) {
-      setError(error.message || "Failed to list equipment");
+      setError(error.message || "Failed to offer service");
     } finally {
       setLoading(false);
     }
@@ -89,10 +97,10 @@ export default function ListEquipment() {
       <div className="max-w-4xl mx-auto p-6">
         <div className="mb-8">
           <h1 className={`text-3xl font-bold mb-2 ${theme === "dark" ? "text-gray-100" : "text-gray-900"}`}>
-            List Equipment
+            Offer Your Service
           </h1>
           <p className={`text-sm ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-            Sell or rent your music gear
+            Share your skills and expertise with artists and producers
           </p>
         </div>
 
@@ -102,7 +110,7 @@ export default function ListEquipment() {
           }`}>
             <CheckCircle2 className="w-5 h-5" />
             <div>
-              <p className="font-medium">Equipment listed successfully!</p>
+              <p className="font-medium">Service listed successfully!</p>
               <p className="text-sm opacity-90">Redirecting...</p>
             </div>
           </div>
@@ -117,23 +125,24 @@ export default function ListEquipment() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Service Details */}
           <div className={`p-6 rounded-xl border ${theme === "dark" ? "bg-gray-900/40 border-gray-800/60" : "bg-white border-gray-200"}`}>
             <h2 className={`text-lg font-semibold mb-4 flex items-center gap-2 ${theme === "dark" ? "text-gray-200" : "text-gray-900"}`}>
-              <Package className="w-5 h-5" />
-              Equipment Details
+              <Briefcase className="w-5 h-5" />
+              Service Details
             </h2>
 
             <div className="space-y-4">
               <div>
                 <label className={`block text-sm font-medium mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                  Name <span className="text-red-500">*</span>
+                  Service Title <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
-                  name="name"
-                  value={formData.name}
+                  name="title"
+                  value={formData.title}
                   onChange={handleInputChange}
-                  placeholder="e.g., Neumann U87 Microphone"
+                  placeholder="e.g., Professional Mixing & Mastering"
                   required
                   className={`w-full p-3 rounded-lg border ${theme === "dark" ? "bg-gray-800/40 border-gray-700/60 text-gray-300" : "bg-white border-gray-300 text-gray-900"} focus:outline-none focus:ring-2 focus:ring-purple-500/20`}
                 />
@@ -141,52 +150,37 @@ export default function ListEquipment() {
 
               <div>
                 <label className={`block text-sm font-medium mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                  Description
+                  Description <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   name="description"
                   value={formData.description}
                   onChange={handleInputChange}
-                  placeholder="Describe the equipment, its features, and condition..."
-                  rows={4}
+                  placeholder="Describe your service, experience, and what clients can expect..."
+                  rows={5}
+                  required
                   className={`w-full p-3 rounded-lg border resize-none ${theme === "dark" ? "bg-gray-800/40 border-gray-700/60 text-gray-300" : "bg-white border-gray-300 text-gray-900"} focus:outline-none focus:ring-2 focus:ring-purple-500/20`}
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                    Category <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    name="category"
-                    value={formData.category}
-                    onChange={handleInputChange}
-                    className={`w-full p-3 rounded-lg border ${theme === "dark" ? "bg-gray-800/40 border-gray-700/60 text-gray-300" : "bg-white border-gray-300 text-gray-900"} focus:outline-none focus:ring-2 focus:ring-purple-500/20`}
-                  >
-                    {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                  </select>
-                </div>
-
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                    Condition <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    name="condition"
-                    value={formData.condition}
-                    onChange={handleInputChange}
-                    className={`w-full p-3 rounded-lg border ${theme === "dark" ? "bg-gray-800/40 border-gray-700/60 text-gray-300" : "bg-white border-gray-300 text-gray-900"} focus:outline-none focus:ring-2 focus:ring-purple-500/20`}
-                  >
-                    {CONDITIONS.map(cond => <option key={cond} value={cond}>{cond}</option>)}
-                  </select>
-                </div>
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                  Category <span className="text-red-500">*</span>
+                </label>
+                <select
+                  name="category"
+                  value={formData.category}
+                  onChange={handleInputChange}
+                  className={`w-full p-3 rounded-lg border ${theme === "dark" ? "bg-gray-800/40 border-gray-700/60 text-gray-300" : "bg-white border-gray-300 text-gray-900"} focus:outline-none focus:ring-2 focus:ring-purple-500/20`}
+                >
+                  {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                </select>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className={`block text-sm font-medium mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                    Sale Price ($) <span className="text-red-500">*</span>
+                    Price ($) <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="number"
@@ -194,7 +188,7 @@ export default function ListEquipment() {
                     name="price"
                     value={formData.price}
                     onChange={handleInputChange}
-                    placeholder="499.99"
+                    placeholder="150.00"
                     required
                     className={`w-full p-3 rounded-lg border ${theme === "dark" ? "bg-gray-800/40 border-gray-700/60 text-gray-300" : "bg-white border-gray-300 text-gray-900"} focus:outline-none focus:ring-2 focus:ring-purple-500/20`}
                   />
@@ -202,30 +196,35 @@ export default function ListEquipment() {
 
                 <div>
                   <label className={`block text-sm font-medium mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                    Rental Rate ($/day) (Optional)
+                    Delivery Time (days) <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    name="rentalRate"
-                    value={formData.rentalRate}
+                  <select
+                    name="deliveryTime"
+                    value={formData.deliveryTime}
                     onChange={handleInputChange}
-                    placeholder="25.00"
                     className={`w-full p-3 rounded-lg border ${theme === "dark" ? "bg-gray-800/40 border-gray-700/60 text-gray-300" : "bg-white border-gray-300 text-gray-900"} focus:outline-none focus:ring-2 focus:ring-purple-500/20`}
-                  />
+                  >
+                    <option value="1">1 day</option>
+                    <option value="2">2 days</option>
+                    <option value="3">3 days</option>
+                    <option value="5">5 days</option>
+                    <option value="7">1 week</option>
+                    <option value="14">2 weeks</option>
+                    <option value="30">1 month</option>
+                  </select>
                 </div>
               </div>
 
               <div>
                 <label className={`block text-sm font-medium mb-2 ${theme === "dark" ? "text-gray-300" : "text-gray-700"}`}>
-                  Image URL
+                  Portfolio/Cover Image URL
                 </label>
                 <input
                   type="url"
                   name="imageUrl"
                   value={formData.imageUrl}
                   onChange={handleInputChange}
-                  placeholder="https://example.com/equipment.jpg"
+                  placeholder="https://example.com/portfolio.jpg"
                   className={`w-full p-3 rounded-lg border ${theme === "dark" ? "bg-gray-800/40 border-gray-700/60 text-gray-300" : "bg-white border-gray-300 text-gray-900"} focus:outline-none focus:ring-2 focus:ring-purple-500/20`}
                 />
               </div>
@@ -238,6 +237,10 @@ export default function ListEquipment() {
               <MapPin className="w-5 h-5" />
               Location
             </h2>
+
+            <p className={`text-sm mb-4 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
+              Let clients know where you're based (services can be offered remotely)
+            </p>
 
             <LocationSelector
               onLocationChange={handleLocationChange}
@@ -255,10 +258,11 @@ export default function ListEquipment() {
             )}
           </div>
 
+          {/* Submit Buttons */}
           <div className="flex gap-4">
             <button
               type="button"
-              onClick={() => router.push("/equipment")}
+              onClick={() => router.push("/services")}
               disabled={loading}
               className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-all ${
                 theme === "dark" ? "bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700" : "bg-gray-200 hover:bg-gray-300 text-gray-700"
@@ -270,18 +274,24 @@ export default function ListEquipment() {
               type="submit"
               disabled={loading}
               className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 ${
-                loading ? (theme === "dark" ? "bg-gray-800 text-gray-500 cursor-not-allowed" : "bg-gray-300 text-gray-500 cursor-not-allowed") : (theme === "dark" ? "bg-purple-600 hover:bg-purple-700 text-white active:scale-95" : "bg-purple-600 hover:bg-purple-700 text-white active:scale-95")
+                loading
+                  ? theme === "dark"
+                    ? "bg-gray-800 text-gray-500 cursor-not-allowed"
+                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : theme === "dark"
+                  ? "bg-purple-600 hover:bg-purple-700 text-white active:scale-95"
+                  : "bg-purple-600 hover:bg-purple-700 text-white active:scale-95"
               }`}
             >
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Listing...
+                  Listing Service...
                 </>
               ) : (
                 <>
-                  <Upload className="w-4 h-4" />
-                  List Equipment
+                  <CheckCircle2 className="w-4 h-4" />
+                  List Service
                 </>
               )}
             </button>

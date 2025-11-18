@@ -33,6 +33,7 @@
     "@tanstack/react-table": "^8.2.6",
     "antd": "^5.27.6",
     "bcrypt": "^6.0.0",
+    "country-state-city": "^3.2.1",
     "dayjs": "^1.11.18",
     "js-cookie": "^3.0.5",
     "lucide-react": "^0.525.0",
