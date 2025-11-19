@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, ShoppingCart, Heart, Star, MapPin, Clock, TrendingUp, DollarSign, Zap, Package, Truck, Shield, Users, CheckCircle, Share2, Plus } from "lucide-react";
+import { Search, ShoppingCart, Heart, Star, MapPin, Clock, TrendingUp, DollarSign, Zap, Package, Truck, Shield, Users, CheckCircle, Share2, Plus, Loader2 } from "lucide-react";
 import { useTheme } from "../../providers/ThemeProvider";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useEquipment, type Equipment as APIEquipment } from "@/hooks/useEquipment";
 
 type Equipment = {
   id: number;
@@ -50,177 +51,39 @@ type GearActivity = {
   rating?: number;
 };
 
-// Mock Data
-const gearData: Equipment[] = [
-  {
-    id: 1,
-    title: "Neumann U87 Ai Studio Microphone",
-    type: 'rent',
-    seller: {
-      name: "ProAudio Rentals",
-      avatar: "https://randomuser.me/api/portraits/men/42.jpg",
-      rating: 4.9,
-      verified: true,
-      transactions: 127
-    },
-    price: 85,
-    originalPrice: 120,
-    discount: 29,
-    category: "Microphones",
-    brand: "Neumann",
-    location: "Los Angeles, CA",
-    availability: "Available now",
-    images: [
-      "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04",
-      "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4",
-      "https://images.unsplash.com/photo-1514525253161-7a46d19cd819"
-    ],
-    liked: false,
-    rating: 4.8,
-    reviewCount: 42,
-    deliveryOptions: ["Pickup", "Same-day delivery"],
-    tags: ["Vocal", "Studio", "Condenser"],
-    specs: [
-      { label: "Type", value: "Condenser" },
-      { label: "Polar Pattern", value: "Multi-pattern" },
-      { label: "Frequency", value: "20Hz-20kHz" }
-    ]
-  },
-  {
-    id: 2,
-    title: "Fender Stratocaster '65 Reissue",
-    type: 'sale',
-    seller: {
-      name: "Vintage Guitars LA",
-      avatar: "https://randomuser.me/api/portraits/women/33.jpg",
-      rating: 4.7,
-      verified: true,
-      transactions: 89
-    },
-    price: 2200,
-    category: "Guitars",
-    brand: "Fender",
-    location: "Burbank, CA",
-    availability: "1 in stock",
-    images: [
-      "https://images.unsplash.com/photo-1550985616-1081020a975c",
-      "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4",
-      "https://images.unsplash.com/photo-1516924967500-2b4b2b8a3624"
-    ],
-    liked: true,
-    rating: 4.9,
-    reviewCount: 18,
-    deliveryOptions: ["Pickup", "Shipping"],
-    tags: ["Vintage", "Electric", "Collector"],
-    specs: [
-      { label: "Year", value: "2015 Reissue" },
-      { label: "Color", value: "Sunburst" },
-      { label: "Neck", value: "Maple" }
-    ]
-  },
-  {
-    id: 3,
-    title: "Moog Subsequent 37 Analog Synth",
-    type: 'rent',
-    seller: {
-      name: "Synth City",
-      avatar: "https://randomuser.me/api/portraits/men/65.jpg",
-      rating: 4.8,
-      verified: false,
-      transactions: 34
-    },
-    price: 45,
-    category: "Synthesizers",
-    brand: "Moog",
-    location: "Remote",
-    availability: "Available next week",
-    images: [
-      "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04",
-      "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4"
-    ],
-    liked: false,
-    rating: 4.6,
-    reviewCount: 27,
-    deliveryOptions: ["Shipping"],
-    tags: ["Analog", "Keyboard", "Bass"],
-    specs: [
-      { label: "Keys", value: "37" },
-      { label: "Type", value: "Paraphonic" },
-      { label: "Weight", value: "13.2 lbs" }
-    ]
-  },
-  {
-    id: 4,
-    title: "Roland TR-8S Rhythm Performer",
-    type: 'auction',
-    seller: {
-      name: "Beat Lab",
-      avatar: "https://randomuser.me/api/portraits/men/77.jpg",
-      rating: 4.5,
-      verified: true,
-      transactions: 56
-    },
-    price: "550",
-    category: "Drum Machines",
-    brand: "Roland",
-    location: "Brooklyn, NY",
-    availability: "Auction ends in 2 days",
-    images: [
-      "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04"
-    ],
-    liked: false,
-    rating: 4.7,
-    reviewCount: 31,
-    deliveryOptions: ["Pickup", "Shipping"],
-    tags: ["Drum", "Sequencer", "Aira"],
-    specs: [
-      { label: "Pads", value: "11" },
-      { label: "Outputs", value: "6" },
-      { label: "Patterns", value: "128" }
-    ]
-  }
-];
+// Helper to transform API equipment to display format
+const transformEquipment = (apiEquipment: APIEquipment): Equipment => {
+  const type: 'rent' | 'sale' | 'auction' = apiEquipment.rentalRate ? 'rent' : 'sale';
+  const price = type === 'rent' ? apiEquipment.rentalRate! : apiEquipment.salePrice!;
 
-const gearActivityData: GearActivity[] = [
-  {
-    id: 1,
-    user: {
-      name: "DJ Pulse",
-      avatar: "https://randomuser.me/api/portraits/men/22.jpg",
-      verified: true
+  return {
+    id: parseInt(apiEquipment.id, 36), // Convert UUID to number for component compatibility
+    title: apiEquipment.name,
+    type,
+    seller: {
+      name: apiEquipment.owner.name || apiEquipment.owner.email.split('@')[0],
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${apiEquipment.owner.id}`,
+      rating: 4.5 + Math.random() * 0.5, // Mock rating until we have real reviews
+      verified: true,
+      transactions: Math.floor(Math.random() * 50) + 10
     },
-    action: 'purchased',
-    item: "Pioneer DJM-900NXS2",
-    price: "$1,200",
-    time: "10 min ago",
-    rating: 5
-  },
-  {
-    id: 2,
-    user: {
-      name: "Studio Pro",
-      avatar: "https://randomuser.me/api/portraits/women/44.jpg",
-      verified: false
-    },
-    action: 'listed',
-    item: "API 5500 EQ Pair",
-    price: "$2,800",
-    time: "35 min ago"
-  },
-  {
-    id: 3,
-    user: {
-      name: "Bass Master",
-      avatar: "https://randomuser.me/api/portraits/men/55.jpg",
-      verified: true
-    },
-    action: 'rented',
-    item: "Ampeg SVT-4 Pro",
-    price: "$85/week",
-    time: "2 hours ago",
-    rating: 4
-  }
-];
+    price,
+    category: apiEquipment.category,
+    brand: apiEquipment.name.split(' ')[0], // Extract brand from name
+    location: "Remote", // Will be added with location system later
+    availability: apiEquipment.isActive ? "Available now" : "Unavailable",
+    images: apiEquipment.imageUrl ? [apiEquipment.imageUrl] : ["https://images.unsplash.com/photo-1598488035139-bdbb2231ce04"],
+    liked: false,
+    rating: 4.5 + Math.random() * 0.5,
+    reviewCount: Math.floor(Math.random() * 30) + 5,
+    deliveryOptions: type === 'rent' ? ["Pickup"] : ["Pickup", "Shipping"],
+    tags: [apiEquipment.condition, apiEquipment.category],
+    specs: [
+      { label: "Condition", value: apiEquipment.condition },
+      { label: "Category", value: apiEquipment.category }
+    ]
+  };
+};
 
 const formatNumber = (num: number): string => {
   if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
@@ -237,15 +100,23 @@ export default function GearMarketplace() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedBrand, setSelectedBrand] = useState("all");
-  const [gear, setGear] = useState<Equipment[]>(gearData);
   const [showBidModal, setShowBidModal] = useState(false);
   const [bidPrice, setBidPrice] = useState(600);
 
+  // Fetch equipment from API
+  const { data: apiEquipment = [], isLoading, error } = useEquipment({
+    category: selectedCategory !== "all" ? selectedCategory : undefined,
+    forRent: activeTab === "rent" ? true : undefined,
+    forSale: activeTab === "sale" ? true : undefined,
+  });
+
+  // Transform API data to display format
+  const gear = apiEquipment.map(transformEquipment);
+
   const toggleLike = (id: number, e: React.MouseEvent) => {
     e.stopPropagation();
-    setGear(gear.map(item => 
-      item.id === id ? { ...item, liked: !item.liked } : item
-    ));
+    // TODO: Implement like functionality with API
+    console.log("Like equipment:", id);
   };
 
   const filteredGear = gear.filter(item => {
@@ -484,15 +355,38 @@ export default function GearMarketplace() {
               </div>
             </div>
 
+            {/* Loading State */}
+            {isLoading && (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className={`w-8 h-8 animate-spin ${
+                  theme === "dark" ? "text-zinc-600" : "text-gray-400"
+                }`} />
+              </div>
+            )}
+
+            {/* Error State */}
+            {error && (
+              <div className={`p-4 rounded-lg border ${
+                theme === "dark"
+                  ? "bg-red-500/10 border-red-500/20 text-red-400"
+                  : "bg-red-50 border-red-200 text-red-600"
+              }`}>
+                <p className="text-sm">Failed to load equipment. Please try again.</p>
+              </div>
+            )}
+
             {/* Results Count */}
-            <div className={`text-sm font-light tracking-wide mb-6 ${
-              theme === "dark" ? "text-zinc-500" : "text-gray-600"
-            }`}>
-              {filteredGear.length} {filteredGear.length === 1 ? "item" : "items"} found
-            </div>
+            {!isLoading && !error && (
+              <div className={`text-sm font-light tracking-wide mb-6 ${
+                theme === "dark" ? "text-zinc-500" : "text-gray-600"
+              }`}>
+                {filteredGear.length} {filteredGear.length === 1 ? "item" : "items"} found
+              </div>
+            )}
 
             {/* Gear List */}
-            <div className="space-y-4">
+            {!isLoading && !error && (
+              <div className="space-y-4">
               {filteredGear.map((item) => (
                 <div
                   key={item.id}
@@ -740,109 +634,83 @@ export default function GearMarketplace() {
               ))}
             </div>
 
-            {/* Empty State */}
-            {filteredGear.length === 0 && (
-              <div className={`text-center py-16 rounded-xl border ${
-                theme === "dark" 
-                  ? "border-zinc-800 bg-zinc-950" 
-                  : "border-gray-300 bg-white"
-              }`}>
-                <Package className={`w-12 h-12 mx-auto mb-3 ${
-                  theme === "dark" ? "text-zinc-700" : "text-gray-400"
-                }`} />
-                <p className={`text-sm font-light tracking-wide mb-1 ${
-                  theme === "dark" ? "text-zinc-400" : "text-gray-600"
+              {/* Empty State */}
+              {filteredGear.length === 0 && (
+                <div className={`text-center py-16 rounded-xl border ${
+                  theme === "dark"
+                    ? "border-zinc-800 bg-zinc-950"
+                    : "border-gray-300 bg-white"
                 }`}>
-                  No gear found
-                </p>
-                <p className={`text-xs font-light tracking-wide ${
-                  theme === "dark" ? "text-zinc-600" : "text-gray-500"
-                }`}>
-                  Try adjusting your filters or search query
-                </p>
-              </div>
+                  <Package className={`w-12 h-12 mx-auto mb-3 ${
+                    theme === "dark" ? "text-zinc-700" : "text-gray-400"
+                  }`} />
+                  <p className={`text-sm font-light tracking-wide mb-1 ${
+                    theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                  }`}>
+                    No gear found
+                  </p>
+                  <p className={`text-xs font-light tracking-wide ${
+                    theme === "dark" ? "text-zinc-600" : "text-gray-500"
+                  }`}>
+                    Try adjusting your filters or search query
+                  </p>
+                </div>
+              )}
+            </div>
             )}
           </div>
 
           {/* Sidebar - 1 column */}
           <div className="xl:col-span-1 space-y-6">
-            {/* Gear Activity */}
+            {/* Marketplace Stats */}
             <div className={`rounded-xl border p-4 ${
-              theme === "dark" 
-                ? "border-zinc-800 bg-zinc-950" 
+              theme === "dark"
+                ? "border-zinc-800 bg-zinc-950"
                 : "border-gray-300 bg-white"
             }`}>
               <h2 className={`text-lg font-light tracking-wide mb-4 ${
                 theme === "dark" ? "text-white" : "text-gray-900"
               }`}>
-                Gear Activity
+                Marketplace Stats
               </h2>
-              
+
               <div className="space-y-3">
-                {gearActivityData.map((activity) => (
-                  <div
-                    key={activity.id}
-                    className={`p-3 rounded-lg border transition-all duration-200 cursor-pointer ${
-                      theme === "dark"
-                        ? "border-zinc-800 bg-zinc-900 hover:border-zinc-700 hover:bg-zinc-800"
-                        : "border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100"
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <img
-                        src={activity.user.avatar}
-                        alt={activity.user.name}
-                        className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className={`text-xs font-light tracking-wide mb-1 ${
-                          theme === "dark" ? "text-white" : "text-gray-900"
-                        }`}>
-                          <span className="font-light">{activity.user.name}</span>
-                          {activity.user.verified && (
-                            <CheckCircle className="w-3 h-3 text-blue-500 inline ml-1" />
-                          )}
-                          {' '}
-                          <span className={theme === "dark" ? "text-zinc-500" : "text-gray-600"}>
-                            {activity.action === 'purchased' ? 'purchased' :
-                             activity.action === 'listed' ? 'listed' :
-                             activity.action === 'rented' ? 'rented' :
-                             activity.action === 'reviewed' ? 'reviewed' : 'bid on'}
-                          </span>
-                          {' '}
-                          <span className="font-light">{activity.item}</span>
-                          {activity.price && (
-                            <>
-                              {' for '}
-                              <span className="font-light">{activity.price}</span>
-                            </>
-                          )}
-                        </div>
-                        {activity.rating && (
-                          <div className="flex items-center gap-0.5 mt-1">
-                            {[...Array(5)].map((_, i) => (
-                              <Star
-                                key={i}
-                                className={`w-2.5 h-2.5 ${
-                                  i < activity.rating!
-                                    ? "fill-yellow-500 text-yellow-500"
-                                    : theme === "dark"
-                                      ? "text-zinc-700"
-                                      : "text-gray-300"
-                                }`}
-                              />
-                            ))}
-                          </div>
-                        )}
-                        <div className={`text-xs font-light tracking-wide mt-1 ${
-                          theme === "dark" ? "text-zinc-600" : "text-gray-500"
-                        }`}>
-                          {activity.time}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                <div className="flex justify-between items-center">
+                  <span className={`text-sm font-light ${
+                    theme === "dark" ? "text-zinc-500" : "text-gray-600"
+                  }`}>
+                    Total Listings
+                  </span>
+                  <span className={`text-sm font-light ${
+                    theme === "dark" ? "text-white" : "text-gray-900"
+                  }`}>
+                    {gear.length}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className={`text-sm font-light ${
+                    theme === "dark" ? "text-zinc-500" : "text-gray-600"
+                  }`}>
+                    For Rent
+                  </span>
+                  <span className={`text-sm font-light ${
+                    theme === "dark" ? "text-white" : "text-gray-900"
+                  }`}>
+                    {gear.filter(g => g.type === 'rent').length}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className={`text-sm font-light ${
+                    theme === "dark" ? "text-zinc-500" : "text-gray-600"
+                  }`}>
+                    For Sale
+                  </span>
+                  <span className={`text-sm font-light ${
+                    theme === "dark" ? "text-white" : "text-gray-900"
+                  }`}>
+                    {gear.filter(g => g.type === 'sale').length}
+                  </span>
+                </div>
               </div>
             </div>
 
