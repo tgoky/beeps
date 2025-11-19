@@ -662,11 +662,10 @@ export default function ProducerHub() {
                   </div>
                 </div>
               ))}
-            </div>
 
               {/* Empty State */}
               {filteredProducers.length === 0 && (
-                <div className={`text-center py-16 rounded-xl border ${
+                <div className={`text-center py-16 rounded-xl border col-span-full ${
                   theme === "dark"
                     ? "bg-zinc-950 border-zinc-800"
                     : "bg-white border-gray-300"
