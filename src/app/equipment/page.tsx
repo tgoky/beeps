@@ -632,7 +632,6 @@ export default function GearMarketplace() {
                   </div>
                 </div>
               ))}
-            </div>
 
               {/* Empty State */}
               {filteredGear.length === 0 && (
