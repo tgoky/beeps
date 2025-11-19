@@ -150,6 +150,28 @@ export function useLikeBeat(id: string) {
 }
 
 /**
+ * Toggle like on a beat
+ */
+export function useToggleLikeBeat(id: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`/api/beats/${id}/like`, {
+        method: "POST",
+      });
+      if (!response.ok) throw new Error("Failed to toggle like");
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["beats"] });
+      queryClient.invalidateQueries({ queryKey: ["beats", id] });
+      return data;
+    },
+  });
+}
+
+/**
  * Delete a beat
  */
 export function useDeleteBeat() {

@@ -95,6 +95,10 @@ model User {
   communityComments CommunityComment[] @relation("CommunityComments")
   communityLikes    CommunityLike[]  @relation("CommunityLikes")
 
+  // 🆕 Collaboration Relations
+  createdCollaborations Collaboration[] @relation("CollaborationCreator")
+  collaborationBids     CollaborationBid[]
+
   @@map("users")
 }
 
@@ -379,6 +383,7 @@ model Studio {
   
   bookings      Booking[]
   reviews       Review[]
+  collaborations Collaboration[]
 
   @@index([ownerId])
   @@index([clubId])
@@ -528,6 +533,92 @@ model Transaction {
 
   @@index([userId])
   @@map("transactions")
+}
+
+// Collaboration Types: Deals, Collabs, Bids
+enum CollaborationType {
+  DEAL      // Flash deals for studio time
+  COLLAB    // Producer collaboration requests
+  BID       // Auction-style studio bookings
+}
+
+enum CollaborationStatus {
+  ACTIVE
+  PENDING
+  ACCEPTED
+  REJECTED
+  COMPLETED
+  CANCELLED
+}
+
+model Collaboration {
+  id            String              @id @default(uuid())
+
+  type          CollaborationType
+  status        CollaborationStatus @default(ACTIVE)
+
+  title         String
+  description   String?
+
+  // Creator (producer/studio owner creating the deal/collab/bid)
+  creatorId     String              @map("creator_id")
+  creator       User                @relation("CollaborationCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+
+  // Related resources
+  studioId      String?             @map("studio_id")
+  studio        Studio?             @relation(fields: [studioId], references: [id], onDelete: SetNull)
+
+  // Pricing
+  price         Decimal?            @db.Decimal(10, 2)  // Fixed price for deals, starting price for bids, negotiable for collabs
+  minBid        Decimal?            @map("min_bid") @db.Decimal(10, 2)  // Minimum bid for auction
+  currentBid    Decimal?            @map("current_bid") @db.Decimal(10, 2)  // Current highest bid
+
+  // Details
+  duration      String?             // "2 hours", "Flexible", etc.
+  location      String?
+  genre         String[]
+  equipment     String[]
+
+  // Availability
+  slots         Int                 @default(1)  // Available slots
+  availableDate DateTime?           @map("available_date")
+  expiresAt     DateTime?           @map("expires_at")  // For deals/bids
+
+  // Engagement
+  imageUrl      String?             @map("image_url")
+
+  // Bids/Requests
+  bids          CollaborationBid[]
+
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+
+  @@index([creatorId])
+  @@index([studioId])
+  @@index([type])
+  @@index([status])
+  @@map("collaborations")
+}
+
+model CollaborationBid {
+  id              String        @id @default(uuid())
+
+  collaborationId String        @map("collaboration_id")
+  collaboration   Collaboration @relation(fields: [collaborationId], references: [id], onDelete: Cascade)
+
+  userId          String        @map("user_id")
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  amount          Decimal       @db.Decimal(10, 2)
+  message         String?
+
+  status          String        @default("pending")  // pending, accepted, rejected
+
+  createdAt       DateTime      @default(now()) @map("created_at")
+
+  @@index([collaborationId])
+  @@index([userId])
+  @@map("collaboration_bids")
 }
 
 // ============================================================================
