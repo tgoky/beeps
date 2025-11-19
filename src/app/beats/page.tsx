@@ -613,7 +613,6 @@ export default function BeatMarketplace() {
                   </div>
                 </div>
               ))}
-            </div>
 
               {/* Empty State */}
               {filteredBeats.length === 0 && (
