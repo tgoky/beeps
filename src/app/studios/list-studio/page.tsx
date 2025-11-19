@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@/providers/ThemeProvider";
 import { usePermissions } from "@/hooks/usePermissions";
+import { LocationSelector, type LocationData } from "@/components/LocationSelector";
 import {
   Building2,
   MapPin,
@@ -24,6 +25,9 @@ export default function ListStudio() {
     name: "",
     description: "",
     location: "",
+    country: "",
+    state: "",
+    city: "",
     latitude: "",
     longitude: "",
     hourlyRate: "",
@@ -79,6 +83,18 @@ export default function ListStudio() {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleLocationChange = (locationData: LocationData) => {
+    setFormData({
+      ...formData,
+      location: locationData.fullAddress || `${locationData.city}, ${locationData.state}, ${locationData.country}`,
+      country: locationData.country,
+      state: locationData.state,
+      city: locationData.city,
+      latitude: locationData.latitude?.toString() || "",
+      longitude: locationData.longitude?.toString() || "",
     });
   };
 
@@ -279,71 +295,31 @@ export default function ListStudio() {
               Location
             </h2>
 
-            <div className="space-y-4">
-              <div>
-                <label className={`block text-sm font-medium mb-2 ${
-                  theme === "dark" ? "text-gray-300" : "text-gray-700"
-                }`}>
-                  Address <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="location"
-                  value={formData.location}
-                  onChange={handleInputChange}
-                  placeholder="e.g., 123 Music Ave, Los Angeles, CA"
-                  required
-                  className={`w-full p-3 rounded-lg border transition-all ${
-                    theme === "dark"
-                      ? "bg-gray-800/40 border-gray-700/60 text-gray-300 placeholder-gray-500 focus:border-purple-500"
-                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-purple-500"
-                  } focus:outline-none focus:ring-2 focus:ring-purple-500/20`}
-                />
-              </div>
+            <LocationSelector
+              onLocationChange={handleLocationChange}
+              showGeolocation={true}
+            />
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${
-                    theme === "dark" ? "text-gray-300" : "text-gray-700"
+            {formData.location && (
+              <div className={`mt-4 p-3 rounded-lg border ${
+                theme === "dark"
+                  ? "bg-green-500/10 border-green-500/20"
+                  : "bg-green-50 border-green-200"
+              }`}>
+                <p className={`text-sm font-medium ${
+                  theme === "dark" ? "text-green-400" : "text-green-600"
+                }`}>
+                  Selected Location: {formData.location}
+                </p>
+                {formData.latitude && formData.longitude && (
+                  <p className={`text-xs mt-1 ${
+                    theme === "dark" ? "text-green-500" : "text-green-700"
                   }`}>
-                    Latitude (Optional)
-                  </label>
-                  <input
-                    type="number"
-                    step="any"
-                    name="latitude"
-                    value={formData.latitude}
-                    onChange={handleInputChange}
-                    placeholder="34.0522"
-                    className={`w-full p-3 rounded-lg border transition-all ${
-                      theme === "dark"
-                        ? "bg-gray-800/40 border-gray-700/60 text-gray-300 placeholder-gray-500"
-                        : "bg-white border-gray-300 text-gray-900 placeholder-gray-400"
-                    } focus:outline-none focus:ring-2 focus:ring-purple-500/20`}
-                  />
-                </div>
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${
-                    theme === "dark" ? "text-gray-300" : "text-gray-700"
-                  }`}>
-                    Longitude (Optional)
-                  </label>
-                  <input
-                    type="number"
-                    step="any"
-                    name="longitude"
-                    value={formData.longitude}
-                    onChange={handleInputChange}
-                    placeholder="-118.2437"
-                    className={`w-full p-3 rounded-lg border transition-all ${
-                      theme === "dark"
-                        ? "bg-gray-800/40 border-gray-700/60 text-gray-300 placeholder-gray-500"
-                        : "bg-white border-gray-300 text-gray-900 placeholder-gray-400"
-                    } focus:outline-none focus:ring-2 focus:ring-purple-500/20`}
-                  />
-                </div>
+                    Coordinates: {parseFloat(formData.latitude).toFixed(4)}, {parseFloat(formData.longitude).toFixed(4)}
+                  </p>
+                )}
               </div>
-            </div>
+            )}
           </div>
 
           {/* Pricing & Capacity */}

@@ -72,10 +72,11 @@ model User {
   ownedClubs        Club[]           @relation("ClubOwner")
   
   uploadedBeats     Beat[]
+  offeredServices   Service[]
   bookings          Booking[]
   reviews           Review[]         @relation("ReviewAuthor")
   receivedReviews   Review[]         @relation("ReviewTarget")
-  
+
   transactions      Transaction[]
   
   followers         Follow[]         @relation("Following")
@@ -271,11 +272,12 @@ model Club {
   updatedAt     DateTime     @updatedAt @map("updated_at")
   
   members       ClubMember[]
-  
+
   // Club-specific resources
   studios       Studio[]
   beats         Beat[]
   equipment     Equipment[]
+  services      Service[]
 
   @@map("clubs")
 }
@@ -346,14 +348,17 @@ model Studio {
   id            String   @id @default(uuid())
   name          String
   description   String?
-  
+
   ownerId       String   @map("owner_id")
   owner         StudioOwnerProfile @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  
+
   clubId        String?  @map("club_id")
   club          Club?    @relation(fields: [clubId], references: [id], onDelete: SetNull)
-  
+
   location      String
+  country       String?
+  state         String?
+  city          String?
   latitude      Decimal? @db.Decimal(10, 8)
   longitude     Decimal? @db.Decimal(11, 8)
   
@@ -385,28 +390,69 @@ model Equipment {
   name          String
   description   String?
   category      String   // e.g., "Microphone", "Interface", "DAW"
-  
+
   sellerId      String   @map("seller_id")
   seller        GearSalesProfile @relation(fields: [sellerId], references: [id], onDelete: Cascade)
-  
+
   clubId        String?  @map("club_id")
   club          Club?    @relation(fields: [clubId], references: [id], onDelete: SetNull)
-  
+
   price         Decimal  @db.Decimal(10, 2)
   rentalRate    Decimal? @map("rental_rate") @db.Decimal(10, 2)
-  
+
   condition     String   // e.g., "New", "Like New", "Good"
-  
+
+  location      String?
+  country       String?
+  state         String?
+  city          String?
+  latitude      Decimal? @db.Decimal(10, 8)
+  longitude     Decimal? @db.Decimal(11, 8)
+
   imageUrl      String?  @map("image_url")
-  
+
   isActive      Boolean  @default(true) @map("is_active")
-  
+
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
   @@index([sellerId])
   @@index([clubId])
   @@map("equipment")
+}
+
+model Service {
+  id            String   @id @default(uuid())
+  title         String
+  description   String?
+  category      String   // e.g., "Mixing & Mastering", "Music Production", "Beat Making"
+
+  providerId    String   @map("provider_id")
+  provider      User     @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  clubId        String?  @map("club_id")
+  club          Club?    @relation(fields: [clubId], references: [id], onDelete: SetNull)
+
+  price         Decimal  @db.Decimal(10, 2)
+  deliveryTime  Int      @map("delivery_time") // in days
+
+  location      String?
+  country       String?
+  state         String?
+  city          String?
+  latitude      Decimal? @db.Decimal(10, 8)
+  longitude     Decimal? @db.Decimal(11, 8)
+
+  imageUrl      String?  @map("image_url")
+
+  isActive      Boolean  @default(true) @map("is_active")
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([providerId])
+  @@index([clubId])
+  @@map("services")
 }
 
 // ============================================================================
