@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, MapPin, Clock, Heart, DollarSign, TrendingUp, Users, CheckCircle, Star, Music2, Zap, Plus } from "lucide-react";
+import { Search, MapPin, Clock, Heart, DollarSign, TrendingUp, Users, CheckCircle, Star, Music2, Zap, Plus, Loader2 } from "lucide-react";
 import { useTheme } from "../../providers/ThemeProvider";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useCollaborations, usePlaceBid, type Collaboration as APICollaboration } from "@/hooks/useCollaborations";
 
 type BookingSession = {
   id: number;
@@ -45,7 +46,39 @@ type Activity = {
   time: string;
 };
 
-// Mock Data
+// Helper to transform API collaboration to display format
+const transformCollaboration = (apiCollab: APICollaboration): BookingSession => {
+  const type: 'deal' | 'collab' | 'bid' = apiCollab.type.toLowerCase() as any;
+
+  return {
+    id: parseInt(apiCollab.id, 36), // Convert UUID
+    title: apiCollab.title,
+    type,
+    studio: apiCollab.studio ? {
+      name: apiCollab.studio.name,
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${apiCollab.studio.id}`,
+      rating: 4.5 + Math.random() * 0.5,
+    } : undefined,
+    producer: {
+      name: apiCollab.creator.fullName || apiCollab.creator.username,
+      avatar: apiCollab.creator.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${apiCollab.creator.id}`,
+      rating: 4.5 + Math.random() * 0.5,
+    },
+    price: type === 'bid' ? "Bid Now" : type === 'collab' ? "Negotiable" : (apiCollab.price || 0),
+    originalPrice: type === 'deal' && apiCollab.price ? apiCollab.price * 1.5 : undefined,
+    discount: type === 'deal' ? 33 : undefined,
+    duration: apiCollab.duration || "Flexible",
+    location: apiCollab.location || "Remote",
+    equipment: apiCollab.equipment,
+    genre: apiCollab.genre,
+    date: apiCollab.expiresAt ? `Ends ${new Date(apiCollab.expiresAt).toLocaleDateString()}` : "Ongoing",
+    slots: apiCollab.slots,
+    liked: false, // TODO: Track user likes
+    image: apiCollab.imageUrl || "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4",
+  };
+};
+
+// Mock Data - REMOVED, will use real API data
 const sessionData: BookingSession[] = [
   {
     id: 1,
@@ -153,15 +186,50 @@ export default function SessionBookings() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGenre, setSelectedGenre] = useState("all");
   const [selectedLocation, setSelectedLocation] = useState("all");
-  const [sessions, setSessions] = useState<BookingSession[]>(sessionData);
   const [showBidModal, setShowBidModal] = useState(false);
+  const [selectedCollabId, setSelectedCollabId] = useState<string | null>(null);
   const [bidPrice, setBidPrice] = useState(50);
+  const [bidMessage, setBidMessage] = useState("");
+
+  // Fetch collaborations from API
+  const tabTypeMap: Record<string, "DEAL" | "COLLAB" | "BID" | undefined> = {
+    deals: "DEAL",
+    collabs: "COLLAB",
+    bids: "BID",
+  };
+
+  const { data: apiCollaborations = [], isLoading, error } = useCollaborations({
+    type: tabTypeMap[activeTab],
+    genre: selectedGenre !== "all" ? selectedGenre : undefined,
+  });
+
+  // Transform API data to display format
+  const sessions = apiCollaborations.map(transformCollaboration);
+
+  // Place bid mutation
+  const placeBidMutation = usePlaceBid(selectedCollabId || "");
 
   const toggleLike = (id: number, e: React.MouseEvent) => {
     e.stopPropagation();
-    setSessions(sessions.map(session => 
-      session.id === id ? { ...session, liked: !session.liked } : session
-    ));
+    // TODO: Implement like functionality
+    console.log("Like collaboration:", id);
+  };
+
+  const handlePlaceBid = async () => {
+    if (!selectedCollabId) return;
+
+    try {
+      await placeBidMutation.mutateAsync({
+        amount: activeTab === "bids" ? bidPrice : undefined,
+        message: bidMessage,
+      });
+      setShowBidModal(false);
+      setBidPrice(50);
+      setBidMessage("");
+      setSelectedCollabId(null);
+    } catch (error) {
+      console.error("Failed to place bid:", error);
+    }
   };
 
   const filteredSessions = sessions.filter(session => {
@@ -426,15 +494,38 @@ export default function SessionBookings() {
               </div>
             </div>
 
+            {/* Loading State */}
+            {isLoading && (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className={`w-8 h-8 animate-spin ${
+                  theme === "dark" ? "text-zinc-600" : "text-gray-400"
+                }`} />
+              </div>
+            )}
+
+            {/* Error State */}
+            {error && (
+              <div className={`p-4 rounded-lg border ${
+                theme === "dark"
+                  ? "bg-red-500/10 border-red-500/20 text-red-400"
+                  : "bg-red-50 border-red-200 text-red-600"
+              }`}>
+                <p className="text-sm">Failed to load collaborations. Please try again.</p>
+              </div>
+            )}
+
             {/* Results Count */}
-            <div className={`text-sm font-light tracking-wide mb-6 ${
-              theme === "dark" ? "text-zinc-500" : "text-gray-600"
-            }`}>
-              {filteredSessions.length} {filteredSessions.length === 1 ? "session" : "sessions"} found
-            </div>
+            {!isLoading && !error && (
+              <div className={`text-sm font-light tracking-wide mb-6 ${
+                theme === "dark" ? "text-zinc-500" : "text-gray-600"
+              }`}>
+                {filteredSessions.length} {filteredSessions.length === 1 ? "session" : "sessions"} found
+              </div>
+            )}
 
             {/* Compact Wide Cards */}
-            <div className="space-y-4">
+            {!isLoading && !error && (
+              <div className="space-y-4">
               {filteredSessions.map((session) => (
                 <div
                   key={session.id}
@@ -602,7 +693,12 @@ export default function SessionBookings() {
                                 }`}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  router.push(`/studios/create/${session.id}`);
+                                  const apiCollab = apiCollaborations.find(c => parseInt(c.id, 36) === session.id);
+                                  if (apiCollab) {
+                                    setSelectedCollabId(apiCollab.id);
+                                    setBidMessage("");
+                                    setShowBidModal(true);
+                                  }
                                 }}
                               >
                                 <CheckCircle className="w-3 h-3" strokeWidth={2} />
@@ -620,7 +716,12 @@ export default function SessionBookings() {
                                 }`}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  router.push(`/collabs/create/${session.id}`);
+                                  const apiCollab = apiCollaborations.find(c => parseInt(c.id, 36) === session.id);
+                                  if (apiCollab) {
+                                    setSelectedCollabId(apiCollab.id);
+                                    setBidMessage("");
+                                    setShowBidModal(true);
+                                  }
                                 }}
                               >
                                 <CheckCircle className="w-3 h-3" strokeWidth={2} />
@@ -638,7 +739,12 @@ export default function SessionBookings() {
                                 }`}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setShowBidModal(true);
+                                  const apiCollab = apiCollaborations.find(c => parseInt(c.id, 36) === session.id);
+                                  if (apiCollab) {
+                                    setSelectedCollabId(apiCollab.id);
+                                    setBidPrice(apiCollab.currentBid ? parseFloat(apiCollab.currentBid.toString()) + 5 : 50);
+                                    setShowBidModal(true);
+                                  }
                                 }}
                               >
                                 <CheckCircle className="w-3 h-3" strokeWidth={2} />
@@ -677,29 +783,30 @@ export default function SessionBookings() {
                   </div>
                 </div>
               ))}
-            </div>
 
-            {/* Empty State */}
-            {filteredSessions.length === 0 && (
-              <div className={`text-center py-16 rounded-xl border ${
-                theme === "dark" 
-                  ? "border-zinc-800 bg-zinc-950" 
-                  : "border-gray-300 bg-white"
-              }`}>
-                <Music2 className={`w-12 h-12 mx-auto mb-3 ${
-                  theme === "dark" ? "text-zinc-700" : "text-gray-400"
-                }`} />
-                <p className={`text-sm font-light tracking-wide mb-1 ${
-                  theme === "dark" ? "text-zinc-400" : "text-gray-600"
+              {/* Empty State */}
+              {filteredSessions.length === 0 && (
+                <div className={`text-center py-16 rounded-xl border ${
+                  theme === "dark"
+                    ? "border-zinc-800 bg-zinc-950"
+                    : "border-gray-300 bg-white"
                 }`}>
-                  No sessions found
-                </p>
-                <p className={`text-xs font-light tracking-wide ${
-                  theme === "dark" ? "text-zinc-600" : "text-gray-500"
-                }`}>
-                  Try adjusting your filters
-                </p>
-              </div>
+                  <Music2 className={`w-12 h-12 mx-auto mb-3 ${
+                    theme === "dark" ? "text-zinc-700" : "text-gray-400"
+                  }`} />
+                  <p className={`text-sm font-light tracking-wide mb-1 ${
+                    theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                  }`}>
+                    No sessions found
+                  </p>
+                  <p className={`text-xs font-light tracking-wide ${
+                    theme === "dark" ? "text-zinc-600" : "text-gray-500"
+                  }`}>
+                    Try adjusting your filters
+                  </p>
+                </div>
+              )}
+            </div>
             )}
           </div>
 
@@ -936,6 +1043,8 @@ export default function SessionBookings() {
               <textarea
                 placeholder="E.g., 'I need 2 hours for vocal recording...'"
                 rows={3}
+                value={bidMessage}
+                onChange={(e) => setBidMessage(e.target.value)}
                 className={`w-full px-3 py-2 text-sm font-light rounded-lg border tracking-wide resize-none focus:outline-none ${
                   theme === "dark"
                     ? "border-zinc-800 bg-zinc-900 text-white placeholder-zinc-600 focus:border-white focus:bg-black"
@@ -956,17 +1065,22 @@ export default function SessionBookings() {
                 Cancel
               </button>
               <button
-                onClick={() => {
-                  setShowBidModal(false);
-                  // Handle bid submission here
-                }}
-                className={`flex-1 px-4 py-2.5 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
+                onClick={handlePlaceBid}
+                disabled={placeBidMutation.isPending}
+                className={`flex-1 px-4 py-2.5 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
                   theme === "dark"
                     ? "bg-white border-white text-black hover:bg-zinc-100"
                     : "bg-black border-black text-white hover:bg-gray-800"
                 }`}
               >
-                Submit Bid
+                {placeBidMutation.isPending ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Submitting...
+                  </span>
+                ) : (
+                  `Submit ${activeTab === 'bids' ? 'Bid' : 'Request'}`
+                )}
               </button>
             </div>
           </div>
