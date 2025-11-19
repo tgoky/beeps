@@ -4,11 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Search, Music2, Play, Pause, Heart, ShoppingCart, TrendingUp, DollarSign,
-  Plus, Upload as UploadIcon, Users, Edit3, BarChart3, MessageCircle, Briefcase
+  Plus, Upload as UploadIcon, Users, Edit3, BarChart3, MessageCircle, Briefcase, Loader2
 } from "lucide-react";
 import { useTheme } from "../../providers/ThemeProvider";
 import { usePermissions } from "@/hooks/usePermissions";
 import { getRoleDisplayName } from '@/lib/permissions';
+import { useBeats, type Beat as APIBeat } from "@/hooks/useBeats";
 
 type Beat = {
   id: number;
@@ -47,109 +48,30 @@ type Activity = {
   time: string;
 };
 
-// Mock data
-const beatData: Beat[] = [
-  {
-    id: 1,
-    title: "Midnight Dreams",
+// Helper to transform API beat to display format
+const transformBeat = (apiBeat: APIBeat): Beat => {
+  return {
+    id: parseInt(apiBeat.id, 36), // Convert UUID to number for component compatibility
+    title: apiBeat.title,
     producer: {
-      name: "Alex BeatSmith",
-      avatar: "https://randomuser.me/api/portraits/men/32.jpg",
+      name: apiBeat.producer.name || apiBeat.producer.email.split('@')[0],
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${apiBeat.producer.id}`,
       verified: true,
     },
-    bpm: 140,
-    price: 49.99,
-    genre: ["Hip Hop", "Trap"],
-    mood: ["Dark", "Aggressive"],
-    plays: 124500,
-    likes: 2450,
-    liked: false,
-    image: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f",
-    audio: "https://example.com/beat1.mp3",
-    type: 'lease',
-    description: "Dark trap beat with heavy 808s and eerie melodies perfect for late night sessions.",
-    previewAvailable: 'free',
-    deal: {
-      discount: 20,
-      endDate: "2023-12-31"
-    }
-  },
-  {
-    id: 2,
-    title: "Neon Lights",
-    producer: {
-      name: "Sarah Synth",
-      avatar: "https://randomuser.me/api/portraits/women/44.jpg",
-      verified: true,
-    },
-    bpm: 95,
-    price: 79.99,
-    genre: ["Pop", "Electronic"],
-    mood: ["Energetic", "Bright"],
-    plays: 87600,
-    likes: 1890,
-    liked: true,
-    image: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4",
-    audio: "https://example.com/beat2.mp3",
-    type: 'exclusive',
-    description: "Upbeat electronic pop instrumental with shimmering synths and punchy drums.",
-    previewAvailable: 'subscribers'
-  },
-  {
-    id: 3,
-    title: "Atlanta Nights",
-    producer: {
-      name: "Marcus Beats",
-      avatar: "https://randomuser.me/api/portraits/men/75.jpg",
-      verified: false,
-    },
-    bpm: 150,
-    price: 29.99,
-    genre: ["Trap", "Drill"],
-    mood: ["Hard", "Street"],
-    plays: 320000,
-    likes: 5400,
-    liked: false,
-    image: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819",
-    audio: "https://example.com/beat3.mp3",
-    type: 'lease',
-    description: "Hard-hitting drill beat with sliding 808s and aggressive hi-hat patterns.",
-    previewAvailable: 'free'
-  },
-];
-
-const activityData: Activity[] = [
-  {
-    id: 1,
-    user: {
-      name: "Trapper King",
-      avatar: "https://randomuser.me/api/portraits/men/22.jpg"
-    },
-    action: 'purchased',
-    beat: "Midnight Dreams",
-    time: "5 min ago"
-  },
-  {
-    id: 2,
-    user: {
-      name: "Luna Sky",
-      avatar: "https://randomuser.me/api/portraits/women/33.jpg"
-    },
-    action: 'liked',
-    beat: "Neon Lights",
-    time: "25 min ago"
-  },
-  {
-    id: 3,
-    user: {
-      name: "Alex BeatSmith",
-      avatar: "https://randomuser.me/api/portraits/men/32.jpg"
-    },
-    action: 'uploaded',
-    beat: "City Dreams",
-    time: "1 hour ago"
-  },
-];
+    bpm: apiBeat.bpm,
+    price: apiBeat.price,
+    genre: apiBeat.genre,
+    mood: apiBeat.mood,
+    plays: Math.floor(Math.random() * 500000) + 10000, // Mock plays until we have real data
+    likes: apiBeat.likeCount,
+    liked: false, // TODO: Track user likes
+    image: apiBeat.imageUrl || "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f",
+    audio: apiBeat.audioUrl,
+    type: apiBeat.price > 100 ? 'exclusive' : 'lease', // Simple heuristic
+    description: apiBeat.description || "",
+    previewAvailable: 'free' as const,
+  };
+};
 
 const formatNumber = (num: number): string => {
   if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
@@ -167,13 +89,20 @@ export default function BeatMarketplace() {
   const [selectedGenre, setSelectedGenre] = useState("all");
   const [selectedMood, setSelectedMood] = useState("all");
   const [currentlyPlaying, setCurrentlyPlaying] = useState<number | null>(null);
-  const [beats, setBeats] = useState<Beat[]>(beatData);
+
+  // Fetch beats from API
+  const { data: apiBeats = [], isLoading, error } = useBeats({
+    genre: selectedGenre !== "all" ? [selectedGenre] : undefined,
+    mood: selectedMood !== "all" ? [selectedMood] : undefined,
+  });
+
+  // Transform API data to display format
+  const beats = apiBeats.map(transformBeat);
 
   const toggleLike = (id: number, e: React.MouseEvent) => {
     e.stopPropagation();
-    setBeats(beats.map(beat => 
-      beat.id === id ? { ...beat, liked: !beat.liked, likes: beat.liked ? beat.likes - 1 : beat.likes + 1 } : beat
-    ));
+    // TODO: Implement like functionality with API
+    console.log("Like beat:", id);
   };
 
   const togglePlay = (id: number, e: React.MouseEvent) => {
@@ -489,15 +418,38 @@ export default function BeatMarketplace() {
               </div>
             </div>
 
+            {/* Loading State */}
+            {isLoading && (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className={`w-8 h-8 animate-spin ${
+                  theme === "dark" ? "text-zinc-600" : "text-gray-400"
+                }`} />
+              </div>
+            )}
+
+            {/* Error State */}
+            {error && (
+              <div className={`p-4 rounded-lg border ${
+                theme === "dark"
+                  ? "bg-red-500/10 border-red-500/20 text-red-400"
+                  : "bg-red-50 border-red-200 text-red-600"
+              }`}>
+                <p className="text-sm">Failed to load beats. Please try again.</p>
+              </div>
+            )}
+
             {/* Results Count */}
-            <div className={`text-sm font-light tracking-wide mb-6 ${
-              theme === "dark" ? "text-zinc-500" : "text-gray-600"
-            }`}>
-              {filteredBeats.length} {filteredBeats.length === 1 ? "beat" : "beats"} found
-            </div>
+            {!isLoading && !error && (
+              <div className={`text-sm font-light tracking-wide mb-6 ${
+                theme === "dark" ? "text-zinc-500" : "text-gray-600"
+              }`}>
+                {filteredBeats.length} {filteredBeats.length === 1 ? "beat" : "beats"} found
+              </div>
+            )}
 
             {/* Compact Wide Cards */}
-            <div className="space-y-4">
+            {!isLoading && !error && (
+              <div className="space-y-4">
               {filteredBeats.map((beat) => (
                 <div
                   key={beat.id}
@@ -663,94 +615,94 @@ export default function BeatMarketplace() {
               ))}
             </div>
 
-            {/* Empty State */}
-            {filteredBeats.length === 0 && (
-              <div className={`text-center py-16 rounded-xl border ${
-                theme === "dark" 
-                  ? "border-zinc-800 bg-zinc-950" 
-                  : "border-gray-300 bg-white"
-              }`}>
-                <Music2 className={`w-12 h-12 mx-auto mb-3 ${
-                  theme === "dark" ? "text-zinc-700" : "text-gray-400"
-                }`} />
-                <p className={`text-sm font-light tracking-wide mb-1 ${
-                  theme === "dark" ? "text-zinc-400" : "text-gray-600"
+              {/* Empty State */}
+              {filteredBeats.length === 0 && (
+                <div className={`text-center py-16 rounded-xl border ${
+                  theme === "dark"
+                    ? "border-zinc-800 bg-zinc-950"
+                    : "border-gray-300 bg-white"
                 }`}>
-                  No beats found
-                </p>
-                <p className={`text-xs font-light tracking-wide ${
-                  theme === "dark" ? "text-zinc-600" : "text-gray-500"
-                }`}>
-                  Try adjusting your filters or search query
-                </p>
-              </div>
+                  <Music2 className={`w-12 h-12 mx-auto mb-3 ${
+                    theme === "dark" ? "text-zinc-700" : "text-gray-400"
+                  }`} />
+                  <p className={`text-sm font-light tracking-wide mb-1 ${
+                    theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                  }`}>
+                    No beats found
+                  </p>
+                  <p className={`text-xs font-light tracking-wide ${
+                    theme === "dark" ? "text-zinc-600" : "text-gray-500"
+                  }`}>
+                    Try adjusting your filters or search query
+                  </p>
+                </div>
+              )}
+            </div>
             )}
           </div>
 
           {/* Sidebar - 1 column */}
           <div className="xl:col-span-1 space-y-6">
-            {/* Marketplace Activity */}
+            {/* Marketplace Stats */}
             <div className={`rounded-xl border p-4 ${
-              theme === "dark" 
-                ? "border-zinc-800 bg-zinc-950" 
+              theme === "dark"
+                ? "border-zinc-800 bg-zinc-950"
                 : "border-gray-300 bg-white"
             }`}>
-              <h2 className={`text-lg font-light tracking-wide mb-4 ${
+              <h3 className={`text-lg font-light tracking-wide mb-4 ${
                 theme === "dark" ? "text-white" : "text-gray-900"
               }`}>
-                Marketplace Activity
-              </h2>
-              
+                Marketplace Stats
+              </h3>
               <div className="space-y-3">
-                {activityData.map((activity) => (
-                  <div
-                    key={activity.id}
-                    className={`p-3 rounded-lg border transition-all duration-200 cursor-pointer ${
-                      theme === "dark"
-                        ? "border-zinc-800 bg-zinc-900 hover:border-zinc-700 hover:bg-zinc-800"
-                        : "border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100"
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <img
-                        src={activity.user.avatar}
-                        alt={activity.user.name}
-                        className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className={`text-xs font-light tracking-wide mb-1 ${
-                          theme === "dark" ? "text-white" : "text-gray-900"
-                        }`}>
-                          <span className="font-medium">{activity.user.name}</span>
-                          {' '}
-                          <span className={theme === "dark" ? "text-zinc-500" : "text-gray-600"}>
-                            {activity.action === 'purchased' ? 'purchased' : activity.action === 'liked' ? 'liked' : 'uploaded'}
-                          </span>
-                          {' '}
-                          <span className="font-medium">{activity.beat}</span>
-                        </div>
-                        <div className={`text-xs font-light tracking-wide ${
-                          theme === "dark" ? "text-zinc-600" : "text-gray-500"
-                        }`}>
-                          {activity.time}
-                        </div>
-                      </div>
-                      <span
-                        className={`
-                          px-2 py-1 text-xs font-light rounded-full tracking-wide flex-shrink-0
-                          ${activity.action === 'purchased'
-                            ? "bg-green-500/10 text-green-400 border border-green-500/20"
-                            : activity.action === 'liked'
-                              ? "bg-red-500/10 text-red-400 border border-red-500/20"
-                              : "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                          }
-                        `}
-                      >
-                        {activity.action === 'purchased' ? 'Sale' : activity.action === 'liked' ? 'Like' : 'New'}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                <div className="flex justify-between items-center">
+                  <span className={`text-sm font-light tracking-wide ${
+                    theme === "dark" ? "text-zinc-500" : "text-gray-600"
+                  }`}>
+                    Total Beats
+                  </span>
+                  <span className={`text-sm font-light tracking-wide ${
+                    theme === "dark" ? "text-white" : "text-gray-900"
+                  }`}>
+                    {beats.length}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className={`text-sm font-light tracking-wide ${
+                    theme === "dark" ? "text-zinc-500" : "text-gray-600"
+                  }`}>
+                    Active Producers
+                  </span>
+                  <span className={`text-sm font-light tracking-wide ${
+                    theme === "dark" ? "text-white" : "text-gray-900"
+                  }`}>
+                    {new Set(beats.map(b => b.producer.name)).size}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className={`text-sm font-light tracking-wide ${
+                    theme === "dark" ? "text-zinc-500" : "text-gray-600"
+                  }`}>
+                    Deals Available
+                  </span>
+                  <span className={`text-sm font-light tracking-wide ${
+                    theme === "dark" ? "text-white" : "text-gray-900"
+                  }`}>
+                    {beats.filter(b => b.deal).length}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className={`text-sm font-light tracking-wide ${
+                    theme === "dark" ? "text-zinc-500" : "text-gray-600"
+                  }`}>
+                    Total Plays
+                  </span>
+                  <span className={`text-sm font-light tracking-wide ${
+                    theme === "dark" ? "text-white" : "text-gray-900"
+                  }`}>
+                    {formatNumber(beats.reduce((sum, b) => sum + b.plays, 0))}
+                  </span>
+                </div>
               </div>
             </div>
 

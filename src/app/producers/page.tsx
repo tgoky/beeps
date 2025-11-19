@@ -2,28 +2,29 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { 
-  Search, 
-  MapPin, 
-  Star, 
-  Music2, 
-  CheckCircle2, 
-  Users, 
-  Play, 
-  MessageCircle, 
-  TrendingUp, 
-  Map, 
-  UserCheck, 
+import {
+  Search,
+  MapPin,
+  Star,
+  Music2,
+  CheckCircle2,
+  Users,
+  Play,
+  MessageCircle,
+  TrendingUp,
+  Map,
+  UserCheck,
   Clock,
   Briefcase,
   Settings,
-  Edit3
+  Edit3,
+  Loader2
 } from "lucide-react";
 import { useTheme } from "@/providers/ThemeProvider";
 import { usePermissions } from "@/hooks/usePermissions";
-import { producerData } from "./producersdata";
 import { getRoleDisplayName } from '@/lib/permissions';
 import type { UserRole } from '@prisma/client';
+import { useProducers, type Producer as APIProducer } from "@/hooks/useProducers";
 
 type Producer = {
   id: number;
@@ -50,6 +51,38 @@ type Producer = {
   featuredGear?: string[];
 };
 
+// Helper to transform API producer to display format
+const transformProducer = (apiProducer: APIProducer): Producer => {
+  const totalPlays = apiProducer.beats.reduce((sum, beat) => sum + (beat.likeCount * 100), 0); // Estimate plays from likes
+
+  return {
+    id: parseInt(apiProducer.id, 36),
+    name: apiProducer.name || apiProducer.email.split('@')[0],
+    handle: `@${(apiProducer.name || apiProducer.email.split('@')[0]).toLowerCase().replace(/\s+/g, '')}`,
+    avatar: apiProducer.imageUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${apiProducer.id}`,
+    location: apiProducer.studios[0]?.location || "Remote",
+    rating: 4.5 + Math.random() * 0.5,
+    genres: ["Hip Hop", "R&B"], // TODO: Extract from beats
+    skills: apiProducer.studios.length > 0 ? ["Studio Recording"] : []
+      .concat(apiProducer.beats.length > 0 ? ["Beat Making"] : [])
+      .concat(apiProducer.services.length > 0 ? ["Production"] : []),
+    recentWorks: apiProducer.beats.slice(0, 3).map(beat => ({
+      title: beat.title,
+      artist: "Various Artists",
+      plays: beat.likeCount * 100, // Estimate
+      image: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f"
+    })),
+    social: {
+      followers: Math.floor(Math.random() * 5000) + 500,
+      following: Math.floor(Math.random() * 1000) + 100,
+      posts: apiProducer.beats.length + apiProducer.studios.length + apiProducer.services.length
+    },
+    online: Math.random() > 0.5,
+    lastActive: "Recently active",
+    featuredGear: []
+  };
+};
+
 const formatNumber = (num: number): string => {
   if (num >= 1000000) {
     return (num / 1000000).toFixed(1) + 'M';
@@ -63,19 +96,25 @@ const formatNumber = (num: number): string => {
 export default function ProducerHub() {
   const router = useRouter();
   const { theme } = useTheme();
- const { permissions, isProducer } = usePermissions();
+  const { permissions, isProducer } = usePermissions();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGenre, setSelectedGenre] = useState("all");
   const [selectedSkill, setSelectedSkill] = useState("all");
   const [activeTab, setActiveTab] = useState("trending");
 
-  const filteredProducers = producerData.filter(producer => {
-    const matchesSearch = producer.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                         producer.handle.toLowerCase().includes(searchQuery.toLowerCase());
+  // Fetch producers from API
+  const { data: apiProducers = [], isLoading, error } = useProducers({
+    search: searchQuery || undefined,
+  });
+
+  // Transform API data to display format
+  const producers = apiProducers.map(transformProducer);
+
+  const filteredProducers = producers.filter(producer => {
     const matchesGenre = selectedGenre === "all" || producer.genres.includes(selectedGenre);
     const matchesSkill = selectedSkill === "all" || producer.skills.includes(selectedSkill);
-    return matchesSearch && matchesGenre && matchesSkill;
+    return matchesGenre && matchesSkill;
   });
 
   const tabConfig = [
@@ -86,7 +125,7 @@ export default function ProducerHub() {
   ];
 
   // Get unique skills from all producers
-  const allSkills = Array.from(new Set(producerData.flatMap(producer => producer.skills)));
+  const allSkills = Array.from(new Set(producers.flatMap(producer => producer.skills)));
 
   // Producer Card Action Buttons - changes based on user role
   const ProducerCardActions = ({ producer }: { producer: Producer }) => {
@@ -351,7 +390,7 @@ export default function ProducerHub() {
                     <div className={`text-lg font-light tracking-tight ${
                       theme === "dark" ? "text-white" : "text-gray-900"
                     }`}>
-                      {formatNumber(producerData.reduce((sum, p) => sum + p.social.followers, 0))}
+                      {formatNumber(producers.reduce((sum, p) => sum + p.social.followers, 0))}
                     </div>
                     <div className={`text-xs font-light tracking-wider ${
                       theme === "dark" ? "text-zinc-500" : "text-gray-600"
@@ -361,7 +400,7 @@ export default function ProducerHub() {
                     <div className={`text-lg font-light tracking-tight ${
                       theme === "dark" ? "text-white" : "text-gray-900"
                     }`}>
-                      {formatNumber(producerData.reduce((sum, p) => sum + p.recentWorks.reduce((wSum, w) => wSum + w.plays, 0), 0))}
+                      {formatNumber(producers.reduce((sum, p) => sum + p.recentWorks.reduce((wSum, w) => wSum + w.plays, 0), 0))}
                     </div>
                     <div className={`text-xs font-light tracking-wider ${
                       theme === "dark" ? "text-zinc-500" : "text-gray-600"
@@ -435,15 +474,38 @@ export default function ProducerHub() {
               })}
             </div>
 
+            {/* Loading State */}
+            {isLoading && (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className={`w-8 h-8 animate-spin ${
+                  theme === "dark" ? "text-zinc-600" : "text-gray-400"
+                }`} />
+              </div>
+            )}
+
+            {/* Error State */}
+            {error && (
+              <div className={`p-4 rounded-lg border ${
+                theme === "dark"
+                  ? "bg-red-500/10 border-red-500/20 text-red-400"
+                  : "bg-red-50 border-red-200 text-red-600"
+              }`}>
+                <p className="text-sm">Failed to load producers. Please try again.</p>
+              </div>
+            )}
+
             {/* Results Count */}
-            <div className={`text-sm font-light tracking-wide mb-6 ${
-              theme === "dark" ? "text-zinc-500" : "text-gray-600"
-            }`}>
-              {filteredProducers.length} {filteredProducers.length === 1 ? "producer" : "producers"} found
-            </div>
+            {!isLoading && !error && (
+              <div className={`text-sm font-light tracking-wide mb-6 ${
+                theme === "dark" ? "text-zinc-500" : "text-gray-600"
+              }`}>
+                {filteredProducers.length} {filteredProducers.length === 1 ? "producer" : "producers"} found
+              </div>
+            )}
 
             {/* Producers Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {!isLoading && !error && (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {filteredProducers.map((producer) => (
                 <div
                   key={producer.id}
@@ -602,27 +664,29 @@ export default function ProducerHub() {
               ))}
             </div>
 
-            {/* Empty State */}
-            {filteredProducers.length === 0 && (
-              <div className={`text-center py-16 rounded-xl border ${
-                theme === "dark" 
-                  ? "bg-zinc-950 border-zinc-800" 
-                  : "bg-white border-gray-300"
-              }`}>
-                <Music2 className={`w-12 h-12 mx-auto mb-3 ${
-                  theme === "dark" ? "text-zinc-700" : "text-gray-400"
-                }`} />
-                <p className={`text-sm font-light tracking-wide mb-1 ${
-                  theme === "dark" ? "text-zinc-400" : "text-gray-600"
+              {/* Empty State */}
+              {filteredProducers.length === 0 && (
+                <div className={`text-center py-16 rounded-xl border ${
+                  theme === "dark"
+                    ? "bg-zinc-950 border-zinc-800"
+                    : "bg-white border-gray-300"
                 }`}>
-                  No producers found
-                </p>
-                <p className={`text-xs font-light tracking-wide ${
-                  theme === "dark" ? "text-zinc-600" : "text-gray-500"
-                }`}>
-                  Try adjusting your filters or search query
-                </p>
-              </div>
+                  <Music2 className={`w-12 h-12 mx-auto mb-3 ${
+                    theme === "dark" ? "text-zinc-700" : "text-gray-400"
+                  }`} />
+                  <p className={`text-sm font-light tracking-wide mb-1 ${
+                    theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                  }`}>
+                    No producers found
+                  </p>
+                  <p className={`text-xs font-light tracking-wide ${
+                    theme === "dark" ? "text-zinc-600" : "text-gray-500"
+                  }`}>
+                    Try adjusting your filters or search query
+                  </p>
+                </div>
+              )}
+            </div>
             )}
           </div>
         </div>
