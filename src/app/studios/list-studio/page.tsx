@@ -45,13 +45,13 @@ export default function ListStudio() {
   if (!permissions?.canCreateStudios) {
     return (
       <div className={`min-h-screen flex items-center justify-center ${
-        theme === "dark" ? "bg-gray-950" : "bg-gray-50"
+        theme === "dark" ? "bg-black" : "bg-gray-50"
       }`}>
         <div className="text-center max-w-md mx-auto p-6">
-          <div className={`p-4 rounded-lg mb-4 ${
+          <div className={`p-4 rounded-lg mb-4 border ${
             theme === "dark"
-              ? "bg-red-500/10 border border-red-500/20"
-              : "bg-red-50 border border-red-200"
+              ? "bg-red-500/10 border-red-500/20"
+              : "bg-red-50 border-red-200"
           }`}>
             <h2 className={`text-lg font-semibold mb-2 ${
               theme === "dark" ? "text-red-400" : "text-red-600"
@@ -68,8 +68,8 @@ export default function ListStudio() {
             onClick={() => router.push("/studios")}
             className={`px-4 py-2 rounded-lg transition-all ${
               theme === "dark"
-                ? "bg-purple-600 hover:bg-purple-700 text-white"
-                : "bg-purple-600 hover:bg-purple-700 text-white"
+                ? "bg-white hover:bg-zinc-100 text-black"
+                : "bg-black hover:bg-gray-900 text-white"
             }`}
           >
             Back to Studios
@@ -155,18 +155,18 @@ export default function ListStudio() {
 
   return (
     <div className={`min-h-screen ${
-      theme === "dark" ? "bg-gray-950" : "bg-gray-50"
+      theme === "dark" ? "bg-black" : "bg-gray-50"
     }`}>
       <div className="max-w-4xl mx-auto p-6">
         {/* Header */}
         <div className="mb-8">
-          <h1 className={`text-3xl font-bold mb-2 ${
-            theme === "dark" ? "text-gray-100" : "text-gray-900"
+          <h1 className={`text-3xl font-light tracking-tight mb-2 ${
+            theme === "dark" ? "text-white" : "text-gray-900"
           }`}>
             List Your Studio
           </h1>
-          <p className={`text-sm ${
-            theme === "dark" ? "text-gray-400" : "text-gray-600"
+          <p className={`text-sm font-light tracking-wide ${
+            theme === "dark" ? "text-zinc-500" : "text-gray-600"
           }`}>
             Share your recording space with artists and producers
           </p>
@@ -174,27 +174,27 @@ export default function ListStudio() {
 
         {/* Success Message */}
         {success && (
-          <div className={`mb-6 p-4 rounded-lg flex items-center gap-3 ${
+          <div className={`mb-6 p-4 rounded-lg flex items-center gap-3 border ${
             theme === "dark"
-              ? "bg-green-500/10 border border-green-500/20 text-green-400"
-              : "bg-green-50 border border-green-200 text-green-600"
+              ? "bg-green-500/10 border-green-500/20 text-green-400"
+              : "bg-green-50 border-green-200 text-green-600"
           }`}>
-            <CheckCircle2 className="w-5 h-5" />
+            <CheckCircle2 className="w-5 h-5" strokeWidth={2} />
             <div>
-              <p className="font-medium">Studio listed successfully!</p>
-              <p className="text-sm opacity-90">Redirecting to studios page...</p>
+              <p className="font-medium tracking-wide">Studio listed successfully!</p>
+              <p className="text-sm font-light tracking-wide opacity-90">Redirecting to studios page...</p>
             </div>
           </div>
         )}
 
         {/* Error Message */}
         {error && (
-          <div className={`mb-6 p-4 rounded-lg ${
+          <div className={`mb-6 p-4 rounded-lg border ${
             theme === "dark"
-              ? "bg-red-500/10 border border-red-500/20 text-red-400"
-              : "bg-red-50 border border-red-200 text-red-600"
+              ? "bg-red-500/10 border-red-500/20 text-red-400"
+              : "bg-red-50 border-red-200 text-red-600"
           }`}>
-            <p className="text-sm">{error}</p>
+            <p className="text-sm font-light tracking-wide">{error}</p>
           </div>
         )}
 
@@ -203,20 +203,20 @@ export default function ListStudio() {
           {/* Basic Information */}
           <div className={`p-6 rounded-xl border ${
             theme === "dark"
-              ? "bg-gray-900/40 border-gray-800/60"
+              ? "bg-zinc-950 border-zinc-800"
               : "bg-white border-gray-200"
           }`}>
-            <h2 className={`text-lg font-semibold mb-4 flex items-center gap-2 ${
-              theme === "dark" ? "text-gray-200" : "text-gray-900"
+            <h2 className={`text-lg font-medium mb-4 flex items-center gap-2 tracking-wide ${
+              theme === "dark" ? "text-white" : "text-gray-900"
             }`}>
-              <Building2 className="w-5 h-5" />
+              <Building2 className="w-5 h-5" strokeWidth={2} />
               Basic Information
             </h2>
 
             <div className="space-y-4">
               <div>
-                <label className={`block text-sm font-medium mb-2 ${
-                  theme === "dark" ? "text-gray-300" : "text-gray-700"
+                <label className={`block text-xs font-medium mb-2 tracking-wider uppercase ${
+                  theme === "dark" ? "text-zinc-400" : "text-gray-700"
                 }`}>
                   Studio Name <span className="text-red-500">*</span>
                 </label>
@@ -227,17 +227,17 @@ export default function ListStudio() {
                   onChange={handleInputChange}
                   placeholder="e.g., Sunset Sound Studios"
                   required
-                  className={`w-full p-3 rounded-lg border transition-all ${
+                  className={`w-full px-4 py-3.5 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide focus:outline-none ${
                     theme === "dark"
-                      ? "bg-gray-800/40 border-gray-700/60 text-gray-300 placeholder-gray-500 focus:border-purple-500"
-                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-purple-500"
-                  } focus:outline-none focus:ring-2 focus:ring-purple-500/20`}
+                      ? "bg-zinc-950 border-zinc-800 text-white placeholder-zinc-600 focus:border-white focus:bg-black"
+                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-gray-900"
+                  }`}
                 />
               </div>
 
               <div>
-                <label className={`block text-sm font-medium mb-2 ${
-                  theme === "dark" ? "text-gray-300" : "text-gray-700"
+                <label className={`block text-xs font-medium mb-2 tracking-wider uppercase ${
+                  theme === "dark" ? "text-zinc-400" : "text-gray-700"
                 }`}>
                   Description
                 </label>
@@ -247,17 +247,17 @@ export default function ListStudio() {
                   onChange={handleInputChange}
                   placeholder="Describe your studio, its features, and what makes it special..."
                   rows={4}
-                  className={`w-full p-3 rounded-lg border transition-all resize-none ${
+                  className={`w-full px-4 py-3.5 text-sm font-light rounded-lg border transition-all duration-200 resize-none tracking-wide focus:outline-none ${
                     theme === "dark"
-                      ? "bg-gray-800/40 border-gray-700/60 text-gray-300 placeholder-gray-500 focus:border-purple-500"
-                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-purple-500"
-                  } focus:outline-none focus:ring-2 focus:ring-purple-500/20`}
+                      ? "bg-zinc-950 border-zinc-800 text-white placeholder-zinc-600 focus:border-white focus:bg-black"
+                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-gray-900"
+                  }`}
                 />
               </div>
 
               <div>
-                <label className={`block text-sm font-medium mb-2 ${
-                  theme === "dark" ? "text-gray-300" : "text-gray-700"
+                <label className={`block text-xs font-medium mb-2 tracking-wider uppercase ${
+                  theme === "dark" ? "text-zinc-400" : "text-gray-700"
                 }`}>
                   Image URL
                 </label>
@@ -267,14 +267,14 @@ export default function ListStudio() {
                   value={formData.imageUrl}
                   onChange={handleInputChange}
                   placeholder="https://example.com/studio-image.jpg"
-                  className={`w-full p-3 rounded-lg border transition-all ${
+                  className={`w-full px-4 py-3.5 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide focus:outline-none ${
                     theme === "dark"
-                      ? "bg-gray-800/40 border-gray-700/60 text-gray-300 placeholder-gray-500 focus:border-purple-500"
-                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-purple-500"
-                  } focus:outline-none focus:ring-2 focus:ring-purple-500/20`}
+                      ? "bg-zinc-950 border-zinc-800 text-white placeholder-zinc-600 focus:border-white focus:bg-black"
+                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-gray-900"
+                  }`}
                 />
-                <p className={`text-xs mt-1 ${
-                  theme === "dark" ? "text-gray-500" : "text-gray-500"
+                <p className={`text-xs font-light mt-2 tracking-wide ${
+                  theme === "dark" ? "text-zinc-500" : "text-gray-500"
                 }`}>
                   Enter a direct link to your studio image
                 </p>
@@ -285,13 +285,13 @@ export default function ListStudio() {
           {/* Location */}
           <div className={`p-6 rounded-xl border ${
             theme === "dark"
-              ? "bg-gray-900/40 border-gray-800/60"
+              ? "bg-zinc-950 border-zinc-800"
               : "bg-white border-gray-200"
           }`}>
-            <h2 className={`text-lg font-semibold mb-4 flex items-center gap-2 ${
-              theme === "dark" ? "text-gray-200" : "text-gray-900"
+            <h2 className={`text-lg font-medium mb-4 flex items-center gap-2 tracking-wide ${
+              theme === "dark" ? "text-white" : "text-gray-900"
             }`}>
-              <MapPin className="w-5 h-5" />
+              <MapPin className="w-5 h-5" strokeWidth={2} />
               Location
             </h2>
 
@@ -306,13 +306,13 @@ export default function ListStudio() {
                   ? "bg-green-500/10 border-green-500/20"
                   : "bg-green-50 border-green-200"
               }`}>
-                <p className={`text-sm font-medium ${
+                <p className={`text-sm font-medium tracking-wide ${
                   theme === "dark" ? "text-green-400" : "text-green-600"
                 }`}>
                   Selected Location: {formData.location}
                 </p>
                 {formData.latitude && formData.longitude && (
-                  <p className={`text-xs mt-1 ${
+                  <p className={`text-xs font-light mt-1 tracking-wide ${
                     theme === "dark" ? "text-green-500" : "text-green-700"
                   }`}>
                     Coordinates: {parseFloat(formData.latitude).toFixed(4)}, {parseFloat(formData.longitude).toFixed(4)}
@@ -325,20 +325,20 @@ export default function ListStudio() {
           {/* Pricing & Capacity */}
           <div className={`p-6 rounded-xl border ${
             theme === "dark"
-              ? "bg-gray-900/40 border-gray-800/60"
+              ? "bg-zinc-950 border-zinc-800"
               : "bg-white border-gray-200"
           }`}>
-            <h2 className={`text-lg font-semibold mb-4 flex items-center gap-2 ${
-              theme === "dark" ? "text-gray-200" : "text-gray-900"
+            <h2 className={`text-lg font-medium mb-4 flex items-center gap-2 tracking-wide ${
+              theme === "dark" ? "text-white" : "text-gray-900"
             }`}>
-              <DollarSign className="w-5 h-5" />
+              <DollarSign className="w-5 h-5" strokeWidth={2} />
               Pricing & Capacity
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className={`block text-sm font-medium mb-2 ${
-                  theme === "dark" ? "text-gray-300" : "text-gray-700"
+                <label className={`block text-xs font-medium mb-2 tracking-wider uppercase ${
+                  theme === "dark" ? "text-zinc-400" : "text-gray-700"
                 }`}>
                   Hourly Rate ($) <span className="text-red-500">*</span>
                 </label>
@@ -350,17 +350,17 @@ export default function ListStudio() {
                   onChange={handleInputChange}
                   placeholder="50.00"
                   required
-                  className={`w-full p-3 rounded-lg border transition-all ${
+                  className={`w-full px-4 py-3.5 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide focus:outline-none ${
                     theme === "dark"
-                      ? "bg-gray-800/40 border-gray-700/60 text-gray-300 placeholder-gray-500"
-                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-400"
-                  } focus:outline-none focus:ring-2 focus:ring-purple-500/20`}
+                      ? "bg-zinc-950 border-zinc-800 text-white placeholder-zinc-600 focus:border-white focus:bg-black"
+                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-gray-900"
+                  }`}
                 />
               </div>
 
               <div>
-                <label className={`block text-sm font-medium mb-2 ${
-                  theme === "dark" ? "text-gray-300" : "text-gray-700"
+                <label className={`block text-xs font-medium mb-2 tracking-wider uppercase ${
+                  theme === "dark" ? "text-zinc-400" : "text-gray-700"
                 }`}>
                   Capacity
                 </label>
@@ -368,11 +368,11 @@ export default function ListStudio() {
                   name="capacity"
                   value={formData.capacity}
                   onChange={handleInputChange}
-                  className={`w-full p-3 rounded-lg border transition-all ${
+                  className={`w-full px-4 py-3.5 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide focus:outline-none ${
                     theme === "dark"
-                      ? "bg-gray-800/40 border-gray-700/60 text-gray-300"
-                      : "bg-white border-gray-300 text-gray-900"
-                  } focus:outline-none focus:ring-2 focus:ring-purple-500/20`}
+                      ? "bg-zinc-950 border-zinc-800 text-white focus:border-white focus:bg-black"
+                      : "bg-white border-gray-300 text-gray-900 focus:border-gray-900"
+                  }`}
                 >
                   <option value="1-5 people">1-5 people</option>
                   <option value="6-10 people">6-10 people</option>
@@ -386,11 +386,11 @@ export default function ListStudio() {
           {/* Equipment */}
           <div className={`p-6 rounded-xl border ${
             theme === "dark"
-              ? "bg-gray-900/40 border-gray-800/60"
+              ? "bg-zinc-950 border-zinc-800"
               : "bg-white border-gray-200"
           }`}>
-            <h2 className={`text-lg font-semibold mb-4 ${
-              theme === "dark" ? "text-gray-200" : "text-gray-900"
+            <h2 className={`text-lg font-medium mb-4 tracking-wide ${
+              theme === "dark" ? "text-white" : "text-gray-900"
             }`}>
               Equipment
             </h2>
@@ -403,22 +403,22 @@ export default function ListStudio() {
                   onChange={(e) => setNewEquipment(e.target.value)}
                   onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addEquipment())}
                   placeholder="e.g., Neumann U87 Microphone"
-                  className={`flex-1 p-3 rounded-lg border transition-all ${
+                  className={`flex-1 px-4 py-3.5 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide focus:outline-none ${
                     theme === "dark"
-                      ? "bg-gray-800/40 border-gray-700/60 text-gray-300 placeholder-gray-500"
-                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-400"
-                  } focus:outline-none focus:ring-2 focus:ring-purple-500/20`}
+                      ? "bg-zinc-950 border-zinc-800 text-white placeholder-zinc-600 focus:border-white focus:bg-black"
+                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-gray-900"
+                  }`}
                 />
                 <button
                   type="button"
                   onClick={addEquipment}
-                  className={`px-4 py-2 rounded-lg transition-all flex items-center gap-2 ${
+                  className={`px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 tracking-wide active:scale-[0.98] ${
                     theme === "dark"
-                      ? "bg-purple-600 hover:bg-purple-700 text-white"
-                      : "bg-purple-600 hover:bg-purple-700 text-white"
+                      ? "bg-white hover:bg-zinc-100 text-black border border-white"
+                      : "bg-black hover:bg-gray-900 text-white border border-black"
                   }`}
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="w-4 h-4" strokeWidth={2} />
                   Add
                 </button>
               </div>
@@ -430,11 +430,11 @@ export default function ListStudio() {
                       key={item}
                       className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${
                         theme === "dark"
-                          ? "bg-gray-800/40 border-gray-700/60 text-gray-300"
+                          ? "bg-black border-zinc-800 text-zinc-300"
                           : "bg-gray-50 border-gray-200 text-gray-700"
                       }`}
                     >
-                      <span className="text-sm">{item}</span>
+                      <span className="text-sm font-light tracking-wide">{item}</span>
                       <button
                         type="button"
                         onClick={() => removeEquipment(item)}
@@ -442,7 +442,7 @@ export default function ListStudio() {
                           theme === "dark" ? "text-red-400" : "text-red-600"
                         }`}
                       >
-                        <X className="w-3 h-3" />
+                        <X className="w-3 h-3" strokeWidth={2} />
                       </button>
                     </div>
                   ))}
@@ -457,35 +457,35 @@ export default function ListStudio() {
               type="button"
               onClick={() => router.push("/studios")}
               disabled={loading}
-              className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-all ${
+              className={`flex-1 py-3.5 px-6 rounded-lg font-medium transition-all duration-200 tracking-wide ${
                 theme === "dark"
-                  ? "bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700"
-                  : "bg-gray-200 hover:bg-gray-300 text-gray-700"
-              } ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
+                  ? "bg-zinc-950 hover:bg-black text-zinc-400 border border-zinc-800 hover:border-zinc-700 hover:text-white"
+                  : "bg-gray-200 hover:bg-gray-300 text-gray-700 border border-gray-300"
+              } ${loading ? "opacity-50 cursor-not-allowed" : "active:scale-[0.98]"}`}
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 ${
+              className={`flex-1 py-3.5 px-6 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 tracking-wide border ${
                 loading
                   ? theme === "dark"
-                    ? "bg-gray-800 text-gray-500 cursor-not-allowed"
-                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    ? "bg-zinc-900 text-zinc-600 cursor-not-allowed border-zinc-800"
+                    : "bg-gray-300 text-gray-500 cursor-not-allowed border-gray-300"
                   : theme === "dark"
-                  ? "bg-purple-600 hover:bg-purple-700 text-white active:scale-95"
-                  : "bg-purple-600 hover:bg-purple-700 text-white active:scale-95"
+                  ? "bg-white hover:bg-zinc-100 text-black border-white active:scale-[0.98]"
+                  : "bg-black hover:bg-gray-900 text-white border-black active:scale-[0.98]"
               }`}
             >
               {loading ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
                   Creating Listing...
                 </>
               ) : (
                 <>
-                  <CheckCircle2 className="w-4 h-4" />
+                  <CheckCircle2 className="w-4 h-4" strokeWidth={2} />
                   List Studio
                 </>
               )}

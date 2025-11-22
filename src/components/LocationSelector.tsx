@@ -207,7 +207,7 @@ export function LocationSelector({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {showGeolocation && (
         <div>
           <button
@@ -215,29 +215,31 @@ export function LocationSelector({
             onClick={handleGeolocation}
             disabled={isLoadingGeo}
             className={`
-              w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium
+              w-full flex items-center justify-center gap-2.5 px-6 py-4 text-sm font-light
               rounded-lg border transition-all duration-200 tracking-wide
-              ${isLoadingGeo ? 'opacity-50 cursor-not-allowed' : 'active:scale-95'}
+              ${isLoadingGeo ? 'opacity-50 cursor-not-allowed' : 'active:scale-[0.98]'}
               ${theme === "dark"
-                ? "bg-blue-500/10 border-blue-500/20 text-blue-400 hover:bg-blue-500/20"
-                : "bg-blue-50 border-blue-200 text-blue-600 hover:bg-blue-100"
+                ? "bg-zinc-950 border-zinc-800 text-zinc-400 hover:bg-black hover:border-zinc-700 hover:text-white"
+                : "bg-white border-gray-300 text-gray-600 hover:bg-gray-50 hover:border-gray-400 hover:text-gray-900"
               }
             `}
           >
             {isLoadingGeo ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
-                Detecting Location...
+                <span>Detecting Location...</span>
               </>
             ) : (
               <>
                 <Navigation className="w-4 h-4" strokeWidth={2} />
-                Use My Current Location
+                <span>Use My Current Location</span>
               </>
             )}
           </button>
           {geoError && (
-            <p className={`text-xs mt-2 ${theme === "dark" ? "text-red-400" : "text-red-600"}`}>
+            <p className={`text-xs font-light mt-2 tracking-wide ${
+              theme === "dark" ? "text-red-400" : "text-red-600"
+            }`}>
               {geoError}
             </p>
           )}
@@ -251,16 +253,16 @@ export function LocationSelector({
           <MapPin className="w-4 h-4" strokeWidth={2} />
         </div>
 
-        <div className="text-xs font-medium tracking-wider uppercase mb-2 pl-9 ${
+        <div className={`text-xs font-light tracking-wider uppercase mb-2 pl-9 ${
           theme === "dark" ? "text-zinc-400" : "text-gray-600"
-        }">
+        }`}>
           Or select manually
         </div>
       </div>
 
       {/* Country Selector */}
-      <div>
-        <label className={`block text-xs font-medium tracking-wide mb-2 ${
+      <div className="space-y-3">
+        <label className={`block text-xs font-medium tracking-wider uppercase ${
           theme === "dark" ? "text-zinc-400" : "text-gray-600"
         }`}>
           Country *
@@ -269,11 +271,13 @@ export function LocationSelector({
           value={selectedCountry}
           onChange={(e) => setSelectedCountry(e.target.value)}
           required
-          className={`w-full px-4 py-3 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide focus:outline-none ${
-            theme === "dark"
-              ? "bg-zinc-950 border-zinc-800 text-white focus:border-white"
-              : "bg-white border-gray-300 text-gray-900 focus:border-gray-900"
-          }`}
+          className={`
+            w-full px-4 py-3.5 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide focus:outline-none
+            ${theme === "dark"
+              ? "bg-zinc-950 border-zinc-800 text-white placeholder-zinc-600 focus:border-white focus:bg-black"
+              : "bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-gray-900"
+            }
+          `}
         >
           <option value="">Select a country</option>
           {allCountries.map((group) => (
@@ -290,8 +294,8 @@ export function LocationSelector({
 
       {/* State Selector */}
       {selectedCountry && states.length > 0 && (
-        <div>
-          <label className={`block text-xs font-medium tracking-wide mb-2 ${
+        <div className="space-y-3">
+          <label className={`block text-xs font-medium tracking-wider uppercase ${
             theme === "dark" ? "text-zinc-400" : "text-gray-600"
           }`}>
             State/Region *
@@ -300,11 +304,13 @@ export function LocationSelector({
             value={selectedState}
             onChange={(e) => setSelectedState(e.target.value)}
             required
-            className={`w-full px-4 py-3 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide focus:outline-none ${
-              theme === "dark"
-                ? "bg-zinc-950 border-zinc-800 text-white focus:border-white"
-                : "bg-white border-gray-300 text-gray-900 focus:border-gray-900"
-            }`}
+            className={`
+              w-full px-4 py-3.5 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide focus:outline-none
+              ${theme === "dark"
+                ? "bg-zinc-950 border-zinc-800 text-white placeholder-zinc-600 focus:border-white focus:bg-black"
+                : "bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-gray-900"
+              }
+            `}
           >
             <option value="">Select a state/region</option>
             {states.map((state) => (
@@ -318,8 +324,8 @@ export function LocationSelector({
 
       {/* City Selector */}
       {selectedState && cities.length > 0 && (
-        <div>
-          <label className={`block text-xs font-medium tracking-wide mb-2 ${
+        <div className="space-y-3">
+          <label className={`block text-xs font-medium tracking-wider uppercase ${
             theme === "dark" ? "text-zinc-400" : "text-gray-600"
           }`}>
             City *
@@ -328,11 +334,13 @@ export function LocationSelector({
             value={selectedCity}
             onChange={(e) => setSelectedCity(e.target.value)}
             required
-            className={`w-full px-4 py-3 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide focus:outline-none ${
-              theme === "dark"
-                ? "bg-zinc-950 border-zinc-800 text-white focus:border-white"
-                : "bg-white border-gray-300 text-gray-900 focus:border-gray-900"
-            }`}
+            className={`
+              w-full px-4 py-3.5 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide focus:outline-none
+              ${theme === "dark"
+                ? "bg-zinc-950 border-zinc-800 text-white placeholder-zinc-600 focus:border-white focus:bg-black"
+                : "bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-gray-900"
+              }
+            `}
           >
             <option value="">Select a city</option>
             {cities.map((city) => (
@@ -346,8 +354,8 @@ export function LocationSelector({
 
       {/* Manual City Input (fallback if no cities in dropdown) */}
       {selectedState && cities.length === 0 && (
-        <div>
-          <label className={`block text-xs font-medium tracking-wide mb-2 ${
+        <div className="space-y-3">
+          <label className={`block text-xs font-medium tracking-wider uppercase ${
             theme === "dark" ? "text-zinc-400" : "text-gray-600"
           }`}>
             City *
@@ -358,11 +366,13 @@ export function LocationSelector({
             onChange={(e) => setSelectedCity(e.target.value)}
             placeholder="Enter city name"
             required
-            className={`w-full px-4 py-3 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide focus:outline-none ${
-              theme === "dark"
-                ? "bg-zinc-950 border-zinc-800 text-white placeholder-zinc-600 focus:border-white"
+            className={`
+              w-full px-4 py-3.5 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide focus:outline-none
+              ${theme === "dark"
+                ? "bg-zinc-950 border-zinc-800 text-white placeholder-zinc-600 focus:border-white focus:bg-black"
                 : "bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-gray-900"
-            }`}
+              }
+            `}
           />
         </div>
       )}

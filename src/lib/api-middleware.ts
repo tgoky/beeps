@@ -21,6 +21,10 @@ export async function withAuth(
   handler: (request: AuthenticatedRequest) => Promise<NextResponse>
 ): Promise<NextResponse> {
   try {
+    // Dynamically import cookies to avoid build error
+    const { cookies } = await import('next/headers');
+    const cookieStore = cookies();
+    
     // Create Supabase client
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -28,7 +32,7 @@ export async function withAuth(
       {
         cookies: {
           get(name: string) {
-            return request.cookies.get(name)?.value;
+            return cookieStore.get(name)?.value;
           },
           set() {},
           remove() {},
