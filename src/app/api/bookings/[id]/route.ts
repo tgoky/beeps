@@ -65,8 +65,8 @@ export async function GET(req: NextRequest, { params }: { params: any }) {
         { status: 500 }
       );
     }
-  }
-);
+  });
+}
 
 // PATCH /api/bookings/[id] - Update a booking
 export async function PATCH(req: NextRequest, { params }: { params: any }) {
@@ -186,8 +186,8 @@ export async function PATCH(req: NextRequest, { params }: { params: any }) {
         { status: 500 }
       );
     }
-  }
-);
+  });
+}
 
 // DELETE /api/bookings/[id] - Cancel a booking
 export async function DELETE(req: NextRequest, { params }: { params: any }) {
@@ -253,5 +253,5 @@ export async function DELETE(req: NextRequest, { params }: { params: any }) {
         { status: 500 }
       );
     }
-  }
-);
+  });
+}
