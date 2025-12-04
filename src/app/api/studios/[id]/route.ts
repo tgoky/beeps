@@ -183,8 +183,7 @@ export async function DELETE(req: NextRequest, { params }: { params: any }) {
         data: { isActive: false },
       });
 
-      return NextResponse.json({ success: true   });
-}
+      return NextResponse.json({ success: true });
     } catch (error: any) {
       console.error("Error deleting studio:", error);
       return NextResponse.json(
@@ -192,6 +191,5 @@ export async function DELETE(req: NextRequest, { params }: { params: any }) {
         { status: 500 }
       );
     }
-  }
   });
 }
