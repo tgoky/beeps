@@ -40,7 +40,7 @@ export async function GET(
         },
         reviews: {
           include: {
-            user: {
+            author: {
               select: {
                 id: true,
                 username: true,
