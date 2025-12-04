@@ -32,6 +32,8 @@ export default function BookStudio({ params }: { params: { id: string } }) {
   const [activeTab, setActiveTab] = useState("details");
   const [showCalendar, setShowCalendar] = useState(true);
   const [showTimeSlots, setShowTimeSlots] = useState(true);
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [bookingError, setBookingError] = useState("");
 
   if (isLoading) {
     return (
@@ -94,9 +96,6 @@ export default function BookStudio({ params }: { params: { id: string } }) {
     { icon: Users, label: "Green Room" },
     { icon: Volume2, label: "Sound Proof" },
   ];
-
-  const [bookingLoading, setBookingLoading] = useState(false);
-  const [bookingError, setBookingError] = useState("");
 
   const handleBooking = async () => {
     if (!selectedTime) {
