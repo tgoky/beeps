@@ -74,7 +74,8 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ equipment });
+    return NextResponse.json({ equipment   });
+}
   } catch (error: any) {
     console.error("Error fetching equipment:", error);
     return NextResponse.json(
@@ -85,7 +86,9 @@ export async function GET(req: NextRequest) {
 }
 
 // POST /api/equipment - List equipment
-export const POST = withAuth(async (req: NextRequest, { user }) => {
+export async function POST(req: NextRequest) {
+  return withAuth(req, async (req) => {
+    const user = req.user!;
   try {
     const body = await req.json();
     const {
@@ -172,4 +175,5 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
       { status: 500 }
     );
   }
-});
+  });
+}

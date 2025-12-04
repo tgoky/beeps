@@ -73,7 +73,8 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ beats });
+    return NextResponse.json({ beats   });
+}
   } catch (error: any) {
     console.error("Error fetching beats:", error);
     return NextResponse.json(
@@ -84,7 +85,9 @@ export async function GET(req: NextRequest) {
 }
 
 // POST /api/beats - Upload a beat
-export const POST = withAuth(async (req: NextRequest, { user }) => {
+export async function POST(req: NextRequest) {
+  return withAuth(req, async (req) => {
+    const user = req.user!;
   try {
     const body = await req.json();
     const {
@@ -174,4 +177,5 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
       { status: 500 }
     );
   }
-});
+  });
+}

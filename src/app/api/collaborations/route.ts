@@ -71,7 +71,8 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ collaborations });
+    return NextResponse.json({ collaborations   });
+}
   } catch (error) {
     console.error("Error fetching collaborations:", error);
     return NextResponse.json(
@@ -82,7 +83,9 @@ export async function GET(req: NextRequest) {
 }
 
 // POST /api/collaborations - Create a new collaboration
-export const POST = withAuth(async (req: NextRequest, { user }) => {
+export async function POST(req: NextRequest) {
+  return withAuth(req, async (req) => {
+    const user = req.user!;
   try {
     const body = await req.json();
     const {
@@ -170,4 +173,5 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
       { status: 500 }
     );
   }
-});
+  });
+}

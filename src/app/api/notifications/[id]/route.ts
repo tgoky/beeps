@@ -3,8 +3,9 @@ import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 
 // PATCH /api/notifications/[id] - Mark notification as read
-export const PATCH = withAuth(
-  async (req: NextRequest, { user, params }: { user: any; params: any }) => {
+export async function PATCH(req: NextRequest, { params }: { params: any }) {
+  return withAuth(req, async (req) => {
+    const user = req.user!;
     try {
       const { id } = params;
       const body = await req.json();
@@ -46,8 +47,9 @@ export const PATCH = withAuth(
 );
 
 // DELETE /api/notifications/[id] - Delete a notification
-export const DELETE = withAuth(
-  async (req: NextRequest, { user, params }: { user: any; params: any }) => {
+export async function DELETE(req: NextRequest, { params }: { params: any }) {
+  return withAuth(req, async (req) => {
+    const user = req.user!;
     try {
       const { id } = params;
 

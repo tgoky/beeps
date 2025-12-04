@@ -72,8 +72,9 @@ export async function GET(
 }
 
 // PATCH /api/beats/[id] - Update a beat
-export const PATCH = withAuth(
-  async (req: NextRequest, { user, params }: { user: any; params: any }) => {
+export async function PATCH(req: NextRequest, { params }: { params: any }) {
+  return withAuth(req, async (req) => {
+    const user = req.user!;
     try {
       const { id } = params;
       const body = await req.json();
@@ -141,8 +142,9 @@ export const PATCH = withAuth(
 );
 
 // DELETE /api/beats/[id] - Delete a beat (soft delete)
-export const DELETE = withAuth(
-  async (req: NextRequest, { user, params }: { user: any; params: any }) => {
+export async function DELETE(req: NextRequest, { params }: { params: any }) {
+  return withAuth(req, async (req) => {
+    const user = req.user!;
     try {
       const { id } = params;
 
@@ -171,7 +173,8 @@ export const DELETE = withAuth(
         data: { isActive: false },
       });
 
-      return NextResponse.json({ success: true });
+      return NextResponse.json({ success: true   });
+}
     } catch (error: any) {
       console.error("Error deleting beat:", error);
       return NextResponse.json(
@@ -180,4 +183,5 @@ export const DELETE = withAuth(
       );
     }
   }
-);
+  });
+}

@@ -74,7 +74,8 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ services });
+    return NextResponse.json({ services   });
+}
   } catch (error: any) {
     console.error("Error fetching services:", error);
     return NextResponse.json(
@@ -85,7 +86,9 @@ export async function GET(req: NextRequest) {
 }
 
 // POST /api/services - Create a service offering
-export const POST = withAuth(async (req: NextRequest, { user }) => {
+export async function POST(req: NextRequest) {
+  return withAuth(req, async (req) => {
+    const user = req.user!;
   try {
     const body = await req.json();
     const {
@@ -161,4 +164,5 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
       { status: 500 }
     );
   }
-});
+  });
+}

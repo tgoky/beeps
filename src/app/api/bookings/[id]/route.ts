@@ -3,8 +3,9 @@ import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 
 // GET /api/bookings/[id] - Fetch a booking by ID
-export const GET = withAuth(
-  async (req: NextRequest, { user, params }: { user: any; params: any }) => {
+export async function GET(req: NextRequest, { params }: { params: any }) {
+  return withAuth(req, async (req) => {
+    const user = req.user!;
     try {
       const { id } = params;
 
@@ -68,8 +69,9 @@ export const GET = withAuth(
 );
 
 // PATCH /api/bookings/[id] - Update a booking
-export const PATCH = withAuth(
-  async (req: NextRequest, { user, params }: { user: any; params: any }) => {
+export async function PATCH(req: NextRequest, { params }: { params: any }) {
+  return withAuth(req, async (req) => {
+    const user = req.user!;
     try {
       const { id } = params;
       const body = await req.json();
@@ -188,8 +190,9 @@ export const PATCH = withAuth(
 );
 
 // DELETE /api/bookings/[id] - Cancel a booking
-export const DELETE = withAuth(
-  async (req: NextRequest, { user, params }: { user: any; params: any }) => {
+export async function DELETE(req: NextRequest, { params }: { params: any }) {
+  return withAuth(req, async (req) => {
+    const user = req.user!;
     try {
       const { id } = params;
 

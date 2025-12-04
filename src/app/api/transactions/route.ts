@@ -3,7 +3,9 @@ import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 
 // GET /api/transactions - Fetch user transactions
-export const GET = withAuth(async (req: NextRequest, { user }) => {
+export async function GET(req: NextRequest) {
+  return withAuth(req, async (req) => {
+    const user = req.user!;
   try {
     const { searchParams } = new URL(req.url);
     const type = searchParams.get("type"); // BEAT, EQUIPMENT, BOOKING, SERVICE
@@ -80,10 +82,13 @@ export const GET = withAuth(async (req: NextRequest, { user }) => {
       { status: 500 }
     );
   }
-});
+  });
+}
 
 // POST /api/transactions - Create a transaction (purchase)
-export const POST = withAuth(async (req: NextRequest, { user }) => {
+export async function POST(req: NextRequest) {
+  return withAuth(req, async (req) => {
+    const user = req.user!;
   try {
     const body = await req.json();
     const { type, referenceId, amount, paymentMethod } = body;
@@ -262,4 +267,5 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
       { status: 500 }
     );
   }
-});
+  });
+}
