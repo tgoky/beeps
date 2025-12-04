@@ -3,79 +3,85 @@ import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 
 // GET /api/notifications - Fetch user notifications
-export const GET = withAuth(async (req: NextRequest, { user }) => {
-  try {
-    const { searchParams } = new URL(req.url);
-    const limit = parseInt(searchParams.get("limit") || "50");
-    const unreadOnly = searchParams.get("unreadOnly") === "true";
+export async function GET(req: NextRequest) {
+  return withAuth(req, async (req) => {
+    try {
+      const user = req.user!;
+      const { searchParams } = new URL(req.url);
+      const limit = parseInt(searchParams.get("limit") || "50");
+      const unreadOnly = searchParams.get("unreadOnly") === "true";
 
-    const where: any = {
-      userId: user.id,
-    };
-
-    if (unreadOnly) {
-      where.isRead = false;
-    }
-
-    const notifications = await prisma.notification.findMany({
-      where,
-      orderBy: {
-        createdAt: "desc",
-      },
-      take: limit,
-    });
-
-    const unreadCount = await prisma.notification.count({
-      where: {
+      const where: any = {
         userId: user.id,
-        isRead: false,
-      },
-    });
+      };
 
-    return NextResponse.json({
-      notifications,
-      unreadCount,
-    });
-  } catch (error: any) {
-    console.error("Error fetching notifications:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch notifications" },
-      { status: 500 }
-    );
-  }
-});
+      if (unreadOnly) {
+        where.isRead = false;
+      }
 
-// POST /api/notifications - Create a notification (internal use)
-export const POST = withAuth(async (req: NextRequest, { user }) => {
-  try {
-    const body = await req.json();
-    const { userId, type, title, message, referenceId, referenceType } = body;
+      const notifications = await prisma.notification.findMany({
+        where,
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: limit,
+      });
 
-    // Validate required fields
-    if (!userId || !type || !title || !message) {
+      const unreadCount = await prisma.notification.count({
+        where: {
+          userId: user.id,
+          isRead: false,
+        },
+      });
+
+      return NextResponse.json({
+        notifications,
+        unreadCount,
+      });
+    } catch (error: any) {
+      console.error("Error fetching notifications:", error);
       return NextResponse.json(
-        { error: "Missing required fields: userId, type, title, message" },
-        { status: 400 }
+        { error: "Failed to fetch notifications" },
+        { status: 500 }
       );
     }
+  });
+}
 
-    const notification = await prisma.notification.create({
-      data: {
-        userId,
-        type,
-        title,
-        message,
-        referenceId,
-        referenceType,
-      },
-    });
+// POST /api/notifications - Create a notification (internal use)
+export async function POST(req: NextRequest) {
+  return withAuth(req, async (req) => {
+    try {
+      const user = req.user!;
+      const body = await req.json();
+      const { userId, type, title, message, referenceId, referenceType } = body;
 
-    return NextResponse.json({ notification }, { status: 201 });
-  } catch (error: any) {
-    console.error("Error creating notification:", error);
-    return NextResponse.json(
-      { error: "Failed to create notification" },
-      { status: 500 }
-    );
-  }
-});
+      // Validate required fields
+      if (!userId || !type || !title || !message) {
+        return NextResponse.json(
+          { error: "Missing required fields: userId, type, title, message" },
+          { status: 400 }
+        );
+      }
+
+      const notification = await prisma.notification.create({
+        data: {
+          userId,
+          type,
+          title,
+          message,
+          referenceId,
+          referenceType,
+        },
+      });
+
+      return NextResponse.json({ notification }, { status: 201 });
+    } catch (error: any) {
+      console.error("Error creating notification:", error);
+      return NextResponse.json(
+        { error: "Failed to create notification" },
+        { status: 500 }
+      );
+    }
+  });
+}
