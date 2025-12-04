@@ -3,7 +3,9 @@ import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 
 // POST /api/notifications/mark-all-read - Mark all notifications as read
-export const POST = withAuth(async (req: NextRequest, { user }) => {
+export async function POST(req: NextRequest) {
+  return withAuth(req, async (req) => {
+    const user = req.user!;
   try {
     await prisma.notification.updateMany({
       where: {
@@ -23,4 +25,5 @@ export const POST = withAuth(async (req: NextRequest, { user }) => {
       { status: 500 }
     );
   }
-});
+  });
+}

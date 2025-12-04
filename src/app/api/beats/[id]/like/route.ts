@@ -3,8 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { withAuth } from "@/lib/auth";
 
 // POST /api/beats/[id]/like - Toggle like on a beat
-export const POST = withAuth(
-  async (req: NextRequest, { user, params }: any) => {
+export async function POST(req: NextRequest, { params }: { params: any }) {
+  return withAuth(req, async (req) => {
+    const user = req.user!;
     try {
       const { id } = params;
 

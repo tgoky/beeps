@@ -3,8 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { withAuth } from "@/lib/auth";
 
 // POST /api/collaborations/[id]/bid - Place a bid or request on a collaboration
-export const POST = withAuth(
-  async (req: NextRequest, { user, params }: any) => {
+export async function POST(req: NextRequest, { params }: { params: any }) {
+  return withAuth(req, async (req) => {
+    const user = req.user!;
     try {
       const { id } = params;
       const body = await req.json();

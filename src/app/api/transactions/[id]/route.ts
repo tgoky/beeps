@@ -3,8 +3,9 @@ import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 
 // GET /api/transactions/[id] - Fetch a transaction by ID
-export const GET = withAuth(
-  async (req: NextRequest, { user, params }: { user: any; params: any }) => {
+export async function GET(req: NextRequest, { params }: { params: any }) {
+  return withAuth(req, async (req) => {
+    const user = req.user!;
     try {
       const { id } = params;
 
