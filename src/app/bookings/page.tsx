@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAllBookings, useUpdateBookingStatus, useCancelBooking } from "@/hooks/useBookings";
 import { useTheme } from "@/providers/ThemeProvider";
+import { createBrowserClient } from "@supabase/ssr";
+import { useUserBySupabaseId } from "@/hooks/api/useUserData";
 import {
   Calendar,
   Clock,
@@ -45,10 +47,30 @@ export default function BookingsPage() {
   const [bookingType, setBookingType] = useState<BookingType>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [expandedBooking, setExpandedBooking] = useState<string | null>(null);
+  const [supabaseUser, setSupabaseUser] = useState<any>(null);
 
   const { data: bookingsData, isLoading, error } = useAllBookings(viewMode);
   const updateStatus = useUpdateBookingStatus();
   const cancelBooking = useCancelBooking();
+
+  // Fetch current user data
+  const { data: currentUser } = useUserBySupabaseId(supabaseUser?.id, {
+    enabled: !!supabaseUser?.id,
+  });
+
+  // Load Supabase user
+  useEffect(() => {
+    const loadUser = async () => {
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+      const { data: { user } } = await supabase.auth.getUser();
+      setSupabaseUser(user);
+    };
+
+    loadUser();
+  }, []);
 
   // Combine all bookings
   const allBookings = bookingsData
@@ -584,14 +606,17 @@ export default function BookingsPage() {
                     <ChevronRight className="w-4 h-4" strokeWidth={2} />
                   </button>
 
-                  {booking.status === "PENDING" && viewMode === "provider" && booking.type === "STUDIO_BOOKING" && (
+                  {/* Only show confirm button if user is the studio owner */}
+                  {booking.status === "PENDING" &&
+                   booking.type === "STUDIO_BOOKING" &&
+                   currentUser?.id === (booking as any).studio?.owner?.userId && (
                     <button
                       onClick={() => updateStatus.mutate({ bookingId: booking.id, status: "CONFIRMED" })}
                       disabled={updateStatus.isPending}
                       className={`
                         px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
-                        ${theme === "dark" 
-                          ? "bg-green-500/10 border-green-500/20 text-green-400" 
+                        ${theme === "dark"
+                          ? "bg-green-500/10 border-green-500/20 text-green-400"
                           : "bg-green-500/10 border-green-500/20 text-green-600"
                         }
                         hover:bg-green-500/20 hover:border-green-500/30 active:scale-[0.98]
@@ -609,38 +634,51 @@ export default function BookingsPage() {
                     </button>
                   )}
 
+                  {/* Show cancel/reject button based on user role */}
                   {booking.status === "PENDING" && (
-                    <button
-                      onClick={() => cancelBooking.mutate(booking.id)}
-                      disabled={cancelBooking.isPending}
-                      className={`
-                        px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
-                        ${theme === "dark" 
-                          ? "bg-red-500/10 border-red-500/20 text-red-400" 
-                          : "bg-red-500/10 border-red-500/20 text-red-600"
-                        }
-                        hover:bg-red-500/20 hover:border-red-500/30 active:scale-[0.98]
-                        disabled:opacity-50 disabled:cursor-not-allowed
-                      `}
-                    >
-                      {cancelBooking.isPending ? (
-                        <span className="flex items-center gap-2">
-                          <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
-                          Cancelling...
-                        </span>
-                      ) : (
-                        "Cancel"
-                      )}
-                    </button>
+                    (() => {
+                      const isStudioOwner = booking.type === "STUDIO_BOOKING" && currentUser?.id === (booking as any).studio?.owner?.userId;
+                      const isCustomer = currentUser?.id === (booking as any).userId;
+
+                      if (!isStudioOwner && !isCustomer) return null;
+
+                      return (
+                        <button
+                          onClick={() => cancelBooking.mutate(booking.id)}
+                          disabled={cancelBooking.isPending}
+                          className={`
+                            px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
+                            ${theme === "dark"
+                              ? "bg-red-500/10 border-red-500/20 text-red-400"
+                              : "bg-red-500/10 border-red-500/20 text-red-600"
+                            }
+                            hover:bg-red-500/20 hover:border-red-500/30 active:scale-[0.98]
+                            disabled:opacity-50 disabled:cursor-not-allowed
+                          `}
+                        >
+                          {cancelBooking.isPending ? (
+                            <span className="flex items-center gap-2">
+                              <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
+                              {isStudioOwner ? 'Rejecting...' : 'Cancelling...'}
+                            </span>
+                          ) : (
+                            isStudioOwner ? 'Reject' : 'Cancel'
+                          )}
+                        </button>
+                      );
+                    })()
                   )}
 
-                  {booking.status === "CONFIRMED" && booking.type === "STUDIO_BOOKING" && viewMode === "customer" && (
+                  {/* Show message button only to customers on confirmed bookings */}
+                  {booking.status === "CONFIRMED" &&
+                   booking.type === "STUDIO_BOOKING" &&
+                   currentUser?.id === (booking as any).userId && (
                     <button
                       onClick={() => router.push(`/bookings/${booking.id}/chat`)}
                       className={`
                         px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
-                        ${theme === "dark" 
-                          ? "bg-blue-500/10 border-blue-500/20 text-blue-400" 
+                        ${theme === "dark"
+                          ? "bg-blue-500/10 border-blue-500/20 text-blue-400"
                           : "bg-blue-500/10 border-blue-500/20 text-blue-600"
                         }
                         hover:bg-blue-500/20 hover:border-blue-500/30 active:scale-[0.98]
