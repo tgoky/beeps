@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "../../../../providers/ThemeProvider";
-import { studioData } from "../../studiosjson";
+import { useStudio } from "../../../../hooks/useStudios";
 import dayjs from "dayjs";
 import {
   Star,
@@ -21,27 +21,11 @@ import {
   Volume2,
 } from "lucide-react";
 
-type Studio = {
-  id: number;
-  name: string;
-  location: string;
-  price: string;
-  rating: number;
-  equipment: string[];
-  image: string;
-  lat: number;
-  lon: number;
-  description?: string;
-  amenities?: string[];
-  reviews?: any[];
-  availableHours?: string[];
-};
-
 export default function BookStudio({ params }: { params: { id: string } }) {
   const router = useRouter();
   const { theme } = useTheme();
-  
-  const studio = studioData.find((s) => s.id === parseInt(params.id));
+
+  const { data: studio, isLoading, error } = useStudio(params.id);
   const [selectedDate, setSelectedDate] = useState(dayjs());
   const [selectedTime, setSelectedTime] = useState("");
   const [sessionLength, setSessionLength] = useState(2);
@@ -49,7 +33,24 @@ export default function BookStudio({ params }: { params: { id: string } }) {
   const [showCalendar, setShowCalendar] = useState(true);
   const [showTimeSlots, setShowTimeSlots] = useState(true);
 
-  if (!studio) {
+  if (isLoading) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center ${
+        theme === "dark" ? "bg-gray-950" : "bg-gray-50"
+      }`}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent mx-auto mb-4"></div>
+          <p className={`text-sm ${
+            theme === "dark" ? "text-gray-400" : "text-gray-600"
+          }`}>
+            Loading studio details...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !studio) {
     return (
       <div className={`min-h-screen flex items-center justify-center ${
         theme === "dark" ? "bg-gray-950" : "bg-gray-50"
@@ -60,6 +61,11 @@ export default function BookStudio({ params }: { params: { id: string } }) {
           }`}>
             Studio not found
           </h1>
+          <p className={`text-sm mb-4 ${
+            theme === "dark" ? "text-gray-400" : "text-gray-600"
+          }`}>
+            {error instanceof Error ? error.message : "The studio you're looking for doesn't exist."}
+          </p>
           <button
             onClick={() => router.push("/studios")}
             className={`text-sm ${
@@ -73,7 +79,7 @@ export default function BookStudio({ params }: { params: { id: string } }) {
     );
   }
 
-  const hourlyRate = parseFloat(studio.price.replace("$", ""));
+  const hourlyRate = studio.hourlyRate;
   const estimatedTotal = hourlyRate * sessionLength;
 
   const timeSlots = [
@@ -137,7 +143,7 @@ export default function BookStudio({ params }: { params: { id: string } }) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          studioId: studio.id.toString(), // Convert to string UUID if needed
+          studioId: studio.id, // UUID string from database
           startTime: startTime.toISOString(),
           endTime: endTime.toISOString(),
           notes: "",
@@ -213,7 +219,7 @@ export default function BookStudio({ params }: { params: { id: string } }) {
                   <span className={`text-sm ${
                     theme === "dark" ? "text-gray-400" : "text-gray-600"
                   }`}>
-                    {studio.price}/hour
+                    ${studio.hourlyRate}/hour
                   </span>
                 </div>
               </div>
@@ -227,16 +233,26 @@ export default function BookStudio({ params }: { params: { id: string } }) {
             {/* Studio Image */}
             <div className={`
               rounded-xl overflow-hidden border transition-all duration-200
-              ${theme === "dark" 
-                ? "bg-gray-900/40 border-gray-800/60" 
+              ${theme === "dark"
+                ? "bg-gray-900/40 border-gray-800/60"
                 : "bg-white/50 border-gray-200/60"
               }
             `}>
-              <img
-                src={studio.image}
-                alt={studio.name}
-                className="w-full h-64 lg:h-80 object-cover"
-              />
+              {studio.imageUrl ? (
+                <img
+                  src={studio.imageUrl}
+                  alt={studio.name}
+                  className="w-full h-64 lg:h-80 object-cover"
+                />
+              ) : (
+                <div className={`w-full h-64 lg:h-80 flex items-center justify-center ${
+                  theme === "dark" ? "bg-gray-800/40" : "bg-gray-100"
+                }`}>
+                  <Mic2 className={`w-16 h-16 ${
+                    theme === "dark" ? "text-gray-600" : "text-gray-400"
+                  }`} />
+                </div>
+              )}
             </div>
 
             {/* Tabs */}
@@ -595,15 +611,15 @@ export default function BookStudio({ params }: { params: { id: string } }) {
 
                 {/* Price Summary */}
                 <div className={`p-4 rounded-lg mb-6 ${
-                  theme === "dark" 
-                    ? "bg-gray-800/40 border border-gray-700/60" 
+                  theme === "dark"
+                    ? "bg-gray-800/40 border border-gray-700/60"
                     : "bg-gray-50/50 border border-gray-200/60"
                 }`}>
                   <div className="flex justify-between items-center mb-2">
                     <span className={`text-sm ${
                       theme === "dark" ? "text-gray-400" : "text-gray-600"
                     }`}>
-                      {sessionLength} hours × {studio.price}
+                      {sessionLength} hours × ${studio.hourlyRate}/hr
                     </span>
                     <span className={`text-sm font-medium ${
                       theme === "dark" ? "text-gray-300" : "text-gray-900"
