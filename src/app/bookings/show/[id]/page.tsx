@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@/providers/ThemeProvider";
+import { createBrowserClient } from "@supabase/ssr";
+import { useUserBySupabaseId } from "@/hooks/api/useUserData";
 import {
   Calendar,
   Clock,
@@ -66,6 +68,26 @@ export default function BookingShowPage({ params }: { params: { id: string } }) 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [supabaseUser, setSupabaseUser] = useState<any>(null);
+
+  // Fetch current user data
+  const { data: currentUser } = useUserBySupabaseId(supabaseUser?.id, {
+    enabled: !!supabaseUser?.id,
+  });
+
+  // Load Supabase user
+  useEffect(() => {
+    const loadUser = async () => {
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+      const { data: { user } } = await supabase.auth.getUser();
+      setSupabaseUser(user);
+    };
+
+    loadUser();
+  }, []);
 
   useEffect(() => {
     const fetchBooking = async () => {
@@ -264,6 +286,10 @@ export default function BookingShowPage({ params }: { params: { id: string } }) 
   }
 
   const duration = calculateDuration(booking.startTime, booking.endTime);
+
+  // Determine user roles for RBAC
+  const isCustomer = currentUser?.id === booking.userId;
+  const isStudioOwner = currentUser?.id === booking.studio.owner.userId;
 
   return (
     <div className={`min-h-screen p-6 transition-colors duration-200 ${bgPrimary} ${textPrimary}`}>
@@ -554,57 +580,63 @@ export default function BookingShowPage({ params }: { params: { id: string } }) 
 
               {booking.status === "PENDING" && (
                 <>
-                  <button
-                    onClick={() => handleUpdateStatus("CONFIRMED")}
-                    disabled={isUpdating}
-                    className={`
-                      flex items-center gap-2.5 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
-                      ${theme === "dark"
-                        ? "bg-green-500/10 border-green-500/20 text-green-400"
-                        : "bg-green-500/10 border-green-500/20 text-green-600"
-                      }
-                      hover:bg-green-500/20 hover:border-green-500/30 active:scale-[0.98]
-                      disabled:opacity-50 disabled:cursor-not-allowed
-                    `}
-                  >
-                    {isUpdating ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
-                        <span>Confirming...</span>
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle2 className="w-4 h-4" strokeWidth={2} />
-                        <span>Confirm</span>
-                      </>
-                    )}
-                  </button>
+                  {/* Only studio owner can confirm bookings */}
+                  {isStudioOwner && (
+                    <button
+                      onClick={() => handleUpdateStatus("CONFIRMED")}
+                      disabled={isUpdating}
+                      className={`
+                        flex items-center gap-2.5 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
+                        ${theme === "dark"
+                          ? "bg-green-500/10 border-green-500/20 text-green-400"
+                          : "bg-green-500/10 border-green-500/20 text-green-600"
+                        }
+                        hover:bg-green-500/20 hover:border-green-500/30 active:scale-[0.98]
+                        disabled:opacity-50 disabled:cursor-not-allowed
+                      `}
+                    >
+                      {isUpdating ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
+                          <span>Confirming...</span>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="w-4 h-4" strokeWidth={2} />
+                          <span>Confirm Booking</span>
+                        </>
+                      )}
+                    </button>
+                  )}
 
-                  <button
-                    onClick={handleCancelBooking}
-                    disabled={isUpdating}
-                    className={`
-                      flex items-center gap-2.5 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
-                      ${theme === "dark"
-                        ? "bg-red-500/10 border-red-500/20 text-red-400"
-                        : "bg-red-500/10 border-red-500/20 text-red-600"
-                      }
-                      hover:bg-red-500/20 hover:border-red-500/30 active:scale-[0.98]
-                      disabled:opacity-50 disabled:cursor-not-allowed
-                    `}
-                  >
-                    {isUpdating ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
-                        <span>Cancelling...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Ban className="w-4 h-4" strokeWidth={2} />
-                        <span>Cancel Booking</span>
-                      </>
-                    )}
-                  </button>
+                  {/* Both customer and studio owner can cancel */}
+                  {(isCustomer || isStudioOwner) && (
+                    <button
+                      onClick={handleCancelBooking}
+                      disabled={isUpdating}
+                      className={`
+                        flex items-center gap-2.5 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
+                        ${theme === "dark"
+                          ? "bg-red-500/10 border-red-500/20 text-red-400"
+                          : "bg-red-500/10 border-red-500/20 text-red-600"
+                        }
+                        hover:bg-red-500/20 hover:border-red-500/30 active:scale-[0.98]
+                        disabled:opacity-50 disabled:cursor-not-allowed
+                      `}
+                    >
+                      {isUpdating ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
+                          <span>Cancelling...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Ban className="w-4 h-4" strokeWidth={2} />
+                          <span>{isStudioOwner ? 'Reject Booking' : 'Cancel Booking'}</span>
+                        </>
+                      )}
+                    </button>
+                  )}
                 </>
               )}
             </div>
