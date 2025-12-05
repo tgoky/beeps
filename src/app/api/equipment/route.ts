@@ -74,8 +74,7 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ equipment   });
-}
+    return NextResponse.json({ equipment });
   } catch (error: any) {
     console.error("Error fetching equipment:", error);
     return NextResponse.json(

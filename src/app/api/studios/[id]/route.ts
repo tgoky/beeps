@@ -145,8 +145,8 @@ export async function PATCH(req: NextRequest, { params }: { params: any }) {
         { status: 500 }
       );
     }
-  }
-);
+  });
+}
 
 // DELETE /api/studios/[id] - Delete a studio (soft delete)
 export async function DELETE(req: NextRequest, { params }: { params: any }) {

@@ -73,8 +73,7 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ beats   });
-}
+    return NextResponse.json({ beats });
   } catch (error: any) {
     console.error("Error fetching beats:", error);
     return NextResponse.json(
