@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Bell, X, Check, CheckCheck } from "lucide-react";
+import { Bell, X, Check, CheckCheck, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import { useTheme } from "@/providers/ThemeProvider";
 import Link from "next/link";
 
@@ -14,6 +14,9 @@ interface Notification {
   createdAt: string;
   referenceId?: string;
   referenceType?: string;
+  relatedData?: {
+    status?: string;
+  };
 }
 
 export const NotificationBell = () => {
@@ -156,6 +159,52 @@ export const NotificationBell = () => {
     }
   };
 
+  // Get status icon
+  const getStatusIcon = (status: string) => {
+    switch (status?.toUpperCase()) {
+      case "CONFIRMED":
+      case "ACCEPTED":
+        return <CheckCircle2 className="w-3.5 h-3.5 text-green-400" strokeWidth={2.5} />;
+      case "COMPLETED":
+        return <CheckCircle2 className="w-3.5 h-3.5 text-blue-400" strokeWidth={2.5} />;
+      case "PENDING":
+        return <AlertCircle className="w-3.5 h-3.5 text-yellow-400" strokeWidth={2.5} />;
+      case "CANCELLED":
+      case "REJECTED":
+        return <XCircle className="w-3.5 h-3.5 text-red-400" strokeWidth={2.5} />;
+      default:
+        return <AlertCircle className={`w-3.5 h-3.5 ${theme === "dark" ? "text-zinc-400" : "text-gray-400"}`} strokeWidth={2.5} />;
+    }
+  };
+
+  // Get status color classes
+  const getStatusColor = (status: string) => {
+    switch (status?.toUpperCase()) {
+      case "CONFIRMED":
+      case "ACCEPTED":
+        return theme === "dark"
+          ? "bg-green-500/10 text-green-400 border-green-500/20"
+          : "bg-green-500/10 text-green-600 border-green-500/20";
+      case "COMPLETED":
+        return theme === "dark"
+          ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
+          : "bg-blue-500/10 text-blue-600 border-blue-500/20";
+      case "PENDING":
+        return theme === "dark"
+          ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
+          : "bg-yellow-500/10 text-yellow-600 border-yellow-500/20";
+      case "CANCELLED":
+      case "REJECTED":
+        return theme === "dark"
+          ? "bg-red-500/10 text-red-400 border-red-500/20"
+          : "bg-red-500/10 text-red-600 border-red-500/20";
+      default:
+        return theme === "dark"
+          ? "bg-zinc-500/10 text-zinc-400 border-zinc-500/20"
+          : "bg-gray-500/10 text-gray-600 border-gray-500/20";
+    }
+  };
+
   return (
     <div className="relative" ref={dropdownRef}>
       {/* Bell Button */}
@@ -290,12 +339,29 @@ export const NotificationBell = () => {
                           `}>
                             {notification.message}
                           </p>
-                          <p className={`
-                            text-xs mt-1.5
-                            ${theme === "dark" ? "text-gray-600" : "text-gray-500"}
-                          `}>
-                            {formatTimeAgo(notification.createdAt)}
-                          </p>
+
+                          <div className="flex items-center gap-2 mt-1.5">
+                            <p className={`
+                              text-xs
+                              ${theme === "dark" ? "text-gray-600" : "text-gray-500"}
+                            `}>
+                              {formatTimeAgo(notification.createdAt)}
+                            </p>
+
+                            {/* Status Badge */}
+                            {notification.relatedData?.status && (
+                              <span
+                                className={`
+                                  inline-flex items-center gap-1 text-[10px] font-medium tracking-wide
+                                  px-2 py-0.5 rounded-full border
+                                  ${getStatusColor(notification.relatedData.status)}
+                                `}
+                              >
+                                {getStatusIcon(notification.relatedData.status)}
+                                {notification.relatedData.status.charAt(0) + notification.relatedData.status.slice(1).toLowerCase()}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <div className="flex items-center gap-1 flex-shrink-0">
                           {!notification.isRead && (
