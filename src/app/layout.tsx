@@ -10,6 +10,7 @@ import { SidebarProvider } from "../providers/sidebar-provider/sidebar-provider"
 import { authProviderClient } from "@providers/auth-provider/auth-provider.client";
 import { dataProvider } from "@providers/data-provider";
 import { ThemeProvider } from "@providers/ThemeProvider";
+import { ToastProvider } from "@providers/ToastProvider";
 import { QueryProvider } from "@providers/QueryProvider";
 import { PermissionsProvider } from "@/hooks/usePermissions";
 import "@styles/global.css";
@@ -34,9 +35,10 @@ export default function RootLayout({
           <RefineKbarProvider>
             <QueryProvider>
               <ThemeProvider>
-                <SidebarProvider>
-                {/* ✅ FIXED: Refine must wrap PermissionsProvider */}
-                <Refine
+                <ToastProvider>
+                  <SidebarProvider>
+                  {/* ✅ FIXED: Refine must wrap PermissionsProvider */}
+                  <Refine
                   routerProvider={routerProvider}
                   authProvider={authProviderClient}
                   dataProvider={dataProvider}
@@ -150,7 +152,8 @@ export default function RootLayout({
                     <RefineKbar />
                   </PermissionsProvider>
                 </Refine>
-                </SidebarProvider>
+                  </SidebarProvider>
+                </ToastProvider>
               </ThemeProvider>
             </QueryProvider>
           </RefineKbarProvider>

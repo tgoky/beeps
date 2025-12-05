@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "../../../../providers/ThemeProvider";
+import { useToast } from "../../../../providers/ToastProvider";
 import { useStudio } from "../../../../hooks/useStudios";
 import dayjs from "dayjs";
 import {
@@ -24,6 +25,7 @@ import {
 export default function BookStudio({ params }: { params: { id: string } }) {
   const router = useRouter();
   const { theme } = useTheme();
+  const { showToast } = useToast();
 
   const { data: studio, isLoading, error } = useStudio(params.id);
   const [selectedDate, setSelectedDate] = useState(dayjs());
@@ -155,8 +157,8 @@ export default function BookStudio({ params }: { params: { id: string } }) {
         throw new Error(data.error || "Failed to create booking");
       }
 
-      // Show success message
-      alert("Booking request submitted! You'll be notified when the studio owner responds.");
+      // Show success toast
+      showToast("Booking request submitted! You'll be notified when the studio owner responds.", "success");
       router.push("/bookings");
     } catch (error: any) {
       console.error("Booking error:", error);
