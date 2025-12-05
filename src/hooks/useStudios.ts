@@ -29,6 +29,24 @@ export interface Studio {
       avatar: string | null;
     };
   };
+  bookings?: {
+    id: string;
+    startTime: string;
+    endTime: string;
+    status: string;
+  }[];
+  reviews?: {
+    id: string;
+    rating: number;
+    comment: string;
+    createdAt: string;
+    author: {
+      id: string;
+      username: string;
+      fullName: string | null;
+      avatar: string | null;
+    };
+  }[];
   _count?: {
     bookings: number;
     reviews: number;
