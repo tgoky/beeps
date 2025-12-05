@@ -92,5 +92,5 @@ export async function GET(req: NextRequest, { params }: { params: any }) {
         { status: 500 }
       );
     }
-  }
-);
+  });
+}

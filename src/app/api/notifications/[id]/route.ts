@@ -43,8 +43,8 @@ export async function PATCH(req: NextRequest, { params }: { params: any }) {
         { status: 500 }
       );
     }
-  }
-);
+  });
+}
 
 // DELETE /api/notifications/[id] - Delete a notification
 export async function DELETE(req: NextRequest, { params }: { params: any }) {
@@ -84,5 +84,5 @@ export async function DELETE(req: NextRequest, { params }: { params: any }) {
         { status: 500 }
       );
     }
-  }
-);
+  });
+}

@@ -74,8 +74,7 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ services   });
-}
+    return NextResponse.json({ services });
   } catch (error: any) {
     console.error("Error fetching services:", error);
     return NextResponse.json(

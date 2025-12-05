@@ -138,8 +138,8 @@ export async function PATCH(req: NextRequest, { params }: { params: any }) {
         { status: 500 }
       );
     }
-  }
-);
+  });
+}
 
 // DELETE /api/beats/[id] - Delete a beat (soft delete)
 export async function DELETE(req: NextRequest, { params }: { params: any }) {
@@ -173,8 +173,7 @@ export async function DELETE(req: NextRequest, { params }: { params: any }) {
         data: { isActive: false },
       });
 
-      return NextResponse.json({ success: true   });
-}
+      return NextResponse.json({ success: true });
     } catch (error: any) {
       console.error("Error deleting beat:", error);
       return NextResponse.json(
@@ -182,6 +181,5 @@ export async function DELETE(req: NextRequest, { params }: { params: any }) {
         { status: 500 }
       );
     }
-  }
   });
 }

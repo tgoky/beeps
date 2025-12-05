@@ -71,8 +71,7 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ collaborations   });
-}
+    return NextResponse.json({ collaborations });
   } catch (error) {
     console.error("Error fetching collaborations:", error);
     return NextResponse.json(
