@@ -87,9 +87,46 @@ export default function BookStudio({ params }: { params: { id: string } }) {
   const estimatedTotal = hourlyRate * sessionLength;
 
   const timeSlots = [
-    "9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", 
+    "9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM",
     "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM"
   ];
+
+  // Check if a time slot is available
+  const isTimeSlotAvailable = (time: string) => {
+    if (!studio.bookings || studio.bookings.length === 0) return true;
+
+    // Parse the time slot
+    const timeParts = time.match(/(\d+):(\d+)\s*(AM|PM)/i);
+    if (!timeParts) return true;
+
+    let hours = parseInt(timeParts[1]);
+    const minutes = parseInt(timeParts[2]);
+    const period = timeParts[3].toUpperCase();
+
+    if (period === "PM" && hours !== 12) hours += 12;
+    if (period === "AM" && hours === 12) hours = 0;
+
+    const slotStart = selectedDate.hour(hours).minute(minutes).second(0);
+    const slotEnd = slotStart.add(sessionLength, "hour");
+
+    // Check against existing bookings
+    return !studio.bookings.some((booking) => {
+      const bookingStart = dayjs(booking.startTime);
+      const bookingEnd = dayjs(booking.endTime);
+      const bookingDate = bookingStart.format("YYYY-MM-DD");
+      const selectedDateStr = selectedDate.format("YYYY-MM-DD");
+
+      // Only check bookings on the selected date
+      if (bookingDate !== selectedDateStr) return false;
+
+      // Check if time slots overlap
+      return (
+        (slotStart.isBefore(bookingEnd) && slotEnd.isAfter(bookingStart)) ||
+        (slotStart.isSame(bookingStart)) ||
+        (slotEnd.isSame(bookingEnd))
+      );
+    });
+  };
 
   const amenities = [
     { icon: Wifi, label: "High-speed WiFi" },
@@ -102,6 +139,13 @@ export default function BookStudio({ params }: { params: { id: string } }) {
   const handleBooking = async () => {
     if (!selectedTime) {
       setBookingError("Please select a time slot");
+      return;
+    }
+
+    // Check if the selected time slot is available
+    if (!isTimeSlotAvailable(selectedTime)) {
+      setBookingError("This time slot is already booked. Please select a different time.");
+      showToast("This time slot is already booked", "error");
       return;
     }
 
@@ -538,28 +582,42 @@ export default function BookStudio({ params }: { params: { id: string } }) {
   
   {showTimeSlots ? (
     <div className="grid grid-cols-3 gap-2">
-      {timeSlots.map((time) => (
-        <button
-          key={time}
-          onClick={() => setSelectedTime(time)}
-          className={`
-            py-2 text-xs rounded-lg border transition-all duration-200
-            ${selectedTime === time
-              ? theme === "dark"
-                ? "bg-purple-500/20 text-purple-400 border-purple-500/40"
-                : "bg-purple-50 text-purple-600 border-purple-200"
-              : theme === "dark"
-                ? "bg-gray-800/40 text-gray-400 border-gray-700/60 hover:border-gray-600"
-                : "bg-gray-50/50 text-gray-600 border-gray-200/60 hover:border-gray-300"
-            }
-          `}
-        >
-          {time}
-        </button>
-      ))}
+      {timeSlots.map((time) => {
+        const isAvailable = isTimeSlotAvailable(time);
+        return (
+          <button
+            key={time}
+            onClick={() => isAvailable && setSelectedTime(time)}
+            disabled={!isAvailable}
+            className={`
+              py-2 text-xs rounded-lg border transition-all duration-200 relative
+              ${!isAvailable
+                ? theme === "dark"
+                  ? "bg-red-500/10 text-red-400/50 border-red-500/20 cursor-not-allowed line-through"
+                  : "bg-red-50 text-red-600/50 border-red-200 cursor-not-allowed line-through"
+                : selectedTime === time
+                ? theme === "dark"
+                  ? "bg-purple-500/20 text-purple-400 border-purple-500/40"
+                  : "bg-purple-50 text-purple-600 border-purple-200"
+                : theme === "dark"
+                  ? "bg-gray-800/40 text-gray-400 border-gray-700/60 hover:border-gray-600"
+                  : "bg-gray-50/50 text-gray-600 border-gray-200/60 hover:border-gray-300"
+              }
+            `}
+          >
+            {time}
+            {!isAvailable && (
+              <span className="absolute top-0 right-0 -mt-1 -mr-1 text-[10px] bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center">
+                ✕
+              </span>
+            )}
+          </button>
+        );
+      })}
     </div>
   ) : (
-    <input
+    <>
+      <input
       type="time"
       value={selectedTime ? dayjs(`2000-01-01 ${selectedTime}`).format("HH:mm") : ""}
       onChange={(e) => {
@@ -576,6 +634,12 @@ export default function BookStudio({ params }: { params: { id: string } }) {
           : "bg-gray-50/50 border-gray-200/60 text-gray-700"
       }`}
     />
+    </>
+  )}
+  {showTimeSlots && studio.bookings && studio.bookings.length > 0 && (
+    <p className={`text-xs mt-2 ${theme === "dark" ? "text-gray-500" : "text-gray-500"}`}>
+      <span className="text-red-400">✕</span> = Already booked
+    </p>
   )}
 </div>
 
