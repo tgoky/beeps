@@ -27,6 +27,33 @@ export async function GET(req: NextRequest) {
         take: limit,
       });
 
+      // Enrich notifications with related data (like booking status)
+      const enrichedNotifications = await Promise.all(
+        notifications.map(async (notification) => {
+          let relatedData = null;
+
+          // Fetch booking status if it's a booking notification
+          if (notification.referenceType === "BOOKING" && notification.referenceId) {
+            try {
+              const booking = await prisma.booking.findUnique({
+                where: { id: notification.referenceId },
+                select: { status: true },
+              });
+              if (booking) {
+                relatedData = { status: booking.status };
+              }
+            } catch (error) {
+              console.error("Error fetching booking data for notification:", error);
+            }
+          }
+
+          return {
+            ...notification,
+            relatedData,
+          };
+        })
+      );
+
       const unreadCount = await prisma.notification.count({
         where: {
           userId: user.id,
@@ -35,7 +62,7 @@ export async function GET(req: NextRequest) {
       });
 
       return NextResponse.json({
-        notifications,
+        notifications: enrichedNotifications,
         unreadCount,
       });
     } catch (error: any) {
