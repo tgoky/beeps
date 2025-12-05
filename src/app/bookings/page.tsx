@@ -49,6 +49,11 @@ export default function BookingsPage() {
   const [expandedBooking, setExpandedBooking] = useState<string | null>(null);
   const [supabaseUser, setSupabaseUser] = useState<any>(null);
 
+  // Fetch BOTH customer and provider bookings for accurate combined stats
+  const { data: customerBookingsData } = useAllBookings("customer");
+  const { data: providerBookingsData } = useAllBookings("provider");
+
+  // Use the current view mode data for the list display
   const { data: bookingsData, isLoading, error } = useAllBookings(viewMode);
   const updateStatus = useUpdateBookingStatus();
   const cancelBooking = useCancelBooking();
@@ -72,7 +77,24 @@ export default function BookingsPage() {
     loadUser();
   }, []);
 
-  // Combine all bookings
+  // Combine ALL bookings from both customer and provider views for stats
+  const allCombinedBookings = [
+    ...(customerBookingsData?.studioBookings || []),
+    ...(customerBookingsData?.equipmentRentals || []),
+    ...(customerBookingsData?.serviceRequests || []),
+    ...(customerBookingsData?.beatPurchases || []),
+    ...(providerBookingsData?.studioBookings || []),
+    ...(providerBookingsData?.equipmentRentals || []),
+    ...(providerBookingsData?.serviceRequests || []),
+    ...(providerBookingsData?.beatPurchases || []),
+  ];
+
+  // Remove duplicates (bookings where user is both customer and provider somehow)
+  const uniqueCombinedBookings = Array.from(
+    new Map(allCombinedBookings.map(b => [b.id, b])).values()
+  );
+
+  // Current view bookings (for display only)
   const allBookings = bookingsData
     ? [
         ...bookingsData.studioBookings,
@@ -82,7 +104,7 @@ export default function BookingsPage() {
       ]
     : [];
 
-  // Filter bookings
+  // Filter bookings for display (only current view mode)
   const filteredBookings = allBookings.filter((booking) => {
     // Type filter
     if (bookingType !== "all") {
@@ -104,13 +126,13 @@ export default function BookingsPage() {
     return true;
   });
 
-  // Calculate stats
+  // Calculate stats from ALL combined bookings (customer + provider)
   const stats = {
-    total: allBookings.length,
-    pending: allBookings.filter((b: any) => b.status === "PENDING").length,
-    confirmed: allBookings.filter((b: any) => b.status === "CONFIRMED" || b.status === "ACCEPTED").length,
-    completed: allBookings.filter((b: any) => b.status === "COMPLETED").length,
-    cancelled: allBookings.filter((b: any) => b.status === "CANCELLED" || b.status === "REJECTED").length,
+    total: uniqueCombinedBookings.length,
+    pending: uniqueCombinedBookings.filter((b: any) => b.status === "PENDING").length,
+    confirmed: uniqueCombinedBookings.filter((b: any) => b.status === "CONFIRMED" || b.status === "ACCEPTED").length,
+    completed: uniqueCombinedBookings.filter((b: any) => b.status === "COMPLETED").length,
+    cancelled: uniqueCombinedBookings.filter((b: any) => b.status === "CANCELLED" || b.status === "REJECTED").length,
   };
 
   const getStatusIcon = (status: string) => {
