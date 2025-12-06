@@ -22,7 +22,7 @@ export async function GET(
             avatar: true,
             bio: true,
             location: true,
-            isVerified: true,
+            verified: true,
             email: true,
           },
         },
