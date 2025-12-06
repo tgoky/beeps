@@ -26,7 +26,7 @@ export function getNotificationRoute(
     // Service Request notifications
     case "SERVICE_REQUEST":
       return {
-        path: `/service-requests?highlight=${referenceId}`,
+        path: `/service-requests/${referenceId}`,
         closeDropdown: true,
       };
 
@@ -116,7 +116,7 @@ function getRouteByNotificationType(
     case "JOB_REJECTED":
     case "JOB_UPDATED":
       return {
-        path: `/service-requests?highlight=${referenceId}`,
+        path: `/service-requests/${referenceId}`,
         closeDropdown: true,
       };
 
