@@ -141,17 +141,14 @@ export async function PATCH(
       }
 
       // Create activity log entry
-      await prisma.activityLog.create({
+      await prisma.activity.create({
         data: {
           userId: user.id,
-          action: "SERVICE_REQUEST_UPDATED",
-          details: `Updated service request status to ${status}`,
-          metadata: {
-            serviceRequestId: id,
-            oldStatus: serviceRequest.status,
-            newStatus: status,
-            projectTitle: serviceRequest.projectTitle,
-          },
+          type: "JOB_STATUS_UPDATED",
+          title: "Service Request Updated",
+          description: `Updated service request status to ${status} for "${serviceRequest.projectTitle}"`,
+          referenceId: id,
+          referenceType: "SERVICE_REQUEST",
         },
       });
 
@@ -223,6 +220,52 @@ export async function GET(
       console.error("Error fetching service request:", error);
       return NextResponse.json(
         { error: "Failed to fetch service request" },
+        { status: 500 }
+      );
+    }
+  });
+}
+
+// DELETE /api/service-requests/[id] - Delete service request
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  return withAuth(req, async (req) => {
+    try {
+      const user = req.user!;
+      const { id } = params;
+
+      const serviceRequest = await prisma.serviceRequest.findUnique({
+        where: { id },
+      });
+
+      if (!serviceRequest) {
+        return NextResponse.json(
+          { error: "Service request not found" },
+          { status: 404 }
+        );
+      }
+
+      // Only the producer or client can delete the request
+      if (serviceRequest.producerId !== user.id && serviceRequest.clientId !== user.id) {
+        return NextResponse.json(
+          { error: "You do not have permission to delete this service request" },
+          { status: 403 }
+        );
+      }
+
+      await prisma.serviceRequest.delete({
+        where: { id },
+      });
+
+      return NextResponse.json({
+        message: "Service request deleted successfully"
+      });
+    } catch (error: any) {
+      console.error("Error deleting service request:", error);
+      return NextResponse.json(
+        { error: "Failed to delete service request" },
         { status: 500 }
       );
     }
