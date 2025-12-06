@@ -176,16 +176,14 @@ export async function POST(req: NextRequest) {
       });
 
       // Create activity log entry
-      await prisma.activityLog.create({
+      await prisma.activity.create({
         data: {
           userId: user.id,
-          action: "SERVICE_REQUEST_CREATED",
-          details: `Requested services from ${producer.fullName || producer.username} for project: ${projectTitle}`,
-          metadata: {
-            serviceRequestId: serviceRequest.id,
-            producerId,
-            projectTitle,
-          },
+          type: "JOB_REQUEST_SENT",
+          title: "Service Request Sent",
+          description: `Requested services from ${producer.fullName || producer.username} for project: ${projectTitle}`,
+          referenceId: serviceRequest.id,
+          referenceType: "SERVICE_REQUEST",
         },
       });
 
