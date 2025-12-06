@@ -17,6 +17,9 @@ import {
   DollarSign,
   User,
   MessageCircle,
+  Check,
+  X as XIcon,
+  Play,
 } from "lucide-react";
 
 interface ServiceRequest {
@@ -56,6 +59,7 @@ export default function ServiceRequestsPage() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "pending" | "accepted" | "completed">("all");
   const [viewMode, setViewMode] = useState<"sent" | "received">("sent");
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   const highlightId = searchParams.get("highlight");
 
@@ -101,6 +105,53 @@ export default function ServiceRequestsPage() {
       setError(error.message || "Failed to load service requests");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUpdateStatus = async (requestId: string, status: string, response?: string) => {
+    try {
+      setUpdatingId(requestId);
+      const res = await fetch(`/api/service-requests/${requestId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status, producerResponse: response }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to update request");
+      }
+
+      // Refresh the list
+      await fetchRequests();
+    } catch (error: any) {
+      alert(error.message || "Failed to update service request");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleCancelRequest = async (requestId: string) => {
+    if (!confirm("Are you sure you want to cancel this service request?")) return;
+
+    try {
+      setUpdatingId(requestId);
+      const res = await fetch(`/api/service-requests/${requestId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "CANCELLED" }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to cancel request");
+      }
+
+      await fetchRequests();
+    } catch (error: any) {
+      alert(error.message || "Failed to cancel service request");
+    } finally {
+      setUpdatingId(null);
     }
   };
 
@@ -158,14 +209,14 @@ export default function ServiceRequestsPage() {
         <div className="mb-8">
           <button
             onClick={() => router.back()}
-            className={`flex items-center gap-2 mb-4 px-4 py-2 rounded-lg border transition-all ${
+            className={`inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 mb-6 ${
               theme === "dark"
-                ? "bg-zinc-900/50 border-zinc-800 text-zinc-400 hover:text-white"
-                : "bg-white border-gray-300 text-gray-600 hover:text-gray-900"
-            }`}
+                ? "bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-white hover:bg-black"
+                : "bg-gray-50 border-gray-300 text-gray-600 hover:border-gray-400 hover:text-black hover:bg-white"
+            } tracking-wide active:scale-[0.98]`}
           >
-            <ArrowLeft className="w-4 h-4" />
-            Back
+            <ArrowLeft className="w-4 h-4" strokeWidth={2} />
+            <span>Back</span>
           </button>
 
           <h1 className={`text-3xl font-bold mb-2 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
@@ -379,6 +430,116 @@ export default function ServiceRequestsPage() {
                           </p>
                         </div>
                       )}
+
+                      {/* Action Buttons */}
+                      <div className="mt-4 pt-4 border-t border-zinc-800 flex flex-wrap gap-2">
+                        {viewMode === "received" && request.status === "PENDING" && (
+                          <>
+                            <button
+                              onClick={() => handleUpdateStatus(request.id, "ACCEPTED")}
+                              disabled={updatingId === request.id}
+                              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-all ${
+                                theme === "dark"
+                                  ? "bg-green-500/10 border-green-500/20 text-green-400 hover:bg-green-500/20"
+                                  : "bg-green-500/10 border-green-500/20 text-green-600 hover:bg-green-500/20"
+                              } disabled:opacity-50 disabled:cursor-not-allowed`}
+                            >
+                              {updatingId === request.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Check className="w-4 h-4" />
+                              )}
+                              Accept
+                            </button>
+                            <button
+                              onClick={() => handleUpdateStatus(request.id, "REJECTED")}
+                              disabled={updatingId === request.id}
+                              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-all ${
+                                theme === "dark"
+                                  ? "bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20"
+                                  : "bg-red-500/10 border-red-500/20 text-red-600 hover:bg-red-500/20"
+                              } disabled:opacity-50 disabled:cursor-not-allowed`}
+                            >
+                              {updatingId === request.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <XIcon className="w-4 h-4" />
+                              )}
+                              Reject
+                            </button>
+                          </>
+                        )}
+
+                        {viewMode === "received" && request.status === "ACCEPTED" && (
+                          <button
+                            onClick={() => handleUpdateStatus(request.id, "IN_PROGRESS")}
+                            disabled={updatingId === request.id}
+                            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-all ${
+                              theme === "dark"
+                                ? "bg-blue-500/10 border-blue-500/20 text-blue-400 hover:bg-blue-500/20"
+                                : "bg-blue-500/10 border-blue-500/20 text-blue-600 hover:bg-blue-500/20"
+                            } disabled:opacity-50 disabled:cursor-not-allowed`}
+                          >
+                            {updatingId === request.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Play className="w-4 h-4" />
+                            )}
+                            Start Work
+                          </button>
+                        )}
+
+                        {viewMode === "received" && request.status === "IN_PROGRESS" && (
+                          <button
+                            onClick={() => handleUpdateStatus(request.id, "COMPLETED")}
+                            disabled={updatingId === request.id}
+                            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-all ${
+                              theme === "dark"
+                                ? "bg-purple-500/10 border-purple-500/20 text-purple-400 hover:bg-purple-500/20"
+                                : "bg-purple-500/10 border-purple-500/20 text-purple-600 hover:bg-purple-500/20"
+                            } disabled:opacity-50 disabled:cursor-not-allowed`}
+                          >
+                            {updatingId === request.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <CheckCircle2 className="w-4 h-4" />
+                            )}
+                            Mark Complete
+                          </button>
+                        )}
+
+                        {viewMode === "sent" && (request.status === "PENDING" || request.status === "ACCEPTED") && (
+                          <button
+                            onClick={() => handleCancelRequest(request.id)}
+                            disabled={updatingId === request.id}
+                            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-all ${
+                              theme === "dark"
+                                ? "bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20"
+                                : "bg-red-500/10 border-red-500/20 text-red-600 hover:bg-red-500/20"
+                            } disabled:opacity-50 disabled:cursor-not-allowed`}
+                          >
+                            {updatingId === request.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <XIcon className="w-4 h-4" />
+                            )}
+                            Cancel Request
+                          </button>
+                        )}
+
+                        {/* View Producer/Client Profile */}
+                        <button
+                          onClick={() => router.push(`/producers/${otherUser.id}`)}
+                          className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-all ${
+                            theme === "dark"
+                              ? "border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-600"
+                              : "border-gray-300 text-gray-600 hover:text-gray-900 hover:border-gray-400"
+                          }`}
+                        >
+                          <User className="w-4 h-4" />
+                          View Profile
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
