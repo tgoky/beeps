@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import {
   Music2,
@@ -13,23 +13,20 @@ import {
   CheckCircle2,
   Play,
   Users,
-  TrendingUp,
-  Calendar,
   Award,
   Headphones,
   Settings,
   Send,
   Clock,
-  DollarSign,
   Loader2,
   AlertCircle,
   X,
   Heart,
   Share2,
-  ExternalLink,
   Zap,
   Trophy,
-  Target
+  Target,
+  ArrowLeft
 } from "lucide-react";
 import { useTheme } from "@/providers/ThemeProvider";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -113,14 +110,14 @@ function RequestServiceModal({ isOpen, onClose, producerName, producerId, theme 
 
   return (
     <div
-      className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 z-50 animate-in fade-in duration-200"
+      className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 z-50"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className={`w-full max-w-2xl rounded-2xl border overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 ${
+      <div className={`w-full max-w-2xl rounded-xl border overflow-hidden shadow-2xl ${
         theme === "dark"
-          ? "bg-gradient-to-br from-zinc-950 via-zinc-900 to-black border-zinc-800"
+          ? "bg-zinc-950 border-zinc-800"
           : "bg-white border-gray-300"
       }`}>
         <div className={`p-6 border-b flex items-start justify-between ${
@@ -152,7 +149,7 @@ function RequestServiceModal({ isOpen, onClose, producerName, producerId, theme 
 
         <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
           {submitError && (
-            <div className={`p-4 rounded-lg border flex items-start gap-3 animate-in slide-in-from-top-2 duration-200 ${
+            <div className={`p-4 rounded-lg border flex items-start gap-3 ${
               theme === "dark"
                 ? "bg-red-500/10 border-red-500/20"
                 : "bg-red-50 border-red-200"
@@ -169,7 +166,7 @@ function RequestServiceModal({ isOpen, onClose, producerName, producerId, theme 
           )}
 
           {submitSuccess && (
-            <div className={`p-4 rounded-lg border flex items-start gap-3 animate-in slide-in-from-top-2 duration-200 ${
+            <div className={`p-4 rounded-lg border flex items-start gap-3 ${
               theme === "dark"
                 ? "bg-green-500/10 border-green-500/20"
                 : "bg-green-50 border-green-200"
@@ -348,7 +345,7 @@ export default function ProducerDetailPage() {
       <div className={`min-h-screen flex items-center justify-center p-6 ${
         theme === "dark" ? "bg-black" : "bg-gray-50"
       }`}>
-        <div className={`p-8 rounded-2xl border max-w-md text-center ${
+        <div className={`p-8 rounded-xl border max-w-md text-center ${
           theme === "dark"
             ? "bg-zinc-950 border-zinc-800"
             : "bg-white border-gray-300"
@@ -381,290 +378,274 @@ export default function ProducerDetailPage() {
     );
   }
 
-  const totalPlays = producer.beats.reduce((sum, beat) => sum + (beat.likeCount * 100), 0);
   const displayName = producer.name || producer.email.split('@')[0];
 
   return (
-    <div className={`min-h-screen transition-colors duration-200 ${
+    <div className={`min-h-screen p-6 ${
       theme === "dark" ? "bg-black text-white" : "bg-gray-50 text-gray-900"
     }`}>
-      {/* Hero Section with Gradient */}
-      <div className="relative overflow-hidden">
-        {/* Animated gradient background */}
-        <div className={`absolute inset-0 ${
+      <div className="max-w-7xl mx-auto">
+        {/* Back Button */}
+        <button
+          onClick={() => router.push("/producers")}
+          className={`flex items-center gap-2 mb-6 px-4 py-2 text-sm rounded-lg border transition-all duration-200 hover:scale-105 ${
+            theme === "dark"
+              ? "bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700"
+              : "bg-white border-gray-300 text-gray-600 hover:text-gray-900 hover:border-gray-400"
+          }`}
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Producers
+        </button>
+
+        {/* Profile Header */}
+        <div className={`rounded-xl border overflow-hidden mb-8 ${
           theme === "dark"
-            ? "bg-gradient-to-br from-purple-500/10 via-pink-500/5 to-transparent"
-            : "bg-gradient-to-br from-purple-100 via-pink-50 to-transparent"
-        } animate-gradient-x`} />
-
-        {/* Pattern overlay */}
-        <div className="absolute inset-0 opacity-5"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-          }}
-        />
-
-        <div className="relative max-w-7xl mx-auto px-6 py-16">
-          {/* Back Button */}
-          <button
-            onClick={() => router.push("/producers")}
-            className={`flex items-center gap-2 mb-8 px-4 py-2 text-sm rounded-lg border transition-all duration-200 hover:scale-105 ${
-              theme === "dark"
-                ? "bg-zinc-900/50 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 backdrop-blur-sm"
-                : "bg-white/50 border-gray-300 text-gray-600 hover:text-gray-900 hover:border-gray-400 backdrop-blur-sm"
-            }`}
-          >
-            <MapPin className="w-4 h-4" />
-            Back to Producers
-          </button>
-
-          <div className="flex flex-col lg:flex-row gap-12 items-start">
-            {/* Profile Image & Quick Stats */}
-            <div className="flex-shrink-0">
-              <div className="relative group">
-                <div className={`absolute inset-0 rounded-2xl blur-2xl opacity-50 group-hover:opacity-75 transition-opacity duration-500 ${
-                  theme === "dark"
-                    ? "bg-gradient-to-br from-purple-500 to-pink-500"
-                    : "bg-gradient-to-br from-purple-400 to-pink-400"
-                }`} />
-                <img
-                  src={producer.imageUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${producer.id}`}
-                  alt={displayName}
-                  className={`relative w-48 h-48 rounded-2xl object-cover border-4 shadow-2xl ${
-                    theme === "dark" ? "border-zinc-900" : "border-white"
-                  }`}
-                />
-                {producer.verified && (
-                  <div className="absolute -bottom-2 -right-2 w-12 h-12 rounded-full border-4 bg-blue-500 flex items-center justify-center shadow-lg animate-in zoom-in duration-500 ${
-                    theme === "dark" ? "border-black" : "border-white"
-                  }">
-                    <CheckCircle2 className="w-6 h-6 text-white" strokeWidth={2.5} />
-                  </div>
-                )}
-              </div>
-
-              {/* Quick Stats Cards */}
-              <div className="mt-6 grid grid-cols-2 gap-3">
-                <div className={`p-4 rounded-xl border backdrop-blur-sm ${
-                  theme === "dark"
-                    ? "bg-zinc-900/50 border-zinc-800"
-                    : "bg-white/50 border-gray-300"
-                }`}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Users className={`w-4 h-4 ${
-                      theme === "dark" ? "text-purple-400" : "text-purple-600"
-                    }`} />
-                    <span className={`text-xs font-medium ${
-                      theme === "dark" ? "text-zinc-400" : "text-gray-600"
+            ? "bg-zinc-950 border-zinc-800"
+            : "bg-white border-gray-300"
+        }`}>
+          <div className="p-8">
+            <div className="flex flex-col lg:flex-row gap-8 items-start">
+              {/* Avatar */}
+              <div className="flex-shrink-0">
+                <div className="relative">
+                  <img
+                    src={producer.imageUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${producer.id}`}
+                    alt={displayName}
+                    className={`w-32 h-32 rounded-xl object-cover border-2 ${
+                      theme === "dark" ? "border-zinc-800" : "border-gray-300"
+                    }`}
+                  />
+                  {producer.verified && (
+                    <div className={`absolute -bottom-2 -right-2 w-10 h-10 rounded-full border-4 bg-blue-500 flex items-center justify-center shadow-lg ${
+                      theme === "dark" ? "border-zinc-950" : "border-white"
                     }`}>
-                      Followers
-                    </span>
-                  </div>
-                  <div className={`text-2xl font-bold ${
-                    theme === "dark" ? "text-white" : "text-gray-900"
-                  }`}>
-                    {formatNumber(producer.followersCount)}
-                  </div>
+                      <CheckCircle2 className="w-5 h-5 text-white" strokeWidth={2.5} />
+                    </div>
+                  )}
                 </div>
 
-                <div className={`p-4 rounded-xl border backdrop-blur-sm ${
-                  theme === "dark"
-                    ? "bg-zinc-900/50 border-zinc-800"
-                    : "bg-white/50 border-gray-300"
-                }`}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Music2 className={`w-4 h-4 ${
-                      theme === "dark" ? "text-pink-400" : "text-pink-600"
-                    }`} />
-                    <span className={`text-xs font-medium ${
-                      theme === "dark" ? "text-zinc-400" : "text-gray-600"
-                    }`}>
-                      Beats
-                    </span>
-                  </div>
-                  <div className={`text-2xl font-bold ${
-                    theme === "dark" ? "text-white" : "text-gray-900"
+                {/* Quick Stats */}
+                <div className="mt-6 grid grid-cols-2 gap-3">
+                  <div className={`p-4 rounded-lg border ${
+                    theme === "dark"
+                      ? "bg-zinc-900 border-zinc-800"
+                      : "bg-gray-100 border-gray-200"
                   }`}>
-                    {producer.beats.length}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Profile Info */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-start justify-between gap-4 mb-6">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h1 className={`text-4xl font-bold tracking-tight ${
+                    <div className="flex items-center gap-2 mb-1">
+                      <Users className={`w-4 h-4 ${
+                        theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                      }`} />
+                      <span className={`text-xs ${
+                        theme === "dark" ? "text-zinc-500" : "text-gray-600"
+                      }`}>
+                        Followers
+                      </span>
+                    </div>
+                    <div className={`text-2xl font-bold ${
                       theme === "dark" ? "text-white" : "text-gray-900"
                     }`}>
-                      {displayName}
-                    </h1>
-                    {producer.verified && (
-                      <div className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 ${
-                        theme === "dark"
-                          ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
-                          : "bg-blue-50 text-blue-600 border border-blue-200"
+                      {formatNumber(producer.followersCount)}
+                    </div>
+                  </div>
+
+                  <div className={`p-4 rounded-lg border ${
+                    theme === "dark"
+                      ? "bg-zinc-900 border-zinc-800"
+                      : "bg-gray-100 border-gray-200"
+                  }`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Music2 className={`w-4 h-4 ${
+                        theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                      }`} />
+                      <span className={`text-xs ${
+                        theme === "dark" ? "text-zinc-500" : "text-gray-600"
                       }`}>
-                        <Zap className="w-3 h-3" />
-                        Verified Pro
+                        Beats
+                      </span>
+                    </div>
+                    <div className={`text-2xl font-bold ${
+                      theme === "dark" ? "text-white" : "text-gray-900"
+                    }`}>
+                      {producer.beats.length}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Profile Info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between gap-4 mb-6">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h1 className={`text-3xl font-bold tracking-tight ${
+                        theme === "dark" ? "text-white" : "text-gray-900"
+                      }`}>
+                        {displayName}
+                      </h1>
+                      {producer.verified && (
+                        <div className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 ${
+                          theme === "dark"
+                            ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+                            : "bg-blue-50 text-blue-600 border border-blue-200"
+                        }`}>
+                          <Zap className="w-3 h-3" />
+                          Verified
+                        </div>
+                      )}
+                    </div>
+
+                    {producer.location && (
+                      <div className="flex items-center gap-2 mb-4">
+                        <MapPin className={`w-4 h-4 ${
+                          theme === "dark" ? "text-zinc-500" : "text-gray-500"
+                        }`} />
+                        <span className={`text-sm ${
+                          theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                        }`}>
+                          {producer.location}
+                        </span>
+                      </div>
+                    )}
+
+                    {producer.bio && (
+                      <p className={`text-base mb-6 leading-relaxed ${
+                        theme === "dark" ? "text-zinc-300" : "text-gray-700"
+                      }`}>
+                        {producer.bio}
+                      </p>
+                    )}
+
+                    {/* Genre Tags */}
+                    {producer.genres && producer.genres.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {producer.genres.map((genre, idx) => (
+                          <span
+                            key={idx}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-lg border ${
+                              theme === "dark"
+                                ? "bg-zinc-900 text-zinc-300 border-zinc-800"
+                                : "bg-gray-100 text-gray-700 border-gray-300"
+                            }`}
+                          >
+                            {genre}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Specialties */}
+                    {producer.specialties && producer.specialties.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mb-6">
+                        {producer.specialties.map((specialty, idx) => (
+                          <span
+                            key={idx}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-lg flex items-center gap-1.5 border ${
+                              theme === "dark"
+                                ? "bg-zinc-900 text-zinc-300 border-zinc-800"
+                                : "bg-gray-100 text-gray-700 border-gray-300"
+                            }`}
+                          >
+                            <Trophy className="w-3 h-3" />
+                            {specialty}
+                          </span>
+                        ))}
                       </div>
                     )}
                   </div>
 
-                  {producer.location && (
-                    <div className="flex items-center gap-2 mb-4">
-                      <MapPin className={`w-4 h-4 ${
-                        theme === "dark" ? "text-zinc-500" : "text-gray-500"
-                      }`} />
-                      <span className={`text-sm ${
-                        theme === "dark" ? "text-zinc-400" : "text-gray-600"
-                      }`}>
-                        {producer.location}
-                      </span>
-                    </div>
-                  )}
-
-                  {producer.bio && (
-                    <p className={`text-base mb-6 leading-relaxed ${
-                      theme === "dark" ? "text-zinc-300" : "text-gray-700"
+                  {/* Action Buttons */}
+                  <div className="flex gap-2">
+                    <button className={`p-3 rounded-lg border transition-all duration-200 hover:scale-105 ${
+                      theme === "dark"
+                        ? "border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 hover:bg-zinc-900"
+                        : "border-gray-300 text-gray-600 hover:text-gray-900 hover:border-gray-400 hover:bg-gray-50"
                     }`}>
-                      {producer.bio}
-                    </p>
-                  )}
-
-                  {/* Genre Tags */}
-                  {producer.genres && producer.genres.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mb-6">
-                      {producer.genres.map((genre, idx) => (
-                        <span
-                          key={idx}
-                          className={`px-3 py-1.5 text-xs font-medium rounded-lg border ${
-                            theme === "dark"
-                              ? "bg-gradient-to-r from-purple-500/10 to-pink-500/10 text-purple-300 border-purple-500/20"
-                              : "bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 border-purple-200"
-                          }`}
-                        >
-                          {genre}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Specialties */}
-                  {producer.specialties && producer.specialties.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mb-8">
-                      {producer.specialties.map((specialty, idx) => (
-                        <span
-                          key={idx}
-                          className={`px-3 py-1.5 text-xs font-medium rounded-lg flex items-center gap-1.5 ${
-                            theme === "dark"
-                              ? "bg-zinc-900 text-zinc-300 border border-zinc-800"
-                              : "bg-gray-100 text-gray-700 border border-gray-200"
-                          }`}
-                        >
-                          <Trophy className="w-3 h-3" />
-                          {specialty}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                      <Heart className="w-5 h-5" />
+                    </button>
+                    <button className={`p-3 rounded-lg border transition-all duration-200 hover:scale-105 ${
+                      theme === "dark"
+                        ? "border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 hover:bg-zinc-900"
+                        : "border-gray-300 text-gray-600 hover:text-gray-900 hover:border-gray-400 hover:bg-gray-50"
+                    }`}>
+                      <Share2 className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
 
-                {/* Action Buttons */}
-                <div className="flex gap-2">
-                  <button className={`p-3 rounded-lg border transition-all duration-200 hover:scale-110 ${
-                    theme === "dark"
-                      ? "border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 hover:bg-zinc-900"
-                      : "border-gray-300 text-gray-600 hover:text-gray-900 hover:border-gray-400 hover:bg-gray-50"
-                  }`}>
-                    <Heart className="w-5 h-5" />
-                  </button>
-                  <button className={`p-3 rounded-lg border transition-all duration-200 hover:scale-110 ${
-                    theme === "dark"
-                      ? "border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 hover:bg-zinc-900"
-                      : "border-gray-300 text-gray-600 hover:text-gray-900 hover:border-gray-400 hover:bg-gray-50"
-                  }`}>
-                    <Share2 className="w-5 h-5" />
-                  </button>
-                </div>
+                {/* Main Action Buttons */}
+                {isOwnProfile && canEdit ? (
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      onClick={() => router.push(`/producers/edit/${producerId}`)}
+                      className={`flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 hover:scale-105 active:scale-95 ${
+                        theme === "dark"
+                          ? "bg-white border-white text-black hover:bg-zinc-100"
+                          : "bg-black border-black text-white hover:bg-gray-800"
+                      }`}
+                    >
+                      <Edit3 className="w-4 h-4" strokeWidth={2} />
+                      Edit Profile
+                    </button>
+                    <button
+                      onClick={() => router.push(`/service-requests?asProducer=true`)}
+                      className={`flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 hover:scale-105 active:scale-95 ${
+                        theme === "dark"
+                          ? "border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-600 hover:bg-zinc-900"
+                          : "border-gray-300 text-gray-700 hover:text-gray-900 hover:border-gray-400 hover:bg-gray-50"
+                      }`}
+                    >
+                      <Briefcase className="w-4 h-4" strokeWidth={2} />
+                      Manage Requests
+                    </button>
+                  </div>
+                ) : canRequestService ? (
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      onClick={() => setShowRequestModal(true)}
+                      className={`flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 hover:scale-105 active:scale-95 ${
+                        theme === "dark"
+                          ? "bg-white border-white text-black hover:bg-zinc-100"
+                          : "bg-black border-black text-white hover:bg-gray-800"
+                      }`}
+                    >
+                      <Briefcase className="w-4 h-4" strokeWidth={2} />
+                      Request Service
+                    </button>
+                    <button
+                      onClick={() => router.push(`/messages/${producerId}`)}
+                      className={`flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 hover:scale-105 active:scale-95 ${
+                        theme === "dark"
+                          ? "border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-600 hover:bg-zinc-900"
+                          : "border-gray-300 text-gray-700 hover:text-gray-900 hover:border-gray-400 hover:bg-gray-50"
+                      }`}
+                    >
+                      <MessageCircle className="w-4 h-4" strokeWidth={2} />
+                      Message
+                    </button>
+                    <button
+                      className={`flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 hover:scale-105 active:scale-95 ${
+                        theme === "dark"
+                          ? "border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-600 hover:bg-zinc-900"
+                          : "border-gray-300 text-gray-700 hover:text-gray-900 hover:border-gray-400 hover:bg-gray-50"
+                      }`}
+                    >
+                      <Users className="w-4 h-4" strokeWidth={2} />
+                      Follow
+                    </button>
+                  </div>
+                ) : null}
               </div>
-
-              {/* Main Action Buttons */}
-              {isOwnProfile && canEdit ? (
-                <div className="flex flex-wrap gap-3">
-                  <button
-                    onClick={() => router.push(`/producers/edit/${producerId}`)}
-                    className={`flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 hover:scale-105 active:scale-95 ${
-                      theme === "dark"
-                        ? "bg-white border-white text-black hover:bg-zinc-100"
-                        : "bg-black border-black text-white hover:bg-gray-800"
-                    }`}
-                  >
-                    <Edit3 className="w-4 h-4" strokeWidth={2} />
-                    Edit Profile
-                  </button>
-                  <button
-                    onClick={() => router.push(`/service-requests?asProducer=true`)}
-                    className={`flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 hover:scale-105 active:scale-95 ${
-                      theme === "dark"
-                        ? "border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-600 hover:bg-zinc-900"
-                        : "border-gray-300 text-gray-700 hover:text-gray-900 hover:border-gray-400 hover:bg-gray-50"
-                    }`}
-                  >
-                    <Briefcase className="w-4 h-4" strokeWidth={2} />
-                    Manage Requests
-                  </button>
-                </div>
-              ) : canRequestService ? (
-                <div className="flex flex-wrap gap-3">
-                  <button
-                    onClick={() => setShowRequestModal(true)}
-                    className={`flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg ${
-                      theme === "dark"
-                        ? "bg-gradient-to-r from-purple-600 to-pink-600 border-transparent text-white hover:from-purple-500 hover:to-pink-500"
-                        : "bg-gradient-to-r from-purple-600 to-pink-600 border-transparent text-white hover:from-purple-500 hover:to-pink-500"
-                    }`}
-                  >
-                    <Briefcase className="w-4 h-4" strokeWidth={2} />
-                    Request Service
-                  </button>
-                  <button
-                    onClick={() => router.push(`/messages/${producerId}`)}
-                    className={`flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 hover:scale-105 active:scale-95 ${
-                      theme === "dark"
-                        ? "border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-600 hover:bg-zinc-900"
-                        : "border-gray-300 text-gray-700 hover:text-gray-900 hover:border-gray-400 hover:bg-gray-50"
-                    }`}
-                  >
-                    <MessageCircle className="w-4 h-4" strokeWidth={2} />
-                    Message
-                  </button>
-                  <button
-                    className={`flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 hover:scale-105 active:scale-95 ${
-                      theme === "dark"
-                        ? "border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-600 hover:bg-zinc-900"
-                        : "border-gray-300 text-gray-700 hover:text-gray-900 hover:border-gray-400 hover:bg-gray-50"
-                    }`}
-                  >
-                    <Users className="w-4 h-4" strokeWidth={2} />
-                    Follow
-                  </button>
-                </div>
-              ) : null}
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Content Section */}
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Content Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Tab Navigation */}
-            <div className={`flex items-center gap-1 p-1.5 rounded-xl border w-fit ${
+            <div className={`flex items-center gap-1 p-1.5 rounded-lg border w-fit ${
               theme === "dark"
                 ? "bg-zinc-950 border-zinc-800"
                 : "bg-white border-gray-300"
@@ -682,8 +663,8 @@ export default function ProducerDetailPage() {
                     className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
                       activeTab === tab.key
                         ? theme === "dark"
-                          ? "bg-white text-black shadow-lg"
-                          : "bg-gray-900 text-white shadow-lg"
+                          ? "bg-white text-black"
+                          : "bg-gray-900 text-white"
                         : theme === "dark"
                           ? "text-zinc-400 hover:text-white"
                           : "text-gray-600 hover:text-gray-900"
@@ -703,10 +684,10 @@ export default function ProducerDetailPage() {
                   producer.beats.map((beat) => (
                     <div
                       key={beat.id}
-                      className={`group p-6 rounded-xl border transition-all duration-200 hover:scale-[1.02] cursor-pointer ${
+                      className={`group p-6 rounded-xl border transition-all duration-200 hover:scale-[1.01] cursor-pointer ${
                         theme === "dark"
-                          ? "bg-gradient-to-br from-zinc-950 to-zinc-900 border-zinc-800 hover:border-zinc-700 hover:shadow-2xl"
-                          : "bg-white border-gray-300 hover:border-gray-400 hover:shadow-xl"
+                          ? "bg-zinc-950 border-zinc-800 hover:border-zinc-700"
+                          : "bg-white border-gray-300 hover:border-gray-400"
                       }`}
                     >
                       <div className="flex items-start gap-5">
@@ -716,7 +697,7 @@ export default function ProducerDetailPage() {
                             alt={beat.title}
                             className="w-24 h-24 rounded-lg object-cover"
                           />
-                          <div className={`absolute inset-0 rounded-lg bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center`}>
+                          <div className="absolute inset-0 rounded-lg bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
                             <Play className="w-8 h-8 text-white" fill="white" />
                           </div>
                         </div>
@@ -750,7 +731,7 @@ export default function ProducerDetailPage() {
                           </div>
                           <div className="flex items-center justify-between">
                             <div className={`text-2xl font-bold ${
-                              theme === "dark" ? "text-purple-400" : "text-purple-600"
+                              theme === "dark" ? "text-white" : "text-gray-900"
                             }`}>
                               ${beat.price}
                             </div>
@@ -788,7 +769,7 @@ export default function ProducerDetailPage() {
             {activeTab === "about" && (
               <div className={`p-8 rounded-xl border ${
                 theme === "dark"
-                  ? "bg-gradient-to-br from-zinc-950 to-zinc-900 border-zinc-800"
+                  ? "bg-zinc-950 border-zinc-800"
                   : "bg-white border-gray-300"
               }`}>
                 <h3 className={`text-xl font-semibold mb-4 ${
@@ -827,7 +808,7 @@ export default function ProducerDetailPage() {
             {/* Stats Card */}
             <div className={`p-6 rounded-xl border ${
               theme === "dark"
-                ? "bg-gradient-to-br from-zinc-950 to-zinc-900 border-zinc-800"
+                ? "bg-zinc-950 border-zinc-800"
                 : "bg-white border-gray-300"
             }`}>
               <h3 className={`text-sm font-semibold mb-4 flex items-center gap-2 ${
@@ -853,7 +834,9 @@ export default function ProducerDetailPage() {
                   <div className={`h-2 rounded-full overflow-hidden ${
                     theme === "dark" ? "bg-zinc-800" : "bg-gray-200"
                   }`}>
-                    <div className="h-full bg-gradient-to-r from-purple-500 to-pink-500" style={{ width: "85%" }} />
+                    <div className={`h-full ${
+                      theme === "dark" ? "bg-white" : "bg-black"
+                    }`} style={{ width: "85%" }} />
                   </div>
                 </div>
 
@@ -873,7 +856,9 @@ export default function ProducerDetailPage() {
                   <div className={`h-2 rounded-full overflow-hidden ${
                     theme === "dark" ? "bg-zinc-800" : "bg-gray-200"
                   }`}>
-                    <div className="h-full bg-gradient-to-r from-green-500 to-emerald-500" style={{ width: "95%" }} />
+                    <div className={`h-full ${
+                      theme === "dark" ? "bg-white" : "bg-black"
+                    }`} style={{ width: "95%" }} />
                   </div>
                 </div>
 
@@ -893,7 +878,9 @@ export default function ProducerDetailPage() {
                   <div className={`h-2 rounded-full overflow-hidden ${
                     theme === "dark" ? "bg-zinc-800" : "bg-gray-200"
                   }`}>
-                    <div className="h-full bg-gradient-to-r from-blue-500 to-cyan-500" style={{ width: "98%" }} />
+                    <div className={`h-full ${
+                      theme === "dark" ? "bg-white" : "bg-black"
+                    }`} style={{ width: "98%" }} />
                   </div>
                 </div>
               </div>
@@ -903,7 +890,7 @@ export default function ProducerDetailPage() {
             {producer.studios && producer.studios.length > 0 && (
               <div className={`p-6 rounded-xl border ${
                 theme === "dark"
-                  ? "bg-gradient-to-br from-zinc-950 to-zinc-900 border-zinc-800"
+                  ? "bg-zinc-950 border-zinc-800"
                   : "bg-white border-gray-300"
               }`}>
                 <h3 className={`text-sm font-semibold mb-4 flex items-center gap-2 ${
@@ -933,7 +920,7 @@ export default function ProducerDetailPage() {
                         {studio.location}
                       </div>
                       <div className={`text-sm font-bold ${
-                        theme === "dark" ? "text-purple-400" : "text-purple-600"
+                        theme === "dark" ? "text-white" : "text-gray-900"
                       }`}>
                         ${studio.hourlyRate}/hr
                       </div>
