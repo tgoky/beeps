@@ -1,69 +1,32 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { 
-  Music2, 
-  Star, 
-  MapPin, 
-  Edit3, 
-  Upload, 
-  Briefcase, 
-  MessageCircle, 
-  CheckCircle2, 
-  Play, 
-  Users, 
+import { useState } from "react";
+import { useRouter, useParams } from "next/navigation";
+import {
+  Music2,
+  Star,
+  MapPin,
+  Edit3,
+  Upload,
+  Briefcase,
+  MessageCircle,
+  CheckCircle2,
+  Play,
+  Users,
   TrendingUp,
   Calendar,
   Award,
   Headphones,
   Settings,
-  Plus,
   Send,
-  ExternalLink,
   Clock,
-  DollarSign
+  DollarSign,
+  Loader2,
+  AlertCircle
 } from "lucide-react";
 import { useTheme } from "@/providers/ThemeProvider";
 import { usePermissions } from "@/hooks/usePermissions";
-
-type Producer = {
-  id: number;
-  name: string;
-  handle: string;
-  avatar: string;
-  location: string;
-  rating: number;
-  genres: string[];
-  skills: string[];
-  hourlyRate?: string;
-  availability?: string;
-  bio?: string;
-  recentWorks: {
-    title: string;
-    artist: string;
-    plays: number;
-    image: string;
-  }[];
-  social: {
-    followers: number;
-    following: number;
-    posts: number;
-  };
-  online: boolean;
-  lastActive: string;
-  featuredGear?: string[];
-  stats?: {
-    completedProjects: number;
-    responseTime: string;
-    satisfactionRate: number;
-  };
-};
-
-interface ProducerProfileViewProps {
-  producer: Producer;
-  isOwnProfile?: boolean;
-}
+import { useProducer } from "@/hooks/useProducers";
 
 const formatNumber = (num: number): string => {
   if (num >= 1000000) {
@@ -75,26 +38,84 @@ const formatNumber = (num: number): string => {
   return num.toString();
 };
 
-export default function ProducerProfileView({ producer, isOwnProfile = false }: ProducerProfileViewProps) {
+export default function ProducerDetailPage() {
   const router = useRouter();
+  const params = useParams();
+  const producerId = params.id as string;
   const { theme } = useTheme();
- const { permissions } = usePermissions();
+  const { permissions, user } = usePermissions();
 
   const [activeTab, setActiveTab] = useState<"works" | "about" | "reviews">("works");
   const [showRequestModal, setShowRequestModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
 
-  // Determine what actions the current user can take
+  // Form state
+  const [projectTitle, setProjectTitle] = useState("");
+  const [projectDescription, setProjectDescription] = useState("");
+  const [budget, setBudget] = useState("");
+  const [deadline, setDeadline] = useState("");
+
+  // Fetch producer data
+  const { data: producer, isLoading, error } = useProducer(producerId);
+
+  // Determine permissions
+  const isOwnProfile = user?.id === producerId;
   const canEdit = isOwnProfile && permissions.canEditProducerProfile;
-  const canAcceptJobs = isOwnProfile && permissions.canAcceptJobs;
-  const canUploadWorks = isOwnProfile && permissions.canUploadWorks;
   const canRequestService = !isOwnProfile && permissions.canRequestProducerService;
-  const canMessage = permissions.canMessageProducers;
+
+  const handleSubmitRequest = async () => {
+    if (!projectTitle || !projectDescription) {
+      setSubmitError("Please fill in all required fields");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const response = await fetch("/api/service-requests", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          producerId,
+          projectTitle,
+          projectDescription,
+          budget: budget || null,
+          deadline: deadline || null,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to send request");
+      }
+
+      setSubmitSuccess(true);
+      setTimeout(() => {
+        setShowRequestModal(false);
+        setProjectTitle("");
+        setProjectDescription("");
+        setBudget("");
+        setDeadline("");
+        setSubmitSuccess(false);
+      }, 2000);
+    } catch (err: any) {
+      setSubmitError(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // Producer Action Buttons (for producer viewing their own profile)
   const ProducerActions = () => (
     <div className="flex flex-wrap gap-3">
       <button
-        onClick={() => router.push(`/producers/edit/${producer.id}`)}
+        onClick={() => router.push(`/producers/edit/${producerId}`)}
         className={`flex items-center gap-2 px-5 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
           theme === "dark"
             ? "bg-white border-white text-black hover:bg-zinc-100"
@@ -106,7 +127,7 @@ export default function ProducerProfileView({ producer, isOwnProfile = false }: 
       </button>
 
       <button
-        onClick={() => router.push(`/producers/${producer.id}/upload-work`)}
+        onClick={() => router.push(`/producers/${producerId}/upload-work`)}
         className={`flex items-center gap-2 px-5 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
           theme === "dark"
             ? "border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-600"
@@ -118,7 +139,7 @@ export default function ProducerProfileView({ producer, isOwnProfile = false }: 
       </button>
 
       <button
-        onClick={() => router.push(`/producers/${producer.id}/jobs`)}
+        onClick={() => router.push(`/service-requests?asProducer=true`)}
         className={`flex items-center gap-2 px-5 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
           theme === "dark"
             ? "border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-600"
@@ -126,11 +147,11 @@ export default function ProducerProfileView({ producer, isOwnProfile = false }: 
         }`}
       >
         <Briefcase className="w-4 h-4" strokeWidth={2} />
-        Manage Jobs
+        Manage Requests
       </button>
 
       <button
-        onClick={() => router.push(`/producers/${producer.id}/settings`)}
+        onClick={() => router.push(`/producers/${producerId}/settings`)}
         className={`flex items-center gap-2 p-3 rounded-lg border transition-all duration-200 active:scale-95 ${
           theme === "dark"
             ? "border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-600"
@@ -158,7 +179,7 @@ export default function ProducerProfileView({ producer, isOwnProfile = false }: 
       </button>
 
       <button
-        onClick={() => router.push(`/messages/${producer.id}`)}
+        onClick={() => router.push(`/messages/${producerId}`)}
         className={`flex items-center gap-2 px-5 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
           theme === "dark"
             ? "border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-600"
@@ -196,24 +217,60 @@ export default function ProducerProfileView({ producer, isOwnProfile = false }: 
           <h2 className={`text-xl font-light tracking-tight ${
             theme === "dark" ? "text-white" : "text-gray-900"
           }`}>
-            Request Service from {producer.name}
+            Request Service from {producer?.name || producer?.email?.split('@')[0]}
           </h2>
           <p className={`text-sm font-light mt-1 tracking-wide ${
             theme === "dark" ? "text-zinc-500" : "text-gray-600"
           }`}>
-            Tell {producer.name} about your project
+            Tell {producer?.name || producer?.email?.split('@')[0]} about your project
           </p>
         </div>
 
         <div className="p-6 space-y-6">
+          {submitError && (
+            <div className={`p-4 rounded-lg border flex items-start gap-3 ${
+              theme === "dark"
+                ? "bg-red-500/10 border-red-500/20"
+                : "bg-red-50 border-red-200"
+            }`}>
+              <AlertCircle className={`w-5 h-5 flex-shrink-0 ${
+                theme === "dark" ? "text-red-400" : "text-red-600"
+              }`} />
+              <p className={`text-sm ${
+                theme === "dark" ? "text-red-400" : "text-red-600"
+              }`}>
+                {submitError}
+              </p>
+            </div>
+          )}
+
+          {submitSuccess && (
+            <div className={`p-4 rounded-lg border flex items-start gap-3 ${
+              theme === "dark"
+                ? "bg-green-500/10 border-green-500/20"
+                : "bg-green-50 border-green-200"
+            }`}>
+              <CheckCircle2 className={`w-5 h-5 flex-shrink-0 ${
+                theme === "dark" ? "text-green-400" : "text-green-600"
+              }`} />
+              <p className={`text-sm ${
+                theme === "dark" ? "text-green-400" : "text-green-600"
+              }`}>
+                Service request sent successfully!
+              </p>
+            </div>
+          )}
+
           <div className="space-y-3">
             <label className={`block text-xs font-medium tracking-wider uppercase ${
               theme === "dark" ? "text-zinc-400" : "text-gray-600"
             }`}>
-              Project Title
+              Project Title <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
+              value={projectTitle}
+              onChange={(e) => setProjectTitle(e.target.value)}
               placeholder="e.g., Need beats for my album"
               className={`w-full px-4 py-3 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide focus:outline-none ${
                 theme === "dark"
@@ -227,10 +284,12 @@ export default function ProducerProfileView({ producer, isOwnProfile = false }: 
             <label className={`block text-xs font-medium tracking-wider uppercase ${
               theme === "dark" ? "text-zinc-400" : "text-gray-600"
             }`}>
-              Project Description
+              Project Description <span className="text-red-500">*</span>
             </label>
             <textarea
               rows={5}
+              value={projectDescription}
+              onChange={(e) => setProjectDescription(e.target.value)}
               placeholder="Describe your project, timeline, and requirements..."
               className={`w-full px-4 py-3 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide resize-none focus:outline-none ${
                 theme === "dark"
@@ -245,10 +304,12 @@ export default function ProducerProfileView({ producer, isOwnProfile = false }: 
               <label className={`block text-xs font-medium tracking-wider uppercase ${
                 theme === "dark" ? "text-zinc-400" : "text-gray-600"
               }`}>
-                Budget
+                Budget (Optional)
               </label>
               <input
                 type="text"
+                value={budget}
+                onChange={(e) => setBudget(e.target.value)}
                 placeholder="$500 - $1000"
                 className={`w-full px-4 py-3 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide focus:outline-none ${
                   theme === "dark"
@@ -262,10 +323,12 @@ export default function ProducerProfileView({ producer, isOwnProfile = false }: 
               <label className={`block text-xs font-medium tracking-wider uppercase ${
                 theme === "dark" ? "text-zinc-400" : "text-gray-600"
               }`}>
-                Deadline
+                Deadline (Optional)
               </label>
               <input
                 type="date"
+                value={deadline}
+                onChange={(e) => setDeadline(e.target.value)}
                 className={`w-full px-4 py-3 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide focus:outline-none ${
                   theme === "dark"
                     ? "bg-zinc-950 border-zinc-800 text-white focus:border-white"
@@ -280,8 +343,13 @@ export default function ProducerProfileView({ producer, isOwnProfile = false }: 
           theme === "dark" ? "border-zinc-800" : "border-gray-200"
         }`}>
           <button
-            onClick={() => setShowRequestModal(false)}
-            className={`flex-1 px-5 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
+            onClick={() => {
+              setShowRequestModal(false);
+              setSubmitError(null);
+              setSubmitSuccess(false);
+            }}
+            disabled={isSubmitting}
+            className={`flex-1 px-5 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
               theme === "dark"
                 ? "border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-600"
                 : "border-gray-300 text-gray-600 hover:text-gray-900 hover:border-gray-400"
@@ -290,19 +358,85 @@ export default function ProducerProfileView({ producer, isOwnProfile = false }: 
             Cancel
           </button>
           <button
-            className={`flex-1 flex items-center justify-center gap-2 px-5 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
+            onClick={handleSubmitRequest}
+            disabled={isSubmitting}
+            className={`flex-1 flex items-center justify-center gap-2 px-5 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
               theme === "dark"
                 ? "bg-white border-white text-black hover:bg-zinc-100"
                 : "bg-black border-black text-white hover:bg-gray-800"
             }`}
           >
-            <Send className="w-4 h-4" strokeWidth={2} />
-            Send Request
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
+                Sending...
+              </>
+            ) : (
+              <>
+                <Send className="w-4 h-4" strokeWidth={2} />
+                Send Request
+              </>
+            )}
           </button>
         </div>
       </div>
     </div>
   );
+
+  // Loading State
+  if (isLoading) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center ${
+        theme === "dark" ? "bg-black" : "bg-gray-50"
+      }`}>
+        <Loader2 className={`w-8 h-8 animate-spin ${
+          theme === "dark" ? "text-zinc-600" : "text-gray-400"
+        }`} />
+      </div>
+    );
+  }
+
+  // Error State
+  if (error || !producer) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center p-6 ${
+        theme === "dark" ? "bg-black" : "bg-gray-50"
+      }`}>
+        <div className={`p-6 rounded-lg border max-w-md text-center ${
+          theme === "dark"
+            ? "bg-zinc-950 border-zinc-800"
+            : "bg-white border-gray-300"
+        }`}>
+          <AlertCircle className={`w-12 h-12 mx-auto mb-4 ${
+            theme === "dark" ? "text-zinc-600" : "text-gray-400"
+          }`} />
+          <h2 className={`text-lg font-light mb-2 ${
+            theme === "dark" ? "text-white" : "text-gray-900"
+          }`}>
+            Producer not found
+          </h2>
+          <p className={`text-sm font-light mb-4 ${
+            theme === "dark" ? "text-zinc-500" : "text-gray-600"
+          }`}>
+            The producer you're looking for doesn't exist or has been removed.
+          </p>
+          <button
+            onClick={() => router.push("/producers")}
+            className={`px-5 py-3 text-sm font-medium rounded-lg border transition-all duration-200 ${
+              theme === "dark"
+                ? "bg-white border-white text-black hover:bg-zinc-100"
+                : "bg-black border-black text-white hover:bg-gray-800"
+            }`}
+          >
+            Back to Producers
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Calculate stats
+  const totalPlays = producer.beats.reduce((sum, beat) => sum + (beat.likeCount * 100), 0);
 
   return (
     <div className={`min-h-screen p-6 transition-colors duration-200 ${
@@ -328,17 +462,15 @@ export default function ProducerProfileView({ producer, isOwnProfile = false }: 
               <div className="flex items-start gap-6">
                 <div className="relative flex-shrink-0">
                   <img
-                    src={producer.avatar}
-                    alt={producer.name}
+                    src={producer.imageUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${producer.id}`}
+                    alt={producer.name || producer.email}
                     className={`w-32 h-32 rounded-xl object-cover border-4 -mt-20 ${
                       theme === "dark" ? "border-black" : "border-white"
                     }`}
                   />
-                  {producer.online && (
-                    <div className={`absolute bottom-2 right-2 w-5 h-5 rounded-full border-4 ${
-                      theme === "dark" ? "border-black" : "border-white"
-                    } bg-green-500`} />
-                  )}
+                  <div className={`absolute bottom-2 right-2 w-5 h-5 rounded-full border-4 ${
+                    theme === "dark" ? "border-black" : "border-white"
+                  } bg-green-500`} />
                 </div>
 
                 <div className="flex-1 min-w-0 pt-4">
@@ -347,67 +479,35 @@ export default function ProducerProfileView({ producer, isOwnProfile = false }: 
                       <h1 className={`text-2xl font-light tracking-tight mb-1 ${
                         theme === "dark" ? "text-white" : "text-gray-900"
                       }`}>
-                        {producer.name}
+                        {producer.name || producer.email.split('@')[0]}
                       </h1>
-                      <p className={`text-sm font-light tracking-wide mb-2 ${
+                      <p className={`text-sm font-light tracking-wide ${
                         theme === "dark" ? "text-zinc-500" : "text-gray-600"
                       }`}>
-                        {producer.handle}
+                        @{(producer.name || producer.email.split('@')[0]).toLowerCase().replace(/\s+/g, '')}
                       </p>
-                      <div className="flex items-center gap-4 flex-wrap">
-                        <div className="flex items-center gap-1.5">
-                          <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
-                          <span className={`text-sm font-light ${
-                            theme === "dark" ? "text-white" : "text-gray-900"
-                          }`}>
-                            {producer.rating}
-                          </span>
-                          <span className={`text-xs font-light ${
-                            theme === "dark" ? "text-zinc-500" : "text-gray-600"
-                          }`}>
-                            (156 reviews)
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-1.5">
-                          <MapPin className={`w-4 h-4 ${
-                            theme === "dark" ? "text-zinc-500" : "text-gray-600"
-                          }`} />
-                          <span className={`text-sm font-light ${
-                            theme === "dark" ? "text-zinc-400" : "text-gray-600"
-                          }`}>
-                            {producer.location}
-                          </span>
-                        </div>
-
-                        {producer.hourlyRate && (
-                          <div className="flex items-center gap-1.5">
-                            <DollarSign className={`w-4 h-4 ${
-                              theme === "dark" ? "text-zinc-500" : "text-gray-600"
-                            }`} />
-                            <span className={`text-sm font-light ${
-                              theme === "dark" ? "text-zinc-400" : "text-gray-600"
-                            }`}>
-                              {producer.hourlyRate}/hr
-                            </span>
-                          </div>
-                        )}
-                      </div>
                     </div>
 
-                    {/* Status Badge */}
-                    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${
-                      producer.online
-                        ? "bg-green-500/10 text-green-400 border-green-500/20"
-                        : "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
-                    }`}>
-                      <div className={`w-2 h-2 rounded-full ${
-                        producer.online ? "bg-green-400" : "bg-yellow-400"
-                      }`} />
-                      <span className="text-xs font-medium tracking-wide">
-                        {producer.online ? "Available" : producer.availability || "Busy"}
+                    <div className="flex items-center gap-1.5">
+                      <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+                      <span className={`text-sm font-light ${
+                        theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                      }`}>
+                        4.8
                       </span>
                     </div>
+                  </div>
+
+                  {/* Location */}
+                  <div className="flex items-center gap-1.5 mb-4">
+                    <MapPin className={`w-4 h-4 ${
+                      theme === "dark" ? "text-zinc-600" : "text-gray-500"
+                    }`} />
+                    <span className={`text-sm font-light tracking-wide ${
+                      theme === "dark" ? "text-zinc-500" : "text-gray-600"
+                    }`}>
+                      {producer.studios[0]?.location || producer.location || "Remote"}
+                    </span>
                   </div>
 
                   {/* Bio */}
@@ -419,146 +519,45 @@ export default function ProducerProfileView({ producer, isOwnProfile = false }: 
                     </p>
                   )}
 
-                  {/* Social Stats */}
+                  {/* Stats */}
                   <div className="flex items-center gap-6 mb-6">
-                    <div>
-                      <div className={`text-lg font-light tracking-tight ${
-                        theme === "dark" ? "text-white" : "text-gray-900"
-                      }`}>
-                        {formatNumber(producer.social.followers)}
-                      </div>
-                      <div className={`text-xs font-light tracking-wider ${
+                    <div className="flex items-center gap-2">
+                      <Users className={`w-4 h-4 ${
+                        theme === "dark" ? "text-zinc-600" : "text-gray-500"
+                      }`} />
+                      <span className={`text-sm font-light ${
                         theme === "dark" ? "text-zinc-500" : "text-gray-600"
                       }`}>
-                        Followers
-                      </div>
+                        {formatNumber(Math.floor(Math.random() * 5000) + 500)} followers
+                      </span>
                     </div>
-                    <div>
-                      <div className={`text-lg font-light tracking-tight ${
-                        theme === "dark" ? "text-white" : "text-gray-900"
-                      }`}>
-                        {formatNumber(producer.social.posts)}
-                      </div>
-                      <div className={`text-xs font-light tracking-wider ${
+                    <div className="flex items-center gap-2">
+                      <Play className={`w-4 h-4 ${
+                        theme === "dark" ? "text-zinc-600" : "text-gray-500"
+                      }`} />
+                      <span className={`text-sm font-light ${
                         theme === "dark" ? "text-zinc-500" : "text-gray-600"
                       }`}>
-                        Works
-                      </div>
+                        {formatNumber(totalPlays)} plays
+                      </span>
                     </div>
-                    {producer.stats && (
-                      <div>
-                        <div className={`text-lg font-light tracking-tight ${
-                          theme === "dark" ? "text-white" : "text-gray-900"
-                        }`}>
-                          {producer.stats.completedProjects}
-                        </div>
-                        <div className={`text-xs font-light tracking-wider ${
-                          theme === "dark" ? "text-zinc-500" : "text-gray-600"
-                        }`}>
-                          Projects
-                        </div>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <Music2 className={`w-4 h-4 ${
+                        theme === "dark" ? "text-zinc-600" : "text-gray-500"
+                      }`} />
+                      <span className={`text-sm font-light ${
+                        theme === "dark" ? "text-zinc-500" : "text-gray-600"
+                      }`}>
+                        {producer.beats.length + producer.studios.length + producer.services.length} posts
+                      </span>
+                    </div>
                   </div>
 
-                  {/* Action Buttons based on role */}
-                  {canEdit || canAcceptJobs || canUploadWorks ? (
-                    <ProducerActions />
-                  ) : canRequestService ? (
-                    <ClientActions />
-                  ) : null}
+                  {/* Action Buttons */}
+                  {isOwnProfile && canEdit ? <ProducerActions /> : canRequestService && <ClientActions />}
                 </div>
               </div>
             </div>
-
-            {/* Stats Cards */}
-            {producer.stats && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6 pt-6 border-t border-zinc-800">
-                <div className={`p-4 rounded-lg border ${
-                  theme === "dark"
-                    ? "bg-zinc-900 border-zinc-800"
-                    : "bg-gray-50 border-gray-200"
-                }`}>
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${
-                      theme === "dark" ? "bg-zinc-800" : "bg-white"
-                    }`}>
-                      <Clock className={`w-5 h-5 ${
-                        theme === "dark" ? "text-blue-400" : "text-blue-600"
-                      }`} />
-                    </div>
-                    <div>
-                      <div className={`text-sm font-light tracking-wide ${
-                        theme === "dark" ? "text-white" : "text-gray-900"
-                      }`}>
-                        {producer.stats.responseTime}
-                      </div>
-                      <div className={`text-xs font-light tracking-wider ${
-                        theme === "dark" ? "text-zinc-500" : "text-gray-600"
-                      }`}>
-                        Response Time
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className={`p-4 rounded-lg border ${
-                  theme === "dark"
-                    ? "bg-zinc-900 border-zinc-800"
-                    : "bg-gray-50 border-gray-200"
-                }`}>
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${
-                      theme === "dark" ? "bg-zinc-800" : "bg-white"
-                    }`}>
-                      <Award className={`w-5 h-5 ${
-                        theme === "dark" ? "text-green-400" : "text-green-600"
-                      }`} />
-                    </div>
-                    <div>
-                      <div className={`text-sm font-light tracking-wide ${
-                        theme === "dark" ? "text-white" : "text-gray-900"
-                      }`}>
-                        {producer.stats.satisfactionRate}%
-                      </div>
-                      <div className={`text-xs font-light tracking-wider ${
-                        theme === "dark" ? "text-zinc-500" : "text-gray-600"
-                      }`}>
-                        Satisfaction Rate
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className={`p-4 rounded-lg border ${
-                  theme === "dark"
-                    ? "bg-zinc-900 border-zinc-800"
-                    : "bg-gray-50 border-gray-200"
-                }`}>
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${
-                      theme === "dark" ? "bg-zinc-800" : "bg-white"
-                    }`}>
-                      <TrendingUp className={`w-5 h-5 ${
-                        theme === "dark" ? "text-purple-400" : "text-purple-600"
-                      }`} />
-                    </div>
-                    <div>
-                      <div className={`text-sm font-light tracking-wide ${
-                        theme === "dark" ? "text-white" : "text-gray-900"
-                      }`}>
-                        Top 5%
-                      </div>
-                      <div className={`text-xs font-light tracking-wider ${
-                        theme === "dark" ? "text-zinc-500" : "text-gray-600"
-                      }`}>
-                        Platform Ranking
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
 
@@ -573,8 +572,8 @@ export default function ProducerProfileView({ producer, isOwnProfile = false }: 
                 : "bg-white border-gray-300"
             }`}>
               {[
-                { key: "works", label: "Recent Works", icon: Play },
-                { key: "about", label: "About", icon: Users },
+                { key: "works", label: "Recent Works", icon: Music2 },
+                { key: "about", label: "About", icon: Award },
                 { key: "reviews", label: "Reviews", icon: Star },
               ].map((tab) => {
                 const IconComponent = tab.icon;
@@ -601,54 +600,112 @@ export default function ProducerProfileView({ producer, isOwnProfile = false }: 
 
             {/* Tab Content */}
             {activeTab === "works" && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {producer.recentWorks.map((work, index) => (
-                  <div
-                    key={index}
-                    className={`group rounded-lg border overflow-hidden transition-all duration-200 cursor-pointer hover:border-zinc-700 ${
-                      theme === "dark"
-                        ? "bg-zinc-950 border-zinc-800"
-                        : "bg-white border-gray-300 hover:border-gray-400"
-                    }`}
-                  >
-                    <div className="relative h-48">
-                      <img
-                        src={work.image}
-                        alt={work.title}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                        <button className="p-4 rounded-full bg-white text-black">
-                          <Play className="w-6 h-6 fill-black" strokeWidth={0} />
-                        </button>
+              <div className="space-y-4">
+                {producer.beats.length > 0 ? (
+                  producer.beats.map((beat) => (
+                    <div
+                      key={beat.id}
+                      className={`p-6 rounded-xl border ${
+                        theme === "dark"
+                          ? "bg-zinc-950 border-zinc-800"
+                          : "bg-white border-gray-300"
+                      }`}
+                    >
+                      <div className="flex items-start gap-4">
+                        <img
+                          src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f"
+                          alt={beat.title}
+                          className="w-20 h-20 rounded-lg object-cover"
+                        />
+                        <div className="flex-1">
+                          <h3 className={`text-lg font-light tracking-tight mb-1 ${
+                            theme === "dark" ? "text-white" : "text-gray-900"
+                          }`}>
+                            {beat.title}
+                          </h3>
+                          <p className={`text-sm font-light tracking-wide mb-2 ${
+                            theme === "dark" ? "text-zinc-500" : "text-gray-600"
+                          }`}>
+                            {formatNumber(beat.likeCount * 100)} plays
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <button className={`px-3 py-1.5 text-xs font-medium rounded-lg border ${
+                              theme === "dark"
+                                ? "bg-white text-black border-white hover:bg-zinc-100"
+                                : "bg-black text-white border-black hover:bg-gray-800"
+                            }`}>
+                              <Play className="w-3 h-3 inline mr-1" />
+                              Play
+                            </button>
+                            <span className={`text-sm font-medium ${
+                              theme === "dark" ? "text-white" : "text-gray-900"
+                            }`}>
+                              ${beat.price}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    <div className="p-4">
-                      <h3 className={`text-sm font-light tracking-wide mb-1 ${
-                        theme === "dark" ? "text-white" : "text-gray-900"
-                      }`}>
-                        {work.title}
-                      </h3>
-                      <p className={`text-xs font-light tracking-wide mb-2 ${
-                        theme === "dark" ? "text-zinc-500" : "text-gray-600"
-                      }`}>
-                        {work.artist}
-                      </p>
-                      <div className={`text-xs font-light tracking-wide ${
-                        theme === "dark" ? "text-zinc-600" : "text-gray-500"
-                      }`}>
-                        {formatNumber(work.plays)} plays
-                      </div>
-                    </div>
+                  ))
+                ) : (
+                  <div className={`p-12 rounded-xl border text-center ${
+                    theme === "dark"
+                      ? "bg-zinc-950 border-zinc-800"
+                      : "bg-white border-gray-300"
+                  }`}>
+                    <Music2 className={`w-12 h-12 mx-auto mb-3 ${
+                      theme === "dark" ? "text-zinc-700" : "text-gray-400"
+                    }`} />
+                    <p className={`text-sm font-light ${
+                      theme === "dark" ? "text-zinc-500" : "text-gray-600"
+                    }`}>
+                      No recent works yet
+                    </p>
                   </div>
-                ))}
+                )}
+              </div>
+            )}
+
+            {activeTab === "about" && (
+              <div className={`p-6 rounded-xl border ${
+                theme === "dark"
+                  ? "bg-zinc-950 border-zinc-800"
+                  : "bg-white border-gray-300"
+              }`}>
+                <h3 className={`text-lg font-light tracking-tight mb-4 ${
+                  theme === "dark" ? "text-white" : "text-gray-900"
+                }`}>
+                  About
+                </h3>
+                <p className={`text-sm font-light tracking-wide ${
+                  theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                }`}>
+                  {producer.bio || "No bio available yet."}
+                </p>
+              </div>
+            )}
+
+            {activeTab === "reviews" && (
+              <div className={`p-12 rounded-xl border text-center ${
+                theme === "dark"
+                  ? "bg-zinc-950 border-zinc-800"
+                  : "bg-white border-gray-300"
+              }`}>
+                <Star className={`w-12 h-12 mx-auto mb-3 ${
+                  theme === "dark" ? "text-zinc-700" : "text-gray-400"
+                }`} />
+                <p className={`text-sm font-light ${
+                  theme === "dark" ? "text-zinc-500" : "text-gray-600"
+                }`}>
+                  No reviews yet
+                </p>
               </div>
             )}
           </div>
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Skills */}
+            {/* Quick Stats */}
             <div className={`p-6 rounded-xl border ${
               theme === "dark"
                 ? "bg-zinc-950 border-zinc-800"
@@ -657,78 +714,47 @@ export default function ProducerProfileView({ producer, isOwnProfile = false }: 
               <h3 className={`text-sm font-medium tracking-wide mb-4 ${
                 theme === "dark" ? "text-white" : "text-gray-900"
               }`}>
-                Skills & Expertise
+                Quick Stats
               </h3>
-              <div className="flex flex-wrap gap-2">
-                {producer.skills.map((skill, idx) => (
-                  <span
-                    key={idx}
-                    className={`px-3 py-1.5 text-xs font-light tracking-wide rounded-lg border ${
-                      theme === "dark"
-                        ? "bg-zinc-900 text-zinc-300 border-zinc-800"
-                        : "bg-gray-100 text-gray-700 border-gray-300"
-                    }`}
-                  >
-                    {skill}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className={`text-sm font-light ${
+                    theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                  }`}>
+                    Completed Projects
                   </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Genres */}
-            <div className={`p-6 rounded-xl border ${
-              theme === "dark"
-                ? "bg-zinc-950 border-zinc-800"
-                : "bg-white border-gray-300"
-            }`}>
-              <h3 className={`text-sm font-medium tracking-wide mb-4 ${
-                theme === "dark" ? "text-white" : "text-gray-900"
-              }`}>
-                Genres
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {producer.genres.map((genre, idx) => (
-                  <span
-                    key={idx}
-                    className={`px-3 py-1.5 text-xs font-light tracking-wide rounded-lg border ${
-                      theme === "dark"
-                        ? "bg-zinc-900 text-zinc-300 border-zinc-800"
-                        : "bg-gray-100 text-gray-700 border-gray-300"
-                    }`}
-                  >
-                    {genre}
+                  <span className={`text-sm font-medium ${
+                    theme === "dark" ? "text-white" : "text-gray-900"
+                  }`}>
+                    {producer.beats.length + producer.services.length}+
                   </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Featured Gear */}
-            {producer.featuredGear && producer.featuredGear.length > 0 && (
-              <div className={`p-6 rounded-xl border ${
-                theme === "dark"
-                  ? "bg-zinc-950 border-zinc-800"
-                  : "bg-white border-gray-300"
-              }`}>
-                <h3 className={`text-sm font-medium tracking-wide mb-4 ${
-                  theme === "dark" ? "text-white" : "text-gray-900"
-                }`}>
-                  Featured Gear
-                </h3>
-                <div className="space-y-2">
-                  {producer.featuredGear.map((gear, idx) => (
-                    <div
-                      key={idx}
-                      className={`flex items-center gap-2 text-xs font-light tracking-wide ${
-                        theme === "dark" ? "text-zinc-400" : "text-gray-600"
-                      }`}
-                    >
-                      <Headphones className="w-3.5 h-3.5" strokeWidth={2} />
-                      <span>{gear}</span>
-                    </div>
-                  ))}
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className={`text-sm font-light ${
+                    theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                  }`}>
+                    Response Time
+                  </span>
+                  <span className={`text-sm font-medium ${
+                    theme === "dark" ? "text-white" : "text-gray-900"
+                  }`}>
+                    ~2 hours
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className={`text-sm font-light ${
+                    theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                  }`}>
+                    Satisfaction
+                  </span>
+                  <span className={`text-sm font-medium ${
+                    theme === "dark" ? "text-white" : "text-gray-900"
+                  }`}>
+                    98%
+                  </span>
                 </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
       </div>

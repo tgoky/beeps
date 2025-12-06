@@ -48,7 +48,8 @@ export function useProducers(filters?: {
 
       const response = await fetch(`/api/producers?${params.toString()}`);
       if (!response.ok) throw new Error("Failed to fetch producers");
-      return response.json();
+      const data = await response.json();
+      return data.producers || [];
     },
   });
 }
@@ -62,7 +63,8 @@ export function useProducer(id: string) {
     queryFn: async () => {
       const response = await fetch(`/api/producers/${id}`);
       if (!response.ok) throw new Error("Failed to fetch producer");
-      return response.json();
+      const data = await response.json();
+      return data.producer || data;
     },
     enabled: !!id,
   });
