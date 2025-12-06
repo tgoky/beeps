@@ -613,7 +613,7 @@ export default function BookingsPage() {
                       const routeMap: any = {
                         STUDIO_BOOKING: `/bookings/show/${booking.id}`,
                         EQUIPMENT_RENTAL: `/equipment/show/${booking.equipmentId}`,
-                        SERVICE_REQUEST: `/services/show/${booking.id}`,
+                        SERVICE_REQUEST: `/service-requests?highlight=${booking.id}`,
                         BEAT_PURCHASE: `/beats/show/${booking.beatId}`,
                       };
                       router.push(routeMap[booking.type] || "/bookings");
