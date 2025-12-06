@@ -8,6 +8,12 @@ export interface Producer {
   email: string;
   imageUrl: string | null;
   bio: string | null;
+  location: string | null;
+  verified: boolean;
+  followersCount: number;
+  followingCount: number;
+  genres: string[];
+  specialties: string[];
   studios: {
     id: string;
     name: string;
