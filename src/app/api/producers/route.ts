@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
       where.specialties = { has: skill };
     }
 
-    const producers = await prisma.producerProfile.findMany({
+    const producerProfiles = await prisma.producerProfile.findMany({
       where: {
         ...where,
         ...(Object.keys(userWhere).length > 0 && { user: userWhere }),
@@ -43,32 +43,34 @@ export async function GET(req: NextRequest) {
             bio: true,
             location: true,
             verified: true,
-          },
-        },
-        beats: {
-          where: { isActive: true },
-          select: {
-            id: true,
-            title: true,
-            imageUrl: true,
-            plays: true,
-            likes: true,
-          },
-          take: 5,
-          orderBy: {
-            createdAt: "desc",
-          },
-        },
-        serviceRequests: {
-          select: {
-            id: true,
-            status: true,
-          },
-        },
-        _count: {
-          select: {
-            beats: true,
-            serviceRequests: true,
+            email: true,
+            uploadedBeats: {
+              where: { isActive: true },
+              select: {
+                id: true,
+                title: true,
+                imageUrl: true,
+                plays: true,
+                likes: true,
+                price: true,
+              },
+              take: 5,
+              orderBy: {
+                createdAt: "desc",
+              },
+            },
+            receivedServiceRequests: {
+              select: {
+                id: true,
+                status: true,
+              },
+            },
+            _count: {
+              select: {
+                uploadedBeats: true,
+                receivedServiceRequests: true,
+              },
+            },
           },
         },
       },
@@ -76,6 +78,50 @@ export async function GET(req: NextRequest) {
         createdAt: "desc",
       },
     });
+
+    // Transform the data to match the expected format
+    const producers = await Promise.all(
+      producerProfiles.map(async (profile) => {
+        // Fetch studios for this user
+        const studios = await prisma.studio.findMany({
+          where: {
+            owner: {
+              userId: profile.userId,
+            },
+          },
+          select: {
+            id: true,
+            name: true,
+            location: true,
+            hourlyRate: true,
+          },
+          take: 5,
+        });
+
+        return {
+          id: profile.user.id,
+          name: profile.user.fullName,
+          email: profile.user.email,
+          imageUrl: profile.user.avatar,
+          bio: profile.user.bio,
+          location: profile.user.location,
+          studios: studios.map((studio) => ({
+            id: studio.id,
+            name: studio.name,
+            location: studio.location,
+            hourlyRate: Number(studio.hourlyRate),
+          })),
+          beats: profile.user.uploadedBeats.map((beat) => ({
+            id: beat.id,
+            title: beat.title,
+            price: Number(beat.price || 0),
+            likeCount: beat.likes || 0,
+          })),
+          services: [], // Placeholder for now
+          createdAt: profile.createdAt.toISOString(),
+        };
+      })
+    );
 
     return NextResponse.json({ producers });
   } catch (error: any) {
