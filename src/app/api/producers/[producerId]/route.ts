@@ -24,33 +24,33 @@ export async function GET(
             location: true,
             verified: true,
             email: true,
-          },
-        },
-        beats: {
-          where: { isActive: true },
-          select: {
-            id: true,
-            title: true,
-            imageUrl: true,
-            plays: true,
-            likes: true,
-            price: true,
-          },
-          take: 10,
-          orderBy: {
-            createdAt: "desc",
-          },
-        },
-        serviceRequests: {
-          select: {
-            id: true,
-            status: true,
-          },
-        },
-        _count: {
-          select: {
-            beats: true,
-            serviceRequests: true,
+            uploadedBeats: {
+              where: { isActive: true },
+              select: {
+                id: true,
+                title: true,
+                imageUrl: true,
+                plays: true,
+                likes: true,
+                price: true,
+              },
+              take: 10,
+              orderBy: {
+                createdAt: "desc",
+              },
+            },
+            receivedServiceRequests: {
+              select: {
+                id: true,
+                status: true,
+              },
+            },
+            _count: {
+              select: {
+                uploadedBeats: true,
+                receivedServiceRequests: true,
+              },
+            },
           },
         },
       },
@@ -97,7 +97,7 @@ export async function GET(
         location: studio.location,
         hourlyRate: Number(studio.hourlyRate),
       })),
-      beats: producerProfile.beats.map((beat) => ({
+      beats: producerProfile.user.uploadedBeats.map((beat) => ({
         id: beat.id,
         title: beat.title,
         price: Number(beat.price || 0),
