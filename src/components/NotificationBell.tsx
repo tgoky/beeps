@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import { Bell, X, Check, CheckCheck, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import { useTheme } from "@/providers/ThemeProvider";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { getNotificationRoute } from "@/lib/notification-routing";
 
 interface Notification {
   id: string;
@@ -21,6 +23,7 @@ interface Notification {
 
 export const NotificationBell = () => {
   const { theme } = useTheme();
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -145,17 +148,25 @@ export const NotificationBell = () => {
     return new Date(date).toLocaleDateString();
   };
 
-  // Get notification link based on type
-  const getNotificationLink = (notification: Notification) => {
-    switch (notification.referenceType) {
-      case "BOOKING":
-        return `/bookings/show/${notification.referenceId}`;
-      case "STUDIO":
-        return `/studios/show/${notification.referenceId}`;
-      case "JOB":
-        return `/services`;
-      default:
-        return null;
+  // Handle notification click - navigate and mark as read
+  const handleNotificationClick = async (notification: Notification) => {
+    const route = getNotificationRoute(
+      notification.type,
+      notification.referenceType,
+      notification.referenceId
+    );
+
+    // Mark as read if unread
+    if (!notification.isRead) {
+      await markAsRead(notification.id);
+    }
+
+    // Navigate if there's a route
+    if (route.path) {
+      if (route.closeDropdown) {
+        setIsOpen(false);
+      }
+      router.push(route.path);
     }
   };
 
@@ -304,21 +315,29 @@ export const NotificationBell = () => {
             ) : (
               <div className="divide-y divide-gray-200 dark:divide-gray-800">
                 {notifications.map((notification) => {
-                  const link = getNotificationLink(notification);
-                  const NotificationContent = (
+                  const route = getNotificationRoute(
+                    notification.type,
+                    notification.referenceType,
+                    notification.referenceId
+                  );
+                  const isClickable = !!route.path;
+
+                  return (
                     <div
+                      key={notification.id}
                       className={`
-                        p-4 transition-all cursor-pointer
+                        p-4 transition-all
+                        ${isClickable ? "cursor-pointer" : "cursor-default"}
                         ${!notification.isRead
                           ? theme === "dark"
                             ? "bg-purple-500/5 hover:bg-purple-500/10"
                             : "bg-purple-50/50 hover:bg-purple-50"
                           : theme === "dark"
-                          ? "hover:bg-gray-800/40"
-                          : "hover:bg-gray-50"
+                          ? isClickable ? "hover:bg-gray-800/40" : ""
+                          : isClickable ? "hover:bg-gray-50" : ""
                         }
                       `}
-                      onClick={() => !notification.isRead && markAsRead(notification.id)}
+                      onClick={() => isClickable && handleNotificationClick(notification)}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
@@ -400,21 +419,6 @@ export const NotificationBell = () => {
                           </button>
                         </div>
                       </div>
-                    </div>
-                  );
-
-                  return link ? (
-                    <Link
-                      key={notification.id}
-                      href={link}
-                      onClick={() => setIsOpen(false)}
-                      className="block no-underline"
-                    >
-                      {NotificationContent}
-                    </Link>
-                  ) : (
-                    <div key={notification.id}>
-                      {NotificationContent}
                     </div>
                   );
                 })}
