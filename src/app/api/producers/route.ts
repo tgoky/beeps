@@ -44,6 +44,8 @@ export async function GET(req: NextRequest) {
             location: true,
             verified: true,
             email: true,
+            followersCount: true,
+            followingCount: true,
             uploadedBeats: {
               where: { isActive: true },
               select: {
@@ -105,6 +107,11 @@ export async function GET(req: NextRequest) {
           imageUrl: profile.user.avatar,
           bio: profile.user.bio,
           location: profile.user.location,
+          verified: profile.user.verified,
+          followersCount: profile.user.followersCount || 0,
+          followingCount: profile.user.followingCount || 0,
+          genres: profile.genres || [],
+          specialties: profile.specialties || [],
           studios: studios.map((studio) => ({
             id: studio.id,
             name: studio.name,

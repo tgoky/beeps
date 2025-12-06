@@ -26,61 +26,14 @@ import { getRoleDisplayName } from '@/lib/permissions';
 import type { UserRole } from '@prisma/client';
 import { useProducers, type Producer as APIProducer } from "@/hooks/useProducers";
 
-type Producer = {
-  id: number;
-  name: string;
+// Use the API producer type directly - no need to transform with fake data
+type Producer = APIProducer & {
   handle: string;
-  avatar: string;
-  location: string;
-  rating: number;
-  genres: string[];
-  skills: string[];
   recentWorks: {
     title: string;
-    artist: string;
-    plays: number;
     image: string;
   }[];
-  social: {
-    followers: number;
-    following: number;
-    posts: number;
-  };
-  online: boolean;
-  lastActive: string;
-  featuredGear?: string[];
-};
-
-// Helper to transform API producer to display format
-const transformProducer = (apiProducer: APIProducer): Producer => {
-  const totalPlays = apiProducer.beats.reduce((sum, beat) => sum + (beat.likeCount * 100), 0); // Estimate plays from likes
-
-  return {
-    id: parseInt(apiProducer.id, 36),
-    name: apiProducer.name || apiProducer.email.split('@')[0],
-    handle: `@${(apiProducer.name || apiProducer.email.split('@')[0]).toLowerCase().replace(/\s+/g, '')}`,
-    avatar: apiProducer.imageUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${apiProducer.id}`,
-    location: apiProducer.studios[0]?.location || "Remote",
-    rating: 4.5 + Math.random() * 0.5,
-    genres: ["Hip Hop", "R&B"], // TODO: Extract from beats
-    skills: apiProducer.studios.length > 0 ? ["Studio Recording"] : []
-      .concat(apiProducer.beats.length > 0 ? ["Beat Making"] : [])
-      .concat(apiProducer.services.length > 0 ? ["Production"] : []),
-    recentWorks: apiProducer.beats.slice(0, 3).map(beat => ({
-      title: beat.title,
-      artist: "Various Artists",
-      plays: beat.likeCount * 100, // Estimate
-      image: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f"
-    })),
-    social: {
-      followers: Math.floor(Math.random() * 5000) + 500,
-      following: Math.floor(Math.random() * 1000) + 100,
-      posts: apiProducer.beats.length + apiProducer.studios.length + apiProducer.services.length
-    },
-    online: Math.random() > 0.5,
-    lastActive: "Recently active",
-    featuredGear: []
-  };
+  totalPosts: number;
 };
 
 const formatNumber = (num: number): string => {
@@ -108,12 +61,20 @@ export default function ProducerHub() {
     search: searchQuery || undefined,
   });
 
-  // Transform API data to display format
-  const producers = apiProducers.map(transformProducer);
+  // Add computed fields to producers
+  const producers: Producer[] = apiProducers.map(p => ({
+    ...p,
+    handle: `@${(p.name || p.email.split('@')[0]).toLowerCase().replace(/\s+/g, '')}`,
+    recentWorks: p.beats.slice(0, 3).map(beat => ({
+      title: beat.title,
+      image: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f"
+    })),
+    totalPosts: p.beats.length + p.studios.length + p.services.length
+  }));
 
   const filteredProducers = producers.filter(producer => {
     const matchesGenre = selectedGenre === "all" || producer.genres.includes(selectedGenre);
-    const matchesSkill = selectedSkill === "all" || producer.skills.includes(selectedSkill);
+    const matchesSkill = selectedSkill === "all" || producer.specialties.includes(selectedSkill);
     return matchesGenre && matchesSkill;
   });
 
@@ -125,7 +86,7 @@ export default function ProducerHub() {
   ];
 
   // Get unique skills from all producers
-  const allSkills = Array.from(new Set(producers.flatMap(producer => producer.skills)));
+  const allSkills = Array.from(new Set(producers.flatMap(producer => producer.specialties)));
 
   // Producer Card Action Buttons - changes based on user role
   const ProducerCardActions = ({ producer }: { producer: Producer }) => {
@@ -390,21 +351,21 @@ export default function ProducerHub() {
                     <div className={`text-lg font-light tracking-tight ${
                       theme === "dark" ? "text-white" : "text-gray-900"
                     }`}>
-                      {formatNumber(producers.reduce((sum, p) => sum + p.social.followers, 0))}
+                      {formatNumber(producers.reduce((sum, p) => sum + p.followersCount, 0))}
                     </div>
                     <div className={`text-xs font-light tracking-wider ${
                       theme === "dark" ? "text-zinc-500" : "text-gray-600"
-                    }`}>Producers</div>
+                    }`}>Total Followers</div>
                   </div>
                   <div className="space-y-1">
                     <div className={`text-lg font-light tracking-tight ${
                       theme === "dark" ? "text-white" : "text-gray-900"
                     }`}>
-                      {formatNumber(producers.reduce((sum, p) => sum + p.recentWorks.reduce((wSum, w) => wSum + w.plays, 0), 0))}
+                      {producers.length}
                     </div>
                     <div className={`text-xs font-light tracking-wider ${
                       theme === "dark" ? "text-zinc-500" : "text-gray-600"
-                    }`}>Plays</div>
+                    }`}>Producers</div>
                   </div>
                 </div>
               </div>
@@ -524,16 +485,18 @@ export default function ProducerHub() {
                       {/* Avatar */}
                       <div className="relative flex-shrink-0">
                         <img
-                          src={producer.avatar}
-                          alt={producer.name}
+                          src={producer.imageUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${producer.id}`}
+                          alt={producer.name || producer.email}
                           className={`w-12 h-12 rounded-lg object-cover border ${
                             theme === "dark" ? "border-zinc-700" : "border-gray-300"
                           }`}
                         />
-                        {producer.online && (
-                          <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 ${
+                        {producer.verified && (
+                          <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 ${
                             theme === "dark" ? "border-zinc-950" : "border-white"
-                          } bg-green-500`} />
+                          } bg-blue-500 flex items-center justify-center`}>
+                            <CheckCircle2 className="w-2.5 h-2.5 text-white" strokeWidth={3} />
+                          </div>
                         )}
                       </div>
 
@@ -544,7 +507,7 @@ export default function ProducerHub() {
                             <h3 className={`text-sm font-light tracking-wide truncate ${
                               theme === "dark" ? "text-white" : "text-gray-900"
                             }`}>
-                              {producer.name}
+                              {producer.name || producer.email.split('@')[0]}
                             </h3>
                             <p className={`text-xs font-light tracking-wide truncate ${
                               theme === "dark" ? "text-zinc-500" : "text-gray-600"
@@ -552,14 +515,11 @@ export default function ProducerHub() {
                               {producer.handle}
                             </p>
                           </div>
-                          <div className="flex items-center gap-1 flex-shrink-0">
-                            <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
-                            <span className={`text-xs font-light ${
-                              theme === "dark" ? "text-zinc-400" : "text-gray-600"
-                            }`}>
-                              {producer.rating}
-                            </span>
-                          </div>
+                          {producer.verified && (
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              <CheckCircle2 className="w-3 h-3 text-blue-500" />
+                            </div>
+                          )}
                         </div>
 
                         {/* Location */}
@@ -583,26 +543,24 @@ export default function ProducerHub() {
                             <span className={`text-xs font-light ${
                               theme === "dark" ? "text-zinc-500" : "text-gray-600"
                             }`}>
-                              {formatNumber(producer.social.followers)}
+                              {formatNumber(producer.followersCount)}
                             </span>
                           </div>
                           <div className="flex items-center gap-1">
-                            <Play className={`w-3 h-3 ${
+                            <Music2 className={`w-3 h-3 ${
                               theme === "dark" ? "text-zinc-600" : "text-gray-500"
                             }`} />
                             <span className={`text-xs font-light ${
                               theme === "dark" ? "text-zinc-500" : "text-gray-600"
                             }`}>
-                              {producer.social.posts}
+                              {producer.totalPosts}
                             </span>
                           </div>
-                          <div className={`text-xs font-light px-2 py-0.5 rounded border ${
-                            producer.online 
-                              ? "bg-green-500/10 text-green-400 border-green-500/20" 
-                              : "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
-                          }`}>
-                            {producer.online ? "Online" : "Away"}
-                          </div>
+                          {producer.beats.length > 0 && (
+                            <div className={`text-xs font-light px-2 py-0.5 rounded border bg-purple-500/10 text-purple-400 border-purple-500/20`}>
+                              {producer.beats.length} beats
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -644,12 +602,7 @@ export default function ProducerHub() {
                               <div className={`text-xs font-light tracking-wide truncate ${
                                 theme === "dark" ? "text-zinc-500" : "text-gray-600"
                               }`}>
-                                {work.artist}
-                              </div>
-                              <div className={`text-xs font-light tracking-wide ${
-                                theme === "dark" ? "text-zinc-600" : "text-gray-500"
-                              }`}>
-                                {formatNumber(work.plays)} plays
+                                Beat
                               </div>
                             </div>
                           </div>
