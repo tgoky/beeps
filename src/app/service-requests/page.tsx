@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTheme } from "@/providers/ThemeProvider";
-import { usePermissions } from "@/hooks/usePermissions";
+import { useGetIdentity } from "@refinedev/core";
 import {
   Briefcase,
   Clock,
@@ -49,10 +49,11 @@ export default function ServiceRequestsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { theme } = useTheme();
-  const { permissions, user } = usePermissions();
+  const { data: user, isLoading: userLoading } = useGetIdentity<any>();
 
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "pending" | "accepted" | "completed">("all");
   const [viewMode, setViewMode] = useState<"sent" | "received">("sent");
 
@@ -60,12 +61,14 @@ export default function ServiceRequestsPage() {
 
   // Fetch service requests
   useEffect(() => {
-    fetchRequests();
-  }, [viewMode, filter]);
+    if (user) {
+      fetchRequests();
+    }
+  }, [viewMode, filter, user]);
 
   // Auto-scroll to highlighted request
   useEffect(() => {
-    if (highlightId) {
+    if (highlightId && requests.length > 0) {
       setTimeout(() => {
         const element = document.getElementById(`request-${highlightId}`);
         if (element) {
@@ -78,6 +81,7 @@ export default function ServiceRequestsPage() {
   const fetchRequests = async () => {
     try {
       setLoading(true);
+      setError(null);
       const params = new URLSearchParams();
       params.append("asProducer", viewMode === "received" ? "true" : "false");
       if (filter !== "all") {
@@ -85,12 +89,16 @@ export default function ServiceRequestsPage() {
       }
 
       const response = await fetch(`/api/service-requests?${params.toString()}`);
-      if (!response.ok) throw new Error("Failed to fetch requests");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to fetch requests");
+      }
 
       const data = await response.json();
       setRequests(data.serviceRequests || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching service requests:", error);
+      setError(error.message || "Failed to load service requests");
     } finally {
       setLoading(false);
     }
@@ -134,7 +142,8 @@ export default function ServiceRequestsPage() {
     });
   };
 
-  if (!user) {
+  // Show loading spinner while user data is loading
+  if (userLoading) {
     return (
       <div className={`min-h-screen flex items-center justify-center ${theme === "dark" ? "bg-black" : "bg-gray-50"}`}>
         <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
@@ -166,6 +175,33 @@ export default function ServiceRequestsPage() {
             Manage your producer service requests
           </p>
         </div>
+
+        {/* Error Display */}
+        {error && (
+          <div
+            className={`p-4 rounded-lg border mb-6 flex items-start gap-3 ${
+              theme === "dark"
+                ? "bg-red-500/10 border-red-500/20 text-red-400"
+                : "bg-red-50 border-red-200 text-red-600"
+            }`}
+          >
+            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h4 className="font-medium mb-1">Error loading service requests</h4>
+              <p className="text-sm">{error}</p>
+            </div>
+            <button
+              onClick={() => fetchRequests()}
+              className={`text-sm font-medium px-3 py-1 rounded-lg transition-all ${
+                theme === "dark"
+                  ? "hover:bg-red-500/20"
+                  : "hover:bg-red-100"
+              }`}
+            >
+              Retry
+            </button>
+          </div>
+        )}
 
         {/* Filters */}
         <div className="flex flex-wrap gap-4 mb-6">
