@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
             avatar: true,
             bio: true,
             location: true,
-            isVerified: true,
+            verified: true,
           },
         },
         beats: {
