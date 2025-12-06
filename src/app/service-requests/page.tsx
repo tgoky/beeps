@@ -527,17 +527,17 @@ export default function ServiceRequestsPage() {
                           </button>
                         )}
 
-                        {/* View Producer/Client Profile */}
+                        {/* View Details */}
                         <button
-                          onClick={() => router.push(`/producers/${otherUser.id}`)}
+                          onClick={() => router.push(`/service-requests/${request.id}`)}
                           className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-all ${
                             theme === "dark"
-                              ? "border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-600"
-                              : "border-gray-300 text-gray-600 hover:text-gray-900 hover:border-gray-400"
+                              ? "bg-purple-500/10 border-purple-500/20 text-purple-400 hover:bg-purple-500/20"
+                              : "bg-purple-500/10 border-purple-500/20 text-purple-600 hover:bg-purple-500/20"
                           }`}
                         >
-                          <User className="w-4 h-4" />
-                          View Profile
+                          <Briefcase className="w-4 h-4" />
+                          View Details
                         </button>
                       </div>
                     </div>
