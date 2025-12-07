@@ -33,6 +33,9 @@ import {
   MapPin,
   Star,
   Zap,
+  Check,
+  Play,
+  MessageCircle,
 } from "lucide-react";
 import dayjs from "dayjs";
 
@@ -48,6 +51,7 @@ export default function BookingsPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [expandedBooking, setExpandedBooking] = useState<string | null>(null);
   const [supabaseUser, setSupabaseUser] = useState<any>(null);
+  const [updatingServiceRequest, setUpdatingServiceRequest] = useState(false);
 
   // Fetch BOTH customer and provider bookings for accurate combined stats
   const { data: customerBookingsData } = useAllBookings("customer");
@@ -241,6 +245,29 @@ export default function BookingsPage() {
       style: 'currency',
       currency: 'USD',
     }).format(amount);
+  };
+
+  // Handle service request status updates
+  const handleUpdateServiceRequest = async (requestId: string, status: string) => {
+    try {
+      setUpdatingServiceRequest(true);
+      const res = await fetch(`/api/service-requests/${requestId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to update request");
+      }
+
+      // Refresh the page to show updated data
+      window.location.reload();
+    } catch (error: any) {
+      alert(error.message || "Failed to update service request");
+      setUpdatingServiceRequest(false);
+    }
   };
 
   // Theme-based text colors
@@ -607,7 +634,8 @@ export default function BookingsPage() {
                 )}
 
                 {/* Actions */}
-                <div className={`flex gap-3 pt-6 border-t ${borderPrimary}`}>
+                <div className={`flex flex-wrap gap-3 pt-6 border-t ${borderPrimary}`}>
+                  {/* View Details Button */}
                   <button
                     onClick={() => {
                       const routeMap: any = {
@@ -628,86 +656,263 @@ export default function BookingsPage() {
                     <ChevronRight className="w-4 h-4" strokeWidth={2} />
                   </button>
 
-                  {/* Only show confirm button if user is the studio owner */}
-                  {booking.status === "PENDING" &&
-                   booking.type === "STUDIO_BOOKING" &&
-                   currentUser?.id === (booking as any).studio?.owner?.userId && (
-                    <button
-                      onClick={() => updateStatus.mutate({ bookingId: booking.id, status: "CONFIRMED" })}
-                      disabled={updateStatus.isPending}
-                      className={`
-                        px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
-                        ${theme === "dark"
-                          ? "bg-green-500/10 border-green-500/20 text-green-400"
-                          : "bg-green-500/10 border-green-500/20 text-green-600"
-                        }
-                        hover:bg-green-500/20 hover:border-green-500/30 active:scale-[0.98]
-                        disabled:opacity-50 disabled:cursor-not-allowed
-                      `}
-                    >
-                      {updateStatus.isPending ? (
-                        <span className="flex items-center gap-2">
-                          <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
-                          Confirming...
-                        </span>
-                      ) : (
-                        "Confirm Booking"
-                      )}
-                    </button>
-                  )}
+                  {/* SERVICE REQUEST Actions */}
+                  {booking.type === "SERVICE_REQUEST" && (() => {
+                    const isProducer = currentUser?.id === (booking as any).producerId;
+                    const isClient = currentUser?.id === (booking as any).userId;
+                    const otherUserRole = isProducer ? "Client" : "Producer";
 
-                  {/* Show cancel/reject button based on user role */}
-                  {booking.status === "PENDING" && (
-                    (() => {
-                      const isStudioOwner = booking.type === "STUDIO_BOOKING" && currentUser?.id === (booking as any).studio?.owner?.userId;
-                      const isCustomer = currentUser?.id === (booking as any).userId;
+                    return (
+                      <>
+                        {/* Producer Actions - Accept/Reject when PENDING */}
+                        {isProducer && booking.status === "PENDING" && (
+                          <>
+                            <button
+                              onClick={() => handleUpdateServiceRequest(booking.id, "ACCEPTED")}
+                              disabled={updatingServiceRequest}
+                              className={`
+                                flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
+                                ${theme === "dark"
+                                  ? "bg-green-500/10 border-green-500/20 text-green-400"
+                                  : "bg-green-500/10 border-green-500/20 text-green-600"
+                                }
+                                hover:bg-green-500/20 hover:border-green-500/30 active:scale-[0.98]
+                                disabled:opacity-50 disabled:cursor-not-allowed
+                              `}
+                            >
+                              {updatingServiceRequest ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
+                                  <span>Processing...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Check className="w-4 h-4" strokeWidth={2} />
+                                  <span>Accept</span>
+                                </>
+                              )}
+                            </button>
+                            <button
+                              onClick={() => handleUpdateServiceRequest(booking.id, "REJECTED")}
+                              disabled={updatingServiceRequest}
+                              className={`
+                                flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
+                                ${theme === "dark"
+                                  ? "bg-red-500/10 border-red-500/20 text-red-400"
+                                  : "bg-red-500/10 border-red-500/20 text-red-600"
+                                }
+                                hover:bg-red-500/20 hover:border-red-500/30 active:scale-[0.98]
+                                disabled:opacity-50 disabled:cursor-not-allowed
+                              `}
+                            >
+                              {updatingServiceRequest ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
+                                  <span>Processing...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <XCircle className="w-4 h-4" strokeWidth={2} />
+                                  <span>Reject</span>
+                                </>
+                              )}
+                            </button>
+                          </>
+                        )}
 
-                      if (!isStudioOwner && !isCustomer) return null;
+                        {/* Producer Actions - Start Work when ACCEPTED */}
+                        {isProducer && booking.status === "ACCEPTED" && (
+                          <button
+                            onClick={() => handleUpdateServiceRequest(booking.id, "IN_PROGRESS")}
+                            disabled={updatingServiceRequest}
+                            className={`
+                              flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
+                              ${theme === "dark"
+                                ? "bg-blue-500/10 border-blue-500/20 text-blue-400"
+                                : "bg-blue-500/10 border-blue-500/20 text-blue-600"
+                              }
+                              hover:bg-blue-500/20 hover:border-blue-500/30 active:scale-[0.98]
+                              disabled:opacity-50 disabled:cursor-not-allowed
+                            `}
+                          >
+                            {updatingServiceRequest ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
+                                <span>Processing...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Play className="w-4 h-4" strokeWidth={2} />
+                                <span>Start Work</span>
+                              </>
+                            )}
+                          </button>
+                        )}
 
-                      return (
+                        {/* Producer Actions - Mark Complete when IN_PROGRESS */}
+                        {isProducer && booking.status === "IN_PROGRESS" && (
+                          <button
+                            onClick={() => handleUpdateServiceRequest(booking.id, "COMPLETED")}
+                            disabled={updatingServiceRequest}
+                            className={`
+                              flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
+                              ${theme === "dark"
+                                ? "bg-green-500/10 border-green-500/20 text-green-400"
+                                : "bg-green-500/10 border-green-500/20 text-green-600"
+                              }
+                              hover:bg-green-500/20 hover:border-green-500/30 active:scale-[0.98]
+                              disabled:opacity-50 disabled:cursor-not-allowed
+                            `}
+                          >
+                            {updatingServiceRequest ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
+                                <span>Processing...</span>
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle2 className="w-4 h-4" strokeWidth={2} />
+                                <span>Mark Complete</span>
+                              </>
+                            )}
+                          </button>
+                        )}
+
+                        {/* Client Actions - Cancel when PENDING or ACCEPTED */}
+                        {isClient && (booking.status === "PENDING" || booking.status === "ACCEPTED") && (
+                          <button
+                            onClick={() => handleUpdateServiceRequest(booking.id, "CANCELLED")}
+                            disabled={updatingServiceRequest}
+                            className={`
+                              flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
+                              ${theme === "dark"
+                                ? "bg-red-500/10 border-red-500/20 text-red-400"
+                                : "bg-red-500/10 border-red-500/20 text-red-600"
+                              }
+                              hover:bg-red-500/20 hover:border-red-500/30 active:scale-[0.98]
+                              disabled:opacity-50 disabled:cursor-not-allowed
+                            `}
+                          >
+                            {updatingServiceRequest ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
+                                <span>Cancelling...</span>
+                              </>
+                            ) : (
+                              <>
+                                <XCircle className="w-4 h-4" strokeWidth={2} />
+                                <span>Cancel</span>
+                              </>
+                            )}
+                          </button>
+                        )}
+
+                        {/* Message Button - RBAC Aware */}
                         <button
-                          onClick={() => cancelBooking.mutate(booking.id)}
-                          disabled={cancelBooking.isPending}
+                          onClick={() => {
+                            const otherUserId = isProducer ? (booking as any).userId : (booking as any).producerId;
+                            router.push(`/messages/${otherUserId}`);
+                          }}
+                          className={`
+                            flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
+                            ${theme === "dark"
+                              ? "bg-blue-500/10 border-blue-500/20 text-blue-400"
+                              : "bg-blue-500/10 border-blue-500/20 text-blue-600"
+                            }
+                            hover:bg-blue-500/20 hover:border-blue-500/30 active:scale-[0.98]
+                          `}
+                        >
+                          <MessageCircle className="w-4 h-4" strokeWidth={2} />
+                          <span>Message {otherUserRole}</span>
+                        </button>
+                      </>
+                    );
+                  })()}
+
+                  {/* STUDIO BOOKING Actions */}
+                  {booking.type === "STUDIO_BOOKING" && (
+                    <>
+                      {/* Only show confirm button if user is the studio owner */}
+                      {booking.status === "PENDING" &&
+                       currentUser?.id === (booking as any).studio?.owner?.userId && (
+                        <button
+                          onClick={() => updateStatus.mutate({ bookingId: booking.id, status: "CONFIRMED" })}
+                          disabled={updateStatus.isPending}
                           className={`
                             px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
                             ${theme === "dark"
-                              ? "bg-red-500/10 border-red-500/20 text-red-400"
-                              : "bg-red-500/10 border-red-500/20 text-red-600"
+                              ? "bg-green-500/10 border-green-500/20 text-green-400"
+                              : "bg-green-500/10 border-green-500/20 text-green-600"
                             }
-                            hover:bg-red-500/20 hover:border-red-500/30 active:scale-[0.98]
+                            hover:bg-green-500/20 hover:border-green-500/30 active:scale-[0.98]
                             disabled:opacity-50 disabled:cursor-not-allowed
                           `}
                         >
-                          {cancelBooking.isPending ? (
+                          {updateStatus.isPending ? (
                             <span className="flex items-center gap-2">
                               <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
-                              {isStudioOwner ? 'Rejecting...' : 'Cancelling...'}
+                              Confirming...
                             </span>
                           ) : (
-                            isStudioOwner ? 'Reject' : 'Cancel'
+                            "Confirm Booking"
                           )}
                         </button>
-                      );
-                    })()
-                  )}
+                      )}
 
-                  {/* Show message button only to customers on confirmed bookings */}
-                  {booking.status === "CONFIRMED" &&
-                   booking.type === "STUDIO_BOOKING" &&
-                   currentUser?.id === (booking as any).userId && (
-                    <button
-                      onClick={() => router.push(`/bookings/${booking.id}/chat`)}
-                      className={`
-                        px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
-                        ${theme === "dark"
-                          ? "bg-blue-500/10 border-blue-500/20 text-blue-400"
-                          : "bg-blue-500/10 border-blue-500/20 text-blue-600"
-                        }
-                        hover:bg-blue-500/20 hover:border-blue-500/30 active:scale-[0.98]
-                      `}
-                    >
-                      Message
-                    </button>
+                      {/* Show cancel/reject button based on user role */}
+                      {booking.status === "PENDING" && (
+                        (() => {
+                          const isStudioOwner = currentUser?.id === (booking as any).studio?.owner?.userId;
+                          const isCustomer = currentUser?.id === (booking as any).userId;
+
+                          if (!isStudioOwner && !isCustomer) return null;
+
+                          return (
+                            <button
+                              onClick={() => cancelBooking.mutate(booking.id)}
+                              disabled={cancelBooking.isPending}
+                              className={`
+                                px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
+                                ${theme === "dark"
+                                  ? "bg-red-500/10 border-red-500/20 text-red-400"
+                                  : "bg-red-500/10 border-red-500/20 text-red-600"
+                                }
+                                hover:bg-red-500/20 hover:border-red-500/30 active:scale-[0.98]
+                                disabled:opacity-50 disabled:cursor-not-allowed
+                              `}
+                            >
+                              {cancelBooking.isPending ? (
+                                <span className="flex items-center gap-2">
+                                  <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
+                                  {isStudioOwner ? 'Rejecting...' : 'Cancelling...'}
+                                </span>
+                              ) : (
+                                isStudioOwner ? 'Reject' : 'Cancel'
+                              )}
+                            </button>
+                          );
+                        })()
+                      )}
+
+                      {/* Show message button only to customers on confirmed bookings */}
+                      {booking.status === "CONFIRMED" &&
+                       currentUser?.id === (booking as any).userId && (
+                        <button
+                          onClick={() => router.push(`/bookings/${booking.id}/chat`)}
+                          className={`
+                            px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
+                            ${theme === "dark"
+                              ? "bg-blue-500/10 border-blue-500/20 text-blue-400"
+                              : "bg-blue-500/10 border-blue-500/20 text-blue-600"
+                            }
+                            hover:bg-blue-500/20 hover:border-blue-500/30 active:scale-[0.98]
+                          `}
+                        >
+                          <MessageCircle className="w-4 h-4" strokeWidth={2} />
+                          Message Studio Owner
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
