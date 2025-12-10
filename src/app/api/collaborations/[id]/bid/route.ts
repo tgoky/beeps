@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { withAuth } from "@/lib/auth";
+import { withAuth } from "@/lib/api-middleware";
 
 // POST /api/collaborations/[id]/bid - Place a bid or request on a collaboration
 export async function POST(req: NextRequest, { params }: { params: any }) {

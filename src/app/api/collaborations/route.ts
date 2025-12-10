@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { withAuth } from "@/lib/auth";
+import { withAuth } from "@/lib/api-middleware";
 
 // GET /api/collaborations - Fetch all collaborations with filters
 export async function GET(req: NextRequest) {
