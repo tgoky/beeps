@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
+import type { ApiResponse } from "@/types";
 
 // GET /api/beats/[id] - Fetch a beat by ID
 export async function GET(
@@ -14,45 +15,42 @@ export async function GET(
       where: { id },
       include: {
         producer: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                username: true,
-                fullName: true,
-                avatar: true,
-              },
-            },
-          },
-        },
-        transactions: {
           select: {
             id: true,
-            amount: true,
-            createdAt: true,
-            buyer: {
-              select: {
-                id: true,
-                username: true,
-                avatar: true,
-              },
-            },
+            username: true,
+            fullName: true,
+            avatar: true,
+            verified: true,
           },
-          orderBy: {
-            createdAt: "desc",
+        },
+        club: {
+          select: {
+            id: true,
+            name: true,
+            icon: true,
           },
-          take: 5,
+        },
+        beatLikes: {
+          select: {
+            userId: true,
+          },
         },
         _count: {
           select: {
-            transactions: true,
+            beatLikes: true,
           },
         },
       },
     });
 
     if (!beat) {
-      return NextResponse.json({ error: "Beat not found" }, { status: 404 });
+      return NextResponse.json<ApiResponse>({
+        success: false,
+        error: {
+          message: "Beat not found",
+          code: "NOT_FOUND",
+        },
+      }, { status: 404 });
     }
 
     // Increment plays
@@ -61,20 +59,31 @@ export async function GET(
       data: { plays: { increment: 1 } },
     });
 
-    return NextResponse.json({ beat });
+    return NextResponse.json<ApiResponse>({
+      success: true,
+      data: { beat },
+    });
   } catch (error: any) {
     console.error("Error fetching beat:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch beat" },
-      { status: 500 }
-    );
+    return NextResponse.json<ApiResponse>({
+      success: false,
+      error: {
+        message: "Failed to fetch beat",
+        code: "SERVER_ERROR",
+        details: process.env.NODE_ENV === "development" ? error.message : undefined,
+      },
+    }, { status: 500 });
   }
 }
 
 // PATCH /api/beats/[id] - Update a beat
-export async function PATCH(req: NextRequest, { params }: { params: any }) {
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
   return withAuth(req, async (req) => {
     const user = req.user!;
+    
     try {
       const { id } = params;
       const body = await req.json();
@@ -82,20 +91,30 @@ export async function PATCH(req: NextRequest, { params }: { params: any }) {
       // Verify beat exists and user owns it
       const beat = await prisma.beat.findUnique({
         where: { id },
-        include: {
-          producer: true,
+        select: {
+          id: true,
+          producerId: true,
         },
       });
 
       if (!beat) {
-        return NextResponse.json({ error: "Beat not found" }, { status: 404 });
+        return NextResponse.json<ApiResponse>({
+          success: false,
+          error: {
+            message: "Beat not found",
+            code: "NOT_FOUND",
+          },
+        }, { status: 404 });
       }
 
-      if (beat.producer.userId !== user.id) {
-        return NextResponse.json(
-          { error: "Unauthorized to update this beat" },
-          { status: 403 }
-        );
+      if (beat.producerId !== user.id) {
+        return NextResponse.json<ApiResponse>({
+          success: false,
+          error: {
+            message: "Unauthorized to update this beat",
+            code: "FORBIDDEN",
+          },
+        }, { status: 403 });
       }
 
       const updatedBeat = await prisma.beat.update({
@@ -116,55 +135,80 @@ export async function PATCH(req: NextRequest, { params }: { params: any }) {
         },
         include: {
           producer: {
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  username: true,
-                  fullName: true,
-                  avatar: true,
-                },
-              },
+            select: {
+              id: true,
+              username: true,
+              fullName: true,
+              avatar: true,
+              verified: true,
+            },
+          },
+          club: {
+            select: {
+              id: true,
+              name: true,
+              icon: true,
             },
           },
         },
       });
 
-      return NextResponse.json({ beat: updatedBeat });
+      return NextResponse.json<ApiResponse>({
+        success: true,
+        data: { beat: updatedBeat },
+      });
     } catch (error: any) {
       console.error("Error updating beat:", error);
-      return NextResponse.json(
-        { error: "Failed to update beat" },
-        { status: 500 }
-      );
+      return NextResponse.json<ApiResponse>({
+        success: false,
+        error: {
+          message: "Failed to update beat",
+          code: "SERVER_ERROR",
+          details: process.env.NODE_ENV === "development" ? error.message : undefined,
+        },
+      }, { status: 500 });
     }
   });
 }
 
 // DELETE /api/beats/[id] - Delete a beat (soft delete)
-export async function DELETE(req: NextRequest, { params }: { params: any }) {
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
   return withAuth(req, async (req) => {
     const user = req.user!;
+    
     try {
       const { id } = params;
 
       // Verify beat exists and user owns it
       const beat = await prisma.beat.findUnique({
         where: { id },
-        include: {
-          producer: true,
+        select: {
+          id: true,
+          producerId: true,
         },
       });
 
       if (!beat) {
-        return NextResponse.json({ error: "Beat not found" }, { status: 404 });
+        return NextResponse.json<ApiResponse>({
+          success: false,
+          error: {
+            message: "Beat not found",
+            code: "NOT_FOUND",
+          },
+        }, { status: 404 });
       }
 
-      if (beat.producer.userId !== user.id) {
-        return NextResponse.json(
-          { error: "Unauthorized to delete this beat" },
-          { status: 403 }
-        );
+      if (beat.producerId !== user.id) {
+        return NextResponse.json<ApiResponse>({
+          success: false,
+          error: {
+            message: "Unauthorized to delete this beat",
+            code: "FORBIDDEN",
+          },
+        }, { status: 403 });
       }
 
       // Soft delete by marking as inactive
@@ -173,13 +217,20 @@ export async function DELETE(req: NextRequest, { params }: { params: any }) {
         data: { isActive: false },
       });
 
-      return NextResponse.json({ success: true });
+      return NextResponse.json<ApiResponse>({
+        success: true,
+        data: { message: "Beat deleted successfully" },
+      });
     } catch (error: any) {
       console.error("Error deleting beat:", error);
-      return NextResponse.json(
-        { error: "Failed to delete beat" },
-        { status: 500 }
-      );
+      return NextResponse.json<ApiResponse>({
+        success: false,
+        error: {
+          message: "Failed to delete beat",
+          code: "SERVER_ERROR",
+          details: process.env.NODE_ENV === "development" ? error.message : undefined,
+        },
+      }, { status: 500 });
     }
   });
 }
