@@ -198,14 +198,18 @@ export default function SessionBookings() {
     bids: "BID",
   };
 
-  const { data: apiCollaborations = [], isLoading, error } = useCollaborations({
-    type: tabTypeMap[activeTab],
-    genre: selectedGenre !== "all" ? selectedGenre : undefined,
-  });
+  const { data: apiCollaborationsData, isLoading, error } = useCollaborations({
+  type: tabTypeMap[activeTab],
+  genre: selectedGenre !== "all" ? selectedGenre : undefined,
+});
 
-  // Transform API data to display format
-  const sessions = apiCollaborations.map(transformCollaboration);
+// Ensure we have an array - handle undefined/null cases
+const apiCollaborations: APICollaboration[] = Array.isArray(apiCollaborationsData) 
+  ? apiCollaborationsData 
+  : [];
 
+// Transform API data to display format
+const sessions: BookingSession[] = apiCollaborations.map(transformCollaboration);
   // Place bid mutation
   const placeBidMutation = usePlaceBid(selectedCollabId || "");
 

@@ -2,6 +2,16 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+// API Response wrapper type
+interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  error?: {
+    message: string;
+    code: string;
+  };
+}
+
 export interface Collaboration {
   id: string;
   type: "DEAL" | "COLLAB" | "BID";
@@ -75,6 +85,15 @@ export interface PlaceBidInput {
   message?: string;
 }
 
+interface CollaborationsResponse {
+  collaborations: Collaboration[];
+  pagination?: {
+    total: number;
+    limit: number;
+    offset: number;
+  };
+}
+
 /**
  * Fetch all collaborations with optional filters
  */
@@ -86,7 +105,7 @@ export function useCollaborations(filters?: {
   maxPrice?: number;
   creatorId?: string;
 }) {
-  return useQuery<Collaboration[]>({
+  return useQuery<Collaboration[], Error>({
     queryKey: ["collaborations", filters],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -98,9 +117,26 @@ export function useCollaborations(filters?: {
       if (filters?.creatorId) params.append("creatorId", filters.creatorId);
 
       const response = await fetch(`/api/collaborations?${params.toString()}`);
-      if (!response.ok) throw new Error("Failed to fetch collaborations");
-      const data = await response.json();
-      return data.collaborations;
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || "Failed to fetch collaborations");
+      }
+      
+      const result = await response.json();
+      
+      // Handle different API response formats
+      if (result.success && result.data?.collaborations) {
+        return result.data.collaborations;
+      } else if (result.collaborations) {
+        return result.collaborations;
+      } else if (Array.isArray(result)) {
+        return result;
+      } else if (result.data && Array.isArray(result.data)) {
+        return result.data;
+      }
+      
+      // Fallback to empty array if no data
+      return [];
     },
   });
 }
@@ -109,12 +145,27 @@ export function useCollaborations(filters?: {
  * Fetch a single collaboration by ID
  */
 export function useCollaboration(id: string) {
-  return useQuery<Collaboration>({
+  return useQuery<Collaboration, Error>({
     queryKey: ["collaborations", id],
     queryFn: async () => {
       const response = await fetch(`/api/collaborations/${id}`);
-      if (!response.ok) throw new Error("Failed to fetch collaboration");
-      return response.json();
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || "Failed to fetch collaboration");
+      }
+      
+      const result = await response.json();
+      
+      // Handle different response formats
+      if (result.success && result.data?.collaboration) {
+        return result.data.collaboration;
+      } else if (result.collaboration) {
+        return result.collaboration;
+      } else if (result.data) {
+        return result.data;
+      }
+      
+      return result;
     },
     enabled: !!id,
   });
@@ -126,15 +177,30 @@ export function useCollaboration(id: string) {
 export function useCreateCollaboration() {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutation<Collaboration, Error, CreateCollaborationInput>({
     mutationFn: async (data: CreateCollaborationInput) => {
       const response = await fetch("/api/collaborations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      if (!response.ok) throw new Error("Failed to create collaboration");
-      return response.json();
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || "Failed to create collaboration");
+      }
+      
+      const result = await response.json();
+      
+      if (result.success && result.data?.collaboration) {
+        return result.data.collaboration;
+      } else if (result.collaboration) {
+        return result.collaboration;
+      } else if (result.data) {
+        return result.data;
+      }
+      
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["collaborations"] });
@@ -148,18 +214,28 @@ export function useCreateCollaboration() {
 export function usePlaceBid(collaborationId: string) {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutation<{ bid: CollaborationBid }, Error, PlaceBidInput>({
     mutationFn: async (data: PlaceBidInput) => {
       const response = await fetch(`/api/collaborations/${collaborationId}/bid`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
+      
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || "Failed to place bid");
+        throw new Error(error.error?.message || "Failed to place bid");
       }
-      return response.json();
+      
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        return result.data;
+      } else if (result.bid) {
+        return { bid: result.bid };
+      }
+      
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["collaborations"] });
