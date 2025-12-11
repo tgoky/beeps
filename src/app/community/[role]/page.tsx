@@ -631,9 +631,9 @@ export default function CommunityPage() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleCreatePost}
-                  disabled={!postContent.trim() || isCreatingPost}
+                  disabled={!postContent.trim() || createPostMutation.isPending}
                   className={`flex-1 px-4 py-2 text-sm font-light rounded-lg transition-all tracking-wide active:scale-95 ${
-                    postContent.trim() && !isCreatingPost
+                  postContent.trim() && !createPostMutation.isPending
                       ? theme === "dark"
                         ? "bg-white text-black hover:bg-zinc-100"
                         : "bg-black text-white hover:bg-gray-800"
