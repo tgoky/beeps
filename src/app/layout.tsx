@@ -16,7 +16,7 @@ import { PermissionsProvider } from "@/hooks/usePermissions";
 import "@styles/global.css";
 
 export const metadata: Metadata = {
-  title: "Beeps - Music Production Marketplace",
+  title: "Beeps",
   description: "Connect with artists, producers, and studios. Book sessions, buy beats, and rent equipment.",
   icons: {
     icon: "/favicon.ico",
