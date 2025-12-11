@@ -1468,7 +1468,7 @@ const MapView = () => {
     <p className={`text-sm font-light tracking-wide ${
       theme === "dark" ? "text-zinc-400" : "text-gray-600"
     }`}>
-      You're browsing studios. Are you an artist and you have a recording studio? create clubs to enable listings.
+      You&apos;re browsing studios. Are you an artist and you have a recording studio? create clubs to enable listings.
     </p>
   </div>
 )}
