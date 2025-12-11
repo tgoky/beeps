@@ -309,7 +309,7 @@ export const NotificationBell = () => {
                   text-xs mt-1
                   ${theme === "dark" ? "text-gray-600" : "text-gray-500"}
                 `}>
-                  We'll notify you when something happens
+                  We will notify you when something happens
                 </p>
               </div>
             ) : (
