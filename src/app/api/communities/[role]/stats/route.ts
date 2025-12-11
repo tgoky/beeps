@@ -38,29 +38,37 @@ export async function GET(
       const communityRole = roleUpper as PrismaUserRole;
       const clubTypes = ROLE_TO_CLUB_TYPES[communityRole];
 
-      // Get total members with this role (primary + granted)
+      // Get total members with this role (primary)
       const usersWithPrimaryRole = await prisma.user.count({
         where: {
           primaryRole: communityRole,
         },
       });
 
-      const usersWithGrantedRole = await prisma.userRoleGrant.count({
+      // Get unique users with granted role using groupBy
+      const grantedRoleUsers = await prisma.userRoleGrant.groupBy({
+        by: ['userId'],
         where: {
           roleType: communityRole,
         },
-        distinct: ['userId'],
-      }).catch(() => 0);
+        _count: {
+          userId: true,
+        },
+      }).catch(() => []);
+
+      const usersWithGrantedRole = grantedRoleUsers.length;
 
       const totalMembers = usersWithPrimaryRole + usersWithGrantedRole;
 
       // Get total active clubs for this community
-      const totalClubs = await prisma.club.count({
-        where: {
-          type: { in: clubTypes },
-          isActive: true,
-        },
-      });
+      const totalClubs = clubTypes.length > 0 
+        ? await prisma.club.count({
+            where: {
+              type: { in: clubTypes },
+              isActive: true,
+            },
+          })
+        : 0;
 
       // Get posts this week
       const oneWeekAgo = new Date();
@@ -80,35 +88,84 @@ export async function GET(
       const oneMonthAgo = new Date();
       oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
 
-      const trendingClubs = await prisma.club.findMany({
+      const trendingClubs = clubTypes.length > 0
+        ? await prisma.club.findMany({
+            where: {
+              type: { in: clubTypes },
+              isActive: true,
+              createdAt: {
+                gte: oneMonthAgo,
+              },
+            },
+            include: {
+              owner: {
+                select: {
+                  id: true,
+                  username: true,
+                  avatar: true,
+                  verified: true,
+                },
+              },
+              _count: {
+                select: {
+                  members: true,
+                },
+              },
+            },
+            orderBy: {
+              members: {
+                _count: 'desc',
+              },
+            },
+            take: 5,
+          })
+        : [];
+
+      // Get top contributors (users with most posts this month)
+      const topContributors = await prisma.communityPost.groupBy({
+        by: ['authorId'],
         where: {
-          type: { in: clubTypes },
-          isActive: true,
+          communityRole,
           createdAt: {
             gte: oneMonthAgo,
           },
+          isActive: true,
         },
-        include: {
-          owner: {
-            select: {
-              id: true,
-              username: true,
-              avatar: true,
-            },
-          },
-          _count: {
-            select: {
-              members: true,
-            },
-          },
+        _count: {
+          id: true,
         },
         orderBy: {
-          members: {
-            _count: 'desc',
+          _count: {
+            id: 'desc',
           },
         },
         take: 5,
-      });
+      }).catch(() => []);
+
+      // Fetch user details for top contributors
+      const contributorIds = topContributors.map(c => c.authorId);
+      const contributors = contributorIds.length > 0
+        ? await prisma.user.findMany({
+            where: {
+              id: { in: contributorIds },
+            },
+            select: {
+              id: true,
+              username: true,
+              fullName: true,
+              avatar: true,
+              verified: true,
+            },
+          })
+        : [];
+
+      const topContributorsWithDetails = topContributors.map(tc => {
+        const user = contributors.find(c => c.id === tc.authorId);
+        return {
+          user,
+          postsCount: tc._count.id,
+        };
+      }).filter(tc => tc.user); // Filter out any that didn't match
 
       const stats = {
         totalMembers,
@@ -119,9 +176,12 @@ export async function GET(
           name: club.name,
           icon: club.icon,
           description: club.description,
+          type: club.type,
           membersCount: club._count.members,
           owner: club.owner,
+          createdAt: club.createdAt,
         })),
+        topContributors: topContributorsWithDetails,
       };
 
       return NextResponse.json<ApiResponse>({
@@ -136,6 +196,7 @@ export async function GET(
         error: {
           message: 'Failed to fetch community stats',
           code: 'INTERNAL_ERROR',
+          details: process.env.NODE_ENV === 'development' ? error.message : undefined,
         },
       }, { status: 500 });
     }
