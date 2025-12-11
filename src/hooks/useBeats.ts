@@ -2,68 +2,113 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+// API Response wrapper type
+interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  error?: {
+    message: string;
+    code: string;
+  };
+}
+
 export interface Beat {
   id: string;
   title: string;
   description: string | null;
-  genre: string[];
-  mood: string[];
+  genres: string[]; // Changed from genre to genres
+  moods: string[];  // Changed from mood to moods
   bpm: number;
   key: string | null;
   price: number;
+  type: 'LEASE' | 'EXCLUSIVE';
   audioUrl: string;
   imageUrl: string | null;
   tags: string[];
   isActive: boolean;
+  plays: number;
+  likes: number;
   producerId: string;
   producer: {
     id: string;
-    name: string | null;
+    username: string; // Changed from name to username
+    fullName: string | null;
     email: string;
+    avatar: string | null;
+    verified: boolean;
   };
-  likeCount: number;
+  club?: {
+    id: string;
+    name: string;
+    icon: string;
+  } | null;
   createdAt: string;
   updatedAt: string;
+}
+
+interface BeatsApiResponse {
+  beats: Beat[];
+  pagination: {
+    total: number;
+    limit: number;
+    offset: number;
+  };
 }
 
 export interface CreateBeatInput {
   title: string;
   description?: string;
-  genre: string[];
-  mood: string[];
+  genres: string[];
+  moods: string[];
   bpm: number;
   key?: string;
   price: number;
+  type: 'LEASE' | 'EXCLUSIVE';
   audioUrl: string;
   imageUrl?: string;
   tags?: string[];
+  clubId?: string;
 }
 
 /**
  * Fetch all beats with optional filters
  */
 export function useBeats(filters?: {
-  genre?: string[];
-  mood?: string[];
+  genre?: string;
+  mood?: string;
   minPrice?: number;
   maxPrice?: number;
   minBpm?: number;
   maxBpm?: number;
+  limit?: number;
+  offset?: number;
 }) {
-  return useQuery<Beat[]>({
+  return useQuery<BeatsApiResponse, Error>({
     queryKey: ["beats", filters],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (filters?.genre?.length) params.append("genre", filters.genre.join(","));
-      if (filters?.mood?.length) params.append("mood", filters.mood.join(","));
+      if (filters?.genre) params.append("genre", filters.genre);
+      if (filters?.mood) params.append("mood", filters.mood);
       if (filters?.minPrice) params.append("minPrice", filters.minPrice.toString());
       if (filters?.maxPrice) params.append("maxPrice", filters.maxPrice.toString());
       if (filters?.minBpm) params.append("minBpm", filters.minBpm.toString());
       if (filters?.maxBpm) params.append("maxBpm", filters.maxBpm.toString());
+      if (filters?.limit) params.append("limit", filters.limit.toString());
+      if (filters?.offset) params.append("offset", filters.offset.toString());
 
       const response = await fetch(`/api/beats?${params.toString()}`);
-      if (!response.ok) throw new Error("Failed to fetch beats");
-      return response.json();
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || "Failed to fetch beats");
+      }
+      
+      const result: ApiResponse<BeatsApiResponse> = await response.json();
+      
+      if (!result.success || !result.data) {
+        throw new Error(result.error?.message || "Failed to fetch beats");
+      }
+      
+      return result.data;
     },
   });
 }
@@ -72,12 +117,22 @@ export function useBeats(filters?: {
  * Fetch a single beat by ID
  */
 export function useBeat(id: string) {
-  return useQuery<Beat>({
+  return useQuery<Beat, Error>({
     queryKey: ["beats", id],
     queryFn: async () => {
       const response = await fetch(`/api/beats/${id}`);
-      if (!response.ok) throw new Error("Failed to fetch beat");
-      return response.json();
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || "Failed to fetch beat");
+      }
+      
+      const result: ApiResponse<{ beat: Beat }> = await response.json();
+      
+      if (!result.success || !result.data?.beat) {
+        throw new Error(result.error?.message || "Failed to fetch beat");
+      }
+      
+      return result.data.beat;
     },
     enabled: !!id,
   });
@@ -89,15 +144,26 @@ export function useBeat(id: string) {
 export function useCreateBeat() {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutation<Beat, Error, CreateBeatInput>({
     mutationFn: async (data: CreateBeatInput) => {
       const response = await fetch("/api/beats", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      if (!response.ok) throw new Error("Failed to create beat");
-      return response.json();
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || "Failed to create beat");
+      }
+      
+      const result: ApiResponse<{ beat: Beat }> = await response.json();
+      
+      if (!result.success || !result.data?.beat) {
+        throw new Error(result.error?.message || "Failed to create beat");
+      }
+      
+      return result.data.beat;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["beats"] });
@@ -111,36 +177,26 @@ export function useCreateBeat() {
 export function useUpdateBeat(id: string) {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutation<Beat, Error, Partial<CreateBeatInput>>({
     mutationFn: async (data: Partial<CreateBeatInput>) => {
       const response = await fetch(`/api/beats/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      if (!response.ok) throw new Error("Failed to update beat");
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["beats"] });
-      queryClient.invalidateQueries({ queryKey: ["beats", id] });
-    },
-  });
-}
-
-/**
- * Like/unlike a beat
- */
-export function useLikeBeat(id: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async () => {
-      const response = await fetch(`/api/beats/${id}/like`, {
-        method: "POST",
-      });
-      if (!response.ok) throw new Error("Failed to like beat");
-      return response.json();
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || "Failed to update beat");
+      }
+      
+      const result: ApiResponse<{ beat: Beat }> = await response.json();
+      
+      if (!result.success || !result.data?.beat) {
+        throw new Error(result.error?.message || "Failed to update beat");
+      }
+      
+      return result.data.beat;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["beats"] });
@@ -155,18 +211,28 @@ export function useLikeBeat(id: string) {
 export function useToggleLikeBeat(id: string) {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutation<{ liked: boolean; likeCount: number }, Error>({
     mutationFn: async () => {
       const response = await fetch(`/api/beats/${id}/like`, {
         method: "POST",
       });
-      if (!response.ok) throw new Error("Failed to toggle like");
-      return response.json();
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || "Failed to toggle like");
+      }
+      
+      const result: ApiResponse<{ liked: boolean; likeCount: number }> = await response.json();
+      
+      if (!result.success || !result.data) {
+        throw new Error(result.error?.message || "Failed to toggle like");
+      }
+      
+      return result.data;
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["beats"] });
       queryClient.invalidateQueries({ queryKey: ["beats", id] });
-      return data;
     },
   });
 }
@@ -177,13 +243,24 @@ export function useToggleLikeBeat(id: string) {
 export function useDeleteBeat() {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutation<{ message: string }, Error, string>({
     mutationFn: async (id: string) => {
       const response = await fetch(`/api/beats/${id}`, {
         method: "DELETE",
       });
-      if (!response.ok) throw new Error("Failed to delete beat");
-      return response.json();
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || "Failed to delete beat");
+      }
+      
+      const result: ApiResponse<{ message: string }> = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error?.message || "Failed to delete beat");
+      }
+      
+      return result.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["beats"] });
