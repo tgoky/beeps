@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { withAuth } from '@/lib/api-middleware';
 import type { ApiResponse } from '@/types';
-import { UserRole as PrismaUserRole } from '@prisma/client';
+import { UserRole as PrismaUserRole, ClubType } from '@prisma/client';
 
 export async function GET(
   request: NextRequest,
@@ -36,12 +36,8 @@ export async function GET(
       // Get additional roles granted by clubs
       const roleGrants = await prisma.userRoleGrant.findMany({
         where: { userId },
-        include: {
-          user: {
-            select: {
-              primaryRole: true,
-            },
-          },
+        select: {
+          roleType: true,
         },
       }).catch(() => []);
 
@@ -52,25 +48,31 @@ export async function GET(
       // Get club counts for each community
       const communities = await Promise.all(
         Array.from(roles).map(async (role) => {
-          const clubCount = await prisma.club.count({
-            where: {
-              type: {
-                in: getClubTypesForRole(role),
-              },
-              isActive: true,
-            },
-          }).catch(() => 0);
-
-          const membershipCount = await prisma.clubMember.count({
-            where: {
-              userId,
-              club: {
-                type: {
-                  in: getClubTypesForRole(role),
+          const clubTypes = getClubTypesForRole(role);
+          
+          const clubCount = clubTypes.length > 0 
+            ? await prisma.club.count({
+                where: {
+                  type: {
+                    in: clubTypes,
+                  },
+                  isActive: true,
                 },
-              },
-            },
-          }).catch(() => 0);
+              }).catch(() => 0)
+            : 0;
+
+          const membershipCount = clubTypes.length > 0
+            ? await prisma.clubMember.count({
+                where: {
+                  userId,
+                  club: {
+                    type: {
+                      in: clubTypes,
+                    },
+                  },
+                },
+              }).catch(() => 0)
+            : 0;
 
           return {
             role,
@@ -96,6 +98,7 @@ export async function GET(
         error: {
           message: 'Failed to fetch communities',
           code: 'INTERNAL_ERROR',
+          details: process.env.NODE_ENV === 'development' ? error.message : undefined,
         },
       }, { status: 500 });
     }
@@ -103,14 +106,14 @@ export async function GET(
 }
 
 // Helper: Get club types that grant a specific role
-function getClubTypesForRole(role: PrismaUserRole): string[] {
-  const ROLE_TO_CLUB_TYPES: Record<PrismaUserRole, string[]> = {
-    ARTIST: ['RECORDING'],
-    PRODUCER: ['PRODUCTION'],
-    STUDIO_OWNER: ['RENTAL'],
-    LYRICIST: ['CREATIVE'],
+function getClubTypesForRole(role: PrismaUserRole): ClubType[] {
+  const ROLE_TO_CLUB_TYPES: Record<PrismaUserRole, ClubType[]> = {
+    ARTIST: [ClubType.RECORDING],
+    PRODUCER: [ClubType.PRODUCTION],
+    STUDIO_OWNER: [ClubType.RENTAL],
+    LYRICIST: [ClubType.CREATIVE],
     GEAR_SALES: [],
-    OTHER: ['MANAGEMENT', 'DISTRIBUTION'],
+    OTHER: [ClubType.MANAGEMENT, ClubType.DISTRIBUTION],
   };
 
   return ROLE_TO_CLUB_TYPES[role] || [];
