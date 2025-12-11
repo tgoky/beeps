@@ -1,6 +1,6 @@
 // Prisma Schema for Beeps Music Platform
 // Production-ready with comprehensive models for artists, clubs, and marketplace features
-// ✅ UPDATED: Added ServiceRequest model, producer service functionality, AND socialLinks on User
+// ✅ UPDATED: Added ServiceRequest model, producer service functionality, socialLinks on User, and BeatLike model
 
 generator client {
   provider = "prisma-client-js"
@@ -44,7 +44,6 @@ model User {
   bio           String?
   location      String?
   website       String?
-  // ✅ FIXED: socialLinks added directly to User (universal, JSON)
   socialLinks   Json?            @map("social_links")  // { instagram, youtube, soundcloud, spotify }
 
   // User Role & Status
@@ -85,19 +84,22 @@ model User {
   activities        Activity[]
   notifications     Notification[]
 
-  // 🆕 Producer Service Relations
+  // Producer Service Relations
   sentServiceRequests     ServiceRequest[] @relation("ServiceRequestClient")
   receivedServiceRequests ServiceRequest[] @relation("ServiceRequestProducer")
 
-  // 🆕 Community Relations
+  // Community Relations
   roleGrants        UserRoleGrant[]  @relation("UserRoleGrants")
   communityPosts    CommunityPost[]  @relation("CommunityPosts")
   communityComments CommunityComment[] @relation("CommunityComments")
   communityLikes    CommunityLike[]  @relation("CommunityLikes")
 
-  // 🆕 Collaboration Relations
+  // Collaboration Relations
   createdCollaborations Collaboration[] @relation("CollaborationCreator")
   collaborationBids     CollaborationBid[]
+
+  // ✅ NEW: Beat Likes
+  beatLikes         BeatLike[]       @relation("UserBeatLikes")
 
   @@map("users")
 }
@@ -114,18 +116,11 @@ model ArtistProfile {
   genres        String[] // Array of music genres
   skills        String[] // e.g., ["Vocalist", "Songwriter"]
   
-  // ❌ REMOVED: socialLinks moved to User
-  // socialLinks   Json?    @map("social_links")
-  
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
   @@map("artist_profiles")
 }
-
-// 🆕 ADD socialLinks to ProducerProfile? → NO.
-// We keep it only on User to avoid duplication and confusion.
-// If you later need role-specific social links, you can add then — but not now.
 
 model ProducerProfile {
   id            String   @id @default(uuid())
@@ -202,7 +197,7 @@ model LyricistProfile {
 }
 
 // ============================================================================
-// 🆕 PRODUCER SERVICE REQUEST MODELS
+// PRODUCER SERVICE REQUEST MODELS
 // ============================================================================
 
 enum ServiceRequestStatus {
@@ -343,9 +338,30 @@ model Beat {
   createdAt     DateTime   @default(now()) @map("created_at")
   updatedAt     DateTime   @updatedAt @map("updated_at")
 
+  // ✅ NEW: Beat Likes Relation
+  beatLikes     BeatLike[] @relation("BeatLikes")
+
   @@index([producerId])
   @@index([clubId])
   @@map("beats")
+}
+
+// ✅ NEW: Beat Like Model
+model BeatLike {
+  id        String   @id @default(uuid())
+
+  beatId    String   @map("beat_id")
+  beat      Beat     @relation("BeatLikes", fields: [beatId], references: [id], onDelete: Cascade)
+
+  userId    String   @map("user_id")
+  user      User     @relation("UserBeatLikes", fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([beatId, userId])
+  @@index([beatId])
+  @@index([userId])
+  @@map("beat_likes")
 }
 
 model Studio {
@@ -710,6 +726,7 @@ enum NotificationType {
   JOB_ACCEPTED
   JOB_REJECTED
   JOB_UPDATED
+  BEAT_LIKED
 }
 
 model Notification {
