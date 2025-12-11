@@ -1,7 +1,21 @@
-// collabsData.ts
-import dayjs from 'dayjs';
-import { SoundOutlined, VideoCameraOutlined, PictureOutlined } from '@ant-design/icons';
-import type { ReactNode } from 'react';
+import {
+  SoundOutlined,
+  VideoCameraOutlined,
+  PictureOutlined,
+} from "@ant-design/icons";
+import { ReactNode } from "react";
+
+export interface CollabType {
+  value: string;
+  label: string;
+  icon: ReactNode;
+}
+
+export const collabTypes: CollabType[] = [
+  { value: "music", label: "Music Production", icon: <SoundOutlined /> },
+  { value: "video", label: "Video/Content", icon: <VideoCameraOutlined /> },
+  { value: "photo", label: "Photography", icon: <PictureOutlined /> },
+];
 
 export interface Artist {
   id: number;
@@ -10,6 +24,8 @@ export interface Artist {
   bio: string;
   location: string;
   rating: number;
+  responseTime: string;
+  collabStyle: string;
   skills: string[];
   specialties: {
     music: string[];
@@ -20,11 +36,7 @@ export interface Artist {
     days: string[];
     timeRange: string;
   };
-  responseTime: string;
-  collabStyle: string;
-  priceRange: string;
   previousCollabs: {
-    id: number;
     title: string;
     type: string;
     description: string;
@@ -33,7 +45,6 @@ export interface Artist {
     image: string;
   }[];
   reviews: {
-    id: number;
     user: string;
     avatar: string;
     rating: number;
@@ -42,217 +53,175 @@ export interface Artist {
   }[];
 }
 
-export interface CollabType {
-  value: string;
-  label: string;
-  iconComponent: typeof SoundOutlined; // Store the component reference
-}
-
-export const collabTypes: CollabType[] = [
-  {
-    value: 'music',
-    label: 'Music Collaboration',
-    iconComponent: SoundOutlined,
-  },
-  {
-    value: 'video',
-    label: 'Video Project',
-    iconComponent: VideoCameraOutlined,
-  },
-  {
-    value: 'photo',
-    label: 'Photography',
-    iconComponent: PictureOutlined,
-  },
-];
-
 export const artistData: Artist[] = [
   {
     id: 1,
-    name: 'Alex Johnson',
-    image: 'https://randomuser.me/api/portraits/men/32.jpg',
-    bio: 'Professional music producer and multi-instrumentalist with 10 years of experience in the industry. Specialized in electronic, pop, and hip-hop production.',
-    location: 'Los Angeles, CA',
+    name: "Sarah Johnson",
+    image: "https://i.pravatar.cc/300?img=1",
+    bio: "Professional vocalist and songwriter with 10+ years of experience in R&B and Pop music. Known for powerful vocals and emotional delivery.",
+    location: "Los Angeles, CA",
     rating: 4.8,
-    skills: ['Production', 'Mixing', 'Guitar', 'Songwriting'],
+    responseTime: "24 hours",
+    collabStyle: "Remote & In-person",
+    skills: ["Vocals", "Songwriting", "Harmonies", "Toplining"],
     specialties: {
-      music: ['EDM', 'Pop', 'Hip-Hop', 'R&B'],
-      video: ['Music Videos', 'Lyric Videos'],
-      photo: ['Album Art', 'Promotional Photos'],
+      music: ["Pop", "R&B", "Soul", "Jazz"],
+      video: ["Music Videos", "Performance Videos"],
+      photo: ["Album Covers", "Promotional Shots"],
     },
     availability: {
-      days: ['Monday', 'Wednesday', 'Friday'],
-      timeRange: '10:00 AM - 6:00 PM',
+      days: ["Monday", "Tuesday", "Thursday", "Friday"],
+      timeRange: "10 AM - 6 PM PST",
     },
-    responseTime: '24 hours',
-    collabStyle: 'Remote or in-person (LA area)',
-    priceRange: '$$ (Mid-range)',
     previousCollabs: [
       {
-        id: 101,
-        title: 'Summer Vibes EP',
-        type: 'Music Production',
-        description: 'Co-produced a 5-track EP with indie artist Maya Wells',
-        with: 'Maya Wells',
-        date: '2023-05-15',
-        image: 'https://source.unsplash.com/random/300x300/?album,cover',
+        title: "Summer Vibes EP",
+        type: "Vocals",
+        description: "Lead vocals on 5-track EP with electronic producer",
+        with: "DJ Nexus",
+        date: "2024-06-15",
+        image: "https://i.pravatar.cc/150?img=5",
       },
       {
-        id: 102,
-        title: 'Urban Dreams Music Video',
-        type: 'Video Production',
-        description: 'Directed and edited music video for up-and-coming rapper',
-        with: 'DJ Metro',
-        date: '2023-02-10',
-        image: 'https://source.unsplash.com/random/300x300/?music,video',
+        title: "Acoustic Sessions",
+        type: "Songwriting",
+        description: "Co-wrote and performed 3 acoustic tracks",
+        with: "The Folk Collective",
+        date: "2024-03-20",
+        image: "https://i.pravatar.cc/150?img=6",
+      },
+      {
+        title: "Midnight Dreams",
+        type: "Featured Artist",
+        description: "Featured vocals on title track",
+        with: "Luna Rose",
+        date: "2024-01-10",
+        image: "https://i.pravatar.cc/150?img=7",
       },
     ],
     reviews: [
       {
-        id: 1001,
-        user: 'Sarah Miller',
-        avatar: 'https://randomuser.me/api/portraits/women/44.jpg',
+        user: "Marcus Chen",
+        avatar: "https://i.pravatar.cc/150?img=12",
         rating: 5,
-        content:
-          'Alex is an incredible collaborator. His production skills brought my songs to ',
-        date: '2023-06-20',
+        content: "Sarah brought our track to life with her incredible vocals. Professional, easy to work with, and delivered exactly what we needed!",
+        date: "2024-07-01",
       },
       {
-        id: 1002,
-        user: 'Carlos Rodriguez',
-        avatar: 'https://randomuser.me/api/portraits/men/22.jpg',
+        user: "Elena Rodriguez",
+        avatar: "https://i.pravatar.cc/150?img=13",
         rating: 4.5,
-        content:
-          'Great attention to detail and very professional. The mix he delivered was radio-ready. Will definitely work with him again.',
-        date: '2023-04-15',
+        content: "Great collaboration experience. Sarah's creative input was invaluable.",
+        date: "2024-05-15",
       },
     ],
   },
   {
     id: 2,
-    name: 'Taylor Smith',
-    image: 'https://randomuser.me/api/portraits/women/63.jpg',
-    bio: 'Award-winning vocalist and songwriter with a passion for creating emotional, powerful music across genres.',
-    location: 'Nashville, TN',
+    name: "Mike Anderson",
+    image: "https://i.pravatar.cc/300?img=2",
+    bio: "Grammy-nominated producer specializing in Hip-Hop and Trap beats. Over 50 million streams across platforms.",
+    location: "Atlanta, GA",
     rating: 4.9,
-    skills: ['Vocals', 'Songwriting', 'Lyrics', 'Harmony'],
+    responseTime: "12 hours",
+    collabStyle: "Remote",
+    skills: ["Production", "Mixing", "Beat Making", "Sound Design"],
     specialties: {
-      music: ['Country', 'Pop', 'Folk', 'Soul'],
-      video: ['Live Sessions', 'Acoustic Performances'],
-      photo: ['Artist Portraits', 'Live Shots'],
+      music: ["Hip-Hop", "Trap", "R&B", "Drill"],
+      video: ["Studio Sessions", "Production Tutorials"],
+      photo: ["Studio Photography"],
     },
     availability: {
-      days: ['Tuesday', 'Thursday', 'Saturday'],
-      timeRange: '12:00 PM - 8:00 PM',
+      days: ["Monday", "Wednesday", "Thursday", "Saturday"],
+      timeRange: "2 PM - 10 PM EST",
     },
-    responseTime: '12 hours',
-    collabStyle: 'Remote preferred',
-    priceRange: '$$$ (Premium)',
     previousCollabs: [
       {
-        id: 201,
-        title: 'Heartstrings Album',
-        type: 'Vocals',
-        description: 'Featured vocalist on 3 tracks for indie country album',
-        with: 'The Wildflowers',
-        date: '2023-07-01',
-        image: 'https://source.unsplash.com/random/300x300/?country,music',
+        title: "Street Symphony",
+        type: "Production",
+        description: "Produced full album for emerging artist",
+        with: "Young Prophet",
+        date: "2024-08-01",
+        image: "https://i.pravatar.cc/150?img=8",
       },
       {
-        id: 202,
-        title: 'City Lights Single',
-        type: 'Songwriting',
-        description: 'Co-wrote lyrics and melody for pop artist',
-        with: 'Emma Clarke',
-        date: '2023-03-18',
-        image: 'https://source.unsplash.com/random/300x300/?pop,music',
+        title: "Late Night Vibes",
+        type: "Beat Making",
+        description: "Created 10 exclusive beats for mixtape",
+        with: "MC Smooth",
+        date: "2024-04-25",
+        image: "https://i.pravatar.cc/150?img=9",
       },
     ],
     reviews: [
       {
-        id: 2001,
-        user: 'Jamie Wilson',
-        avatar: 'https://randomuser.me/api/portraits/women/33.jpg',
+        user: "Jordan Taylor",
+        avatar: "https://i.pravatar.cc/150?img=14",
         rating: 5,
-        content:
-          'Taylor',
-        date: '2023-08-05',
+        content: "Mike's production quality is top-tier. Worth every penny!",
+        date: "2024-08-15",
       },
       {
-        id: 2002,
-        user: 'Marcus Lee',
-        avatar: 'https://randomuser.me/api/portraits/men/45.jpg',
+        user: "Chris Williams",
+        avatar: "https://i.pravatar.cc/150?img=15",
         rating: 5,
-        content:
-          'One of the best songwriters ',
-        date: '2023-05-22',
+        content: "Amazing experience working with Mike. His beats are fire!",
+        date: "2024-06-20",
       },
     ],
   },
   {
     id: 3,
-    name: 'Jordan Chen',
-    image: 'https://randomuser.me/api/portraits/men/75.jpg',
-    bio: 'Creative director and videographer specializing in music visuals and artistic storytelling through film.',
-    location: 'New York, NY',
+    name: "Jessica Lee",
+    image: "https://i.pravatar.cc/300?img=3",
+    bio: "Award-winning videographer and director specializing in music videos and creative content. Known for unique visual storytelling.",
+    location: "New York, NY",
     rating: 4.7,
-    skills: ['Videography', 'Editing', 'Directing', 'Cinematography'],
+    responseTime: "48 hours",
+    collabStyle: "In-person preferred",
+    skills: ["Video Production", "Editing", "Color Grading", "Cinematography"],
     specialties: {
-      music: ['Music Videos', 'Visual Albums'],
-      video: ['Short Films', 'Documentaries'],
-      photo: ['Conceptual Photography', 'Behind-the-Scenes'],
+      music: [],
+      video: ["Music Videos", "Documentaries", "Commercial Content", "Short Films"],
+      photo: ["Portraits", "Event Photography"],
     },
     availability: {
-      days: ['Monday', 'Tuesday', 'Thursday', 'Friday'],
-      timeRange: '9:00 AM - 5:00 PM',
+      days: ["Tuesday", "Wednesday", "Friday", "Saturday"],
+      timeRange: "9 AM - 7 PM EST",
     },
-    responseTime: '48 hours',
-    collabStyle: 'In-person (NYC area) or remote planning',
-    priceRange: '$$-$$$',
     previousCollabs: [
       {
-        id: 301,
-        title: 'Neon Dreams MV',
-        type: 'Video Direction',
-        description: 'Directed and edited psychedelic music video for electronic artist',
-        with: 'Neon Wave',
-        date: '2023-06-10',
-        image: 'https://source.unsplash.com/random/300x300/?music,video,neon',
+        title: "Urban Stories",
+        type: "Music Video",
+        description: "Directed and shot music video with 2M+ views",
+        with: "The Underground Collective",
+        date: "2024-05-10",
+        image: "https://i.pravatar.cc/150?img=10",
       },
       {
-        id: 302,
-        title: 'Urban Stories Documentary',
-        type: 'Cinematography',
-        description: 'Lead cinematographer for indie music documentary series',
-        with: 'Pulse Media',
-        date: '2023-01-15',
-        image: 'https://source.unsplash.com/random/300x300/?documentary,film',
+        title: "Behind the Music",
+        type: "Documentary",
+        description: "Mini-documentary series about local artists",
+        with: "City Sounds Project",
+        date: "2024-02-28",
+        image: "https://i.pravatar.cc/150?img=11",
       },
     ],
     reviews: [
       {
-        id: 3001,
-        user: 'Aisha Brown',
-        avatar: 'https://randomuser.me/api/portraits/women/28.jpg',
-        rating: 4.5,
-        content:
-          'Jordan has an incredible eye for visuals. He took our simple concept and turned it into a stunning music video.',
-        date: '2023-07-18',
+        user: "Alex Rivera",
+        avatar: "https://i.pravatar.cc/150?img=16",
+        rating: 5,
+        content: "Jessica's creative vision exceeded our expectations. The final video was stunning!",
+        date: "2024-07-10",
       },
       {
-        id: 3002,
-        user: 'Daniel Kim',
-        avatar: 'https://randomuser.me/api/portraits/men/36.jpg',
-        rating: 5,
-        content:
-          'Professional, creative, and easy to work with. The final product exceeded all our expectations.',
-        date: '2023-04-30',
+        user: "Sam Mitchell",
+        avatar: "https://i.pravatar.cc/150?img=17",
+        rating: 4.5,
+        content: "Professional and talented. Great to work with!",
+        date: "2024-04-05",
       },
     ],
   },
 ];
-
-// Utility function to find artist by ID
-export const getArtistById = (id: number): Artist | undefined => {
-  return artistData.find((artist) => artist.id === id);
-};

@@ -38,11 +38,18 @@ import {
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
-import { artistData, collabTypes } from "../../collabsdata"; // Mock data import
+import { artistData } from "../../collabsdata"; // Mock data import
 
 const { TextArea } = Input;
 const { TabPane } = Tabs;
 const { Panel } = Collapse;
+
+// Define collab types locally with icons
+const collabTypes = [
+  { value: "music", label: "Music Production", icon: <SoundOutlined /> },
+  { value: "video", label: "Video/Content", icon: <VideoCameraOutlined /> },
+  { value: "photo", label: "Photography", icon: <PictureOutlined /> },
+];
 
 export default function RequestCollab({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -106,15 +113,27 @@ export default function RequestCollab({ params }: { params: { id: string } }) {
 
   // If artist is not found, show not found message
   if (!artist) {
-    return <div>Artist not found</div>;
+    return (
+      <div className="max-w-6xl mx-auto p-4">
+        <Card>
+          <div className="text-center py-8">
+            <h2 className="text-2xl font-semibold mb-4">Artist Not Found</h2>
+            <p className="text-gray-600 mb-4">The artist you are looking for does not exist.</p>
+            <Button type="primary" onClick={() => router.push("/collabs")}>
+              Back to Collaborations
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
   }
 
   return (
     <div className="max-w-6xl mx-auto p-4">
       <Breadcrumb
         items={[
-          { title: "Home", onClick: () => router.push("/") },
-          { title: "Collaborations", onClick: () => router.push("/collabs") },
+          { title: "Home", href: "/" },
+          { title: "Collaborations", href: "/collabs" },
           { title: `Request ${artist.name}` },
         ]}
       />
@@ -308,7 +327,7 @@ export default function RequestCollab({ params }: { params: { id: string } }) {
                   >
                     {field.name.includes("Type") ? (
                       <Select placeholder={`Select ${field.label}`}>
-                        {artist.specialties[collabType as keyof typeof artist.specialties].map(
+                        {(artist.specialties[collabType as keyof typeof artist.specialties] || []).map(
                           (item: string) => (
                             <Select.Option key={item} value={item}>
                               {item}
