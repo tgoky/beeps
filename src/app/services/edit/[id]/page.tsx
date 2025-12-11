@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   Button,
@@ -36,6 +36,7 @@ import {
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
+import { useParams } from "next/navigation";
 
 const { TextArea } = Input;
 const { Panel } = Collapse;
@@ -70,17 +71,62 @@ type Writer = {
   }>;
 };
 
-export default function HireWriter({ writer }: { writer?: Writer }) {
+export default function HireWriterPage() {
+  const params = useParams();
   const router = useRouter();
   const [form] = Form.useForm();
   const [activeTab, setActiveTab] = useState("about");
   const [fileList, setFileList] = useState<any[]>([]);
+  const [writer, setWriter] = useState<Writer | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Show loading spinner if writer data is not available
-  if (!writer) {
+  useEffect(() => {
+    // Fetch writer data based on ID from params
+    const fetchWriter = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/writers/${params.id}`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch writer');
+        }
+        
+        const data = await response.json();
+        setWriter(data.data);
+      } catch (error) {
+        console.error('Error fetching writer:', error);
+        message.error('Failed to load writer profile');
+        // Optional: redirect to writers list
+        // router.push('/services/writers');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (params.id) {
+      fetchWriter();
+    }
+  }, [params.id]);
+
+  // Show loading spinner while fetching
+  if (loading) {
     return (
       <div className="max-w-7xl mx-auto p-6 flex justify-center items-center min-h-96">
         <Spin size="large" />
+      </div>
+    );
+  }
+
+  // Show error if writer not found
+  if (!writer) {
+    return (
+      <div className="max-w-7xl mx-auto p-6 flex justify-center items-center min-h-96">
+        <Card className="text-center">
+          <h2 className="text-xl font-semibold mb-4">Writer Not Found</h2>
+          <Button type="primary" onClick={() => router.push('/services/writers')}>
+            View All Writers
+          </Button>
+        </Card>
       </div>
     );
   }
@@ -121,6 +167,7 @@ export default function HireWriter({ writer }: { writer?: Writer }) {
     "Technical",
     "Persuasive",
   ];
+
 
   return (
     <div className="max-w-7xl mx-auto p-6">
