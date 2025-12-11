@@ -954,7 +954,7 @@ export default function CommunityPage() {
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center ${config.bg} ${config.color}`}>
                       {config.icon}
                     </div>
-                    <span className="text-sm font-light tracking-wide">What's happening?</span>
+                    <span className="text-sm font-light tracking-wide">What&apos;s happening?</span>
                   </button>
                   <div className={`flex items-center gap-2 mt-3 pt-3 border-t ${
                     theme === 'dark' ? 'border-zinc-800' : 'border-gray-200'
@@ -1219,7 +1219,7 @@ export default function CommunityPage() {
                   <p className={`text-xs font-light tracking-wide ${
                     theme === "dark" ? "text-zinc-600" : "text-gray-500"
                   }`}>
-                    Post what you're looking for and let creators apply
+                    Post what you&apos;re looking for and let creators apply
                   </p>
                 </div>
               </div>

@@ -240,7 +240,7 @@ export default function LoginClient() {
               {/* Sign Up Link */}
               <div className="text-center pt-6 border-t border-zinc-900">
                 <p className="text-xs font-light text-zinc-600 tracking-wide">
-                  Don't have an account?{' '}
+                  Don&apos;t have an account?{' '}
                   <button
                     onClick={() => router.push('/register')}
                     className="font-medium text-white hover:text-zinc-300 transition-colors bg-black border border-black"

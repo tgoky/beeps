@@ -950,7 +950,7 @@ export default function SessionBookings() {
               <h3 className={`text-lg font-light tracking-wide mb-4 ${
                 theme === "dark" ? "text-white" : "text-gray-900"
               }`}>
-                Today's Stats
+                  Today&apos;s Stats
               </h3>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">

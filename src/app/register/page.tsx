@@ -285,7 +285,7 @@ export default function SignUp() {
               Check your email
             </h2>
             <p className="text-base font-light text-zinc-400 tracking-wide max-w-md mx-auto">
-              We've sent a verification link to
+              We&apos;ve sent a verification link to
             </p>
             <p className="text-base font-medium text-white tracking-wide">
               {formData.email}
@@ -331,7 +331,7 @@ export default function SignUp() {
                   Start collaborating
                 </p>
                 <p className="text-xs font-light text-zinc-500 mt-1 tracking-wide">
-                  Once verified, you'll be redirected to sign in and explore the platform
+                  Once verified, you&apos;ll be redirected to sign in and explore the platform
                 </p>
               </div>
             </div>
@@ -353,7 +353,7 @@ export default function SignUp() {
               onClick={() => router.push('/login')}
               className="w-full flex items-center justify-center gap-2.5 px-6 py-4 text-sm font-medium rounded-lg border transition-all duration-200 bg-zinc-900 border-zinc-800 text-zinc-400 tracking-wide hover:bg-black hover:border-zinc-700 hover:text-white active:scale-[0.98]"
             >
-              <span>I'll verify later</span>
+              <span>I&apos;ll verify later</span>
               <ArrowRight className="w-4 h-4" strokeWidth={2} />
             </button>
           </div>
@@ -361,7 +361,7 @@ export default function SignUp() {
           {/* Help Text */}
           <div className="mt-8 pt-8 border-t border-zinc-900 text-center">
             <p className="text-xs font-light text-zinc-600 tracking-wide">
-              Didn't receive the email?{' '}
+              Didn&apos;t receive the email?{' '}
               <button
                 type="button"
                 onClick={handleSubmit}
@@ -396,7 +396,7 @@ export default function SignUp() {
         <div className="space-y-2">
           <h2 className="text-2xl font-light tracking-tight text-white">Choose your role</h2>
           <p className="text-sm font-light text-zinc-500 tracking-wide">
-            Select how you'll contribute to the community
+            Select how you&apos;ll contribute to the community
           </p>
         </div>
 

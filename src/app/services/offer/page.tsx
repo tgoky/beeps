@@ -239,7 +239,7 @@ export default function OfferService() {
             </h2>
 
             <p className={`text-sm mb-4 ${theme === "dark" ? "text-gray-400" : "text-gray-600"}`}>
-              Let clients know where you're based (services can be offered remotely)
+              Let clients know where you&apos;re based (services can be offered remotely)
             </p>
 
             <LocationSelector

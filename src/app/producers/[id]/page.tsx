@@ -402,7 +402,7 @@ export default function ProducerDetailPage() {
             Producer not found
           </h2>
           <p className={`text-sm mb-6 ${theme === "dark" ? "text-zinc-500" : "text-gray-600"}`}>
-            The producer you're looking for doesn't exist or has been removed.
+            The producer you&apos;re looking for doesn&apos;t exist or has been removed.
           </p>
           <button
             onClick={() => router.push("/producers")}
