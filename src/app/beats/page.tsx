@@ -37,37 +37,31 @@ type Beat = {
   };
 };
 
-type Activity = {
-  id: number;
-  user: {
-    name: string;
-    avatar: string;
-  };
-  action: 'purchased' | 'liked' | 'uploaded';
-  beat: string;
-  time: string;
-};
+// Type guard to check if data has beats
+function hasBeatsData(data: unknown): data is { data?: { beats?: APIBeat[] }; beats?: APIBeat[] } {
+  return typeof data === 'object' && data !== null;
+}
 
 // Helper to transform API beat to display format
 const transformBeat = (apiBeat: APIBeat): Beat => {
   return {
-    id: parseInt(apiBeat.id, 36), // Convert UUID to number for component compatibility
+    id: parseInt(apiBeat.id.slice(0, 8), 16), // Convert first 8 chars of UUID to number
     title: apiBeat.title,
     producer: {
-      name: apiBeat.producer.name || apiBeat.producer.email.split('@')[0],
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${apiBeat.producer.id}`,
-      verified: true,
+      name: apiBeat.producer?.username || apiBeat.producer?.email?.split('@')[0] || 'Unknown',
+      avatar: apiBeat.producer?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${apiBeat.producer.id}`,
+      verified: apiBeat.producer?.verified || false,
     },
     bpm: apiBeat.bpm,
-    price: apiBeat.price,
-    genre: apiBeat.genre,
-    mood: apiBeat.mood,
-    plays: Math.floor(Math.random() * 500000) + 10000, // Mock plays until we have real data
-    likes: apiBeat.likeCount,
+    price: Number(apiBeat.price),
+    genre: apiBeat.genres || [],
+    mood: apiBeat.moods || [],
+    plays: apiBeat.plays || Math.floor(Math.random() * 500000) + 10000,
+    likes: apiBeat.likes || 0,
     liked: false, // TODO: Track user likes
     image: apiBeat.imageUrl || "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f",
     audio: apiBeat.audioUrl,
-    type: apiBeat.price > 100 ? 'exclusive' : 'lease', // Simple heuristic
+    type: apiBeat.type === 'EXCLUSIVE' ? 'exclusive' : 'lease',
     description: apiBeat.description || "",
     previewAvailable: 'free' as const,
   };
@@ -91,12 +85,24 @@ export default function BeatMarketplace() {
   const [currentlyPlaying, setCurrentlyPlaying] = useState<number | null>(null);
 
   // Fetch beats from API
-  const { data: apiBeats = [], isLoading, error } = useBeats({
-    genre: selectedGenre !== "all" ? [selectedGenre] : undefined,
-    mood: selectedMood !== "all" ? [selectedMood] : undefined,
+  const { data, isLoading, error } = useBeats({
+    genre: selectedGenre !== "all" ? selectedGenre : undefined,
+    mood: selectedMood !== "all" ? selectedMood : undefined,
   });
 
-  // Transform API data to display format
+  // Handle nested API response structure with proper type checking
+  let apiBeats: APIBeat[] = [];
+  
+  if (hasBeatsData(data)) {
+    if (Array.isArray(data)) {
+      apiBeats = data as APIBeat[];
+    } else if (data.data?.beats) {
+      apiBeats = data.data.beats;
+    } else if (data.beats) {
+      apiBeats = data.beats;
+    }
+  }
+  
   const beats = apiBeats.map(transformBeat);
 
   const toggleLike = (id: number, e: React.MouseEvent) => {
@@ -754,69 +760,6 @@ export default function BeatMarketplace() {
                     </button>
                   </div>
                 ))}
-              </div>
-            </div>
-
-            {/* Stats Card */}
-            <div className={`rounded-xl border p-4 ${
-              theme === "dark" 
-                ? "border-zinc-800 bg-zinc-950" 
-                : "border-gray-300 bg-white"
-            }`}>
-              <h3 className={`text-lg font-light tracking-wide mb-4 ${
-                theme === "dark" ? "text-white" : "text-gray-900"
-              }`}>
-                Marketplace Stats
-              </h3>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className={`text-sm font-light tracking-wide ${
-                    theme === "dark" ? "text-zinc-500" : "text-gray-600"
-                  }`}>
-                    Total Beats
-                  </span>
-                  <span className={`text-sm font-light tracking-wide ${
-                    theme === "dark" ? "text-white" : "text-gray-900"
-                  }`}>
-                    {beats.length}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className={`text-sm font-light tracking-wide ${
-                    theme === "dark" ? "text-zinc-500" : "text-gray-600"
-                  }`}>
-                    Active Producers
-                  </span>
-                  <span className={`text-sm font-light tracking-wide ${
-                    theme === "dark" ? "text-white" : "text-gray-900"
-                  }`}>
-                    {new Set(beats.map(b => b.producer.name)).size}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className={`text-sm font-light tracking-wide ${
-                    theme === "dark" ? "text-zinc-500" : "text-gray-600"
-                  }`}>
-                    Deals Available
-                  </span>
-                  <span className={`text-sm font-light tracking-wide ${
-                    theme === "dark" ? "text-white" : "text-gray-900"
-                  }`}>
-                    {beats.filter(b => b.deal).length}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className={`text-sm font-light tracking-wide ${
-                    theme === "dark" ? "text-zinc-500" : "text-gray-600"
-                  }`}>
-                    Total Plays
-                  </span>
-                  <span className={`text-sm font-light tracking-wide ${
-                    theme === "dark" ? "text-white" : "text-gray-900"
-                  }`}>
-                    {formatNumber(beats.reduce((sum, b) => sum + b.plays, 0))}
-                  </span>
-                </div>
               </div>
             </div>
           </div>
