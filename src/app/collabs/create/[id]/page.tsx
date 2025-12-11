@@ -111,7 +111,7 @@ export default function RequestCollab({ params }: { params: { id: string } }) {
         <Card>
           <div className="text-center py-8">
             <h2 className="text-2xl font-semibold mb-4">Artist Not Found</h2>
-            <p className="text-gray-600 mb-4">The artist you're looking for doesn't exist.</p>
+            <p className="text-gray-600 mb-4">The artist you are looking for does not exist.</p>
             <Button type="primary" onClick={() => router.push("/collabs")}>
               Back to Collaborations
             </Button>
