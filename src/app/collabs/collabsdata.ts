@@ -1,21 +1,7 @@
-import {
-  SoundOutlined,
-  VideoCameraOutlined,
-  PictureOutlined,
-} from "@ant-design/icons";
-import { ReactNode } from "react";
-
-export interface CollabType {
-  value: string;
-  label: string;
-  icon: ReactNode;
-}
-
-export const collabTypes: CollabType[] = [
-  { value: "music", label: "Music Production", icon: <SoundOutlined /> },
-  { value: "video", label: "Video/Content", icon: <VideoCameraOutlined /> },
-  { value: "photo", label: "Photography", icon: <PictureOutlined /> },
-];
+// collabsData.ts
+import dayjs from 'dayjs';
+import { SoundOutlined, VideoCameraOutlined, PictureOutlined } from '@ant-design/icons';
+import type { ReactNode } from 'react';
 
 export interface Artist {
   id: number;
@@ -24,8 +10,6 @@ export interface Artist {
   bio: string;
   location: string;
   rating: number;
-  responseTime: string;
-  collabStyle: string;
   skills: string[];
   specialties: {
     music: string[];
@@ -36,7 +20,11 @@ export interface Artist {
     days: string[];
     timeRange: string;
   };
+  responseTime: string;
+  collabStyle: string;
+  priceRange?: string;
   previousCollabs: {
+    id?: number;
     title: string;
     type: string;
     description: string;
@@ -45,6 +33,7 @@ export interface Artist {
     image: string;
   }[];
   reviews: {
+    id?: number;
     user: string;
     avatar: string;
     rating: number;
@@ -52,6 +41,30 @@ export interface Artist {
     date: string;
   }[];
 }
+
+export interface CollabType {
+  value: string;
+  label: string;
+  iconComponent: typeof SoundOutlined; // Store the component reference
+}
+
+export const collabTypes: CollabType[] = [
+  {
+    value: 'music',
+    label: 'Music Production',
+    iconComponent: SoundOutlined,
+  },
+  {
+    value: 'video',
+    label: 'Video/Content',
+    iconComponent: VideoCameraOutlined,
+  },
+  {
+    value: 'photo',
+    label: 'Photography',
+    iconComponent: PictureOutlined,
+  },
+];
 
 export const artistData: Artist[] = [
   {
@@ -63,6 +76,7 @@ export const artistData: Artist[] = [
     rating: 4.8,
     responseTime: "24 hours",
     collabStyle: "Remote & In-person",
+    priceRange: "$$ (Mid-range)",
     skills: ["Vocals", "Songwriting", "Harmonies", "Toplining"],
     specialties: {
       music: ["Pop", "R&B", "Soul", "Jazz"],
@@ -75,6 +89,7 @@ export const artistData: Artist[] = [
     },
     previousCollabs: [
       {
+        id: 101,
         title: "Summer Vibes EP",
         type: "Vocals",
         description: "Lead vocals on 5-track EP with electronic producer",
@@ -83,6 +98,7 @@ export const artistData: Artist[] = [
         image: "https://i.pravatar.cc/150?img=5",
       },
       {
+        id: 102,
         title: "Acoustic Sessions",
         type: "Songwriting",
         description: "Co-wrote and performed 3 acoustic tracks",
@@ -91,6 +107,7 @@ export const artistData: Artist[] = [
         image: "https://i.pravatar.cc/150?img=6",
       },
       {
+        id: 103,
         title: "Midnight Dreams",
         type: "Featured Artist",
         description: "Featured vocals on title track",
@@ -101,6 +118,7 @@ export const artistData: Artist[] = [
     ],
     reviews: [
       {
+        id: 1001,
         user: "Marcus Chen",
         avatar: "https://i.pravatar.cc/150?img=12",
         rating: 5,
@@ -108,6 +126,7 @@ export const artistData: Artist[] = [
         date: "2024-07-01",
       },
       {
+        id: 1002,
         user: "Elena Rodriguez",
         avatar: "https://i.pravatar.cc/150?img=13",
         rating: 4.5,
@@ -125,6 +144,7 @@ export const artistData: Artist[] = [
     rating: 4.9,
     responseTime: "12 hours",
     collabStyle: "Remote",
+    priceRange: "$$$ (Premium)",
     skills: ["Production", "Mixing", "Beat Making", "Sound Design"],
     specialties: {
       music: ["Hip-Hop", "Trap", "R&B", "Drill"],
@@ -137,6 +157,7 @@ export const artistData: Artist[] = [
     },
     previousCollabs: [
       {
+        id: 201,
         title: "Street Symphony",
         type: "Production",
         description: "Produced full album for emerging artist",
@@ -145,6 +166,7 @@ export const artistData: Artist[] = [
         image: "https://i.pravatar.cc/150?img=8",
       },
       {
+        id: 202,
         title: "Late Night Vibes",
         type: "Beat Making",
         description: "Created 10 exclusive beats for mixtape",
@@ -155,6 +177,7 @@ export const artistData: Artist[] = [
     ],
     reviews: [
       {
+        id: 2001,
         user: "Jordan Taylor",
         avatar: "https://i.pravatar.cc/150?img=14",
         rating: 5,
@@ -162,6 +185,7 @@ export const artistData: Artist[] = [
         date: "2024-08-15",
       },
       {
+        id: 2002,
         user: "Chris Williams",
         avatar: "https://i.pravatar.cc/150?img=15",
         rating: 5,
@@ -179,6 +203,7 @@ export const artistData: Artist[] = [
     rating: 4.7,
     responseTime: "48 hours",
     collabStyle: "In-person preferred",
+    priceRange: "$$-$$$",
     skills: ["Video Production", "Editing", "Color Grading", "Cinematography"],
     specialties: {
       music: [],
@@ -191,6 +216,7 @@ export const artistData: Artist[] = [
     },
     previousCollabs: [
       {
+        id: 301,
         title: "Urban Stories",
         type: "Music Video",
         description: "Directed and shot music video with 2M+ views",
@@ -199,6 +225,7 @@ export const artistData: Artist[] = [
         image: "https://i.pravatar.cc/150?img=10",
       },
       {
+        id: 302,
         title: "Behind the Music",
         type: "Documentary",
         description: "Mini-documentary series about local artists",
@@ -209,6 +236,7 @@ export const artistData: Artist[] = [
     ],
     reviews: [
       {
+        id: 3001,
         user: "Alex Rivera",
         avatar: "https://i.pravatar.cc/150?img=16",
         rating: 5,
@@ -216,6 +244,7 @@ export const artistData: Artist[] = [
         date: "2024-07-10",
       },
       {
+        id: 3002,
         user: "Sam Mitchell",
         avatar: "https://i.pravatar.cc/150?img=17",
         rating: 4.5,
@@ -225,3 +254,8 @@ export const artistData: Artist[] = [
     ],
   },
 ];
+
+// Utility function to find artist by ID
+export const getArtistById = (id: number): Artist | undefined => {
+  return artistData.find((artist) => artist.id === id);
+};

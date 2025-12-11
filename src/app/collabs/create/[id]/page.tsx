@@ -38,18 +38,11 @@ import {
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
-import { artistData } from "../../collabsdata"; // Mock data import
+import { artistData, collabTypes } from "../../collabsdata"; // Mock data import
 
 const { TextArea } = Input;
 const { TabPane } = Tabs;
 const { Panel } = Collapse;
-
-// Define collab types locally with icons
-const collabTypes = [
-  { value: "music", label: "Music Production", icon: <SoundOutlined /> },
-  { value: "video", label: "Video/Content", icon: <VideoCameraOutlined /> },
-  { value: "photo", label: "Photography", icon: <PictureOutlined /> },
-];
 
 export default function RequestCollab({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -118,7 +111,7 @@ export default function RequestCollab({ params }: { params: { id: string } }) {
         <Card>
           <div className="text-center py-8">
             <h2 className="text-2xl font-semibold mb-4">Artist Not Found</h2>
-            <p className="text-gray-600 mb-4">The artist you are looking for does not exist.</p>
+            <p className="text-gray-600 mb-4">The artist you're looking for doesn't exist.</p>
             <Button type="primary" onClick={() => router.push("/collabs")}>
               Back to Collaborations
             </Button>
@@ -301,14 +294,17 @@ export default function RequestCollab({ params }: { params: { id: string } }) {
                   onChange={(e) => setCollabType(e.target.value)}
                   className="w-full"
                 >
-                  {collabTypes.map((type) => (
-                    <Radio.Button key={type.value} value={type.value} className="w-full mb-2">
-                      <div className="flex items-center">
-                        {type.icon}
-                        <span className="ml-2">{type.label}</span>
-                      </div>
-                    </Radio.Button>
-                  ))}
+                  {collabTypes.map((type) => {
+                    const IconComponent = type.iconComponent;
+                    return (
+                      <Radio.Button key={type.value} value={type.value} className="w-full mb-2">
+                        <div className="flex items-center">
+                          <IconComponent />
+                          <span className="ml-2">{type.label}</span>
+                        </div>
+                      </Radio.Button>
+                    );
+                  })}
                 </Radio.Group>
               </Form.Item>
 
@@ -325,7 +321,7 @@ export default function RequestCollab({ params }: { params: { id: string } }) {
                       },
                     ]}
                   >
-                    {field.name.includes("Type") ? (
+                    {field.name.includes("Type") || field.name.includes("genre") ? (
                       <Select placeholder={`Select ${field.label}`}>
                         {(artist.specialties[collabType as keyof typeof artist.specialties] || []).map(
                           (item: string) => (
