@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
+import type { ApiResponse } from "@/types";
+import { NotificationType } from "@prisma/client";
 
 // GET /api/bookings/[id] - Fetch a booking by ID
-export async function GET(req: NextRequest, { params }: { params: any }) {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
   return withAuth(req, async (req) => {
     const user = req.user!;
+    
     try {
       const { id } = params;
 
@@ -15,7 +21,9 @@ export async function GET(req: NextRequest, { params }: { params: any }) {
           studio: {
             include: {
               owner: {
-                include: {
+                select: {
+                  id: true,
+                  userId: true,
                   user: {
                     select: {
                       id: true,
@@ -40,10 +48,13 @@ export async function GET(req: NextRequest, { params }: { params: any }) {
       });
 
       if (!booking) {
-        return NextResponse.json(
-          { error: "Booking not found" },
-          { status: 404 }
-        );
+        return NextResponse.json<ApiResponse>({
+          success: false,
+          error: {
+            message: "Booking not found",
+            code: "NOT_FOUND",
+          },
+        }, { status: 404 });
       }
 
       // Check if user is authorized to view this booking
@@ -51,27 +62,41 @@ export async function GET(req: NextRequest, { params }: { params: any }) {
       const isStudioOwner = booking.studio.owner.userId === user.id;
 
       if (!isBookingOwner && !isStudioOwner) {
-        return NextResponse.json(
-          { error: "Unauthorized to view this booking" },
-          { status: 403 }
-        );
+        return NextResponse.json<ApiResponse>({
+          success: false,
+          error: {
+            message: "Unauthorized to view this booking",
+            code: "FORBIDDEN",
+          },
+        }, { status: 403 });
       }
 
-      return NextResponse.json({ booking });
+      return NextResponse.json<ApiResponse>({
+        success: true,
+        data: { booking },
+      });
     } catch (error: any) {
       console.error("Error fetching booking:", error);
-      return NextResponse.json(
-        { error: "Failed to fetch booking" },
-        { status: 500 }
-      );
+      return NextResponse.json<ApiResponse>({
+        success: false,
+        error: {
+          message: "Failed to fetch booking",
+          code: "SERVER_ERROR",
+          details: process.env.NODE_ENV === "development" ? error.message : undefined,
+        },
+      }, { status: 500 });
     }
   });
 }
 
 // PATCH /api/bookings/[id] - Update a booking
-export async function PATCH(req: NextRequest, { params }: { params: any }) {
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
   return withAuth(req, async (req) => {
     const user = req.user!;
+    
     try {
       const { id } = params;
       const body = await req.json();
@@ -81,19 +106,28 @@ export async function PATCH(req: NextRequest, { params }: { params: any }) {
         where: { id },
         include: {
           studio: {
-            include: {
-              owner: true,
+            select: {
+              id: true,
+              name: true,
+              ownerId: true,
+              owner: {
+                select: {
+                  userId: true,
+                },
+              },
             },
           },
-          user: true,
         },
       });
 
       if (!booking) {
-        return NextResponse.json(
-          { error: "Booking not found" },
-          { status: 404 }
-        );
+        return NextResponse.json<ApiResponse>({
+          success: false,
+          error: {
+            message: "Booking not found",
+            code: "NOT_FOUND",
+          },
+        }, { status: 404 });
       }
 
       // Check authorization
@@ -101,10 +135,24 @@ export async function PATCH(req: NextRequest, { params }: { params: any }) {
       const isStudioOwner = booking.studio.owner.userId === user.id;
 
       if (!isBookingOwner && !isStudioOwner) {
-        return NextResponse.json(
-          { error: "Unauthorized to update this booking" },
-          { status: 403 }
-        );
+        return NextResponse.json<ApiResponse>({
+          success: false,
+          error: {
+            message: "Unauthorized to update this booking",
+            code: "FORBIDDEN",
+          },
+        }, { status: 403 });
+      }
+
+      // Validate status if provided
+      if (body.status && !["PENDING", "CONFIRMED", "COMPLETED", "CANCELLED"].includes(body.status)) {
+        return NextResponse.json<ApiResponse>({
+          success: false,
+          error: {
+            message: "Invalid booking status",
+            code: "VALIDATION_ERROR",
+          },
+        }, { status: 400 });
       }
 
       // Update booking
@@ -120,7 +168,9 @@ export async function PATCH(req: NextRequest, { params }: { params: any }) {
           studio: {
             include: {
               owner: {
-                include: {
+                select: {
+                  id: true,
+                  userId: true,
                   user: {
                     select: {
                       id: true,
@@ -147,24 +197,24 @@ export async function PATCH(req: NextRequest, { params }: { params: any }) {
       // Send notification based on status change
       if (body.status) {
         let notificationMessage = "";
-        let notificationType = "BOOKING_CONFIRMED";
+        let notificationType: NotificationType | null = null;
         let recipientId = booking.userId;
 
         if (body.status === "CONFIRMED" && isStudioOwner) {
           notificationMessage = `Your booking for ${booking.studio.name} has been confirmed!`;
-          notificationType = "BOOKING_CONFIRMED";
+          notificationType = NotificationType.BOOKING_CONFIRMED;
           recipientId = booking.userId;
         } else if (body.status === "CANCELLED") {
           notificationMessage = `Booking for ${booking.studio.name} has been cancelled`;
-          notificationType = "BOOKING_CANCELLED";
+          notificationType = NotificationType.BOOKING_CANCELLED;
           recipientId = isStudioOwner ? booking.userId : booking.studio.owner.userId;
         } else if (body.status === "COMPLETED") {
           notificationMessage = `Booking for ${booking.studio.name} has been completed`;
-          notificationType = "TRANSACTION_COMPLETED";
+          notificationType = NotificationType.TRANSACTION_COMPLETED;
           recipientId = booking.userId;
         }
 
-        if (notificationMessage) {
+        if (notificationMessage && notificationType) {
           await prisma.notification.create({
             data: {
               userId: recipientId,
@@ -172,27 +222,38 @@ export async function PATCH(req: NextRequest, { params }: { params: any }) {
               title: "Booking Update",
               message: notificationMessage,
               referenceId: booking.id,
-              referenceType: "BOOKING",
+              referenceType: "booking",
             },
           });
         }
       }
 
-      return NextResponse.json({ booking: updatedBooking });
+      return NextResponse.json<ApiResponse>({
+        success: true,
+        data: { booking: updatedBooking },
+      });
     } catch (error: any) {
       console.error("Error updating booking:", error);
-      return NextResponse.json(
-        { error: "Failed to update booking" },
-        { status: 500 }
-      );
+      return NextResponse.json<ApiResponse>({
+        success: false,
+        error: {
+          message: "Failed to update booking",
+          code: "SERVER_ERROR",
+          details: process.env.NODE_ENV === "development" ? error.message : undefined,
+        },
+      }, { status: 500 });
     }
   });
 }
 
 // DELETE /api/bookings/[id] - Cancel a booking
-export async function DELETE(req: NextRequest, { params }: { params: any }) {
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
   return withAuth(req, async (req) => {
     const user = req.user!;
+    
     try {
       const { id } = params;
 
@@ -201,18 +262,28 @@ export async function DELETE(req: NextRequest, { params }: { params: any }) {
         where: { id },
         include: {
           studio: {
-            include: {
-              owner: true,
+            select: {
+              id: true,
+              name: true,
+              ownerId: true,
+              owner: {
+                select: {
+                  userId: true,
+                },
+              },
             },
           },
         },
       });
 
       if (!booking) {
-        return NextResponse.json(
-          { error: "Booking not found" },
-          { status: 404 }
-        );
+        return NextResponse.json<ApiResponse>({
+          success: false,
+          error: {
+            message: "Booking not found",
+            code: "NOT_FOUND",
+          },
+        }, { status: 404 });
       }
 
       // Check authorization
@@ -220,10 +291,24 @@ export async function DELETE(req: NextRequest, { params }: { params: any }) {
       const isStudioOwner = booking.studio.owner.userId === user.id;
 
       if (!isBookingOwner && !isStudioOwner) {
-        return NextResponse.json(
-          { error: "Unauthorized to cancel this booking" },
-          { status: 403 }
-        );
+        return NextResponse.json<ApiResponse>({
+          success: false,
+          error: {
+            message: "Unauthorized to cancel this booking",
+            code: "FORBIDDEN",
+          },
+        }, { status: 403 });
+      }
+
+      // Don't allow cancelling already completed bookings
+      if (booking.status === "COMPLETED") {
+        return NextResponse.json<ApiResponse>({
+          success: false,
+          error: {
+            message: "Cannot cancel a completed booking",
+            code: "VALIDATION_ERROR",
+          },
+        }, { status: 400 });
       }
 
       // Update booking status to CANCELLED
@@ -237,21 +322,28 @@ export async function DELETE(req: NextRequest, { params }: { params: any }) {
       await prisma.notification.create({
         data: {
           userId: recipientId,
-          type: "BOOKING_CANCELLED",
+          type: NotificationType.BOOKING_CANCELLED,
           title: "Booking Cancelled",
           message: `Booking for ${booking.studio.name} has been cancelled`,
           referenceId: booking.id,
-          referenceType: "BOOKING",
+          referenceType: "booking",
         },
       });
 
-      return NextResponse.json({ success: true });
+      return NextResponse.json<ApiResponse>({
+        success: true,
+        data: { message: "Booking cancelled successfully" },
+      });
     } catch (error: any) {
       console.error("Error deleting booking:", error);
-      return NextResponse.json(
-        { error: "Failed to cancel booking" },
-        { status: 500 }
-      );
+      return NextResponse.json<ApiResponse>({
+        success: false,
+        error: {
+          message: "Failed to cancel booking",
+          code: "SERVER_ERROR",
+          details: process.env.NODE_ENV === "development" ? error.message : undefined,
+        },
+      }, { status: 500 });
     }
   });
 }
