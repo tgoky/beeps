@@ -642,7 +642,7 @@ export default function CommunityPage() {
                         : "bg-gray-200 text-gray-400 cursor-not-allowed"
                   }`}
                 >
-                  {isCreatingPost ? "Posting..." : "Post"}
+                  {createPostMutation.isPending ? "Posting..." : "Post"}
                 </button>
                 <button
                   onClick={() => setShowCreateModal(false)}
