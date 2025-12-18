@@ -958,8 +958,8 @@ const MapView = () => {
                       </div>
                     )}
 
-                    {/* Quick action button for selected */}
-                {permissions.canBookStudios && (
+           {/* Quick action button for selected */}
+{permissions.canBookStudios && (
   <button
     className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-medium rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
       theme === "dark"
@@ -968,7 +968,7 @@ const MapView = () => {
     }`}
     onClick={(e) => {
       e.stopPropagation();
-      router.push(`/studios/create/${studio.id}`);
+router.push(`/studios/create/${studio.id}`); // ✅ FIXED
     }}
   >
     <CheckCircle2 className="w-4 h-4" strokeWidth={2} />
@@ -1277,7 +1277,7 @@ const MapView = () => {
                 }`}
                 onClick={(e) => {
                   e.stopPropagation();
-                  router.push(`/studios/create/${studio.id}`);
+                     router.push(`/studios/create/${studio.id}`);
                 }}
               >
                 <CheckCircle2 className="w-4 h-4" strokeWidth={2} />

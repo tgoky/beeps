@@ -29,42 +29,42 @@ export async function GET(req: NextRequest) {
         };
       }
 
-    if (status) {
-      where.status = status;
-    }
+      if (status) {
+        where.status = status;
+      }
 
-    const bookings = await prisma.booking.findMany({
-      where,
-      include: {
-        studio: {
-          include: {
-            owner: {
-              include: {
-                user: {
-                  select: {
-                    id: true,
-                    username: true,
-                    fullName: true,
-                    avatar: true,
+      const bookings = await prisma.booking.findMany({
+        where,
+        include: {
+          studio: {
+            include: {
+              owner: {
+                include: {
+                  user: {
+                    select: {
+                      id: true,
+                      username: true,
+                      fullName: true,
+                      avatar: true,
+                    },
                   },
                 },
               },
             },
           },
-        },
-        user: {
-          select: {
-            id: true,
-            username: true,
-            fullName: true,
-            avatar: true,
+          user: {
+            select: {
+              id: true,
+              username: true,
+              fullName: true,
+              avatar: true,
+            },
           },
         },
-      },
-      orderBy: {
-        startTime: "desc",
-      },
-    });
+        orderBy: {
+          startTime: "desc",
+        },
+      });
 
       return NextResponse.json({ bookings });
     } catch (error: any) {
@@ -167,35 +167,35 @@ export async function POST(req: NextRequest) {
           startTime: new Date(startTime),
           endTime: new Date(endTime),
           totalAmount,
-        notes,
-        status: "PENDING",
-      },
-      include: {
-        studio: {
-          include: {
-            owner: {
-              include: {
-                user: {
-                  select: {
-                    id: true,
-                    username: true,
-                    fullName: true,
-                    avatar: true,
+          notes: notes || "", // ✅ Fixed: moved notes here
+          status: "PENDING",
+        },
+        include: {
+          studio: {
+            include: {
+              owner: {
+                include: {
+                  user: {
+                    select: {
+                      id: true,
+                      username: true,
+                      fullName: true,
+                      avatar: true,
+                    },
                   },
                 },
               },
             },
           },
-        },
-        user: {
-          select: {
-            id: true,
-            username: true,
-            fullName: true,
-            avatar: true,
+          user: {
+            select: {
+              id: true,
+              username: true,
+              fullName: true,
+              avatar: true,
+            },
           },
         },
-      },
       });
 
       // Create notification for studio owner

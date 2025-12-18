@@ -136,81 +136,91 @@ export default function BookStudio({ params }: { params: { id: string } }) {
     { icon: Volume2, label: "Sound Proof" },
   ];
 
-  const handleBooking = async () => {
-    if (!selectedTime) {
-      setBookingError("Please select a time slot");
+const handleBooking = async () => {
+  if (!selectedTime) {
+    setBookingError("Please select a time slot");
+    return;
+  }
+
+  // Check if the selected time slot is available
+  if (!isTimeSlotAvailable(selectedTime)) {
+    setBookingError("This time slot is already booked. Please select a different time.");
+    showToast("This time slot is already booked", "error");
+    return;
+  }
+
+  try {
+    setBookingLoading(true);
+    setBookingError("");
+
+    // Parse selected time to 24-hour format
+    const timeParts = selectedTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
+    if (!timeParts) {
+      setBookingError("Invalid time format");
       return;
     }
 
-    // Check if the selected time slot is available
-    if (!isTimeSlotAvailable(selectedTime)) {
-      setBookingError("This time slot is already booked. Please select a different time.");
-      showToast("This time slot is already booked", "error");
-      return;
+    let hours = parseInt(timeParts[1]);
+    const minutes = parseInt(timeParts[2]);
+    const period = timeParts[3].toUpperCase();
+
+    if (period === "PM" && hours !== 12) hours += 12;
+    if (period === "AM" && hours === 12) hours = 0;
+
+    // Create start and end times
+    const startTime = selectedDate
+      .hour(hours)
+      .minute(minutes)
+      .second(0)
+      .toDate();
+
+    const endTime = selectedDate
+      .hour(hours)
+      .minute(minutes)
+      .add(sessionLength, "hour")
+      .second(0)
+      .toDate();
+
+    // Make API call to create booking
+    const response = await fetch("/api/bookings", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        studioId: studio.id,
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
+        notes: "",
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      // ✅ FIX: Properly extract error message
+      const errorMessage = typeof data.error === 'string' 
+        ? data.error 
+        : data.error?.message || data.message || "Failed to create booking";
+      
+      throw new Error(errorMessage);
     }
 
-    try {
-      setBookingLoading(true);
-      setBookingError("");
+    // Show success toast
+    showToast("Booking request submitted! You'll be notified when the studio owner responds.", "success");
+    router.push("/bookings");
+  } catch (error: any) {
+    console.error("Booking error:", error);
+    
+    // ✅ FIX: Ensure we display a string, not an object
+    const errorMessage = error.message || "Failed to create booking. Please try again.";
+    setBookingError(errorMessage);
+    showToast(errorMessage, "error");
+  } finally {
+    setBookingLoading(false);
+  }
+};
 
-      // Parse selected time to 24-hour format
-      const timeParts = selectedTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
-      if (!timeParts) {
-        setBookingError("Invalid time format");
-        return;
-      }
-
-      let hours = parseInt(timeParts[1]);
-      const minutes = parseInt(timeParts[2]);
-      const period = timeParts[3].toUpperCase();
-
-      if (period === "PM" && hours !== 12) hours += 12;
-      if (period === "AM" && hours === 12) hours = 0;
-
-      // Create start and end times
-      const startTime = selectedDate
-        .hour(hours)
-        .minute(minutes)
-        .second(0)
-        .toDate();
-
-      const endTime = selectedDate
-        .hour(hours)
-        .minute(minutes)
-        .add(sessionLength, "hour")
-        .second(0)
-        .toDate();
-
-      // Make API call to create booking
-      const response = await fetch("/api/bookings", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          studioId: studio.id, // UUID string from database
-          startTime: startTime.toISOString(),
-          endTime: endTime.toISOString(),
-          notes: "",
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to create booking");
-      }
-
-      // Show success toast
-      showToast("Booking request submitted! You'll be notified when the studio owner responds.", "success");
-      router.push("/bookings");
-    } catch (error: any) {
-      console.error("Booking error:", error);
-      setBookingError(error.message || "Failed to create booking. Please try again.");
-    } finally {
-      setBookingLoading(false);
-    }
-  };
 
   return (
     <div className={`min-h-screen ${
@@ -400,64 +410,67 @@ export default function BookStudio({ params }: { params: { id: string } }) {
                   </div>
                 )}
 
-                {activeTab === "reviews" && (
-                  <div className="space-y-4">
-                    <h3 className={`text-lg font-semibold ${
-                      theme === "dark" ? "text-gray-200" : "text-gray-900"
-                    }`}>
-                      Customer Reviews
-                    </h3>
-                    {studio.reviews?.map((review, index) => (
-                      <div
-                        key={index}
-                        className={`p-4 rounded-lg border transition-all duration-200 ${
-                          theme === "dark"
-                            ? "bg-gray-800/40 border-gray-700/60"
-                            : "bg-gray-50/50 border-gray-200/60"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-semibold">
-                            {review.user?.[0] || "U"}
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className={`text-sm font-medium ${
-                                theme === "dark" ? "text-gray-200" : "text-gray-900"
-                              }`}>
-                                {review.user || "Anonymous"}
-                              </span>
-                              <div className="flex items-center gap-1">
-                                <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
-                                <span className={`text-xs ${
-                                  theme === "dark" ? "text-gray-400" : "text-gray-600"
-                                }`}>
-                                  {review.rating || 5}
-                                </span>
-                              </div>
-                            </div>
-                            <span className={`text-xs ${
-                              theme === "dark" ? "text-gray-500" : "text-gray-500"
-                            }`}>
-                              {dayjs(review.date).format("MMMM D, YYYY")}
-                            </span>
-                          </div>
-                        </div>
-                        <p className={`text-sm ${
-                          theme === "dark" ? "text-gray-400" : "text-gray-600"
-                        }`}>
-                          {review.content || "Great studio with amazing equipment and atmosphere!"}
-                        </p>
-                      </div>
-                    )) || (
-                      <p className={`text-sm text-center py-8 ${
-                        theme === "dark" ? "text-gray-500" : "text-gray-500"
-                      }`}>
-                        No reviews yet
-                      </p>
-                    )}
-                  </div>
-                )}
+              {activeTab === "reviews" && (
+  <div className="space-y-4">
+    <h3 className={`text-lg font-semibold ${
+      theme === "dark" ? "text-gray-200" : "text-gray-900"
+    }`}>
+      Customer Reviews
+    </h3>
+    {studio.reviews && studio.reviews.length > 0 ? (
+      studio.reviews.map((review) => (
+        <div
+          key={review.id}
+          className={`p-4 rounded-lg border transition-all duration-200 ${
+            theme === "dark"
+              ? "bg-gray-800/40 border-gray-700/60"
+              : "bg-gray-50/50 border-gray-200/60"
+          }`}
+        >
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-semibold">
+              {review.author?.username?.[0]?.toUpperCase() || 
+               review.author?.fullName?.[0]?.toUpperCase() || "U"}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className={`text-sm font-medium ${
+                  theme === "dark" ? "text-gray-200" : "text-gray-900"
+                }`}>
+                  {review.author?.fullName || review.author?.username || "Anonymous"}
+                </span>
+                <div className="flex items-center gap-1">
+                  <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
+                  <span className={`text-xs ${
+                    theme === "dark" ? "text-gray-400" : "text-gray-600"
+                  }`}>
+                    {review.rating}
+                  </span>
+                </div>
+              </div>
+              <span className={`text-xs ${
+                theme === "dark" ? "text-gray-500" : "text-gray-500"
+              }`}>
+                {dayjs(review.createdAt).format("MMMM D, YYYY")}
+              </span>
+            </div>
+          </div>
+          <p className={`text-sm ${
+            theme === "dark" ? "text-gray-400" : "text-gray-600"
+          }`}>
+            {review.comment || "Great studio with amazing equipment and atmosphere!"}
+          </p>
+        </div>
+      ))
+    ) : (
+      <p className={`text-sm text-center py-8 ${
+        theme === "dark" ? "text-gray-500" : "text-gray-500"
+      }`}>
+        No reviews yet
+      </p>
+    )}
+  </div>
+)}
               </div>
             </div>
           </div>
@@ -581,70 +594,84 @@ export default function BookStudio({ params }: { params: { id: string } }) {
   </div>
   
   {showTimeSlots ? (
-    <div className="grid grid-cols-3 gap-2">
-      {timeSlots.map((time) => {
-        const isAvailable = isTimeSlotAvailable(time);
-        return (
-          <button
-            key={time}
-            onClick={() => isAvailable && setSelectedTime(time)}
-            disabled={!isAvailable}
-            className={`
-              py-2 text-xs rounded-lg border transition-all duration-200 relative
-              ${!isAvailable
-                ? theme === "dark"
-                  ? "bg-red-500/10 text-red-400/50 border-red-500/20 cursor-not-allowed line-through"
-                  : "bg-red-50 text-red-600/50 border-red-200 cursor-not-allowed line-through"
-                : selectedTime === time
-                ? theme === "dark"
-                  ? "bg-purple-500/20 text-purple-400 border-purple-500/40"
-                  : "bg-purple-50 text-purple-600 border-purple-200"
-                : theme === "dark"
-                  ? "bg-gray-800/40 text-gray-400 border-gray-700/60 hover:border-gray-600"
-                  : "bg-gray-50/50 text-gray-600 border-gray-200/60 hover:border-gray-300"
-              }
-            `}
-          >
-            {time}
-            {!isAvailable && (
-              <span className="absolute top-0 right-0 -mt-1 -mr-1 text-[10px] bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center">
-                ✕
-              </span>
-            )}
-          </button>
-        );
-      })}
-    </div>
-  ) : (
-    <>
-      <input
-      type="time"
-      value={selectedTime ? dayjs(`2000-01-01 ${selectedTime}`).format("HH:mm") : ""}
-      onChange={(e) => {
-        const time24 = e.target.value;
-        const [hours, minutes] = time24.split(':');
-        const hour = parseInt(hours);
-        const period = hour >= 12 ? 'PM' : 'AM';
-        const hour12 = hour % 12 || 12;
-        setSelectedTime(`${hour12}:${minutes} ${period}`);
-      }}
-      className={`w-full p-3 rounded-lg border transition-all duration-200 ${
-        theme === "dark"
-          ? "bg-gray-800/40 border-gray-700/60 text-gray-300 [color-scheme:dark]"
-          : "bg-gray-50/50 border-gray-200/60 text-gray-700"
-      }`}
-    />
-    </>
-  )}
-  {showTimeSlots && studio.bookings && studio.bookings.length > 0 && (
-    <p className={`text-xs mt-2 ${theme === "dark" ? "text-gray-500" : "text-gray-500"}`}>
-      <span className="text-red-400">✕</span> = Already booked
-    </p>
-  )}
-</div>
-
-
-                {/* Session Length */}
+  <div className="grid grid-cols-3 gap-2">
+    {timeSlots.map((time) => {
+      const isAvailable = isTimeSlotAvailable(time);
+      return (
+        <button
+          key={time}
+          onClick={() => isAvailable && setSelectedTime(time)}
+          disabled={!isAvailable}
+          className={`
+            py-2 text-xs rounded-lg border transition-all duration-200 relative
+            ${!isAvailable
+              ? theme === "dark"
+                ? "bg-red-500/10 text-red-400/50 border-red-500/20 cursor-not-allowed line-through"
+                : "bg-red-50 text-red-600/50 border-red-200 cursor-not-allowed line-through"
+              : selectedTime === time
+              ? theme === "dark"
+                ? "bg-purple-500/20 text-purple-400 border-purple-500/40"
+                : "bg-purple-50 text-purple-600 border-purple-200"
+              : theme === "dark"
+                ? "bg-gray-800/40 text-gray-400 border-gray-700/60 hover:border-gray-600"
+                : "bg-gray-50/50 text-gray-600 border-gray-200/60 hover:border-gray-300"
+            }
+          `}
+        >
+          {time}
+          {!isAvailable && (
+            <span className="absolute top-0 right-0 -mt-1 -mr-1 text-[10px] bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center">
+              ✕
+            </span>
+          )}
+        </button>
+      );
+    })}
+  </div>
+) : (
+  <input
+    type="time"
+    value={
+      selectedTime
+        ? (() => {
+            // Convert "10:00 AM" to "10:00" (24-hour format)
+            const match = selectedTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
+            if (!match) return "";
+            let hours = parseInt(match[1]);
+            const minutes = match[2];
+            const period = match[3].toUpperCase();
+            
+            // Convert to 24-hour format
+            if (period === "PM" && hours !== 12) hours += 12;
+            if (period === "AM" && hours === 12) hours = 0;
+            
+            return `${hours.toString().padStart(2, "0")}:${minutes}`;
+          })()
+        : ""
+    }
+    onChange={(e) => {
+      const time24 = e.target.value;
+      if (!time24) return;
+      
+      const [hours, minutes] = time24.split(":");
+      const hour = parseInt(hours);
+      const period = hour >= 12 ? "PM" : "AM";
+      const hour12 = hour % 12 || 12;
+      setSelectedTime(`${hour12}:${minutes} ${period}`);
+    }}
+    className={`w-full p-3 rounded-lg border transition-all duration-200 ${
+      theme === "dark"
+        ? "bg-gray-800/40 border-gray-700/60 text-gray-300 [color-scheme:dark]"
+        : "bg-gray-50/50 border-gray-200/60 text-gray-700"
+    }`}
+  />
+)}
+{showTimeSlots && studio.bookings && studio.bookings.length > 0 && (
+  <p className={`text-xs mt-2 ${theme === "dark" ? "text-gray-500" : "text-gray-500"}`}>
+    <span className="text-red-400">✕</span> = Already booked
+  </p>
+)}
+</div>                {/* Session Length */}
                 <div className="mb-6">
                   <label className={`text-sm font-medium mb-2 block ${
                     theme === "dark" ? "text-gray-300" : "text-gray-700"

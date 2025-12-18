@@ -1,15 +1,42 @@
 // API middleware for authentication and authorization
-// Updated to work with new permission system
+// Production-ready with automatic user creation for missing Supabase Auth users
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { prisma } from '@/lib/prisma';
-import type { User } from '@prisma/client';
+import type { User, UserRole, ClubMemberRole } from '@prisma/client';
 import type { ApiResponse, UserPermissions } from '@/types';
 
 export interface AuthenticatedRequest extends NextRequest {
   user?: User;
   supabaseUser?: any;
   permissions?: UserPermissions;
+}
+
+// ============================================================================
+// HELPER: Generate unique username
+// ============================================================================
+
+async function generateUniqueUsername(baseUsername: string): Promise<string> {
+  let username = baseUsername.toLowerCase().replace(/[^a-z0-9_]/g, '');
+  let counter = 1;
+
+  // Ensure minimum length
+  if (username.length < 3) {
+    username = `user_${username}`;
+  }
+
+  while (true) {
+    const existing = await prisma.user.findUnique({
+      where: { username }
+    });
+
+    if (!existing) {
+      return username;
+    }
+
+    username = `${baseUsername}${counter}`;
+    counter++;
+  }
 }
 
 // ============================================================================
@@ -53,32 +80,175 @@ export async function withAuth(
       }, { status: 401 });
     }
 
-    // Get user from database with profiles
-    const user = await prisma.user.findUnique({
+    // Get user from database OR create if doesn't exist
+    let user = await prisma.user.findUnique({
       where: { supabaseId: supabaseUser.id },
       include: {
         producerProfile: true,
-        studioProfile: true
+        studioProfile: true,
+        lyricistProfile: true,
+        artistProfile: true,
+        gearProfile: true
       }
     });
 
+    // If user doesn't exist in database, create them
     if (!user) {
-      return NextResponse.json<ApiResponse>({
-        success: false,
-        error: {
-          message: 'User not found',
-          code: 'USER_NOT_FOUND'
+      console.log(`🔧 Creating new user record for Supabase user: ${supabaseUser.id}`);
+      
+      try {
+        // Generate base username from email or metadata
+        const baseUsername = supabaseUser.user_metadata?.username 
+          || supabaseUser.email?.split('@')[0] 
+          || `user${supabaseUser.id.slice(0, 8)}`;
+
+        // Ensure username is unique
+        const uniqueUsername = await generateUniqueUsername(baseUsername);
+
+        // Determine primary role from metadata or default to OTHER
+        const primaryRole = (supabaseUser.user_metadata?.primaryRole || 
+                            supabaseUser.user_metadata?.role || 
+                            'OTHER') as UserRole;
+
+        // Create user with all required fields
+        user = await prisma.user.create({
+          data: {
+            supabaseId: supabaseUser.id,
+            email: supabaseUser.email!,
+            username: uniqueUsername,
+            fullName: supabaseUser.user_metadata?.full_name 
+              || supabaseUser.user_metadata?.fullName 
+              || supabaseUser.user_metadata?.display_name
+              || null,
+            avatar: supabaseUser.user_metadata?.avatar_url 
+              || supabaseUser.user_metadata?.avatar 
+              || null,
+            primaryRole: primaryRole,
+            bio: supabaseUser.user_metadata?.bio || null,
+            location: supabaseUser.user_metadata?.location || null,
+            website: supabaseUser.user_metadata?.website || null,
+            socialLinks: supabaseUser.user_metadata?.socialLinks || null,
+            membershipTier: 'FREE',
+            verified: false,
+          },
+          include: {
+            producerProfile: true,
+            studioProfile: true,
+            lyricistProfile: true,
+            artistProfile: true,
+            gearProfile: true
+          }
+        });
+        
+        console.log(`✅ Created user record: ${user.id} (${user.username}) - Role: ${user.primaryRole}`);
+
+        // Create role-specific profile based on primaryRole
+        if (user.primaryRole === 'PRODUCER' && !user.producerProfile) {
+          await prisma.producerProfile.create({
+            data: {
+              userId: user.id,
+              genres: supabaseUser.user_metadata?.genres || [],
+              specialties: supabaseUser.user_metadata?.specialties || [],
+              equipment: supabaseUser.user_metadata?.equipment || [],
+            }
+          });
+          console.log(`✅ Created producer profile for: ${user.username}`);
+        } else if (user.primaryRole === 'ARTIST' && !user.artistProfile) {
+          await prisma.artistProfile.create({
+            data: {
+              userId: user.id,
+              genres: supabaseUser.user_metadata?.genres || [],
+              skills: supabaseUser.user_metadata?.skills || [],
+            }
+          });
+          console.log(`✅ Created artist profile for: ${user.username}`);
+        } else if (user.primaryRole === 'STUDIO_OWNER' && !user.studioProfile) {
+          await prisma.studioOwnerProfile.create({
+            data: {
+              userId: user.id,
+              studioName: supabaseUser.user_metadata?.studioName 
+                || `${user.fullName || user.username}'s Studio`,
+              equipment: supabaseUser.user_metadata?.equipment || [],
+              capacity: supabaseUser.user_metadata?.capacity || null,
+              hourlyRate: supabaseUser.user_metadata?.hourlyRate || null,
+            }
+          });
+          console.log(`✅ Created studio owner profile for: ${user.username}`);
+        } else if (user.primaryRole === 'LYRICIST' && !user.lyricistProfile) {
+          await prisma.lyricistProfile.create({
+            data: {
+              userId: user.id,
+              genres: supabaseUser.user_metadata?.genres || [],
+              writingStyle: supabaseUser.user_metadata?.writingStyle || null,
+              collaborationStyle: supabaseUser.user_metadata?.collaborationStyle || null,
+            }
+          });
+          console.log(`✅ Created lyricist profile for: ${user.username}`);
+        } else if (user.primaryRole === 'GEAR_SALES' && !user.gearProfile) {
+          await prisma.gearSalesProfile.create({
+            data: {
+              userId: user.id,
+              businessName: supabaseUser.user_metadata?.businessName 
+                || `${user.fullName || user.username}'s Gear`,
+              specialties: supabaseUser.user_metadata?.specialties || [],
+              inventory: supabaseUser.user_metadata?.inventory || null,
+            }
+          });
+          console.log(`✅ Created gear sales profile for: ${user.username}`);
         }
-      }, { status: 404 });
+
+        // Refetch user with newly created profiles
+        const refetchedUser = await prisma.user.findUnique({
+          where: { id: user.id },
+          include: {
+            producerProfile: true,
+            studioProfile: true,
+            lyricistProfile: true,
+            artistProfile: true,
+            gearProfile: true
+          }
+        });
+
+        if (refetchedUser) {
+          user = refetchedUser;
+        }
+
+      } catch (createError: any) {
+        console.error('❌ Error creating user record:', createError);
+        
+        // Handle race condition - another request may have created the user
+        if (createError.code === 'P2002') {
+          console.log('⚠️  Race condition detected, fetching existing user...');
+          user = await prisma.user.findUnique({
+            where: { supabaseId: supabaseUser.id },
+            include: {
+              producerProfile: true,
+              studioProfile: true,
+              lyricistProfile: true,
+              artistProfile: true,
+              gearProfile: true
+            }
+          });
+        }
+        
+        if (!user) {
+          return NextResponse.json<ApiResponse>({
+            success: false,
+            error: {
+              message: 'Failed to create user record',
+              code: 'USER_CREATION_FAILED',
+              details: process.env.NODE_ENV === 'development' ? createError.message : undefined
+            }
+          }, { status: 500 });
+        }
+      }
     }
 
-    // 🆕 ENHANCED: Use getUserPermissions from permissions.ts for consistent permission logic
+    // Get user permissions using the centralized permission system
     const { getUserPermissions } = await import('@/lib/permissions');
     const allPermissions = getUserPermissions(user);
 
-    const permissions = {
-      ...allPermissions,
-    };
+    const permissions: UserPermissions = allPermissions;
 
     // Attach user and permissions to request
     const authenticatedRequest = request as AuthenticatedRequest;
@@ -90,7 +260,7 @@ export async function withAuth(
     return await handler(authenticatedRequest);
 
   } catch (error: any) {
-    console.error('Auth middleware error:', error);
+    console.error('❌ Auth middleware error:', error);
     
     return NextResponse.json<ApiResponse>({
       success: false,
@@ -194,10 +364,8 @@ export function withPermission(
 }
 
 // ============================================================================
-// ROLE-BASED AUTHORIZATION MIDDLEWARE (Legacy - Use withPermission instead)
+// ROLE-BASED AUTHORIZATION MIDDLEWARE
 // ============================================================================
-
-import { UserRole } from '@prisma/client';
 
 export function withRole(
   allowedRoles: UserRole[],
@@ -233,8 +401,6 @@ export function withRole(
 // ============================================================================
 // CLUB AUTHORIZATION MIDDLEWARE
 // ============================================================================
-
-import { ClubMemberRole } from '@prisma/client';
 
 export async function withClubAccess(
   request: AuthenticatedRequest,
@@ -288,92 +454,6 @@ export async function withClubAccess(
 }
 
 // ============================================================================
-// USAGE EXAMPLES
-// ============================================================================
-
-/*
-// Example 1: Basic authentication
-export async function GET(request: NextRequest) {
-  return withAuth(request, async (req) => {
-    const user = req.user!;
-    
-    return NextResponse.json({
-      success: true,
-      data: { message: `Hello ${user.username}` }
-    });
-  });
-}
-
-// Example 2: NEW - Permission-based authorization (RECOMMENDED)
-export async function POST(request: NextRequest) {
-  return withAuth(request, async (req) => {
-    return withPermission('createStudios', async (req) => {
-      const user = req.user!;
-      // Only users with studio creation permission can access
-      
-      return NextResponse.json({
-        success: true,
-        data: { message: 'Studio created' }
-      });
-    })(req);
-  });
-}
-
-// Example 3: Role-based authorization (LEGACY - still works)
-export async function POST(request: NextRequest) {
-  return withAuth(request, async (req) => {
-    return withRole(['PRODUCER'], async (req) => {
-      const user = req.user!;
-      // Only producers can upload beats
-      
-      return NextResponse.json({
-        success: true,
-        data: { message: 'Beat uploaded' }
-      });
-    })(req);
-  });
-}
-
-// Example 4: Club-based authorization
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { clubId: string } }
-) {
-  return withAuth(request, async (req) => {
-    return withClubAccess(req, params.clubId, ['OWNER', 'ADMIN'], async (req) => {
-      // Only club owners/admins can update club settings
-      
-      return NextResponse.json({
-        success: true,
-        data: { message: 'Club updated' }
-      });
-    });
-  });
-}
-
-// Example 5: Multiple permission checks
-export async function POST(request: NextRequest) {
-  return withAuth(request, async (req) => {
-    // Check permissions manually if you need complex logic
-    const { permissions } = req;
-    
-    if (!permissions?.canCreateStudios && !permissions?.canBookStudios) {
-      return NextResponse.json({
-        success: false,
-        error: { message: 'No studio access', code: 'NO_ACCESS' }
-      }, { status: 403 });
-    }
-    
-    // Proceed with custom logic
-    return NextResponse.json({
-      success: true,
-      data: { canCreate: permissions.canCreateStudios, canBook: permissions.canBookStudios }
-    });
-  });
-}
-*/
-
-// ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
 
@@ -418,9 +498,9 @@ export function hasPermission(
 }
 
 /**
- * Get all permissions for a user
+ * Get all permissions for a user from the request
  */
-export function getUserPermissions(request: AuthenticatedRequest) {
+export function getUserPermissions(request: AuthenticatedRequest): UserPermissions {
   return request.permissions || {
     canCreateStudios: false,
     canBookStudios: false,
@@ -513,7 +593,7 @@ export function getUserPermissions(request: AuthenticatedRequest) {
     canReportServices: true,
     canModerateServices: false,
     // Reputation & Dynamic Tiers
-    reputationTier: 'newbie' as const,
+    reputationTier: 'newbie',
     isVerifiedCreator: false,
     isProfessionalReviewer: false,
     isLabelPartner: false,
