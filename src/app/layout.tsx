@@ -33,7 +33,7 @@ export default function RootLayout({
       <body>
         <Suspense>
           <RefineKbarProvider>
-            <QueryProvider>
+     
               <ThemeProvider>
                 <ToastProvider>
                   <SidebarProvider>
@@ -155,7 +155,7 @@ export default function RootLayout({
                   </SidebarProvider>
                 </ToastProvider>
               </ThemeProvider>
-            </QueryProvider>
+     
           </RefineKbarProvider>
         </Suspense>
       </body>

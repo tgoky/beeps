@@ -1,11 +1,12 @@
 // NavigationMenu.tsx
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect } from "react";
 import { useTheme } from "../../providers/ThemeProvider";
 import { MenuGroup } from "./MenuGroup";
+import { MenuItem } from "./MenuItem";
 import { useUserBySupabaseId } from "@/hooks/api/useUserData";
-import { useUserCommunities } from "@/hooks/api/useUserCommunities";
+import { useClubs } from "@/hooks/api/useClubs";
 import {
   BuildingStorefrontIcon,
   MusicalNoteIcon,
@@ -14,7 +15,6 @@ import {
   UsersIcon,
   WrenchScrewdriverIcon,
   CogIcon,
-  UserIcon,
   ChartBarIcon,
 } from "@heroicons/react/24/outline";
 import { Mic2, Music2, Home, Briefcase, PenTool } from "lucide-react";
@@ -55,19 +55,17 @@ const getResourceMenuItems = (refineMenuItems: IMenuItem[], selectedKey: string)
     "collabs": <UsersIcon className="h-4 w-4" />,
     "equipment": <WrenchScrewdriverIcon className="h-4 w-4" />,
     "services": <CogIcon className="h-4 w-4" />,
-    "artists": <UserIcon className="h-4 w-4" />,
     "transactions": <ChartBarIcon className="h-4 w-4" />,
   };
 
   const resourceLabelMap: Record<string, string> = {
     "studios": "Recording Studios",
     "producers": "Producers", 
-    "beats": "Beats Marketplace",
+    "beats": "Beat Marketplace",
     "bookings": "Bookings",
     "collabs": "Collabs",
     "equipment": "Gear & Equipment",
     "services": "Music Services",
-    "artists": "Profile",
     "transactions": "Live Feeds",
   };
 
@@ -79,32 +77,45 @@ const getResourceMenuItems = (refineMenuItems: IMenuItem[], selectedKey: string)
   }));
 };
 
+// Restructured menu groups
 const menuGroups: MenuGroupConfig[] = [
   {
-    id: "beep", // Changed to match Menu.tsx
-    label: "beep!",
+    id: "create",
+    label: "Create",
     icon: <MusicalNoteIcon className="h-4 w-4" />,
     items: [
-      "studios",
-      "producers",
-      "beats",
-      "bookings",
-      "collabs",
-      "equipment",
-      "services",
-      "artists",
-      "transactions"
+      "studios",     // Recording Studios
+      "producers",   // Producers
+      "services",    // Music Services
     ],
   },
   {
-    id: "communities",
-    label: "Communities",
+    id: "collabs",
+    label: "Collaborate",
     icon: <UsersIcon className="h-4 w-4" />,
-    items: [], // Will be populated dynamically with user's joined communities
+    items: [
+      "collabs",      // Collabs
+      "transactions", // Live Feeds
+    ],
+  },
+  {
+    id: "gear",
+    label: "Gear",
+    icon: <WrenchScrewdriverIcon className="h-4 w-4" />,
+    items: [
+      "equipment",    // Gear & Equipment
+      "beats",        // Beat Marketplace
+    ],
+  },
+  {
+    id: "clubs",
+    label: "Clubs",
+    icon: <UsersIcon className="h-4 w-4" />,
+    items: [], // Will be populated dynamically with user's clubs
   },
 ];
 
-// Helper function to get icon for role
+// Helper function to get icon for role (for clubs)
 const getRoleIcon = (roleIcon: string): React.ReactElement => {
   const iconMap: Record<string, React.ReactElement> = {
     "ARTIST": <Mic2 className="h-4 w-4" />,
@@ -150,8 +161,8 @@ export const NavigationMenu = ({
     enabled: isClient && !!supabaseUser?.id,
   });
 
-  // Fetch user's communities with TanStack Query
-  const { data: communitiesData, isLoading: isLoadingCommunities } = useUserCommunities(
+  // Fetch user's clubs with TanStack Query
+  const { data: clubsData } = useClubs(
     userData?.id,
     {
       enabled: isClient && !!userData?.id,
@@ -160,19 +171,18 @@ export const NavigationMenu = ({
 
   const displayMenuItems = getResourceMenuItems(menuItems, selectedKey);
 
-  // Transform communities data to menu items
-  const userCommunities = useMemo(() => {
-    if (!communitiesData) return [];
+  // Transform clubs data to menu items
+  const userClubs = useMemo(() => {
+    if (!clubsData) return [];
 
-    // communitiesData is already the array (data extracted in hook)
-    return (communitiesData as any[])?.map((community: any) => ({
-      key: `community-${community.role.toLowerCase()}`,
-      name: `${community.role.toLowerCase()}-community`,
-      label: community.label,
-      route: community.route,
-      icon: getRoleIcon(community.icon),
+    return (clubsData as any[])?.map((club: any) => ({
+      key: `club-${club.id}`,
+      name: club.name.toLowerCase().replace(/\s+/g, '-'),
+      label: club.name,
+      route: `/club/${club.id}`,
+      icon: getRoleIcon(club.primaryRole || 'OTHER'),
     })) || [];
-  }, [communitiesData]);
+  }, [clubsData]);
 
   const getMenuItemsByGroup = (groupItems: string[] = []) => {
     return displayMenuItems.filter((item) =>
@@ -180,18 +190,49 @@ export const NavigationMenu = ({
     );
   };
 
+  // Inject Manrope font
+  useEffect(() => {
+    const link = document.createElement('link');
+    link.href = 'https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap';
+    link.rel = 'stylesheet';
+    document.head.appendChild(link);
+    return () => {
+      document.head.removeChild(link);
+    };
+  }, []);
+
+  // Find the Bookings item (should be first, outside any group)
+  const bookingsItem = displayMenuItems.find(item => item.name === "bookings");
+
   return (
-    <nav data-tour="navigation-menu" className="h-full">
-      <div className={`px-4 py-4 space-y-6 ${theme === "dark" ? "bg-black" : "bg-white"}`}>
+    <nav data-tour="navigation-menu" className="flex-1 overflow-y-auto py-4">
+      <div className={`px-3 space-y-4 ${
+        theme === "dark" ? "bg-black" : "bg-white"
+      }`} style={{ fontFamily: "'Manrope', sans-serif" }}>
+        
+        {/* Bookings - Always visible first, outside any group */}
+        {bookingsItem && (
+          <div className="mb-2">
+            <MenuItem
+              key={bookingsItem.key}
+              item={bookingsItem}
+              selected={selectedKey === bookingsItem.key}
+              collapsed={collapsed}
+              pathname=""
+            />
+          </div>
+        )}
+
+        {/* Menu Groups */}
         {isClient &&
           menuGroups.map((group) => {
-            // For Communities group, use custom items
-            const groupItems = group.id === "communities"
-              ? userCommunities
+            // For Clubs group, use custom items from user's clubs
+            const groupItems = group.id === "clubs"
+              ? userClubs
               : getMenuItemsByGroup(group.items || []);
 
-            // Don't show empty groups (except Communities which we always show)
-            if (groupItems.length === 0 && group.id !== "communities") return null;
+            // Don't show empty groups
+            if (groupItems.length === 0) return null;
 
             return (
               <MenuGroup

@@ -1,4 +1,4 @@
-// components/menu/Menu.tsx
+// Menu.tsx (main container)
 "use client";
 
 import React from "react";
@@ -17,15 +17,34 @@ import { createBrowserClient } from '@supabase/ssr';
 import { useUserBySupabaseId } from "@/hooks/api/useUserData";
 import { useCreateClub } from "@/hooks/api/useClubs";
 
-// Simple flat mapping of menu items to their groups
+// --- PREMIUM THEME CONSTANTS ---
+const DARK_BG = '#000000';
+const LIGHT_BG = '#ffffff';
+const DARK_BORDER = '#27272a'; // Zinc-800
+const LIGHT_BORDER = '#e4e4e7'; // Zinc-200
+
+// Updated group mapping for menu items
 const getGroupForMenuItem = (itemKey: string): string | null => {
-  if (itemKey.startsWith("community-")) {
-    return "communities";
+  // Check if it's a club item
+  if (itemKey.startsWith("club-")) {
+    return "clubs";
   }
-  return "beep"; // Changed to match the actual group ID
+  
+  // Map menu items to their groups
+  if (["studios", "producers", "services"].includes(itemKey)) {
+    return "create";
+  }
+  if (["collabs", "transactions"].includes(itemKey)) {
+    return "collabs";
+  }
+  if (["equipment", "beats"].includes(itemKey)) {
+    return "gear";
+  }
+  
+  return null;
 };
 
-// Windows 98-style Logout Dialog Component
+// Logout Dialog Component
 interface LogoutDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -37,39 +56,65 @@ const LogoutDialog: React.FC<LogoutDialogProps> = ({
   onClose,
   onConfirm,
 }) => {
+  const { theme } = useTheme();
+  
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-      <div className="border-2 border-gray-400 w-80">
-        <div className="bg-blue-700 text-white px-2 py-1 flex justify-between items-center">
-          <div className="flex items-center">
-            <Power className="w-4 h-4 mr-2" />
-            <span className="font-bold">Log Off</span>
+    <div className="fixed inset-0 flex items-center justify-center bg-black/80 z-50 backdrop-blur-sm">
+      <div className={`border w-80 rounded-lg shadow-2xl overflow-hidden ${
+        theme === "dark" 
+          ? "bg-zinc-950 border-zinc-800" 
+          : "bg-white border-zinc-200"
+      }`} style={{ fontFamily: "'Manrope', sans-serif" }}>
+        <div className={`px-3 py-2 flex justify-between items-center border-b ${
+          theme === "dark" ? "border-zinc-800" : "border-zinc-200"
+        }`}>
+          <div className="flex items-center gap-2">
+            <Power className={`w-4 h-4 ${
+              theme === "dark" ? "text-emerald-500" : "text-emerald-600"
+            }`} />
+            <span className={`font-bold text-xs tracking-widest ${
+              theme === "dark" ? "text-zinc-600" : "text-zinc-500"
+            }`}>SYSTEM LOGOFF</span>
           </div>
-          <div className="flex space-x-1">
-            <div
-              className="w-5 h-5 border-2 border-gray-300 bg-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-400"
-              onClick={onClose}
-            >
-              <span className="text-xs">×</span>
-            </div>
-          </div>
+          <button 
+            onClick={onClose} 
+            className={`transition-colors ${
+              theme === "dark" ? "text-zinc-600 hover:text-zinc-400" : "text-zinc-500 hover:text-zinc-900"
+            }`}
+          >
+            ×
+          </button>
         </div>
-        <div className="p-4 bg-gray-200">
-          <p className="mb-4">Are you sure you want to log off?</p>
-          <div className="flex justify-end space-x-2">
+        <div className={`p-6 ${
+          theme === "dark" ? "bg-zinc-950" : "bg-white"
+        }`}>
+          <p className={`mb-6 text-sm ${
+            theme === "dark" ? "text-zinc-400" : "text-zinc-600"
+          }`}>
+            Terminate session and return to login?
+          </p>
+          <div className="flex justify-end space-x-3">
             <button
-              className="px-4 py-1 bg-gray-300 border-2 border-gray-400 font-bold hover:bg-gray-400 active:border-gray-500 active:bg-gray-500"
+              className={`px-4 py-1.5 text-xs font-bold transition-colors ${
+                theme === "dark" 
+                  ? "text-zinc-500 hover:text-zinc-400" 
+                  : "text-zinc-600 hover:text-zinc-900"
+              }`}
               onClick={onClose}
             >
-              No
+              CANCEL
             </button>
             <button
-              className="px-4 py-1 bg-blue-700 text-white border-2 border-gray-400 font-bold hover:bg-blue-800 active:border-gray-500 active:bg-blue-900"
+              className={`px-4 py-1.5 text-xs font-bold rounded transition-colors ${
+                theme === "dark"
+                  ? "bg-emerald-500 text-black hover:bg-emerald-400"
+                  : "bg-emerald-600 text-white hover:bg-emerald-700"
+              }`}
               onClick={onConfirm}
             >
-              Yes
+              CONFIRM
             </button>
           </div>
         </div>
@@ -84,7 +129,7 @@ export const Menu: React.FC = () => {
   const router = useRouter();
   const [isClient, setIsClient] = useState<boolean>(false);
   const { collapsed, setCollapsed } = useSidebar();
-  const [expandedGroups, setExpandedGroups] = useState<string[]>(["beep"]); // Changed to "beep"
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(["create", "clubs"]); // Create and Clubs open by default
   const userHasInteractedRef = useRef<boolean>(false);
   const { theme } = useTheme();
   const [showLogoutDialog, setShowLogoutDialog] = useState<boolean>(false);
@@ -101,6 +146,17 @@ export const Menu: React.FC = () => {
     if (!selectedKey) return null;
     return getGroupForMenuItem(selectedKey);
   }, [selectedKey]);
+
+  // Inject Manrope font
+  useEffect(() => {
+    const link = document.createElement('link');
+    link.href = 'https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap';
+    link.rel = 'stylesheet';
+    document.head.appendChild(link);
+    return () => {
+      document.head.removeChild(link);
+    };
+  }, []);
 
   useEffect(() => {
     setIsClient(true);
@@ -121,10 +177,10 @@ export const Menu: React.FC = () => {
   useEffect(() => {
     if (!userHasInteractedRef.current && selectedItemGroup) {
       if (!expandedGroups.includes(selectedItemGroup)) {
-        setExpandedGroups([selectedItemGroup]);
+        setExpandedGroups(prev => [...prev, selectedItemGroup]);
       }
     }
-  }, [selectedItemGroup, expandedGroups]);
+  }, [selectedItemGroup]);
 
   const handleLogout = (): void => {
     setShowLogoutDialog(true);
@@ -137,9 +193,6 @@ export const Menu: React.FC = () => {
       return;
     }
 
-    console.log('Creating club:', clubData);
-
-    // Use TanStack Query mutation with optimistic updates
     createClubMutation.mutate(
       {
         name: clubData.name,
@@ -153,7 +206,6 @@ export const Menu: React.FC = () => {
           console.log('Club created successfully:', result);
           setShowCreateClubModal(false);
 
-          // Redirect to the community page for the granted role
           const communityRole = (result.grantedRole || clubData.grantsRole || 'producer').toLowerCase();
           router.push(`/community/${communityRole}`);
         },
@@ -165,12 +217,10 @@ export const Menu: React.FC = () => {
     );
   };
 
-
   const toggleGroup = (groupId: string): void => {
     userHasInteractedRef.current = true;
     setExpandedGroups((prev) => {
       if (prev.includes(groupId)) {
-        // Allow collapsing even if a group item is selected
         return prev.filter(id => id !== groupId);
       } else {
         return [...prev, groupId];
@@ -182,25 +232,29 @@ export const Menu: React.FC = () => {
     <div
       className={`
         h-screen sticky top-0 z-10
-        ${theme === "dark" ? "bg-black border-gray-700" : "bg-white border-gray-200"}
         border-r flex flex-col transition-all duration-300
         ${collapsed ? "w-16" : "w-64"}
         relative flex-shrink-0
       `}
+      style={{ 
+        fontFamily: "'Manrope', sans-serif",
+        backgroundColor: theme === "dark" ? DARK_BG : LIGHT_BG,
+        borderColor: theme === "dark" ? DARK_BORDER : LIGHT_BORDER
+      }}
     >
-      {/* Top Section - Fixed height content */}
+      {/* Top Section */}
       <div className="flex-shrink-0">
         <WorkspaceHeader
           collapsed={collapsed} 
-         onCreateClub={() => setShowCreateClubModal(true)}  
-        onSwitchClub={() => {/* switch logic */}}
+          onCreateClub={() => setShowCreateClubModal(true)}  
+          onSwitchClub={() => {/* switch logic */}}
         />
 
-      <CreateClubModal
-  isOpen={showCreateClubModal}
-  onClose={() => setShowCreateClubModal(false)}
-  onCreateClub={handleCreateClub}
-/>
+        <CreateClubModal
+          isOpen={showCreateClubModal}
+          onClose={() => setShowCreateClubModal(false)}
+          onCreateClub={handleCreateClub}
+        />
 
         <Controls collapsed={collapsed} setCollapsed={setCollapsed} />
       </div>
@@ -217,7 +271,7 @@ export const Menu: React.FC = () => {
         />
       </div>
 
-      {/* Bottom Section - User Section (Fixed at bottom) */}
+      {/* Bottom Section - User Section */}
       <div className="flex-shrink-0">
         <UserSection collapsed={collapsed} handleLogout={handleLogout} />
       </div>

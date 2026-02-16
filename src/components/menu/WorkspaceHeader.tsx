@@ -2,10 +2,11 @@
 "use client";
 
 import { useTheme } from "../../providers/ThemeProvider";
-import { Users, Plus, Music, Building2, Mic2, Music2, Guitar, Headphones, User as UserIcon } from "lucide-react";
+import { Users, Plus, Music, Building2, Mic2, Music2, Guitar, Headphones, User as UserIcon, ChevronRight } from "lucide-react";
 import { useGetIdentity } from "@refinedev/core";
 import { useUserBySupabaseId } from "@/hooks/api/useUserData";
 import { useClubs } from "@/hooks/api/useClubs";
+import { useEffect } from "react";
 
 interface WorkspaceHeaderProps {
   collapsed: boolean;
@@ -76,22 +77,36 @@ export const WorkspaceHeader = ({
   const roleLabel = roleLabels[currentUser.type] || "Music Enthusiast";
   const roleColor = roleColors[currentUser.type] || "bg-gray-500";
 
+  // Inject Manrope font
+  useEffect(() => {
+    const link = document.createElement('link');
+    link.href = 'https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap';
+    link.rel = 'stylesheet';
+    document.head.appendChild(link);
+    return () => {
+      document.head.removeChild(link);
+    };
+  }, []);
+
   return (
     <div
-      className={`border-b backdrop-blur-sm ${
+      className={`border-b transition-all duration-200 ${
         theme === "dark" 
-          ? "bg-black border-gray-800/50" 
-          : "bg-white/40 border-gray-200/60"
+          ? "bg-black border-zinc-800" 
+          : "bg-white border-zinc-200"
       }`}
+      style={{ fontFamily: "'Manrope', sans-serif" }}
     >
       {!collapsed ? (
-        <div className="space-y-2.5 p-3">
+        <div className="space-y-3 p-3">
           {/* Main Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Music className={`w-4 h-4 ${theme === "dark" ? "text-purple-400" : "text-purple-600"}`} />
-              <span className={`text-[11px] font-medium tracking-[0.15em] ${
-                theme === "dark" ? "text-gray-300" : "text-gray-900"
+              <Music className={`w-4 h-4 ${
+                theme === "dark" ? "text-zinc-600" : "text-zinc-400"
+              }`} />
+              <span className={`text-[10px] font-bold tracking-[0.2em] uppercase ${
+                theme === "dark" ? "text-zinc-600" : "text-zinc-400"
               }`}>
                 make a beep!
               </span>
@@ -105,8 +120,8 @@ export const WorkspaceHeader = ({
               className={`
                 p-1.5 rounded-lg transition-all duration-200
                 ${theme === "dark" 
-                  ? "bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20" 
-                  : "bg-purple-50 hover:bg-purple-100 text-purple-600 border border-purple-200/50"
+                  ? "bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-300 border border-zinc-800" 
+                  : "bg-zinc-100 hover:bg-zinc-200 text-zinc-600 hover:text-zinc-900 border border-zinc-200"
                 }
                 active:scale-95
               `}
@@ -120,10 +135,10 @@ export const WorkspaceHeader = ({
           <div 
             onClick={onSwitchClub}
             className={`
-              p-2.5 rounded-lg border cursor-pointer transition-all duration-200
+              p-2.5 rounded-lg border cursor-pointer transition-all duration-200 group
               ${theme === "dark" 
-                ? "bg-gray-900/40 border-gray-800/60 hover:border-gray-700/80 hover:bg-gray-900/60" 
-                : "bg-gray-50/50 border-gray-200/60 hover:border-gray-300/80 hover:bg-gray-100/50"
+                ? "bg-black border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900" 
+                : "bg-white border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50"
               }
               active:scale-[0.98]
             `}
@@ -131,7 +146,7 @@ export const WorkspaceHeader = ({
             <div className="flex items-center gap-2.5">
               {/* User Avatar/Icon */}
               {userData?.avatar ? (
-                <div className="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0">
+                <div className="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 ring-1 ring-white/10">
                   <img 
                     src={userData.avatar} 
                     alt={currentUser.name}
@@ -139,7 +154,7 @@ export const WorkspaceHeader = ({
                   />
                 </div>
               ) : (
-                <div className={`w-9 h-9 rounded-lg ${roleColor} flex items-center justify-center text-white text-sm flex-shrink-0`}>
+                <div className={`w-9 h-9 rounded-lg ${roleColor} flex items-center justify-center text-white text-sm flex-shrink-0 ring-1 ring-white/10`}>
                   {currentUser.icon}
                 </div>
               )}
@@ -147,16 +162,16 @@ export const WorkspaceHeader = ({
               {/* User Info */}
               <div className="flex-1 min-w-0">
                 <h3 className={`
-                  font-medium text-[13px] truncate
-                  ${theme === "dark" ? "text-gray-200" : "text-gray-900"}
+                  font-semibold text-[13px] truncate
+                  ${theme === "dark" ? "text-zinc-200" : "text-zinc-900"}
                 `}>
                   {currentUser.fullName}
                 </h3>
                 <div className="flex items-center gap-1.5 mt-0.5">
-                  <RoleIcon className={`w-3 h-3 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`} />
+                  <RoleIcon className={`w-3 h-3 ${theme === "dark" ? "text-zinc-600" : "text-zinc-400"}`} />
                   <span className={`
-                    text-[11px]
-                    ${theme === "dark" ? "text-gray-500" : "text-gray-600"}
+                    text-[11px] font-medium
+                    ${theme === "dark" ? "text-zinc-500" : "text-zinc-600"}
                   `}>
                     {roleLabel}
                   </span>
@@ -165,13 +180,16 @@ export const WorkspaceHeader = ({
 
               {/* Clubs Count */}
               <div className={`
-                flex items-center gap-1 px-2 py-1 rounded-md
-                ${theme === "dark" ? "bg-gray-800/50" : "bg-gray-100"}
+                flex items-center gap-1 px-2 py-1 rounded-md transition-all duration-200
+                ${theme === "dark" 
+                  ? "bg-zinc-900 group-hover:bg-zinc-800" 
+                  : "bg-zinc-100 group-hover:bg-zinc-200"
+                }
               `}>
-                <Users className={`w-3 h-3 ${theme === "dark" ? "text-gray-500" : "text-gray-400"}`} />
+                <Users className={`w-3 h-3 ${theme === "dark" ? "text-zinc-600" : "text-zinc-400"}`} />
                 <span className={`
-                  text-[11px] font-medium
-                  ${theme === "dark" ? "text-gray-400" : "text-gray-600"}
+                  text-[11px] font-semibold
+                  ${theme === "dark" ? "text-zinc-400" : "text-zinc-600"}
                 `}>
                   {clubsCount}
                 </span>
@@ -181,25 +199,27 @@ export const WorkspaceHeader = ({
 
           {/* Quick Stats */}
           <div className={`
-            flex items-center justify-between text-[10px] px-1
-            ${theme === "dark" ? "text-gray-600" : "text-gray-500"}
+            flex items-center justify-between text-[10px] font-medium px-1
+            ${theme === "dark" ? "text-zinc-600" : "text-zinc-500"}
           `}>
             <span>{clubsCount} {clubsCount === 1 ? 'club' : 'clubs'}</span>
             <span>•</span>
             <span className="flex items-center gap-1">
-              <span className={`w-1.5 h-1.5 rounded-full ${theme === "dark" ? "bg-green-500" : "bg-green-600"}`} />
-              Active
+              <span className={`w-1.5 h-1.5 rounded-full ${
+                theme === "dark" ? "bg-emerald-500" : "bg-emerald-600"
+              }`} />
+              <span className={theme === "dark" ? "text-zinc-500" : "text-zinc-600"}>Active</span>
             </span>
           </div>
         </div>
       ) : (
         /* Collapsed State */
-        <div className="space-y-2.5 p-2">
+        <div className="space-y-3 p-2">
           {/* Logo */}
           <div className="flex justify-center">
             <div className={`
               w-9 h-9 rounded-lg flex items-center justify-center text-white text-sm
-              bg-gradient-to-br from-purple-500 to-pink-600
+              bg-gradient-to-br from-purple-500 to-pink-600 ring-1 ring-white/10
             `}>
               🎵
             </div>
@@ -211,14 +231,14 @@ export const WorkspaceHeader = ({
             className={`
               flex justify-center cursor-pointer p-1.5 rounded-lg transition-all duration-200
               ${theme === "dark" 
-                ? "hover:bg-gray-800/60" 
-                : "hover:bg-gray-100/80"
+                ? "hover:bg-zinc-900" 
+                : "hover:bg-zinc-100"
               }
             `}
             title={`${currentUser.fullName} - ${roleLabel}`}
           >
             {userData?.avatar ? (
-              <div className="w-7 h-7 rounded-md overflow-hidden">
+              <div className="w-7 h-7 rounded-md overflow-hidden ring-1 ring-white/10">
                 <img 
                   src={userData.avatar} 
                   alt={currentUser.name}
@@ -226,7 +246,7 @@ export const WorkspaceHeader = ({
                 />
               </div>
             ) : (
-              <div className={`w-7 h-7 rounded-md ${roleColor} flex items-center justify-center text-white text-xs`}>
+              <div className={`w-7 h-7 rounded-md ${roleColor} flex items-center justify-center text-white text-xs ring-1 ring-white/10`}>
                 {currentUser.icon}
               </div>
             )}
@@ -239,8 +259,8 @@ export const WorkspaceHeader = ({
               className={`
                 p-1.5 rounded-lg transition-all duration-200
                 ${theme === "dark" 
-                  ? "bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20" 
-                  : "bg-purple-50 hover:bg-purple-100 text-purple-600 border border-purple-200/50"
+                  ? "bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-300 border border-zinc-800" 
+                  : "bg-zinc-100 hover:bg-zinc-200 text-zinc-600 hover:text-zinc-900 border border-zinc-200"
                 }
                 active:scale-95
               `}

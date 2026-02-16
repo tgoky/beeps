@@ -128,1058 +128,414 @@ export default function StudioList() {
   };
 
   // Enhanced Map View with Real Map Background
- // Enhanced Map View with Flat Building Icons, Better Landmarks, and Premium Hover Effects
-const MapView = () => {
-  const mapCenter = getMapCenter();
-  
-  // Calculate bounds for all studios
-  const bounds = {
-    minLat: Math.min(...filteredStudios.map(s => s.lat), userLocation?.lat || Infinity),
-    maxLat: Math.max(...filteredStudios.map(s => s.lat), userLocation?.lat || -Infinity),
-    minLon: Math.min(...filteredStudios.map(s => s.lon), userLocation?.lon || Infinity),
-    maxLon: Math.max(...filteredStudios.map(s => s.lon), userLocation?.lon || -Infinity),
-  };
+ 
 
-  const latRange = bounds.maxLat - bounds.minLat || 1;
-  const lonRange = bounds.maxLon - bounds.minLon || 1;
+  // Enhanced Map View with "GTA/Satellite Navigation" Aesthetic
+  const MapView = () => {
+    // --- State for Map Interaction ---
+    const [zoom, setZoom] = useState(1.2);
+    const [offset, setOffset] = useState({ x: 0, y: 0 });
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+    const [tiltMode, setTiltMode] = useState(false); // Toggle between Top-down and 3D Tilt
 
-  // Add padding to bounds (10%)
-  const padding = 0.15;
-  const paddedBounds = {
-    minLat: bounds.minLat - latRange * padding,
-    maxLat: bounds.maxLat + latRange * padding,
-    minLon: bounds.minLon - lonRange * padding,
-    maxLon: bounds.maxLon + lonRange * padding,
-  };
+    // --- Interaction Handlers ---
+    const handleWheel = (e: React.WheelEvent) => {
+      e.stopPropagation();
+      // Zoom limits: 0.8x to 4x
+      const newZoom = Math.min(Math.max(zoom - e.deltaY * 0.001, 0.8), 4);
+      setZoom(newZoom);
+    };
 
-  const paddedLatRange = paddedBounds.maxLat - paddedBounds.minLat;
-  const paddedLonRange = paddedBounds.maxLon - paddedBounds.minLon;
+    const handleMouseDown = (e: React.MouseEvent) => {
+      setIsDragging(true);
+      setDragStart({ x: e.clientX - offset.x, y: e.clientY - offset.y });
+    };
 
-  // Convert lat/lon to pixel coordinates
-  const getPosition = (lat: number, lon: number) => {
-    const x = ((lon - paddedBounds.minLon) / paddedLonRange) * 100;
-    const y = ((paddedBounds.maxLat - lat) / paddedLatRange) * 100;
-    return { x: `${x}%`, y: `${y}%` };
-  };
+    const handleMouseMove = (e: React.MouseEvent) => {
+      if (!isDragging) return;
+      e.preventDefault();
+      setOffset({
+        x: e.clientX - dragStart.x,
+        y: e.clientY - dragStart.y
+      });
+    };
 
-  return (
-    <div className={`relative h-[700px] rounded-xl overflow-hidden border shadow-2xl ${
-      theme === "dark" 
-        ? "border-zinc-800/50 bg-[#0a0a0a]" 
-        : "border-gray-300 bg-[#f5f5f0]"
-    }`}>
-      {/* Map Background Layer */}
-      <div className="absolute inset-0">
-        {/* Base map with texture */}
-        <div className="absolute inset-0">
-          
-          {/* Subtle texture overlay */}
-          <div className="absolute inset-0 opacity-[0.02]" style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-          }} />
+    const handleMouseUp = () => setIsDragging(false);
 
-          {/* Grid Streets Pattern - THINNER for dark theme */}
-          <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
+    // --- Projection Logic ---
+    // Since we are using a drawn SVG map, we map coordinates to the visual layout.
+    // In a real app with Mapbox/Leaflet, this is handled by the library.
+    const getPosition = (lat: number, lon: number) => {
+      // Deterministic pseudo-random placement based on lat/lon to keep them stable
+      // This spreads markers nicely across the "Land" part of our drawn map
+      const seedX = (Math.abs(lon) * 1000) % 100;
+      const seedY = (Math.abs(lat) * 1000) % 100;
+      
+      // Map to the "City" area (20-90% X, 10-80% Y)
+      return { 
+        x: 20 + (seedX * 0.7), 
+        y: 10 + (seedY * 0.7) 
+      };
+    };
+
+    return (
+      <div 
+        className={`relative h-[750px] w-full rounded-xl overflow-hidden border-4 shadow-2xl transition-colors duration-300 group select-none ${
+          theme === "dark" 
+            ? "border-zinc-800 bg-[#0f172a]" // Deep Ocean Blue (Night)
+            : "border-white bg-[#a5c5d9]" // Classic GTA Water Blue (Day)
+        }`}
+        onWheel={handleWheel}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+      >
+        {/* --- 1. The Interactive Map Surface --- */}
+        <div 
+          className="absolute inset-0 w-full h-full origin-center will-change-transform"
+          style={{
+            transform: `
+              scale(${zoom}) 
+              translate(${offset.x / zoom}px, ${offset.y / zoom}px)
+              ${tiltMode ? 'perspective(1000px) rotateX(35deg)' : ''}
+            `,
+            transition: isDragging ? 'none' : 'transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+            cursor: isDragging ? 'grabbing' : 'grab',
+          }}
+        >
+          {/* A. Water Texture (Subtle Noise) */}
+          <div className="absolute inset-[-100%] w-[300%] h-[300%] opacity-[0.04] pointer-events-none" 
+               style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }} 
+          />
+
+          {/* B. Land Mass Layer (Coastal City Shape) */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
             <defs>
-              {/* Softer road glow for dark theme */}
-              <filter id="road-glow">
-                <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
-                <feMerge>
-                  <feMergeNode in="coloredBlur"/>
-                  <feMergeNode in="SourceGraphic"/>
-                </feMerge>
+              <filter id="land-shadow" x="-20%" y="-20%" width="140%" height="140%">
+                <feDropShadow dx="0" dy="1" stdDeviation="0.5" floodOpacity="0.2" />
               </filter>
             </defs>
 
-            {/* Major Highways - Thinner for dark theme */}
-            <g opacity={theme === "dark" ? "0.25" : "0.35"} filter="url(#road-glow)">
-              {/* Horizontal highways */}
-              <line x1="0" y1="15%" x2="100%" y2="15%" 
-                stroke="#fbbf24" 
-                strokeWidth={theme === "dark" ? "2.5" : "5"} 
-                strokeLinecap="round"/>
-              <line x1="0" y1="35%" x2="100%" y2="37%" 
-                stroke="#fbbf24" 
-                strokeWidth={theme === "dark" ? "2.5" : "5"} 
-                strokeLinecap="round"/>
-              <line x1="0" y1="55%" x2="100%" y2="53%" 
-                stroke="#fbbf24" 
-                strokeWidth={theme === "dark" ? "2.5" : "5"} 
-                strokeLinecap="round"/>
-              <line x1="0" y1="75%" x2="100%" y2="75%" 
-                stroke="#fbbf24" 
-                strokeWidth={theme === "dark" ? "2.5" : "5"} 
-                strokeLinecap="round"/>
-              <line x1="0" y1="85%" x2="100%" y2="87%" 
-                stroke="#fbbf24" 
-                strokeWidth={theme === "dark" ? "2.5" : "5"} 
-                strokeLinecap="round"/>
-              
-              {/* Vertical highways */}
-              <line x1="12%" y1="0" x2="12%" y2="100%" 
-                stroke="#fbbf24" 
-                strokeWidth={theme === "dark" ? "2.5" : "5"} 
-                strokeLinecap="round"/>
-              <line x1="28%" y1="0" x2="30%" y2="100%" 
-                stroke="#fbbf24" 
-                strokeWidth={theme === "dark" ? "2.5" : "5"} 
-                strokeLinecap="round"/>
-              <line x1="50%" y1="0" x2="50%" y2="100%" 
-                stroke="#fbbf24" 
-                strokeWidth={theme === "dark" ? "2.5" : "5"} 
-                strokeLinecap="round"/>
-              <line x1="72%" y1="0" x2="70%" y2="100%" 
-                stroke="#fbbf24" 
-                strokeWidth={theme === "dark" ? "2.5" : "5"} 
-                strokeLinecap="round"/>
-              <line x1="88%" y1="0" x2="88%" y2="100%" 
-                stroke="#fbbf24" 
-                strokeWidth={theme === "dark" ? "2.5" : "5"} 
-                strokeLinecap="round"/>
-            </g>
+            {/* Mainland */}
+            <path 
+              d="M 15 0 L 100 0 L 100 100 L 30 100 C 30 100 25 80 40 70 C 55 60 50 40 30 35 C 10 30 5 15 15 0 Z" 
+              fill={theme === "dark" ? "#18181b" : "#e5e7eb"} // Zinc-900 vs Gray-200
+              filter="url(#land-shadow)"
+            />
+            
+            {/* Greenery / Hills (Top Right) */}
+            <path 
+              d="M 60 0 L 100 0 L 100 40 Q 80 50 60 30 Q 50 15 60 0 Z" 
+              fill={theme === "dark" ? "#14532d" : "#c4d7a8"} // Green-900 vs Pale Green
+              opacity="0.8"
+            />
+            
+            {/* City Park (Central) */}
+            <path 
+              d="M 60 55 L 75 55 L 75 65 L 60 65 Z" 
+              fill={theme === "dark" ? "#14532d" : "#c4d7a8"}
+              opacity="0.8"
+            />
 
-            {/* Secondary Roads - Thinner */}
-            <g opacity={theme === "dark" ? "0.18" : "0.25"}>
-              {/* Horizontal roads */}
-              {[8, 22, 28, 42, 48, 62, 68, 82, 92].map((y, i) => (
-                <line key={`h-${i}`} x1="0" y1={`${y}%`} x2="100%" y2={`${y + (i % 2)}%`} 
-                  stroke="#f97316" 
-                  strokeWidth={theme === "dark" ? "1.5" : "3"} 
-                  strokeLinecap="round"/>
+            {/* Industrial District (Bottom Right - darker) */}
+            <path 
+              d="M 70 80 L 100 80 L 100 100 L 70 100 Z" 
+              fill={theme === "dark" ? "#27272a" : "#d1d5db"} 
+            />
+
+            {/* Beach (Along the coast curve) */}
+            <path 
+              d="M 30 100 C 30 100 25 80 40 70 C 55 60 50 40 30 35 C 10 30 5 15 15 0 L 12 0 C 2 15 8 32 28 38 C 48 44 52 62 38 72 C 22 82 28 100 28 100 Z" 
+              fill={theme === "dark" ? "#451a03" : "#fde047"} // Dark Brown vs Yellow Sand
+              opacity="0.6"
+            />
+          </svg>
+
+          {/* C. Roads Infrastructure */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
+            {/* 1. Local Streets (Grid) */}
+            <g stroke={theme === "dark" ? "#3f3f46" : "#ffffff"} strokeWidth="0.8">
+              {/* Vertical Streets */}
+              {[45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95].map(x => (
+                <line key={`v-${x}`} x1={x} y1="0" x2={x} y2="100" />
               ))}
-              
-              {/* Vertical roads */}
-              {[6, 18, 24, 36, 42, 56, 64, 76, 82, 94].map((x, i) => (
-                <line key={`v-${i}`} x1={`${x}%`} y1="0" x2={`${x + (i % 2)}%`} y2="100%" 
-                  stroke="#f97316" 
-                  strokeWidth={theme === "dark" ? "1.5" : "3"} 
-                  strokeLinecap="round"/>
+              {/* Horizontal Streets */}
+              {[10, 20, 30, 40, 50, 60, 70, 80, 90].map(y => (
+                <line key={`h-${y}`} x1="20" y1={y} x2="100" y2={y} />
               ))}
             </g>
 
-            {/* Minor Streets - Much thinner */}
-            <g opacity={theme === "dark" ? "0.08" : "0.15"}>
-              {[4, 10, 16, 20, 26, 32, 38, 44, 50, 56, 60, 66, 70, 78, 84, 90, 96].map((y, i) => (
-                <line key={`minor-h-${i}`} x1="0" y1={`${y}%`} x2="100%" y2={`${y}%`} 
-                  stroke={theme === "dark" ? "#3f3f46" : "#a8a29e"} 
-                  strokeWidth={theme === "dark" ? "0.5" : "1.5"} 
-                  strokeLinecap="round"/>
-              ))}
-              
-              {[3, 9, 15, 21, 27, 33, 39, 45, 51, 57, 63, 69, 75, 81, 87, 93, 99].map((x, i) => (
-                <line key={`minor-v-${i}`} x1={`${x}%`} y1="0" x2={`${x}%`} y2="100%" 
-                  stroke={theme === "dark" ? "#3f3f46" : "#a8a29e"} 
-                  strokeWidth={theme === "dark" ? "0.5" : "1.5"} 
-                  strokeLinecap="round"/>
-              ))}
-            </g>
+            {/* 2. Main Arteries (Thicker White/Grey) */}
+            <path 
+              d="M 40 0 L 40 100 M 0 45 L 100 45" 
+              stroke={theme === "dark" ? "#52525b" : "#ffffff"} 
+              strokeWidth="2"
+            />
 
-            {/* Curved Roads */}
-            <g opacity={theme === "dark" ? "0.15" : "0.2"}>
-              <path d="M 0 25 Q 25 15, 50 25 T 100 25" 
-                stroke="#ea580c" 
-                strokeWidth={theme === "dark" ? "1.5" : "3"} 
-                fill="none" 
-                strokeLinecap="round"/>
-              <path d="M 0 65 Q 25 75, 50 65 T 100 65" 
-                stroke="#ea580c" 
-                strokeWidth={theme === "dark" ? "1.5" : "3"} 
-                fill="none" 
-                strokeLinecap="round"/>
-              <path d="M 25 0 Q 15 25, 25 50 T 25 100" 
-                stroke="#ea580c" 
-                strokeWidth={theme === "dark" ? "1.5" : "3"} 
-                fill="none" 
-                strokeLinecap="round"/>
-              <path d="M 75 0 Q 85 25, 75 50 T 75 100" 
-                stroke="#ea580c" 
-                strokeWidth={theme === "dark" ? "1.5" : "3"} 
-                fill="none" 
-                strokeLinecap="round"/>
-            </g>
+            {/* 3. Highways (Yellow/Orange with Outline) */}
+            <g fill="none">
+              {/* Highway Outline (Black/Dark) */}
+              <path 
+                d="M 20 0 Q 30 50 80 60 L 100 65" 
+                stroke={theme === "dark" ? "#000000" : "#a3a3a3"} 
+                strokeWidth="3.5"
+                strokeLinecap="round"
+              />
+              <path 
+                d="M 60 100 L 60 40 Q 60 20 100 10" 
+                stroke={theme === "dark" ? "#000000" : "#a3a3a3"} 
+                strokeWidth="3.5"
+                strokeLinecap="round"
+              />
 
-            {/* Road Lane Markings */}
-            <g opacity={theme === "dark" ? "0.05" : "0.1"}>
-              <line x1="0" y1="15%" x2="100%" y2="15%" 
-                stroke="#ffffff" 
-                strokeWidth="0.3" 
-                strokeDasharray="4 4"/>
-              <line x1="0" y1="55%" x2="100%" y2="53%" 
-                stroke="#ffffff" 
-                strokeWidth="0.3" 
-                strokeDasharray="4 4"/>
-              <line x1="50%" y1="0" x2="50%" y2="100%" 
-                stroke="#ffffff" 
-                strokeWidth="0.3" 
-                strokeDasharray="4 4"/>
+              {/* Highway Inner Color */}
+              <path 
+                d="M 20 0 Q 30 50 80 60 L 100 65" 
+                stroke={theme === "dark" ? "#ca8a04" : "#fcd34d"} 
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+              <path 
+                d="M 60 100 L 60 40 Q 60 20 100 10" 
+                stroke={theme === "dark" ? "#ca8a04" : "#fcd34d"} 
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
             </g>
           </svg>
 
-          {/* Flat Building Icons */}
-          <div className="absolute inset-0 pointer-events-none">
-            {/* Downtown cluster - Skyscrapers */}
+          {/* D. Building Blocks (2D Top Down shapes) */}
+          <div className="absolute inset-0 pointer-events-none opacity-90">
             {[
-              { x: 8, y: 10, type: 'tall' },
-              { x: 12, y: 8, type: 'tower' },
-              { x: 15, y: 11, type: 'building' },
-              { x: 18, y: 9, type: 'tall' },
-              { x: 10, y: 16, type: 'building' },
-              { x: 14, y: 17, type: 'tower' },
-            ].map((building, i) => (
-              <div key={`downtown-icon-${i}`} className="absolute" style={{
-                left: `${building.x}%`,
-                top: `${building.y}%`,
-              }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className={`${
-                  theme === "dark" ? "opacity-40" : "opacity-50"
-                }`}>
-                  {building.type === 'tower' && (
-                    <path d="M6 2h4v20H6zm8 4h4v16h-4z" fill={theme === "dark" ? "#52525b" : "#9ca3af"} />
-                  )}
-                  {building.type === 'tall' && (
-                    <path d="M7 3h10v18H7z" fill={theme === "dark" ? "#3f3f46" : "#a3a3a3"} />
-                  )}
-                  {building.type === 'building' && (
-                    <path d="M4 8h16v14H4z" fill={theme === "dark" ? "#27272a" : "#d4d4d4"} />
-                  )}
-                  {/* Windows */}
-                  <rect x="8" y="6" width="2" height="2" fill={theme === "dark" ? "#fbbf24" : "#f59e0b"} opacity="0.3" />
-                  <rect x="14" y="6" width="2" height="2" fill={theme === "dark" ? "#fbbf24" : "#f59e0b"} opacity="0.3" />
-                  <rect x="8" y="10" width="2" height="2" fill={theme === "dark" ? "#fbbf24" : "#f59e0b"} opacity="0.2" />
-                  <rect x="14" y="10" width="2" height="2" fill={theme === "dark" ? "#fbbf24" : "#f59e0b"} opacity="0.4" />
-                  <rect x="8" y="14" width="2" height="2" fill={theme === "dark" ? "#fbbf24" : "#f59e0b"} opacity="0.3" />
-                  <rect x="14" y="14" width="2" height="2" fill={theme === "dark" ? "#fbbf24" : "#f59e0b"} opacity="0.2" />
-                </svg>
-              </div>
-            ))}
-
-            {/* Midtown cluster */}
-            {[
-              { x: 45, y: 40, type: 'tower' },
-              { x: 50, y: 38, type: 'tall' },
-              { x: 54, y: 42, type: 'building' },
-              { x: 47, y: 46, type: 'building' },
-              { x: 51, y: 47, type: 'tower' },
-            ].map((building, i) => (
-              <div key={`midtown-icon-${i}`} className="absolute" style={{
-                left: `${building.x}%`,
-                top: `${building.y}%`,
-              }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className={`${
-                  theme === "dark" ? "opacity-40" : "opacity-50"
-                }`}>
-                  {building.type === 'tower' && (
-                    <path d="M6 2h4v20H6zm8 4h4v16h-4z" fill={theme === "dark" ? "#52525b" : "#9ca3af"} />
-                  )}
-                  {building.type === 'tall' && (
-                    <path d="M7 3h10v18H7z" fill={theme === "dark" ? "#3f3f46" : "#a3a3a3"} />
-                  )}
-                  {building.type === 'building' && (
-                    <path d="M4 8h16v14H4z" fill={theme === "dark" ? "#27272a" : "#d4d4d4"} />
-                  )}
-                  <rect x="8" y="6" width="2" height="2" fill={theme === "dark" ? "#fbbf24" : "#f59e0b"} opacity="0.3" />
-                  <rect x="14" y="6" width="2" height="2" fill={theme === "dark" ? "#fbbf24" : "#f59e0b"} opacity="0.2" />
-                  <rect x="8" y="10" width="2" height="2" fill={theme === "dark" ? "#fbbf24" : "#f59e0b"} opacity="0.4" />
-                  <rect x="14" y="10" width="2" height="2" fill={theme === "dark" ? "#fbbf24" : "#f59e0b"} opacity="0.3" />
-                </svg>
-              </div>
-            ))}
-
-            {/* Suburban houses */}
-            {[
-              { x: 75, y: 70 }, { x: 78, y: 68 }, { x: 81, y: 71 },
-              { x: 77, y: 74 }, { x: 80, y: 75 },
-            ].map((house, i) => (
-              <div key={`house-${i}`} className="absolute" style={{
-                left: `${house.x}%`,
-                top: `${house.y}%`,
-              }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className={`${
-                  theme === "dark" ? "opacity-35" : "opacity-45"
-                }`}>
-                  <path d="M12 3L4 9v12h16V9z" fill={theme === "dark" ? "#3f3f46" : "#d4d4d4"} />
-                  <rect x="9" y="13" width="6" height="8" fill={theme === "dark" ? "#27272a" : "#a3a3a3"} />
-                  <rect x="10" y="15" width="2" height="2" fill={theme === "dark" ? "#fbbf24" : "#f59e0b"} opacity="0.4" />
-                </svg>
-              </div>
-            ))}
-
-            {/* Scattered smaller buildings */}
-            {[
-              { x: 32, y: 20 }, { x: 65, y: 25 }, { x: 25, y: 60 },
-              { x: 60, y: 65 }, { x: 38, y: 78 }, { x: 85, y: 45 },
-              { x: 20, y: 85 }, { x: 90, y: 20 },
-            ].map((building, i) => (
-              <div key={`scattered-${i}`} className="absolute" style={{
-                left: `${building.x}%`,
-                top: `${building.y}%`,
-              }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className={`${
-                  theme === "dark" ? "opacity-30" : "opacity-40"
-                }`}>
-                  <path d="M4 8h16v14H4z" fill={theme === "dark" ? "#3f3f46" : "#d4d4d4"} />
-                  <rect x="9" y="11" width="2" height="2" fill={theme === "dark" ? "#fbbf24" : "#f59e0b"} opacity="0.3" />
-                  <rect x="13" y="11" width="2" height="2" fill={theme === "dark" ? "#fbbf24" : "#f59e0b"} opacity="0.2" />
-                </svg>
-              </div>
-            ))}
-          </div>
-
-          {/* Enhanced Landmarks */}
-          <div className="absolute inset-0 pointer-events-none">
-            {/* Central Park - with real trees and paths */}
-            <div 
-              className={`absolute rounded-lg overflow-hidden ${
-                theme === "dark" ? "bg-emerald-950/30" : "bg-emerald-100/60"
-              }`}
-              style={{
-                left: "68%",
-                top: "8%",
-                width: "12%",
-                height: "12%",
-                border: theme === "dark" ? "1px solid #065f46" : "1px solid #6ee7b7",
-                boxShadow: theme === "dark" 
-                  ? "inset 0 2px 8px rgba(16, 185, 129, 0.1)" 
-                  : "inset 0 2px 8px rgba(16, 185, 129, 0.2)",
-              }}
-            >
-              {/* Park paths */}
-              <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100">
-                <path d="M 10 50 Q 30 30, 50 50 T 90 50" 
-                  stroke={theme === "dark" ? "#064e3b" : "#a7f3d0"} 
-                  strokeWidth="2" 
-                  fill="none" 
-                  opacity="0.4" />
-                <path d="M 50 10 Q 30 30, 50 50 T 50 90" 
-                  stroke={theme === "dark" ? "#064e3b" : "#a7f3d0"} 
-                  strokeWidth="2" 
-                  fill="none" 
-                  opacity="0.4" />
-              </svg>
-
-              {/* Tree icons instead of dots */}
-              {[
-                { x: 20, y: 25 },
-                { x: 35, y: 50 },
-                { x: 50, y: 30 },
-                { x: 65, y: 60 },
-                { x: 75, y: 35 },
-                { x: 30, y: 70 },
-                { x: 80, y: 70 },
-                { x: 55, y: 65 },
-              ].map((tree, i) => (
-                <div 
-                  key={`tree-${i}`}
-                  className="absolute animate-pulse"
-                  style={{
-                    left: `${tree.x}%`,
-                    top: `${tree.y}%`,
-                    animationDelay: `${i * 0.4}s`,
-                    animationDuration: '4s',
-                  }}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="8" r="6" fill="#10b981" opacity="0.6" />
-                    <rect x="11" y="12" width="2" height="8" fill="#065f46" opacity="0.5" />
-                  </svg>
-                </div>
-              ))}
-
-              {/* Pond */}
+              // Downtown Cluster
+              { l: 42, t: 47, w: 4, h: 4 }, { l: 47, t: 47, w: 4, h: 6 },
+              { l: 42, t: 53, w: 9, h: 4 }, { l: 55, t: 48, w: 8, h: 8 },
+              // Scattered
+              { l: 65, t: 25, w: 5, h: 5 }, { l: 82, t: 75, w: 6, h: 10 },
+              { l: 35, t: 20, w: 4, h: 4 }, { l: 90, t: 15, w: 5, h: 5 },
+            ].map((b, i) => (
               <div 
-                className="absolute rounded-full"
+                key={i}
+                className={`absolute shadow-sm ${
+                  theme === "dark" ? "bg-zinc-700 shadow-black" : "bg-gray-300 shadow-gray-400"
+                }`}
                 style={{
-                  left: "40%",
-                  top: "45%",
-                  width: "20%",
-                  height: "20%",
-                  background: theme === "dark" 
-                    ? "radial-gradient(circle, #1e3a8a 0%, #0c4a6e 100%)" 
-                    : "radial-gradient(circle, #93c5fd 0%, #3b82f6 100%)",
-                  opacity: 0.4,
+                  left: `${b.l}%`, top: `${b.t}%`, width: `${b.w}%`, height: `${b.h}%`,
+                  borderRadius: '2px'
                 }}
               />
-            </div>
-
-            {/* Stadium with detailed structure */}
-            <div 
-              className={`absolute rounded-full overflow-hidden ${
-                theme === "dark" ? "bg-purple-950/30" : "bg-purple-100/60"
-              }`}
-              style={{
-                left: "15%",
-                top: "78%",
-                width: "8%",
-                height: "10%",
-                border: theme === "dark" ? "2px solid #6b21a8" : "2px solid #d8b4fe",
-                boxShadow: theme === "dark"
-                  ? "0 0 20px rgba(168, 85, 247, 0.3), inset 0 2px 8px rgba(168, 85, 247, 0.2)"
-                  : "0 0 20px rgba(168, 85, 247, 0.2), inset 0 2px 8px rgba(168, 85, 247, 0.3)",
-              }}
-            >
-              {/* Stadium field */}
-              <div 
-                className="absolute inset-[15%] rounded-full"
-                style={{
-                  backgroundColor: theme === "dark" ? "#065f46" : "#86efac",
-                  opacity: 0.3,
-                }}
-              />
-              
-              {/* Stadium lights */}
-              <div className="absolute inset-0 animate-pulse" style={{ animationDuration: '2s' }}>
-                <div className="absolute top-[10%] left-[50%] w-2 h-2 rounded-full bg-yellow-400/80 blur-sm" />
-                <div className="absolute bottom-[10%] left-[50%] w-2 h-2 rounded-full bg-yellow-400/80 blur-sm" />
-                <div className="absolute top-[50%] left-[10%] w-2 h-2 rounded-full bg-yellow-400/80 blur-sm" />
-                <div className="absolute top-[50%] right-[10%] w-2 h-2 rounded-full bg-yellow-400/80 blur-sm" />
-              </div>
-            </div>
-
-            {/* Water body - Lake/River with details */}
-            <div 
-              className={`absolute rounded-lg overflow-hidden ${
-                theme === "dark" ? "bg-blue-950/30" : "bg-blue-100/60"
-              }`}
-              style={{
-                left: "28%",
-                top: "48%",
-                width: "10%",
-                height: "8%",
-                border: theme === "dark" ? "1px solid #1e40af" : "1px solid #93c5fd",
-                boxShadow: theme === "dark"
-                  ? "inset 0 2px 8px rgba(59, 130, 246, 0.2)"
-                  : "inset 0 2px 8px rgba(59, 130, 246, 0.3)",
-              }}
-            >
-              {/* Water waves */}
-              <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100">
-                <path d="M 0 30 Q 25 20, 50 30 T 100 30" 
-                  stroke={theme === "dark" ? "#1e40af" : "#60a5fa"} 
-                  strokeWidth="1" 
-                  fill="none" 
-                  opacity="0.3"
-                  className="animate-pulse"
-                />
-                <path d="M 0 50 Q 25 40, 50 50 T 100 50" 
-                  stroke={theme === "dark" ? "#1e40af" : "#60a5fa"} 
-                  strokeWidth="1" 
-                  fill="none" 
-                  opacity="0.3"
-                  className="animate-pulse"
-                  style={{ animationDelay: '0.5s' }}
-                />
-                <path d="M 0 70 Q 25 60, 50 70 T 100 70" 
-                  stroke={theme === "dark" ? "#1e40af" : "#60a5fa"} 
-                  strokeWidth="1" 
-                  fill="none" 
-                  opacity="0.3"
-                  className="animate-pulse"
-                  style={{ animationDelay: '1s' }}
-                />
-              </svg>
-
-              {/* Boats */}
-              <div className="absolute top-[30%] left-[20%] w-2 h-1 bg-white/40 rounded-sm" />
-              <div className="absolute top-[60%] left-[70%] w-2 h-1 bg-white/40 rounded-sm" />
-            </div>
-
-            {/* Shopping Mall */}
-            <div 
-              className={`absolute rounded-md overflow-hidden ${
-                theme === "dark" ? "bg-amber-950/30" : "bg-amber-100/60"
-              }`}
-              style={{
-                left: "82%",
-                top: "52%",
-                width: "7%",
-                height: "9%",
-                border: theme === "dark" ? "1px solid #92400e" : "1px solid #fcd34d",
-              }}
-            >
-              {/* Mall icon */}
-              <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" className="p-2">
-                <rect x="4" y="8" width="16" height="12" fill={theme === "dark" ? "#78350f" : "#fbbf24"} opacity="0.3" />
-                <rect x="7" y="11" width="3" height="4" fill={theme === "dark" ? "#fbbf24" : "#f59e0b"} opacity="0.4" />
-                <rect x="14" y="11" width="3" height="4" fill={theme === "dark" ? "#fbbf24" : "#f59e0b"} opacity="0.4" />
-              </svg>
-            </div>
-
-            {/* Airport */}
-            <div 
-              className={`absolute rounded-lg overflow-hidden ${
-                theme === "dark" ? "bg-gray-900/30" : "bg-gray-200/60"
-              }`}
-              style={{
-                left: "5%",
-                top: "30%",
-                width: "8%",
-                height: "6%",
-                border: theme === "dark" ? "1px solid #27272a" : "1px solid #d4d4d8",
-              }}
-            >
-              {/* Runway */}
-              <div 
-                className="absolute top-1/2 left-0 right-0 h-[20%]"
-                style={{
-                  backgroundColor: theme === "dark" ? "#3f3f46" : "#a1a1aa",
-                  opacity: 0.5,
-                }}
-              />
-              {/* Plane icon */}
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                <path d="M12 2l-8 8h5v8h6v-8h5z" fill={theme === "dark" ? "#71717a" : "#52525b"} opacity="0.6" />
-              </svg>
-            </div>
-
-            {/* Train Station */}
-            <div 
-              className={`absolute rounded-md overflow-hidden ${
-                theme === "dark" ? "bg-red-950/30" : "bg-red-100/60"
-              }`}
-              style={{
-                left: "45%",
-                top: "85%",
-                width: "6%",
-                height: "7%",
-                border: theme === "dark" ? "1px solid #7f1d1d" : "1px solid #fca5a5",
-              }}
-            >
-              {/* Train tracks */}
-              <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none">
-                <line x1="8" y1="0" x2="8" y2="24" stroke={theme === "dark" ? "#7f1d1d" : "#ef4444"} strokeWidth="1" opacity="0.4" />
-                <line x1="16" y1="0" x2="16" y2="24" stroke={theme === "dark" ? "#7f1d1d" : "#ef4444"} strokeWidth="1" opacity="0.4" />
-                <rect x="6" y="10" width="12" height="6" fill={theme === "dark" ? "#991b1b" : "#f87171"} opacity="0.4" />
-              </svg>
-            </div>
+            ))}
           </div>
 
-          {/* Animated Traffic Lights */}
-          <div className="absolute inset-0 pointer-events-none">
-            {[
-              { x: 12, y: 15, phase: 0 }, { x: 28, y: 15, phase: 1 }, { x: 50, y: 15, phase: 2 }, { x: 72, y: 15, phase: 0 },
-              { x: 12, y: 35, phase: 1 }, { x: 28, y: 37, phase: 2 }, { x: 50, y: 37, phase: 0 }, { x: 72, y: 35, phase: 1 },
-              { x: 12, y: 55, phase: 2 }, { x: 28, y: 53, phase: 0 }, { x: 50, y: 53, phase: 1 }, { x: 72, y: 55, phase: 2 },
-              { x: 12, y: 75, phase: 0 }, { x: 28, y: 75, phase: 1 }, { x: 50, y: 75, phase: 2 }, { x: 72, y: 75, phase: 0 },
-            ].map((light, i) => {
-              const colors = ['#22c55e', '#fbbf24', '#ef4444'];
-              const currentColor = colors[(i + light.phase) % 3];
-              
-              return (
-                <div
-                  key={`traffic-${i}`}
-                  className="absolute animate-pulse"
-                  style={{
-                    left: `${light.x}%`,
-                    top: `${light.y}%`,
-                    animationDelay: `${i * 0.2}s`,
-                    animationDuration: '2s',
-                  }}
-                >
-                  <div 
-                    className="w-1.5 h-1.5 rounded-full"
-                    style={{
-                      backgroundColor: currentColor,
-                      boxShadow: theme === "dark"
-                        ? `0 0 8px ${currentColor}, 0 0 4px ${currentColor}`
-                        : `0 0 6px ${currentColor}`,
-                    }}
-                  />
-                </div>
-              );
-            })}
-          </div>
+          {/* E. Map Markers (Studios) */}
+          {filteredStudios.map((studio) => {
+             // Calculate visual position
+             const pos = studio.latitude && studio.longitude 
+               ? getPosition(studio.latitude, studio.longitude)
+               : { x: 50, y: 50 };
 
-          {/* Area zones - more subtle */}
-          <div className="absolute inset-0 pointer-events-none mix-blend-soft-light opacity-60">
-            <div className={`absolute top-0 left-0 w-1/3 h-1/3 rounded-full blur-3xl ${
-              theme === "dark" 
-                ? "bg-gradient-to-br from-pink-950/15 to-transparent" 
-                : "bg-gradient-to-br from-pink-100/30 to-transparent"
-            }`} />
-            <div className={`absolute top-0 right-0 w-1/3 h-1/3 rounded-full blur-3xl ${
-              theme === "dark" 
-                ? "bg-gradient-to-bl from-cyan-950/15 to-transparent" 
-                : "bg-gradient-to-bl from-cyan-100/30 to-transparent"
-            }`} />
-            <div className={`absolute bottom-0 left-0 w-1/3 h-1/3 rounded-full blur-3xl ${
-              theme === "dark" 
-                ? "bg-gradient-to-tr from-violet-950/15 to-transparent" 
-                : "bg-gradient-to-tr from-violet-100/30 to-transparent"
-            }`} />
-            <div className={`absolute bottom-0 right-0 w-1/3 h-1/3 rounded-full blur-3xl ${
-              theme === "dark" 
-                ? "bg-gradient-to-tl from-amber-950/15 to-transparent" 
-                : "bg-gradient-to-tl from-amber-100/30 to-transparent"
-            }`} />
-          </div>
+             const isSelected = selectedStudio?.id === studio.id;
+             const isHovered = hoveredStudio === studio.id;
 
-          {/* Subtle vignette */}
-          <div className={`absolute inset-0 bg-gradient-radial from-transparent via-transparent ${
-            theme === "dark" ? "to-black/30" : "to-white/20"
-          }`} />
-        </div>
-      </div>
+             return (
+               <div
+                 key={studio.id}
+                 className="absolute transform -translate-x-1/2 -translate-y-1/2 z-20 cursor-pointer transition-all duration-200 will-change-transform"
+                 style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
+                 onClick={(e) => { e.stopPropagation(); setSelectedStudio(studio); }}
+                 onMouseEnter={() => setHoveredStudio(studio.id)}
+                 onMouseLeave={() => setHoveredStudio(null)}
+               >
+                 <div className={`
+                   relative flex flex-col items-center justify-center transition-transform duration-200
+                   ${isSelected ? "scale-125 z-50" : isHovered ? "scale-110 z-40" : "scale-100 z-10"}
+                 `}>
+                   
+                   {/* Hover Label (GTA Style Box) */}
+                   {(isSelected || isHovered) && (
+                     <div className={`
+                       absolute bottom-full mb-3 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest whitespace-nowrap rounded shadow-[4px_4px_0px_0px_rgba(0,0,0,0.4)]
+                       ${theme === "dark" 
+                         ? "bg-zinc-900 text-white border border-zinc-700" 
+                         : "bg-white text-black border border-black"
+                       }
+                     `}>
+                       {studio.name}
+                     </div>
+                   )}
 
-      {/* District Labels */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className={`absolute top-8 left-8 px-3 py-2 rounded-lg backdrop-blur-md border ${
-          theme === "dark" 
-            ? "bg-black/50 border-pink-900/30" 
-            : "bg-white/40 border-pink-300/50"
-        }`}>
-          <span className={`text-[10px] font-medium tracking-[0.2em] uppercase ${
-            theme === "dark" ? "text-pink-400/80" : "text-pink-600"
-          }`}>Entertainment District</span>
-        </div>
-        
-        <div className={`absolute top-8 right-8 px-3 py-2 rounded-lg backdrop-blur-md border ${
-          theme === "dark" 
-            ? "bg-black/50 border-cyan-900/30" 
-            : "bg-white/40 border-cyan-300/50"
-        }`}>
-          <span className={`text-[10px] font-medium tracking-[0.2em] uppercase ${
-            theme === "dark" ? "text-cyan-400/80" : "text-cyan-600"
-          }`}>Tech Hub</span>
-        </div>
-        
-        <div className={`absolute bottom-8 left-8 px-3 py-2 rounded-lg backdrop-blur-md border ${
-          theme === "dark" 
-            ? "bg-black/50 border-violet-900/30" 
-            : "bg-white/40 border-violet-300/50"
-        }`}>
-          <span className={`text-[10px] font-medium tracking-[0.2em] uppercase ${
-            theme === "dark" ? "text-violet-400/80" : "text-violet-600"
-          }`}>Arts Quarter</span>
-        </div>
-        
-        <div className={`absolute bottom-8 right-8 px-3 py-2 rounded-lg backdrop-blur-md border ${
-          theme === "dark" 
-            ? "bg-black/50 border-amber-900/30" 
-            : "bg-white/40 border-amber-300/50"
-        }`}>
-          <span className={`text-[10px] font-medium tracking-[0.2em] uppercase ${
-            theme === "dark" ? "text-amber-400/80" : "text-amber-600"
-          }`}>Business District</span>
-        </div>
-      </div>
-
-      {/* Studio Markers with PREMIUM Hover Effects */}
-      {filteredStudios.map((studio) => {
-        if (!studio.latitude || !studio.longitude) return null;
-        const position = getPosition(studio.latitude, studio.longitude);
-        const isSelected = selectedStudio?.id === studio.id;
-        const isHovered = hoveredStudio === studio.id;
-        const distance = userLocation
-          ? calculateDistance(userLocation.lat, userLocation.lon, studio.latitude, studio.longitude)
-          : null;
-
-        return (
-          <button
-            key={studio.id}
-            onClick={() => setSelectedStudio(studio)}
-            onMouseEnter={() => setHoveredStudio(studio.id)}
-            onMouseLeave={() => setHoveredStudio(null)}
-            className="absolute transform -translate-x-1/2 -translate-y-1/2 group z-20"
-            style={{ left: position.x, top: position.y }}
-          >
-            {/* Sonar/Radar pulse rings - BEEPING effect */}
-            {!isSelected && !isHovered && (
-              <>
-                <div 
-                  className="absolute inset-0 -m-8 rounded-full border-2 border-red-500/40 animate-ping"
-                  style={{
-                    animationDuration: '2s',
-                    animationDelay: `${studio.id * 0.3}s`,
-                  }}
-                />
-                <div 
-                  className="absolute inset-0 -m-12 rounded-full border border-red-500/20 animate-ping"
-                  style={{
-                    animationDuration: '2.5s',
-                    animationDelay: `${studio.id * 0.3 + 0.5}s`,
-                  }}
-                />
-              </>
-            )}
-
-            {/* Enhanced pulse for hover/select */}
-            {(isSelected || isHovered) && (
-              <>
-                <div className="absolute inset-0 -m-6 rounded-full border-2 border-red-500/30 animate-pulse" />
-                <div className="absolute inset-0 -m-10 rounded-full border border-red-500/20 animate-pulse" style={{ animationDuration: '1.5s' }} />
-                <div className="absolute inset-0 -m-14 rounded-full border border-red-500/10" />
-                <div className={`absolute inset-0 -m-4 rounded-full border-2 transition-all duration-500 ${
-                  isSelected 
-                    ? "border-white animate-ping opacity-50" 
-                    : "border-red-400 animate-pulse opacity-40"
-                }`} />
-              </>
-            )}
-            
-            {/* Marker pin with glow */}
-            <div className="relative flex flex-col items-center">
-              <div className={`
-                relative transition-all duration-300
-                ${isSelected ? "scale-130" : isHovered ? "scale-115" : "scale-100"}
-              `}>
-                {/* Glowing halo effect */}
-                <div 
-                  className="absolute inset-0 rounded-full blur-md animate-pulse"
-                  style={{
-                    backgroundColor: isSelected ? '#ffffff' : '#ef4444',
-                    opacity: isSelected || isHovered ? 0.4 : 0.2,
-                    width: '140%',
-                    height: '140%',
-                    left: '-20%',
-                    top: '-20%',
-                  }}
-                />
-                
-                {/* Pin shape */}
-                <div className="relative">
-                  <svg width="32" height="40" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg" 
-                    className={`transition-all duration-300 ${
-                      isSelected || isHovered 
-                        ? "drop-shadow-[0_0_12px_rgba(239,68,68,1)] filter brightness-110" 
-                        : "drop-shadow-[0_0_6px_rgba(239,68,68,0.7)]"
-                    }`}
-                    style={{
-                      filter: isSelected || isHovered ? 'drop-shadow(0 0 12px rgba(239,68,68,1))' : 'drop-shadow(0 0 6px rgba(239,68,68,0.7))',
-                    }}
-                  >
-                    <path d="M16 0C7.163 0 0 7.163 0 16C0 24.837 16 40 16 40C16 40 32 24.837 32 16C32 7.163 24.837 0 16 0Z" 
-                      fill={isSelected ? "#ffffff" : isHovered ? "#fca5a5" : "#ef4444"}
-                      className="transition-colors duration-300"
-                    />
-                    <circle cx="16" cy="15" r="6" 
-                      fill={isSelected ? "#000000" : "#ffffff"}
-                      className="transition-colors duration-300"
-                    />
-                    {/* Inner glow circle */}
-                    <circle cx="16" cy="15" r="6" 
-                      fill={isSelected ? "#ef4444" : "#fca5a5"}
-                      className="animate-pulse"
-                      style={{
-                        opacity: 0.3,
-                        animationDuration: '1.5s',
-                      }}
-                    />
-                  </svg>
-                </div>
-              </div>
-
-              {/* PREMIUM Hover Card - Replaces white rectangles */}
-              {(isSelected || isHovered) && (
-                <div 
-                  className={`
-                    mt-2 rounded-xl overflow-hidden backdrop-blur-xl transition-all duration-300 
-                    animate-in fade-in slide-in-from-bottom-3 shadow-2xl border
-                    ${isSelected ? 'w-[280px]' : 'w-[240px]'}
-                    ${isSelected 
-                      ? theme === "dark"
-                        ? "bg-gradient-to-br from-zinc-900/95 via-zinc-900/90 to-black/95 border-white/20" 
-                        : "bg-gradient-to-br from-white/95 via-gray-50/90 to-white/95 border-gray-300/60"
-                      : theme === "dark"
-                        ? "bg-black/90 border-zinc-800/60"
-                        : "bg-white/90 border-gray-300/60"
-                    }
-                  `}
-                  style={{
-                    boxShadow: isSelected 
-                      ? theme === "dark"
-                        ? '0 20px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.1)'
-                        : '0 20px 40px rgba(0,0,0,0.2), 0 0 0 1px rgba(0,0,0,0.05)'
-                      : theme === "dark"
-                        ? '0 10px 25px rgba(0,0,0,0.6)'
-                        : '0 10px 25px rgba(0,0,0,0.15)',
-                  }}
-                >
-                  <div className="p-4 space-y-3">
-                    {/* Studio name with icon */}
-                    <div className="flex items-start gap-2">
-                      <div className={`p-1.5 rounded-lg ${
-                        isSelected
-                          ? theme === "dark" ? "bg-red-500/20" : "bg-red-500/10"
-                          : theme === "dark" ? "bg-red-500/10" : "bg-red-500/5"
-                      }`}>
-                        <Mic2 className={`w-4 h-4 ${
-                          isSelected ? "text-red-500" : "text-red-600"
-                        }`} strokeWidth={2} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className={`text-sm font-semibold tracking-wide truncate ${
-                          theme === "dark" ? "text-white" : "text-gray-900"
-                        }`}>
-                          {studio.name}
-                        </h4>
-                        <div className={`flex items-center gap-1 mt-0.5 text-xs ${
-                          theme === "dark" ? "text-zinc-400" : "text-gray-600"
-                        }`}>
-                          <MapPin className="w-3 h-3" strokeWidth={2} />
-                          <span className="truncate">{studio.location}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Rating and Price */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1">
-                        <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" strokeWidth={2} />
-                        <span className={`text-sm font-semibold ${
-                          theme === "dark" ? "text-white" : "text-gray-900"
-                        }`}>
-                          {studio.rating}
-                        </span>
-                      </div>
-                      <span className={`text-sm font-bold ${
-                        isSelected
-                          ? "text-red-500"
-                          : theme === "dark" ? "text-zinc-300" : "text-gray-700"
-                      }`}>
-                        ${studio.hourlyRate}/hr
-                      </span>
-                    </div>
-
-                    {/* Distance if available */}
-                    {distance !== null && (
-                      <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md ${
-                        theme === "dark" 
-                          ? "bg-blue-500/10 border border-blue-500/20" 
-                          : "bg-blue-50 border border-blue-200/50"
-                      }`}>
-                        <Navigation className={`w-3 h-3 ${
-                          theme === "dark" ? "text-blue-400" : "text-blue-600"
-                        }`} strokeWidth={2} />
-                        <span className={`text-xs font-medium ${
-                          theme === "dark" ? "text-blue-400" : "text-blue-600"
-                        }`}>
-                          {Math.round(distance)} miles away
-                        </span>
-                      </div>
-                    )}
-
-           {/* Quick action button for selected */}
-{permissions.canBookStudios && (
-  <button
-    className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-medium rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
-      theme === "dark"
-        ? "bg-white border-white text-black hover:bg-zinc-100"
-        : "bg-black border-black text-white hover:bg-gray-800"
-    }`}
-    onClick={(e) => {
-      e.stopPropagation();
-router.push(`/studios/create/${studio.id}`); // ✅ FIXED
-    }}
-  >
-    <CheckCircle2 className="w-4 h-4" strokeWidth={2} />
-    Book Studio
-  </button>
-)}
-                  </div>
-                </div>
-              )}
-            </div>
-          </button>
-        );
-      })}
-
-      {/* User Location Marker - Enhanced */}
-      {userLocation && (
-        <div
-          className="absolute transform -translate-x-1/2 -translate-y-1/2 z-30"
-          style={{
-            left: getPosition(userLocation.lat, userLocation.lon).x,
-            top: getPosition(userLocation.lat, userLocation.lon).y
-          }}
-        >
-          {/* Multiple pulse rings with different speeds */}
-          <div className="absolute inset-0 -m-6 rounded-full bg-blue-500/20 animate-ping" style={{ animationDuration: '1.5s' }} />
-          <div className="absolute inset-0 -m-9 rounded-full bg-blue-500/15 animate-ping" style={{ animationDuration: '2s' }} />
-          <div className="absolute inset-0 -m-12 rounded-full bg-blue-500/10 animate-ping" style={{ animationDuration: '2.5s' }} />
-          <div className="absolute inset-0 -m-16 rounded-full bg-blue-500/5 animate-ping" style={{ animationDuration: '3s' }} />
+                   {/* The Icon Blip */}
+                   <div className={`
+                     w-9 h-9 rounded-full flex items-center justify-center border-2 shadow-lg
+                     ${isSelected 
+                       ? "bg-black border-white text-white dark:bg-white dark:border-black dark:text-black" 
+                       : theme === "dark"
+                         ? "bg-zinc-800 border-zinc-600 text-zinc-400"
+                         : "bg-white border-black text-black"
+                     }
+                   `}>
+                     {isSelected 
+                        ? <Mic2 size={16} strokeWidth={3} /> 
+                        : <span className="text-[10px] font-bold tracking-tighter">${studio.hourlyRate}</span>
+                     }
+                   </div>
+                   
+                   {/* "Ground Stick" Shadow */}
+                   <div className="w-0.5 h-3 bg-black/40" />
+                   <div className="w-5 h-1.5 bg-black/20 rounded-full blur-[2px]" />
+                 </div>
+               </div>
+             );
+          })}
           
-          {/* User marker with enhanced glow */}
-          <div className="relative">
-            <div className="absolute inset-0 w-7 h-7 -m-1 rounded-full bg-blue-400/50 blur-lg animate-pulse" />
-            <div className="relative w-5 h-5 rounded-full bg-blue-500 ring-4 ring-blue-500/40 shadow-[0_0_25px_rgba(59,130,246,1)]">
-              <div className="absolute inset-0 rounded-full bg-blue-400 blur-sm animate-pulse" />
-              <div className="absolute inset-1 rounded-full bg-white" />
-              <div className="absolute inset-0 rounded-full bg-blue-300/30 animate-ping" style={{ animationDuration: '1s' }} />
+          {/* User Location Arrow */}
+          {userLocation && (
+            <div 
+              className="absolute z-10 transform -translate-x-1/2 -translate-y-1/2"
+              style={{ left: `35%`, top: `40%` }} // Mock position on the "beach" road
+            >
+              <div className="relative">
+                <div className="absolute inset-0 bg-blue-500/30 blur-md rounded-full animate-pulse" />
+                <Navigation 
+                  size={24} 
+                  className="fill-blue-500 text-white drop-shadow-md transform rotate-45" 
+                />
+              </div>
             </div>
-          </div>
-          
-          {/* Label */}
-          <div className={`absolute -bottom-8 left-1/2 transform -translate-x-1/2 px-3 py-1.5 rounded-md text-xs font-semibold tracking-wider whitespace-nowrap backdrop-blur-md shadow-xl ${
-            theme === "dark"
-              ? "text-blue-300 bg-black/95 border border-blue-500/60"
-              : "text-blue-600 bg-white/95 border border-blue-500/40"
+          )}
+        </div>
+
+        {/* --- 2. HUD (Heads Up Display) --- */}
+        
+        {/* Top Right: Compass/Tilt Toggle */}
+        <div className="absolute top-8 right-8 z-30 flex flex-col gap-2">
+            <button 
+              onClick={() => setTiltMode(!tiltMode)}
+              className={`px-3 py-2 rounded font-black text-[10px] uppercase tracking-widest shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all border-2 ${
+                theme === "dark" ? "bg-zinc-900 border-zinc-700 text-white" : "bg-white border-black text-black"
+              }`}
+            >
+              {tiltMode ? "3D View" : "Top Down"}
+            </button>
+        </div>
+
+        {/* Bottom Right: Zoom Controls */}
+        <div className="absolute bottom-8 right-8 flex flex-col gap-2 z-30">
+          <div className={`flex flex-col rounded overflow-hidden border-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${
+            theme === "dark" ? "bg-zinc-900 border-zinc-700" : "bg-white border-black"
           }`}>
-            Your Location
-          </div>
-        </div>
-      )}
-
-      {/* Selected Studio Card - Your existing implementation */}
-      {selectedStudio && (
-        <div className={`absolute top-6 right-6 w-80 rounded-xl border overflow-hidden animate-in fade-in slide-in-from-right-4 duration-300 z-40 backdrop-blur-md shadow-2xl ${
-          theme === "dark"
-            ? "border-zinc-800/50 bg-black/95"
-            : "border-gray-300 bg-white/95"
-        }`}>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setSelectedStudio(null);
-            }}
-            className={`absolute top-3 right-3 z-20 p-1.5 rounded-lg backdrop-blur-sm shadow-lg transition-all duration-200 ${
-              theme === "dark"
-                ? "bg-zinc-900/90 border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800 hover:border-white/20"
-                : "bg-gray-100/90 border border-gray-300 text-gray-600 hover:text-black hover:bg-gray-200 hover:border-gray-400"
-            }`}
-          >
-            <X className="w-4 h-4" strokeWidth={2} />
-          </button>
-
-          <div className="relative h-52 overflow-hidden">
-            <img
-              alt={selectedStudio.name}
-              src={selectedStudio.image}
-              className="w-full h-full object-cover scale-100 transition-transform duration-700 hover:scale-105"
-              style={{ objectPosition: 'center' }}
-            />
-            <div className={`absolute inset-0 bg-gradient-to-t ${
-              theme === "dark" 
-                ? "from-black via-black/40 to-transparent" 
-                : "from-white via-white/40 to-transparent"
-            }`} />
-            
-            <div className={`absolute top-3 left-3 px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide backdrop-blur-md shadow-lg ${
-              theme === "dark"
-                ? "bg-white/15 text-white border border-white/30"
-                : "bg-black/15 text-black border border-black/30"
-            }`}>
-              {selectedStudio.price}
-            </div>
-          </div>
-
-          <div className="p-5 space-y-4">
-            <div>
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <h3 className={`text-base font-medium tracking-wide leading-snug ${
-                  theme === "dark" ? "text-white" : "text-gray-900"
-                }`}>
-                  {selectedStudio.name}
-                </h3>
-                <div className="flex items-center gap-1.5 flex-shrink-0">
-                  <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" strokeWidth={2} />
-                  <span className={`text-sm font-medium ${
-                    theme === "dark" ? "text-white" : "text-gray-900"
-                  }`}>
-                    {selectedStudio.rating}
-                  </span>
-                </div>
-              </div>
-
-              <div className={`flex items-center gap-1.5 text-xs font-light tracking-wide ${
-                theme === "dark" ? "text-zinc-400" : "text-gray-600"
-              }`}>
-                <MapPin className="w-3.5 h-3.5" strokeWidth={2} />
-                <span>
-                  {selectedStudio.location}
-                  {userLocation && (
-                    <span className={`ml-1.5 ${
-                      theme === "dark" ? "text-zinc-500" : "text-gray-500"
-                    }`}>
-                      • {Math.round(calculateDistance(userLocation.lat, userLocation.lon, selectedStudio.lat, selectedStudio.lon))} mi away
-                    </span>
-                  )}
-                </span>
-              </div>
-            </div>
-
-            <div className="space-y-2.5">
-              <div className={`flex items-center gap-1.5 text-xs font-medium tracking-wide ${
-                theme === "dark" ? "text-zinc-400" : "text-gray-600"
-              }`}>
-                <Mic2 className="w-3.5 h-3.5" strokeWidth={2} />
-                <span>Featured Gear</span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {selectedStudio.equipment.slice(0, 3).map((item, idx) => (
-                  <span
-                    key={idx}
-                    className={`px-2.5 py-1.5 text-[10px] font-medium tracking-wide rounded-md backdrop-blur-sm ${
-                      theme === "dark"
-                        ? "bg-zinc-900/80 text-zinc-300 border border-zinc-800/80"
-                        : "bg-gray-100/80 text-gray-700 border border-gray-300/80"
-                    }`}
-                  >
-                    {item}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <button
-              onClick={() => router.push(`/studios/create/${selectedStudio.id}`)}
-              className={`w-full flex items-center justify-center gap-2 px-4 py-3.5 text-sm font-semibold rounded-lg border transition-all duration-200 tracking-wide shadow-lg ${
-                theme === "dark"
-                  ? "bg-white border-white text-black hover:bg-zinc-100 active:scale-[0.98]"
-                  : "bg-black border-black text-white hover:bg-gray-800 active:scale-[0.98]"
-              }`}
-            >
-              <CheckCircle2 className="w-4 h-4" strokeWidth={2.5} />
-              Book Studio
+            <button onClick={() => setZoom(z => Math.min(z + 0.5, 4))} className="p-3 hover:bg-gray-100 dark:hover:bg-zinc-800 border-b-2 dark:border-zinc-700">
+              <Maximize2 size={18} strokeWidth={2.5} className={theme === "dark" ? "text-white" : "text-black"} />
+            </button>
+            <button onClick={() => setZoom(z => Math.max(z - 0.5, 0.8))} className="p-3 hover:bg-gray-100 dark:hover:bg-zinc-800">
+              <Minimize2 size={18} strokeWidth={2.5} className={theme === "dark" ? "text-white" : "text-black"} />
             </button>
           </div>
         </div>
-      )}
 
-      {/* Map Controls */}
-      <div className="absolute bottom-6 left-6 flex gap-2 z-30">
-        <button
-          onClick={getUserLocation}
-          disabled={isLoadingLocation}
-          className={`p-3 rounded-lg border backdrop-blur-md shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
-            theme === "dark"
-              ? "border-zinc-800/50 bg-black/90 text-zinc-400 hover:text-white hover:border-zinc-700 hover:bg-black"
-              : "border-gray-300/50 bg-white/90 text-gray-600 hover:text-black hover:border-gray-400 hover:bg-white"
-          }`}
-        >
-          <Navigation className="w-4 h-4" strokeWidth={2} />
-        </button>
-      </div>
-
-      {/* Legend */}
-      <div className={`absolute bottom-6 right-6 px-4 py-3.5 rounded-lg border backdrop-blur-md shadow-lg space-y-2.5 z-30 ${
-        theme === "dark"
-          ? "border-zinc-800/50 bg-black/90"
-          : "border-gray-300/50 bg-white/90"
-      }`}>
-        <div className={`flex items-center gap-2.5 text-xs font-medium tracking-wide ${
-          theme === "dark" ? "text-zinc-300" : "text-gray-700"
-        }`}>
-          <div className="relative">
-            <div className="w-3 h-3 bg-red-500 rounded-sm shadow-[0_0_8px_rgba(239,68,68,0.6)]" />
-            <div className="absolute inset-0 w-3 h-3 bg-red-500 rounded-sm animate-ping opacity-50" />
-          </div>
-          <span>Studios</span>
-        </div>
-        {userLocation && (
-          <div className={`flex items-center gap-2.5 text-xs font-medium tracking-wide ${
-            theme === "dark" ? "text-zinc-300" : "text-gray-700"
+        {/* Bottom Left: Legend */}
+        <div className="absolute bottom-8 left-8 z-30 pointer-events-none">
+          <div className={`px-4 py-3 border-l-[6px] shadow-lg ${
+            theme === "dark" ? "bg-black/80 border-white text-white" : "bg-white/95 border-black text-black"
           }`}>
-            <div className="relative">
-              <div className="w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
-              <div className="absolute inset-0 w-3 h-3 rounded-full bg-blue-400 animate-pulse" />
-            </div>
-            <span>You</span>
+            <div className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-0.5">District</div>
+            <div className="text-xl font-black uppercase tracking-tighter leading-none">Vinewood Hills</div>
+          </div>
+        </div>
+
+        {/* Center Overlay: Loading State */}
+        {isLoadingStudios && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm z-50">
+             <div className="animate-spin rounded-full h-12 w-12 border-4 border-black border-t-transparent dark:border-white dark:border-t-transparent" />
           </div>
         )}
+
+        {/* --- 3. Selected Studio Card (Mission Info Style) --- */}
+        {selectedStudio && (
+          <div className="absolute top-8 left-8 z-40 w-80 animate-in slide-in-from-left-4 duration-300">
+            <div className={`
+              relative overflow-hidden border-2 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.25)]
+              ${theme === "dark" ? "bg-zinc-900 border-zinc-600" : "bg-white border-black"}
+            `}>
+               {/* Decorative Header Bar */}
+               <div className="h-1.5 w-full bg-gradient-to-r from-yellow-400 via-orange-500 to-red-600" />
+               
+               <div className="p-5">
+                 <div className="flex justify-between items-start mb-4">
+                   <h2 className={`text-2xl font-black uppercase tracking-tighter leading-none ${theme === "dark" ? "text-white" : "text-black"}`}>
+                     {selectedStudio.name}
+                   </h2>
+                   <button 
+                     onClick={(e) => { e.stopPropagation(); setSelectedStudio(null); }} 
+                     className={`p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded ${theme === "dark" ? "text-white" : "text-black"}`}
+                   >
+                     <X size={20} strokeWidth={3} />
+                   </button>
+                 </div>
+
+                 {/* Image Box */}
+                 <div className="relative h-36 w-full mb-4 border-2 border-dashed border-gray-400 dark:border-zinc-700 p-1">
+                    <div className="w-full h-full relative overflow-hidden bg-gray-200">
+                      <img 
+                        src={selectedStudio.imageUrl || "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=800&q=80"} 
+                        className="w-full h-full object-cover transition-all duration-700 hover:scale-110 grayscale hover:grayscale-0"
+                      />
+                      {/* Location Tag Overlay */}
+                      <div className="absolute bottom-0 left-0 bg-black text-white text-[9px] font-bold px-2 py-1 uppercase tracking-widest">
+                        {selectedStudio.location}
+                      </div>
+                    </div>
+                 </div>
+
+                 {/* Stats Grid */}
+                 <div className="grid grid-cols-2 gap-4 border-b-2 border-dotted border-gray-300 dark:border-zinc-700 pb-4 mb-4">
+                   <div>
+                     <div className="text-[9px] font-bold uppercase text-gray-500 mb-1">Reputation</div>
+                     <div className="flex items-center gap-0.5">
+                       {[...Array(5)].map((_, i) => (
+                         <Star 
+                           key={i} 
+                           size={12} 
+                           className={i < Math.floor(selectedStudio.rating) 
+                             ? "fill-black text-black dark:fill-white dark:text-white" 
+                             : "text-gray-300 dark:text-zinc-700"} 
+                         />
+                       ))}
+                     </div>
+                   </div>
+                   <div className="text-right">
+                     <div className="text-[9px] font-bold uppercase text-gray-500 mb-1">Rate</div>
+                     <div className={`text-xl font-black ${theme === "dark" ? "text-white" : "text-black"}`}>
+                       ${selectedStudio.hourlyRate}<span className="text-xs font-bold text-gray-400">/hr</span>
+                     </div>
+                   </div>
+                 </div>
+
+                 {/* Action Button */}
+                 <button 
+                   onClick={(e) => { e.stopPropagation(); router.push(`/studios/create/${selectedStudio.id}`); }}
+                   className={`
+                     w-full py-3.5 text-sm font-black uppercase tracking-[0.2em] border-2 transition-transform active:scale-95
+                     ${theme === "dark" 
+                       ? "bg-white text-black border-white hover:bg-gray-200" 
+                       : "bg-black text-white border-black hover:bg-zinc-800"
+                     }
+                   `}
+                 >
+                   Book Session
+                 </button>
+               </div>
+            </div>
+          </div>
+        )}
+
       </div>
-    </div>
-  );
-};
+    );
+  };
+
+  
   // Grid View
   const GridView = () => (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">

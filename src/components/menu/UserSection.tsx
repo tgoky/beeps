@@ -1,8 +1,10 @@
+// UserSection.tsx
 "use client";
 
 import { useTheme } from "../../providers/ThemeProvider";
 import { LogOut, User, Settings } from "lucide-react";
 import { useGetIdentity } from "@refinedev/core";
+import { useEffect } from "react";
 
 interface UserSectionProps {
   collapsed: boolean;
@@ -29,26 +31,39 @@ export const UserSection = ({ collapsed, handleLogout }: UserSectionProps) => {
     role: identity?.roles?.[0] || "Member"
   };
 
+  // Inject Manrope font
+  useEffect(() => {
+    const link = document.createElement('link');
+    link.href = 'https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap';
+    link.rel = 'stylesheet';
+    document.head.appendChild(link);
+    return () => {
+      document.head.removeChild(link);
+    };
+  }, []);
+
   return (
-    <div className={`p-3 backdrop-blur-sm border-t ${
+    <div className={`p-3 border-t ${
       theme === "dark" 
-        ? "bg-gray-950/40 border-gray-800/50" 
-        : "bg-white/40 border-gray-200/60"
-    }`}>
+        ? "bg-black border-zinc-800" 
+        : "bg-white border-zinc-200"
+    }`} style={{ fontFamily: "'Manrope', sans-serif" }}>
       {!collapsed ? (
         <>
           {/* Compact User Info */}
           <div className={`
-            flex items-center gap-2.5 p-2 rounded-lg mb-2.5
+            flex items-center gap-2.5 p-2 rounded-lg mb-2.5 transition-all duration-200
             ${theme === "dark" 
-              ? "bg-gray-900/40 border-gray-800/60" 
-              : "bg-gray-50/50 border-gray-200/60"
+              ? "bg-black border-zinc-800 hover:border-zinc-700" 
+              : "bg-white border-zinc-200 hover:border-zinc-300"
             }
             border
           `}>
             {/* User Avatar */}
             <div className="relative flex-shrink-0">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-semibold">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-semibold ring-1 ring-white/10 ${
+                theme === "dark" ? "bg-zinc-900" : "bg-zinc-100"
+              }`}>
                 {user.avatar ? (
                   <img 
                     src={user.avatar} 
@@ -56,25 +71,27 @@ export const UserSection = ({ collapsed, handleLogout }: UserSectionProps) => {
                     className="w-8 h-8 rounded-lg object-cover"
                   />
                 ) : (
-                  <User className="w-3.5 h-3.5" />
+                  <User className={`w-3.5 h-3.5 ${
+                    theme === "dark" ? "text-zinc-500" : "text-zinc-400"
+                  }`} />
                 )}
               </div>
-              <div className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border-2 bg-green-500 ${
-                theme === "dark" ? "border-gray-900" : "border-white"
+              <div className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border-2 bg-emerald-500 ${
+                theme === "dark" ? "border-black" : "border-white"
               }`}></div>
             </div>
 
             {/* User Details */}
             <div className="flex-1 min-w-0">
               <h3 className={`
-                font-medium text-[13px] truncate
-                ${theme === "dark" ? "text-gray-200" : "text-gray-900"}
+                font-semibold text-[13px] truncate
+                ${theme === "dark" ? "text-zinc-200" : "text-zinc-900"}
               `}>
                 {user.name}
               </h3>
               <p className={`
-                text-[11px] truncate
-                ${theme === "dark" ? "text-gray-500" : "text-gray-600"}
+                text-[11px] font-medium truncate
+                ${theme === "dark" ? "text-zinc-600" : "text-zinc-500"}
               `}>
                 {user.role}
               </p>
@@ -88,17 +105,16 @@ export const UserSection = ({ collapsed, handleLogout }: UserSectionProps) => {
               className={`
                 flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg transition-all duration-200
                 ${theme === "dark" 
-                  ? "bg-gray-800/60 hover:bg-gray-800 text-gray-400 hover:text-gray-300" 
-                  : "bg-gray-100/80 hover:bg-gray-200 text-gray-600 hover:text-gray-700"
+                  ? "bg-zinc-900 hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300 border border-zinc-800" 
+                  : "bg-zinc-100 hover:bg-zinc-200 text-zinc-600 hover:text-zinc-900 border border-zinc-200"
                 }
-                border ${theme === "dark" ? "border-gray-800/60" : "border-gray-200/60"}
                 active:scale-95
               `}
               aria-label="Settings"
               title="Settings"
             >
               <Settings className="w-3.5 h-3.5" />
-              <span className="text-[11px] font-medium">Settings</span>
+              <span className="text-[11px] font-semibold tracking-wide">Settings</span>
             </button>
 
             {/* Logout Button */}
@@ -107,17 +123,16 @@ export const UserSection = ({ collapsed, handleLogout }: UserSectionProps) => {
               className={`
                 flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg transition-all duration-200
                 ${theme === "dark" 
-                  ? "bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300" 
-                  : "bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700"
+                  ? "bg-zinc-900 hover:bg-zinc-800 text-zinc-500 hover:text-red-400 border border-zinc-800" 
+                  : "bg-zinc-100 hover:bg-zinc-200 text-zinc-600 hover:text-red-600 border border-zinc-200"
                 }
-                border ${theme === "dark" ? "border-red-500/20" : "border-red-200/50"}
                 active:scale-95
               `}
               aria-label="Logout"
               title="Logout"
             >
               <LogOut className="w-3.5 h-3.5" />
-              <span className="text-[11px] font-medium">Logout</span>
+              <span className="text-[11px] font-semibold tracking-wide">Logout</span>
             </button>
           </div>
         </>
@@ -127,7 +142,9 @@ export const UserSection = ({ collapsed, handleLogout }: UserSectionProps) => {
           {/* User Avatar Only */}
           <div className="flex justify-center">
             <div className="relative">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white ring-1 ring-white/10 ${
+                theme === "dark" ? "bg-zinc-900" : "bg-zinc-100"
+              }`}>
                 {user.avatar ? (
                   <img 
                     src={user.avatar} 
@@ -135,11 +152,13 @@ export const UserSection = ({ collapsed, handleLogout }: UserSectionProps) => {
                     className="w-8 h-8 rounded-lg object-cover"
                   />
                 ) : (
-                  <User className="w-3.5 h-3.5" />
+                  <User className={`w-3.5 h-3.5 ${
+                    theme === "dark" ? "text-zinc-500" : "text-zinc-400"
+                  }`} />
                 )}
               </div>
-              <div className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border-2 bg-green-500 ${
-                theme === "dark" ? "border-gray-950" : "border-white"
+              <div className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border-2 bg-emerald-500 ${
+                theme === "dark" ? "border-black" : "border-white"
               }`}></div>
             </div>
           </div>
@@ -150,10 +169,9 @@ export const UserSection = ({ collapsed, handleLogout }: UserSectionProps) => {
               className={`
                 p-1.5 rounded-lg transition-all duration-200
                 ${theme === "dark" 
-                  ? "bg-gray-800/60 hover:bg-gray-800 text-gray-400 hover:text-gray-300" 
-                  : "bg-gray-100/80 hover:bg-gray-200 text-gray-600 hover:text-gray-700"
+                  ? "bg-zinc-900 hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300 border border-zinc-800" 
+                  : "bg-zinc-100 hover:bg-zinc-200 text-zinc-600 hover:text-zinc-900 border border-zinc-200"
                 }
-                border ${theme === "dark" ? "border-gray-800/60" : "border-gray-200/60"}
                 active:scale-95
               `}
               aria-label="Settings"
@@ -167,10 +185,9 @@ export const UserSection = ({ collapsed, handleLogout }: UserSectionProps) => {
               className={`
                 p-1.5 rounded-lg transition-all duration-200
                 ${theme === "dark" 
-                  ? "bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300" 
-                  : "bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700"
+                  ? "bg-zinc-900 hover:bg-zinc-800 text-zinc-500 hover:text-red-400 border border-zinc-800" 
+                  : "bg-zinc-100 hover:bg-zinc-200 text-zinc-600 hover:text-red-600 border border-zinc-200"
                 }
-                border ${theme === "dark" ? "border-red-500/20" : "border-red-200/50"}
                 active:scale-95
               `}
               aria-label="Logout"

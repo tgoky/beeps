@@ -1,29 +1,11 @@
-// components/menu/MenuGroup.tsx
+// MenuGroup.tsx
 "use client";
 
 import { usePathname } from "next/navigation";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronRight } from "lucide-react"; 
 import { useTheme } from "../../providers/ThemeProvider";
+import { MenuGroupConfig, IMenuItem } from "./NavigationMenu";
 import { MenuItem } from "./MenuItem";
-
-// Import the interfaces from NavigationMenu
-export interface IMenuItem {
-  key: string;
-  name: string;
-  label?: string;
-  route?: string;
-  icon?: React.ReactNode;
-  children?: IMenuItem[];
-  checked?: boolean;
-}
-
-export interface MenuGroupConfig {
-  id: string;
-  label: string;
-  icon: React.ReactElement;
-  items?: string[];
-  subGroups?: MenuGroupConfig[];
-}
 
 interface MenuGroupProps {
   group: MenuGroupConfig;
@@ -42,55 +24,60 @@ export const MenuGroup = ({
   selectedKey,
   isExpanded,
   toggleGroup,
-  allMenuItems,
 }: MenuGroupProps) => {
   const pathname = usePathname();
   const { theme } = useTheme();
 
-  // Check if any item in this group is selected
-  const hasSelectedItem = groupItems.some(item => item.key === selectedKey);
-
   const handleGroupHeaderClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!collapsed) {
-      toggleGroup(group.id); // Menu.tsx will handle the prevention logic
+      toggleGroup(group.id);
     }
   };
 
+  if (groupItems.length === 0) return null;
+
   return (
-    <div className="group">
+    <div className="mb-2">
       {/* Group Header */}
       <button
         onClick={handleGroupHeaderClick}
-        className={`w-full flex items-center gap-3 py-3 px-3 border-none rounded-lg transition-all duration-200 ${
-          theme === "dark"
-            ? "bg-gray-900 text-gray-300 hover:bg-gray-800 hover:text-white"
-            : "bg-gray-50 text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-        } ${collapsed ? "justify-center" : "justify-between"}
-        cursor-pointer`}
+        className={`w-full flex items-center gap-3 py-2 px-3 border-none bg-transparent transition-all duration-200 
+          ${collapsed ? "justify-center" : "justify-between group"}
+          ${theme === "dark" ? "hover:bg-zinc-900" : "hover:bg-zinc-100"} rounded-lg
+        `}
       >
         <div className="flex items-center gap-3">
-          <span className={`transition-colors ${
-            theme === "dark" ? "text-blue-400" : "text-blue-600"
-          }`}>
-            {group.icon}
-          </span>
+          {collapsed && (
+            <span className={`${theme === "dark" ? "text-zinc-600" : "text-zinc-400"}`}>
+              {group.icon}
+            </span>
+          )}
+          
           {!collapsed && (
-            <span className="font-semibold text-sm">{group.label}</span>
+            <span 
+              className={`text-[10px] font-bold uppercase tracking-[0.2em] transition-colors ${
+                theme === "dark" ? "text-zinc-600" : "text-zinc-400"
+              }`}
+              style={{ fontFamily: "'Manrope', sans-serif" }}
+            >
+              {group.label}
+            </span>
           )}
         </div>
-        {!collapsed && groupItems.length > 0 && (
-          <span className={`transition-colors ${
-            theme === "dark" ? "text-gray-500" : "text-gray-400"
-          }`}>
-            {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        
+        {!collapsed && (
+          <span className={`transition-transform duration-200 ${
+            theme === "dark" ? "text-zinc-700 group-hover:text-zinc-500" : "text-zinc-400 group-hover:text-zinc-600"
+          } ${isExpanded ? "rotate-90" : "rotate-0"}`}>
+            <ChevronRight className="h-3 w-3" />
           </span>
         )}
       </button>
 
-      {/* Expanded View: Items */}
+      {/* Expanded View */}
       {!collapsed && isExpanded && (
-        <div className="ml-2 mt-2 space-y-1">
+        <div className="mt-1 space-y-[2px]">
           {groupItems.map((item) => (
             <MenuItem
               key={item.key}
@@ -103,42 +90,37 @@ export const MenuGroup = ({
         </div>
       )}
 
-      {/* Collapsed View: Hover Menu */}
-      {collapsed && groupItems.length > 0 && (
-        <div className="relative">
-          <div
-            className={`absolute left-full top-0 ml-1 hidden group-hover:block z-50 ${
+      {/* Collapsed View (Tooltip Hover) */}
+      {collapsed && (
+        <div className="group relative">
+          <div 
+            className={`absolute left-full top-0 ml-2 hidden group-hover:block z-50 border shadow-2xl py-2 min-w-48 rounded-lg backdrop-blur-xl ${
               theme === "dark" 
-                ? "bg-black border-gray-700 shadow-2xl" 
-                : "bg-white border-gray-200 shadow-xl"
-            } border rounded-lg py-2 min-w-56 backdrop-blur-sm transition-all duration-200`}
+                ? "bg-zinc-950 border-zinc-800" 
+                : "bg-white border-zinc-200"
+            }`}
           >
-            <div
-              className={`px-4 py-3 border-b ${
-                theme === "dark" 
-                  ? "border-gray-700 bg-black" 
-                  : "border-gray-100 bg-gray-50"
-              } rounded-t-lg`}
-            >
-              <div className="flex items-center gap-2 text-sm font-semibold">
-                {group.icon}
-                <span className={theme === "dark" ? "text-gray-200" : "text-gray-800"}>
-                  {group.label}
-                </span>
+            <div className={`px-3 py-2 border-b ${
+              theme === "dark" ? "border-zinc-800" : "border-zinc-200"
+            }`}>
+              <div 
+                className={`text-[10px] font-bold uppercase tracking-[0.2em] ${
+                  theme === "dark" ? "text-zinc-600" : "text-zinc-400"
+                }`}
+                style={{ fontFamily: "'Manrope', sans-serif" }}
+              >
+                {group.label}
               </div>
             </div>
-            
-            <div className="max-h-96 overflow-y-auto">
-              {groupItems.map((item) => (
-                <MenuItem
-                  key={item.key}
-                  item={item}
-                  selected={selectedKey === item.key}
-                  collapsed={false}
-                  pathname={pathname}
-                />
-              ))}
-            </div>
+            {groupItems.map((item) => (
+              <MenuItem
+                key={item.key}
+                item={item}
+                selected={selectedKey === item.key}
+                collapsed={false}
+                pathname={pathname}
+              />
+            ))}
           </div>
         </div>
       )}
