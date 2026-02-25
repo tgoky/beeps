@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Search, MapPin, Star, CheckCircle2, Map, Plus , Grid, Navigation, Zap, X, Mic2, Maximize2, Minimize2 } from "lucide-react";
+import { Search, MapPin, Star, CheckCircle2, Map, Plus , Grid, Navigation, Zap, X, Mic2, Maximize2, Minimize2, ArrowUpRight } from "lucide-react";
 import { useTheme } from "../../providers/ThemeProvider";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useStudios } from "@/hooks/useStudios";
@@ -57,7 +57,9 @@ export default function StudioList() {
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [viewMode, setViewMode] = useState<"map" | "grid">("map");
   const [selectedStudio, setSelectedStudio] = useState<Studio | null>(null);
-  const [hoveredStudio, setHoveredStudio] = useState<number | null>(null);
+// change number to string here
+const [hoveredStudio, setHoveredStudio] = useState<string | null>(null);
+
   const [mapZoom, setMapZoom] = useState(4);
 
   // Get user's location
@@ -166,18 +168,24 @@ export default function StudioList() {
     // --- Projection Logic ---
     // Since we are using a drawn SVG map, we map coordinates to the visual layout.
     // In a real app with Mapbox/Leaflet, this is handled by the library.
-    const getPosition = (lat: number, lon: number) => {
-      // Deterministic pseudo-random placement based on lat/lon to keep them stable
-      // This spreads markers nicely across the "Land" part of our drawn map
-      const seedX = (Math.abs(lon) * 1000) % 100;
-      const seedY = (Math.abs(lat) * 1000) % 100;
-      
-      // Map to the "City" area (20-90% X, 10-80% Y)
-      return { 
-        x: 20 + (seedX * 0.7), 
-        y: 10 + (seedY * 0.7) 
-      };
-    };
+    const getPosition = (lat: number, lon: number, index: number) => {
+  // Constants for your "City" area on the SVG
+  const mapMinX = 25, mapMaxX = 85;
+  const mapMinY = 15, mapMaxY = 80;
+
+  // We use a small "index-based jitter" only to prevent 100% overlap 
+  // if two studios have the exact same coordinates.
+  const jitterX = (index * 1.5) % 3; 
+  const jitterY = (index * 1.5) % 3;
+
+  // This maps the lat/lon to a percentage of the map.
+  // Note: These divisors (0.1, 0.1) should be adjusted based on how "spread out" 
+  // your real studio data is.
+  const x = mapMinX + (Math.abs(lon * 100) % (mapMaxX - mapMinX)) + jitterX;
+  const y = mapMinY + (Math.abs(lat * 100) % (mapMaxY - mapMinY)) + jitterY;
+
+  return { x, y };
+};
 
     return (
       <div 
@@ -330,65 +338,88 @@ export default function StudioList() {
           </div>
 
           {/* E. Map Markers (Studios) */}
-          {filteredStudios.map((studio) => {
-             // Calculate visual position
-             const pos = studio.latitude && studio.longitude 
-               ? getPosition(studio.latitude, studio.longitude)
-               : { x: 50, y: 50 };
+       {/* E. Map Markers (Studios) */}
+{filteredStudios.map((studio, index) => {
+    // Calculate visual position
+    const pos = studio.latitude && studio.longitude 
+        ? getPosition(studio.latitude, studio.longitude)
+        : { x: 50, y: 50 };
 
-             const isSelected = selectedStudio?.id === studio.id;
-             const isHovered = hoveredStudio === studio.id;
+    const isSelected = selectedStudio?.id === studio.id;
+    // CRITICAL: Ensure string comparison for the hover state
+    const isHovered = String(hoveredStudio) === String(studio.id);
 
-             return (
-               <div
-                 key={studio.id}
-                 className="absolute transform -translate-x-1/2 -translate-y-1/2 z-20 cursor-pointer transition-all duration-200 will-change-transform"
-                 style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
-                 onClick={(e) => { e.stopPropagation(); setSelectedStudio(studio); }}
-                 onMouseEnter={() => setHoveredStudio(studio.id)}
-                 onMouseLeave={() => setHoveredStudio(null)}
-               >
-                 <div className={`
-                   relative flex flex-col items-center justify-center transition-transform duration-200
-                   ${isSelected ? "scale-125 z-50" : isHovered ? "scale-110 z-40" : "scale-100 z-10"}
-                 `}>
-                   
-                   {/* Hover Label (GTA Style Box) */}
-                   {(isSelected || isHovered) && (
-                     <div className={`
-                       absolute bottom-full mb-3 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest whitespace-nowrap rounded shadow-[4px_4px_0px_0px_rgba(0,0,0,0.4)]
-                       ${theme === "dark" 
-                         ? "bg-zinc-900 text-white border border-zinc-700" 
-                         : "bg-white text-black border border-black"
-                       }
-                     `}>
-                       {studio.name}
-                     </div>
-                   )}
+    return (
+        <div
+            key={studio.id}
+            className="absolute transform -translate-x-1/2 -translate-y-1/2 z-20 cursor-pointer transition-all duration-200 will-change-transform"
+            style={{ 
+                left: `${pos.x}%`, 
+                top: `${pos.y}%`,
+                // Ensure hovered/selected is always on top of others
+                zIndex: isSelected || isHovered ? 50 : 10 + index 
+            }}
+            onClick={(e) => { e.stopPropagation(); setSelectedStudio(studio); }}
+            onMouseEnter={() => setHoveredStudio(studio.id as any)}
+            onMouseLeave={() => setHoveredStudio(null)}
+        >
+            <div className={`
+                relative flex flex-col items-center justify-center transition-transform duration-200
+                ${isSelected || isHovered ? "scale-110" : "scale-100"}
+            `}>
+                
+                {/* 1. HOVER LABEL: Studio Name (GTA Style Box) */}
+                {/* This only appears when isHovered or isSelected is true */}
+                {(isSelected || isHovered) && (
+                    <div className={`
+                        absolute bottom-[140%] mb-2 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest whitespace-nowrap rounded shadow-[4px_4px_0px_0px_rgba(0,0,0,0.4)] border-2 animate-in fade-in slide-in-from-bottom-1
+                        ${theme === "dark" 
+                            ? "bg-zinc-900 text-white border-zinc-700" 
+                            : "bg-white text-black border-black"
+                        }
+                    `}>
+                        {studio.name}
+                        {/* Little pointer triangle */}
+                        <div className={`absolute left-1/2 -bottom-1.5 -translate-x-1/2 w-2 h-2 rotate-45 border-r-2 border-b-2 ${theme === "dark" ? "bg-zinc-900 border-zinc-700" : "bg-white border-black"}`} />
+                    </div>
+                )}
 
-                   {/* The Icon Blip */}
-                   <div className={`
-                     w-9 h-9 rounded-full flex items-center justify-center border-2 shadow-lg
-                     ${isSelected 
-                       ? "bg-black border-white text-white dark:bg-white dark:border-black dark:text-black" 
-                       : theme === "dark"
-                         ? "bg-zinc-800 border-zinc-600 text-zinc-400"
-                         : "bg-white border-black text-black"
-                     }
-                   `}>
-                     {isSelected 
+                {/* 2. THE ROUND PRICE INDICATOR */}
+                <div className={`
+                    w-9 h-9 rounded-full flex items-center justify-center border-2 shadow-lg relative z-10
+                    ${isSelected 
+                        ? "bg-black border-white text-white dark:bg-white dark:border-black dark:text-black" 
+                        : theme === "dark"
+                            ? "bg-zinc-800 border-zinc-600 text-zinc-400"
+                            : "bg-white border-black text-black"
+                    }
+                `}>
+                    {isSelected 
                         ? <Mic2 size={16} strokeWidth={3} /> 
                         : <span className="text-[10px] font-bold tracking-tighter">${studio.hourlyRate}</span>
-                     }
-                   </div>
-                   
-                   {/* "Ground Stick" Shadow */}
-                   <div className="w-0.5 h-3 bg-black/40" />
-                   <div className="w-5 h-1.5 bg-black/20 rounded-full blur-[2px]" />
-                 </div>
-               </div>
-             );
-          })}
+                    }
+                </div>
+                
+                {/* 3. THE GROUND STICK */}
+                <div className="w-0.5 h-3 bg-black/40 dark:bg-white/30" />
+
+                {/* 4. THE LOCATION LABEL (Always Visible Underneath) */}
+                <div className={`
+                    px-2 py-0.5 rounded-[3px] border shadow-sm mt-[-2px]
+                    ${theme === "dark"
+                        ? "bg-black/90 border-zinc-700 text-zinc-500"
+                        : "bg-white/90 border-gray-300 text-gray-500"
+                    }
+                `}>
+                    <span className="text-[8px] font-black uppercase tracking-wider leading-none whitespace-nowrap block">
+                        {studio.location.split(',')[0]} 
+                    </span>
+                </div>
+            </div>
+        </div>
+    );
+})}
+
           
           {/* User Location Arrow */}
           {userLocation && (
@@ -537,8 +568,9 @@ export default function StudioList() {
 
   
   // Grid View
+  // Compact Grid View
   const GridView = () => (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
       {filteredStudios.map((studio) => {
         const distance = userLocation && studio.latitude && studio.longitude
           ? calculateDistance(userLocation.lat, userLocation.lon, studio.latitude, studio.longitude)
@@ -547,104 +579,109 @@ export default function StudioList() {
         return (
           <div
             key={studio.id}
-            className={`group rounded-xl border overflow-hidden transition-all duration-200 cursor-pointer hover:shadow-lg active:scale-[0.98] ${
+            className={`group flex flex-col rounded-2xl border overflow-hidden transition-all duration-300 cursor-pointer hover:-translate-y-1 ${
               theme === "dark"
-                ? "border-zinc-800 bg-zinc-900/40 hover:border-zinc-700 hover:bg-zinc-900/60"
-                : "border-gray-300 bg-white hover:border-gray-400 hover:bg-gray-50"
+                ? "border-zinc-800 bg-[#121214] hover:border-zinc-700 hover:bg-[#18181b] hover:shadow-xl hover:shadow-black/50"
+                : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-lg"
             }`}
             onClick={() => router.push(`/studios/create/${studio.id}`)}
           >
-            <div className="relative h-44 overflow-hidden">
+            {/* Compact Image Area */}
+            <div className="relative aspect-square overflow-hidden bg-zinc-800">
               <img
                 alt={studio.name}
                 src={studio.imageUrl || "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=800&q=80"}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
               />
-              <div className={`absolute top-3 right-3 px-2.5 py-1 rounded-lg text-xs font-light tracking-wide backdrop-blur-sm ${
+              
+              {/* Price Badge (Floating) */}
+              <div className={`absolute top-2 right-2 px-2 py-1 rounded-md text-[10px] font-bold tracking-wide backdrop-blur-md ${
                 theme === "dark"
-                  ? "bg-black/80 text-white border border-zinc-800"
-                  : "bg-white/80 text-black border border-gray-300"
+                  ? "bg-black/60 text-white border border-white/10"
+                  : "bg-white/90 text-black border border-gray-200"
               }`}>
                 ${studio.hourlyRate}/hr
               </div>
+
+              {/* Gradient Overlay for Text Readability */}
+              <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 to-transparent opacity-60" />
+              
+              {/* Rating Badge (Bottom Left on Image) */}
+              <div className="absolute bottom-2 left-2 flex items-center gap-1">
+                 <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                 <span className="text-[10px] font-bold text-white">{studio.rating}</span>
+              </div>
             </div>
 
-            <div className="p-4 space-y-3">
-              <div>
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <h3 className={`text-sm font-light tracking-wide line-clamp-1 ${
-                    theme === "dark" ? "text-white" : "text-gray-900"
-                  }`}>
-                    {studio.name}
-                  </h3>
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    <Star className="w-3.5 h-3.5 fill-yellow-500 text-yellow-500" strokeWidth={2} />
-                    <span className={`text-xs font-light ${
-                      theme === "dark" ? "text-zinc-400" : "text-gray-600"
-                    }`}>
-                      {studio.rating}
-                    </span>
-                  </div>
-                </div>
-
-                <div className={`flex items-center gap-1.5 text-xs font-light tracking-wide ${
-                  theme === "dark" ? "text-zinc-500" : "text-gray-600"
+            {/* Content Body */}
+            <div className="p-3 flex flex-col flex-1">
+              <div className="mb-2">
+                <h3 className={`text-xs font-bold truncate mb-0.5 ${
+                  theme === "dark" ? "text-zinc-100" : "text-gray-900"
                 }`}>
-                  <MapPin className="w-3.5 h-3.5" strokeWidth={2} />
-                  <span className="line-clamp-1">
-                    {studio.location}
-                    {distance !== null && (
-                      <span className={`ml-1 ${
-                        theme === "dark" ? "text-zinc-600" : "text-gray-500"
-                      }`}>• {Math.round(distance)}mi</span>
-                    )}
+                  {studio.name}
+                </h3>
+                
+                <div className={`flex items-center gap-1 text-[10px] truncate ${
+                  theme === "dark" ? "text-zinc-500" : "text-gray-500"
+                }`}>
+                  <MapPin className="w-3 h-3 shrink-0" />
+                  <span className="truncate">
+                    {studio.location.split(',')[0]}
+                    {distance !== null && <span className="ml-1 opacity-70">• {Math.round(distance)}mi</span>}
                   </span>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <div className={`flex items-center gap-1.5 text-xs font-light tracking-wide ${
-                  theme === "dark" ? "text-zinc-500" : "text-gray-600"
-                }`}>
-                  <Mic2 className="w-3.5 h-3.5" strokeWidth={2} />
-                  <span>Featured Gear</span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {studio.equipment.slice(0, 3).map((item, idx) => (
-                    <span
-                      key={idx}
-                      className={`px-2 py-1 text-[10px] font-light tracking-wide rounded border ${
-                        theme === "dark"
-                          ? "bg-zinc-900 text-zinc-400 border-zinc-800"
-                          : "bg-gray-100 text-gray-700 border-gray-300"
-                      }`}
-                    >
-                      {item}
+              {/* Gear Tags (Tiny) */}
+              <div className="flex flex-wrap gap-1 mb-3 h-5 overflow-hidden">
+                 {studio.equipment.slice(0, 2).map((item, i) => (
+                    <span key={i} className={`text-[9px] px-1.5 py-0.5 rounded border ${
+                       theme === 'dark' ? 'border-zinc-800 bg-zinc-900 text-zinc-400' : 'border-gray-100 bg-gray-50 text-gray-500'
+                    }`}>
+                       {item}
                     </span>
-                  ))}
-                </div>
+                 ))}
+                 {studio.equipment.length > 2 && (
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded border ${
+                       theme === 'dark' ? 'border-zinc-800 bg-zinc-900 text-zinc-500' : 'border-gray-100 bg-gray-50 text-gray-400'
+                    }`}>+{studio.equipment.length - 2}</span>
+                 )}
               </div>
 
-              <button
-                className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-medium rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
-                  theme === "dark"
-                    ? "bg-white border-white text-black hover:bg-zinc-100"
-                    : "bg-black border-black text-white hover:bg-gray-800"
-                }`}
-                onClick={(e) => {
-                  e.stopPropagation();
+              {/* Footer: Stats + Circular Action Button */}
+              <div className={`mt-auto pt-3 border-t flex items-center justify-between ${
+                 theme === 'dark' ? 'border-zinc-800' : 'border-gray-100'
+              }`}>
+                 <div className="flex flex-col">
+                    <span className={`text-[9px] uppercase font-bold ${theme === 'dark' ? 'text-zinc-600' : 'text-gray-400'}`}>Capacity</span>
+                    <span className={`text-[10px] font-bold ${theme === 'dark' ? 'text-zinc-300' : 'text-gray-700'}`}>
+                       {studio.capacity || "4 People"}
+                    </span>
+                 </div>
+
+                 {/* THE CIRCULAR BUTTON YOU LIKED */}
+                 <button 
+                   onClick={(e) => {
+                     e.stopPropagation();
                      router.push(`/studios/create/${studio.id}`);
-                }}
-              >
-                <CheckCircle2 className="w-4 h-4" strokeWidth={2} />
-                Book Studio
-              </button>
+                   }}
+                   className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 ${
+                     theme === 'dark' 
+                      ? 'bg-white text-black hover:shadow-[0_0_15px_-5px_rgba(255,255,255,0.5)]' 
+                      : 'bg-black text-white hover:shadow-[0_0_15px_-5px_rgba(0,0,0,0.3)]'
+                   }`}
+                 >
+                    <ArrowUpRight className="w-4 h-4 transition-transform duration-300 group-hover:rotate-45" />
+                 </button>
+              </div>
             </div>
           </div>
         );
       })}
     </div>
   );
+
 
   return (
     <div className={`min-h-screen p-6 transition-colors duration-200 ${
@@ -801,7 +838,7 @@ export default function StudioList() {
             }`}
           >
             <Navigation className="w-4 h-4" strokeWidth={2} />
-            {isLoadingLocation ? "Locating..." : "My Location"}
+            {isLoadingLocation ? "Locating..." : ""}
           </button>
         </div>
 
@@ -856,3 +893,4 @@ export default function StudioList() {
     </div>
   );
 }
+

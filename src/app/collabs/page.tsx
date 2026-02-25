@@ -815,186 +815,206 @@ const sessions: BookingSession[] = apiCollaborations.map(transformCollaboration)
           </div>
 
           {/* Sidebar - 1 column */}
+         {/* Sidebar - 1 column */}
           <div className="xl:col-span-1 space-y-6">
-            {/* Booking Activity */}
-            <div className={`rounded-xl border p-4 ${
+            
+            {/* Booking Activity - REDESIGNED */}
+            <div className={`rounded-xl border h-fit ${
               theme === "dark" 
                 ? "border-zinc-800 bg-zinc-950" 
                 : "border-gray-300 bg-white"
             }`}>
-              <h2 className={`text-lg font-light tracking-wide mb-4 ${
-                theme === "dark" ? "text-white" : "text-gray-900"
-              }`}>
-                Booking Activity
-              </h2>
+              <div className="p-5 border-b border-dashed border-gray-200 dark:border-zinc-800 flex justify-between items-center">
+                <h2 className={`text-base font-medium tracking-tight ${
+                  theme === "dark" ? "text-white" : "text-gray-900"
+                }`}>
+                  Recent Activity
+                </h2>
+                <span className={`text-xs px-2 py-1 rounded-full ${
+                  theme === "dark" ? "bg-zinc-900 text-zinc-400" : "bg-gray-100 text-gray-500"
+                }`}>
+                  Live
+                </span>
+              </div>
               
-              <div className="space-y-3">
-                {activityData.map((activity) => (
+              <div className="p-2">
+                {activityData.map((activity, index) => (
                   <div
                     key={activity.id}
-                    className={`p-3 rounded-lg border transition-all duration-200 cursor-pointer ${
-                      theme === "dark"
-                        ? "border-zinc-800 bg-zinc-900 hover:border-zinc-700 hover:bg-zinc-800"
-                        : "border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100"
-                    }`}
+                    className={`group flex gap-4 p-3 rounded-lg transition-all duration-200 hover:bg-gray-50 dark:hover:bg-zinc-900/50 relative`}
                   >
-                    <div className="flex items-start gap-3">
+                    {/* Timeline Line (Optional visual connector) */}
+                    {index !== activityData.length - 1 && (
+                      <div className={`absolute left-[27px] top-10 bottom-[-12px] w-[1px] ${
+                        theme === "dark" ? "bg-zinc-800" : "bg-gray-200"
+                      }`} />
+                    )}
+
+                    {/* Avatar */}
+                    <div className="relative flex-shrink-0 z-10">
                       <img
                         src={activity.user.avatar}
                         alt={activity.user.name}
-                        className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                        className="w-10 h-10 rounded-full object-cover ring-2 ring-transparent group-hover:ring-offset-2 group-hover:ring-gray-200 dark:group-hover:ring-zinc-700 transition-all"
                       />
-                      <div className="flex-1 min-w-0">
-                        <div className={`text-xs font-light tracking-wide mb-1 ${
-                          theme === "dark" ? "text-white" : "text-gray-900"
+                      {/* Status Icon Indicator */}
+                      <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 ${theme === "dark" ? "border-zinc-950" : "border-white"} flex items-center justify-center ${
+                         activity.action === 'booked' ? "bg-green-500" :
+                         activity.action === 'requested' ? "bg-yellow-500" :
+                         activity.action === 'accepted' ? "bg-blue-500" : "bg-red-500"
+                      }`}>
+                        {activity.action === 'booked' ? <CheckCircle className="w-2 h-2 text-white" /> :
+                         activity.action === 'requested' ? <Clock className="w-2 h-2 text-white" /> :
+                         <Zap className="w-2 h-2 text-white" />}
+                      </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0 py-0.5">
+                      <div className="flex justify-between items-start mb-0.5">
+                        <p className={`text-sm font-medium truncate ${
+                          theme === "dark" ? "text-zinc-200" : "text-gray-900"
                         }`}>
-                          <span className="font-medium">{activity.user.name}</span>
-                          {' '}
-                          <span className={theme === "dark" ? "text-zinc-500" : "text-gray-600"}>
-                            {activity.action === 'booked' ? 'booked' : 
-                             activity.action === 'requested' ? 'requested' :
-                             activity.action === 'accepted' ? 'accepted' : 'rejected'}
-                          </span>
-                          {' '}
-                          <span className="font-medium">{activity.session}</span>
-                          {activity.price && (
-                            <>
-                              {' for '}
-                              <span className="font-medium">{activity.price}</span>
-                            </>
-                          )}
-                        </div>
-                        <div className={`text-xs font-light tracking-wide ${
-                          theme === "dark" ? "text-zinc-600" : "text-gray-500"
+                          {activity.user.name}
+                        </p>
+                        <span className={`text-[10px] whitespace-nowrap ${
+                          theme === "dark" ? "text-zinc-500" : "text-gray-400"
                         }`}>
                           {activity.time}
-                        </div>
+                        </span>
                       </div>
-                      <span
-                        className={`
-                          px-2 py-1 text-xs font-light rounded-full tracking-wide flex-shrink-0
-                          ${activity.action === 'booked'
-                            ? "bg-green-500/10 text-green-400 border border-green-500/20"
-                            : activity.action === 'requested'
-                              ? "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
-                              : activity.action === 'accepted'
-                                ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                                : "bg-red-500/10 text-red-400 border border-red-500/20"
-                          }
-                        `}
-                      >
-                        {activity.action === 'booked' ? 'Booked' :
-                         activity.action === 'requested' ? 'Pending' :
-                         activity.action === 'accepted' ? 'Accepted' : 'Rejected'}
-                      </span>
+
+                      <p className={`text-xs mb-1.5 ${
+                        theme === "dark" ? "text-zinc-400" : "text-gray-500"
+                      }`}>
+                        <span className={
+                          activity.action === 'booked' ? "text-green-400 dark:text-green-400" :
+                          activity.action === 'requested' ? "text-yellow-500 dark:text-yellow-400" :
+                          activity.action === 'accepted' ? "text-blue-500 dark:text-blue-400" : ""
+                        }>
+                          {activity.action === 'booked' ? 'Booked session' : 
+                           activity.action === 'requested' ? 'Requested collab' :
+                           activity.action === 'accepted' ? 'Accepted offer' : 'Rejected'}
+                        </span>
+                        <span className="mx-1 opacity-50">•</span>
+                        <span className={theme === "dark" ? "text-zinc-500" : "text-gray-600"}>
+                          {activity.session}
+                        </span>
+                      </p>
+
+                      {activity.price && (
+                        <div className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium tracking-wide ${
+                          theme === "dark" 
+                            ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" 
+                            : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                        }`}>
+                          <DollarSign className="w-2.5 h-2.5 mr-0.5" />
+                          {activity.price.replace('$', '')}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
               </div>
+              
+              <div className="p-3 border-t border-dashed border-gray-200 dark:border-zinc-800">
+                <button className={`w-full py-2 text-xs text-center transition-colors ${
+                  theme === "dark" ? "text-zinc-500 hover:text-zinc-300" : "text-gray-500 hover:text-gray-800"
+                }`}>
+                  View all activity
+                </button>
+              </div>
             </div>
 
-            {/* Trending Studios */}
-            <div className={`rounded-xl border p-4 ${
+            {/* Trending Studios - REFRESHED */}
+            <div className={`rounded-xl border overflow-hidden ${
               theme === "dark" 
                 ? "border-zinc-800 bg-zinc-950" 
                 : "border-gray-300 bg-white"
             }`}>
-              <h3 className={`text-lg font-light tracking-wide mb-4 ${
-                theme === "dark" ? "text-white" : "text-gray-900"
-              }`}>
-                Trending Studios
-              </h3>
-              <div className="space-y-3">
+              <div className="p-5 border-b border-gray-100 dark:border-zinc-800">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className={`w-4 h-4 ${theme === "dark" ? "text-purple-400" : "text-purple-600"}`} />
+                  <h3 className={`text-sm font-medium tracking-wide ${
+                    theme === "dark" ? "text-white" : "text-gray-900"
+                  }`}>
+                    Trending Studios
+                  </h3>
+                </div>
+              </div>
+              
+              <div className="divide-y divide-gray-100 dark:divide-zinc-800">
                 {sessions.filter(s => s.studio).slice(0, 4).map((session) => (
                   <div
                     key={session.id}
-                    className={`flex items-center gap-3 p-3 rounded-lg border transition-all duration-200 cursor-pointer ${
-                      theme === "dark"
-                        ? "border-zinc-800 bg-zinc-900 hover:border-zinc-700 hover:bg-zinc-800"
-                        : "border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100"
-                    }`}
+                    className={`flex items-center gap-3 p-4 transition-all duration-200 hover:bg-gray-50 dark:hover:bg-zinc-900 cursor-pointer`}
                   >
-                    <img
-                      src={session.studio?.avatar}
-                      alt={session.studio?.name}
-                      className="w-10 h-10 rounded-full object-cover flex-shrink-0"
-                    />
+                    <div className="relative">
+                      <img
+                        src={session.studio?.avatar}
+                        alt={session.studio?.name}
+                        className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+                      />
+                      <div className="absolute -top-1 -left-1 w-4 h-4 flex items-center justify-center bg-black dark:bg-white text-white dark:text-black rounded-full text-[9px] font-bold">
+                        {session.id}
+                      </div>
+                    </div>
+                    
                     <div className="flex-1 min-w-0">
-                      <div className={`text-sm font-light tracking-wide truncate mb-1 ${
-                        theme === "dark" ? "text-white" : "text-gray-900"
+                      <div className={`text-sm font-medium truncate ${
+                        theme === "dark" ? "text-zinc-200" : "text-gray-800"
                       }`}>
                         {session.studio?.name}
                       </div>
-                      <div className={`text-xs font-light tracking-wide ${
-                        theme === "dark" ? "text-zinc-500" : "text-gray-600"
+                      <div className={`flex items-center gap-1 text-xs ${
+                        theme === "dark" ? "text-zinc-500" : "text-gray-500"
                       }`}>
-                        {session.location}
+                        <MapPin className="w-3 h-3" />
+                        <span className="truncate">{session.location.split(',')[0]}</span>
                       </div>
                     </div>
+                    
                     <button
-                      className={`px-3 py-1 text-xs font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
+                      className={`p-1.5 rounded-md transition-colors ${
                         theme === "dark"
-                          ? "bg-white border-white text-black hover:bg-zinc-100"
-                          : "bg-black border-black text-white hover:bg-gray-800"
+                          ? "hover:bg-zinc-800 text-zinc-400"
+                          : "hover:bg-gray-100 text-gray-400"
                       }`}
                     >
-                      View
+                      <Plus className="w-4 h-4" />
                     </button>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Stats Card */}
-            <div className={`rounded-xl border p-4 ${
+            {/* Stats Card - CLEANER */}
+            <div className={`rounded-xl border p-5 ${
               theme === "dark" 
                 ? "border-zinc-800 bg-zinc-950" 
                 : "border-gray-300 bg-white"
             }`}>
-              <h3 className={`text-lg font-light tracking-wide mb-4 ${
+              <h3 className={`text-sm font-medium tracking-wide mb-4 ${
                 theme === "dark" ? "text-white" : "text-gray-900"
               }`}>
-                  Today&apos;s Stats
+                  Market Overview
               </h3>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className={`text-sm font-light tracking-wide ${
-                    theme === "dark" ? "text-zinc-500" : "text-gray-600"
-                  }`}>
-                    Active Deals
-                  </span>
-                  <span className={`text-sm font-light tracking-wide ${
-                    theme === "dark" ? "text-white" : "text-gray-900"
-                  }`}>
-                    {sessions.filter(s => s.type === 'deal').length}
-                  </span>
+              <div className="grid grid-cols-3 gap-2">
+                <div className={`p-3 rounded-lg text-center border ${theme === "dark" ? "bg-zinc-900 border-zinc-800" : "bg-gray-50 border-gray-100"}`}>
+                   <p className={`text-xs mb-1 ${theme === "dark" ? "text-zinc-500" : "text-gray-500"}`}>Deals</p>
+                   <p className={`text-lg font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{sessions.filter(s => s.type === 'deal').length}</p>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className={`text-sm font-light tracking-wide ${
-                    theme === "dark" ? "text-zinc-500" : "text-gray-600"
-                  }`}>
-                    Open Collabs
-                  </span>
-                  <span className={`text-sm font-light tracking-wide ${
-                    theme === "dark" ? "text-white" : "text-gray-900"
-                  }`}>
-                    {sessions.filter(s => s.type === 'collab').length}
-                  </span>
+                <div className={`p-3 rounded-lg text-center border ${theme === "dark" ? "bg-zinc-900 border-zinc-800" : "bg-gray-50 border-gray-100"}`}>
+                   <p className={`text-xs mb-1 ${theme === "dark" ? "text-zinc-500" : "text-gray-500"}`}>Collabs</p>
+                   <p className={`text-lg font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{sessions.filter(s => s.type === 'collab').length}</p>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className={`text-sm font-light tracking-wide ${
-                    theme === "dark" ? "text-zinc-500" : "text-gray-600"
-                  }`}>
-                    Bid Sessions
-                  </span>
-                  <span className={`text-sm font-light tracking-wide ${
-                    theme === "dark" ? "text-white" : "text-gray-900"
-                  }`}>
-                    {sessions.filter(s => s.type === 'bid').length}
-                  </span>
+                <div className={`p-3 rounded-lg text-center border ${theme === "dark" ? "bg-zinc-900 border-zinc-800" : "bg-gray-50 border-gray-100"}`}>
+                   <p className={`text-xs mb-1 ${theme === "dark" ? "text-zinc-500" : "text-gray-500"}`}>Bids</p>
+                   <p className={`text-lg font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>{sessions.filter(s => s.type === 'bid').length}</p>
                 </div>
               </div>
             </div>
+            
           </div>
         </div>
       </div>

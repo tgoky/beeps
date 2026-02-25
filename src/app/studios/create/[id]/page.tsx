@@ -211,7 +211,7 @@ const handleBooking = async () => {
     router.push("/bookings");
   } catch (error: any) {
     console.error("Booking error:", error);
-    
+     
     // ✅ FIX: Ensure we display a string, not an object
     const errorMessage = error.message || "Failed to create booking. Please try again.";
     setBookingError(errorMessage);
