@@ -84,15 +84,49 @@ export async function GET(req: NextRequest) {
         console.log("ServiceRequest model not available");
       }
 
-      // Combine and format all bookings
+      // Combine and format all bookings with session lifecycle info
+      const now = new Date();
       const allBookings = {
-        studioBookings: studioBookings.map(booking => ({
-          ...booking,
-          type: "STUDIO_BOOKING",
-          itemName: booking.studio.name,
-          providerName: booking.studio.owner.user.fullName || booking.studio.owner.user.username,
-          customerName: booking.user.fullName || booking.user.username,
-        })),
+        studioBookings: studioBookings.map(booking => {
+          const startTime = new Date(booking.startTime);
+          const endTime = new Date(booking.endTime);
+          const isActive = booking.status === "ACTIVE";
+          const checkedInAt = booking.checkedInAt ? new Date(booking.checkedInAt) : null;
+
+          let timeRemaining = null;
+          let isOvertime = false;
+          let overtimeMinutes = 0;
+
+          if (isActive && checkedInAt) {
+            const minutesUntilEnd = Math.round((endTime.getTime() - now.getTime()) / (1000 * 60));
+            if (minutesUntilEnd > 0) {
+              timeRemaining = minutesUntilEnd;
+            } else {
+              isOvertime = true;
+              overtimeMinutes = Math.abs(minutesUntilEnd);
+            }
+          }
+
+          return {
+            ...booking,
+            type: "STUDIO_BOOKING",
+            itemName: booking.studio.name,
+            providerName: booking.studio.owner.user.fullName || booking.studio.owner.user.username,
+            customerName: booking.user.fullName || booking.user.username,
+            sessionInfo: {
+              isActive,
+              checkedInAt: booking.checkedInAt,
+              checkedOutAt: booking.checkedOutAt,
+              qrCode: booking.qrCode,
+              paymentStatus: booking.paymentStatus,
+              overtimeMinutes: booking.overtimeMinutes,
+              overtimeAmount: booking.overtimeAmount,
+              timeRemaining,
+              isOvertime,
+              currentOvertimeMinutes: overtimeMinutes,
+            },
+          };
+        }),
         equipmentRentals: [], // Removed - Transaction model doesn't support buyer/seller queries
         serviceRequests: serviceRequests.map(request => ({
           ...request,

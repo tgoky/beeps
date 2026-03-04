@@ -149,15 +149,19 @@ model StudioOwnerProfile {
   id            String   @id @default(uuid())
   userId        String   @unique @map("user_id")
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   studioName    String   @map("studio_name")
   capacity      String?
   equipment     String[]
   hourlyRate    String?  @map("hourly_rate")
-  
+
+  // Stripe Connect for receiving payments
+  stripeConnectId   String?  @map("stripe_connect_id")
+  stripeOnboarded   Boolean  @default(false) @map("stripe_onboarded")
+
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
-  
+
   studios       Studio[]
 
   @@map("studio_owner_profiles")
@@ -483,33 +487,56 @@ model Service {
 enum BookingStatus {
   PENDING
   CONFIRMED
+  ACTIVE          // Session is currently in progress (checked in)
   COMPLETED
   CANCELLED
 }
 
+enum PaymentStatus {
+  UNPAID            // No payment yet
+  PAYMENT_HELD      // Funds authorized/held (escrow)
+  PAYMENT_CAPTURED  // Funds captured after session
+  PAYMENT_RELEASED  // Funds released to studio owner
+  REFUNDED          // Funds returned to customer
+}
+
 model Booking {
   id            String         @id @default(uuid())
-  
+
   studioId      String         @map("studio_id")
   studio        Studio         @relation(fields: [studioId], references: [id], onDelete: Cascade)
-  
+
   userId        String         @map("user_id")
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   startTime     DateTime       @map("start_time")
   endTime       DateTime       @map("end_time")
-  
+
   status        BookingStatus  @default(PENDING)
-  
+
   totalAmount   Decimal        @map("total_amount") @db.Decimal(10, 2)
-  
+
   notes         String?
-  
+
+  // Session lifecycle fields
+  checkedInAt       DateTime?      @map("checked_in_at")
+  checkedOutAt      DateTime?      @map("checked_out_at")
+  qrCode            String?        @unique @map("qr_code")         // Unique QR code for check-in
+  overtimeMinutes   Int            @default(0) @map("overtime_minutes")
+  overtimeAmount    Decimal        @default(0) @map("overtime_amount") @db.Decimal(10, 2)
+
+  // Payment/escrow fields
+  paymentStatus     PaymentStatus  @default(UNPAID) @map("payment_status")
+  paymentIntentId   String?        @map("payment_intent_id")       // Stripe PaymentIntent ID
+  platformFee       Decimal        @default(0) @map("platform_fee") @db.Decimal(10, 2)
+
   createdAt     DateTime       @default(now()) @map("created_at")
   updatedAt     DateTime       @updatedAt @map("updated_at")
 
   @@index([studioId])
   @@index([userId])
+  @@index([status])
+  @@index([paymentStatus])
   @@map("bookings")
 }
 
@@ -693,6 +720,9 @@ enum ActivityType {
   LEAVE_CLUB
   JOB_REQUEST_SENT
   JOB_STATUS_UPDATED
+  SESSION_STARTED
+  SESSION_ENDED
+  PAYMENT_RECEIVED
 }
 
 model Activity {
@@ -731,6 +761,16 @@ enum NotificationType {
   COLLABORATION_REQUEST
   BID_ACCEPTED
   BID_REJECTED
+  // Session lifecycle notifications
+  SESSION_STARTING_SOON   // Reminder: session starts in 30 min
+  SESSION_CHECKED_IN      // Artist has checked in / session started
+  SESSION_ENDING_SOON     // Session ends in 15 min
+  SESSION_CHECKED_OUT     // Session ended
+  SESSION_OVERTIME        // Session went into overtime
+  // Payment lifecycle notifications
+  PAYMENT_HELD            // Payment authorized/held in escrow
+  PAYMENT_RELEASED        // Payment released to studio owner
+  PAYMENT_REFUNDED        // Payment refunded to customer
 }
 
 model Notification {
