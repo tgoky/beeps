@@ -145,7 +145,7 @@ export async function PATCH(
       }
 
       // Validate status if provided
-      if (body.status && !["PENDING", "CONFIRMED", "COMPLETED", "CANCELLED"].includes(body.status)) {
+      if (body.status && !["PENDING", "CONFIRMED", "ACTIVE", "COMPLETED", "CANCELLED"].includes(body.status)) {
         return NextResponse.json<ApiResponse>({
           success: false,
           error: {

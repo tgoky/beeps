@@ -151,6 +151,26 @@ function getRouteByNotificationType(
         closeDropdown: true,
       };
 
+    // Session lifecycle notifications
+    case "SESSION_STARTING_SOON":
+    case "SESSION_CHECKED_IN":
+    case "SESSION_ENDING_SOON":
+    case "SESSION_CHECKED_OUT":
+    case "SESSION_OVERTIME":
+      return {
+        path: `/bookings/show/${referenceId}`,
+        closeDropdown: true,
+      };
+
+    // Payment lifecycle notifications
+    case "PAYMENT_HELD":
+    case "PAYMENT_RELEASED":
+    case "PAYMENT_REFUNDED":
+      return {
+        path: `/bookings/show/${referenceId}`,
+        closeDropdown: true,
+      };
+
     default:
       return { path: null };
   }
@@ -171,6 +191,16 @@ export function getNotificationTypeLabel(type: string): string {
     NEW_FOLLOWER: "New Follower",
     CLUB_INVITATION: "Club Invitation",
     TRANSACTION_COMPLETED: "Payment Complete",
+    // Session lifecycle
+    SESSION_STARTING_SOON: "Session Starting Soon",
+    SESSION_CHECKED_IN: "Session Started",
+    SESSION_ENDING_SOON: "Session Ending Soon",
+    SESSION_CHECKED_OUT: "Session Ended",
+    SESSION_OVERTIME: "Session Overtime",
+    // Payment lifecycle
+    PAYMENT_HELD: "Payment Held",
+    PAYMENT_RELEASED: "Payment Released",
+    PAYMENT_REFUNDED: "Payment Refunded",
   };
 
   return labels[type] || type.replace(/_/g, " ").toLowerCase();

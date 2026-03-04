@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAllBookings, useUpdateBookingStatus, useCancelBooking } from "@/hooks/useBookings";
+import { useAllBookings, useUpdateBookingStatus, useCancelBooking, useCheckIn, useCheckOut, usePayBooking, useReleasePayment } from "@/hooks/useBookings";
 import { useTheme } from "@/providers/ThemeProvider";
 import { createBrowserClient } from "@supabase/ssr";
 import { useUserBySupabaseId } from "@/hooks/api/useUserData";
@@ -35,13 +35,14 @@ import {
   Zap,
   Check,
   Play,
+  Square,
   MessageCircle,
 } from "lucide-react";
 import dayjs from "dayjs";
 
 type BookingType = "all" | "studio" | "equipment" | "service" | "beat";
 type ViewMode = "customer" | "provider";
-type StatusFilter = "all" | "pending" | "confirmed" | "cancelled" | "completed";
+type StatusFilter = "all" | "pending" | "confirmed" | "active" | "cancelled" | "completed";
 
 export default function BookingsPage() {
   const router = useRouter();
@@ -61,6 +62,10 @@ export default function BookingsPage() {
   const { data: bookingsData, isLoading, error } = useAllBookings(viewMode);
   const updateStatus = useUpdateBookingStatus();
   const cancelBooking = useCancelBooking();
+  const checkIn = useCheckIn();
+  const checkOut = useCheckOut();
+  const payBooking = usePayBooking();
+  const releasePayment = useReleasePayment();
 
   // Fetch current user data
   const { data: currentUser } = useUserBySupabaseId(supabaseUser?.id, {
@@ -135,6 +140,7 @@ export default function BookingsPage() {
     total: uniqueCombinedBookings.length,
     pending: uniqueCombinedBookings.filter((b: any) => b.status === "PENDING").length,
     confirmed: uniqueCombinedBookings.filter((b: any) => b.status === "CONFIRMED" || b.status === "ACCEPTED").length,
+    active: uniqueCombinedBookings.filter((b: any) => b.status === "ACTIVE").length,
     completed: uniqueCombinedBookings.filter((b: any) => b.status === "COMPLETED").length,
     cancelled: uniqueCombinedBookings.filter((b: any) => b.status === "CANCELLED" || b.status === "REJECTED").length,
   };
@@ -144,6 +150,8 @@ export default function BookingsPage() {
       case "CONFIRMED":
       case "ACCEPTED":
         return <CheckCircle2 className="w-4 h-4 text-green-400" strokeWidth={2.5} />;
+      case "ACTIVE":
+        return <Zap className="w-4 h-4 text-emerald-400" strokeWidth={2.5} />;
       case "COMPLETED":
         return <CheckCircle2 className="w-4 h-4 text-blue-400" strokeWidth={2.5} />;
       case "PENDING":
@@ -161,6 +169,8 @@ export default function BookingsPage() {
       case "CONFIRMED":
       case "ACCEPTED":
         return "Confirmed";
+      case "ACTIVE":
+        return "In Session";
       case "COMPLETED":
         return "Completed";
       case "PENDING":
@@ -177,9 +187,13 @@ export default function BookingsPage() {
     switch (status?.toUpperCase()) {
       case "CONFIRMED":
       case "ACCEPTED":
-        return theme === "dark" 
-          ? "bg-green-500/10 text-green-400 border-green-500/20" 
+        return theme === "dark"
+          ? "bg-green-500/10 text-green-400 border-green-500/20"
           : "bg-green-500/10 text-green-600 border-green-500/20";
+      case "ACTIVE":
+        return theme === "dark"
+          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+          : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20";
       case "COMPLETED":
         return theme === "dark"
           ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
@@ -323,7 +337,7 @@ export default function BookingsPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-8">
           <div className={`p-6 rounded-xl border ${borderPrimary} ${bgCard}`}>
             <div className="space-y-2">
               <p className="text-sm font-light tracking-wide">
@@ -353,6 +367,17 @@ export default function BookingsPage() {
               </p>
               <p className="text-3xl font-light tracking-tight text-green-400">
                 {stats.confirmed}
+              </p>
+            </div>
+          </div>
+
+          <div className={`p-6 rounded-xl border ${borderPrimary} ${bgCard}`}>
+            <div className="space-y-2">
+              <p className="text-sm font-light tracking-wide">
+                Active
+              </p>
+              <p className="text-3xl font-light tracking-tight text-emerald-400">
+                {stats.active}
               </p>
             </div>
           </div>
@@ -451,6 +476,7 @@ export default function BookingsPage() {
                 <option value="all">All Status</option>
                 <option value="pending">Pending</option>
                 <option value="confirmed">Confirmed</option>
+                <option value="active">In Session</option>
                 <option value="completed">Completed</option>
                 <option value="cancelled">Cancelled</option>
               </select>
@@ -587,6 +613,42 @@ export default function BookingsPage() {
                     </p>
                   </div>
                 </div>
+
+                {/* Session lifecycle info for studio bookings */}
+                {booking.type === "STUDIO_BOOKING" && (booking as any).sessionInfo &&
+                 (booking as any).sessionInfo.paymentStatus !== "UNPAID" && (
+                  <div className={`mb-6 p-4 rounded-lg border ${borderPrimary} ${theme === "dark" ? "bg-black" : "bg-gray-50"}`}>
+                    <p className="text-xs font-medium tracking-wider uppercase mb-3">
+                      Session Details
+                    </p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {(booking as any).sessionInfo.checkedInAt && (
+                        <div>
+                          <p className={`text-xs ${textTertiary}`}>Checked In</p>
+                          <p className="text-sm font-light">{dayjs((booking as any).sessionInfo.checkedInAt).format("h:mm A")}</p>
+                        </div>
+                      )}
+                      {(booking as any).sessionInfo.checkedOutAt && (
+                        <div>
+                          <p className={`text-xs ${textTertiary}`}>Checked Out</p>
+                          <p className="text-sm font-light">{dayjs((booking as any).sessionInfo.checkedOutAt).format("h:mm A")}</p>
+                        </div>
+                      )}
+                      {(booking as any).sessionInfo.overtimeMinutes > 0 && (
+                        <div>
+                          <p className={`text-xs ${textTertiary}`}>Overtime</p>
+                          <p className="text-sm font-light text-orange-400">{(booking as any).sessionInfo.overtimeMinutes}m (+{formatCurrency((booking as any).sessionInfo.overtimeAmount)})</p>
+                        </div>
+                      )}
+                      {(booking as any).sessionInfo.qrCode && (
+                        <div>
+                          <p className={`text-xs ${textTertiary}`}>QR Code</p>
+                          <p className="text-xs font-mono font-light">{(booking as any).sessionInfo.qrCode}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {booking.notes && (
                   <div className={`mb-6 p-4 rounded-lg border ${borderPrimary} ${theme === "dark" ? "bg-black" : "bg-gray-50"}`}>
@@ -830,90 +892,224 @@ export default function BookingsPage() {
                   })()}
 
                   {/* STUDIO BOOKING Actions */}
-                  {booking.type === "STUDIO_BOOKING" && (
-                    <>
-                      {/* Only show confirm button if user is the studio owner */}
-                      {booking.status === "PENDING" &&
-                       currentUser?.id === (booking as any).studio?.owner?.userId && (
-                        <button
-                          onClick={() => updateStatus.mutate({ bookingId: booking.id, status: "CONFIRMED" })}
-                          disabled={updateStatus.isPending}
-                          className={`
-                            px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
-                            ${theme === "dark"
-                              ? "bg-green-500/10 border-green-500/20 text-green-400"
-                              : "bg-green-500/10 border-green-500/20 text-green-600"
-                            }
-                            hover:bg-green-500/20 hover:border-green-500/30 active:scale-[0.98]
-                            disabled:opacity-50 disabled:cursor-not-allowed
-                          `}
-                        >
-                          {updateStatus.isPending ? (
-                            <span className="flex items-center gap-2">
+                  {booking.type === "STUDIO_BOOKING" && (() => {
+                    const isStudioOwner = currentUser?.id === (booking as any).studio?.owner?.userId;
+                    const isCustomer = currentUser?.id === (booking as any).userId;
+                    const sessionInfo = (booking as any).sessionInfo;
+
+                    return (
+                      <>
+                        {/* PENDING: Customer pays to hold in escrow */}
+                        {booking.status === "PENDING" && isCustomer && (
+                          <button
+                            onClick={() => payBooking.mutate({ bookingId: booking.id })}
+                            disabled={payBooking.isPending}
+                            className={`
+                              flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
+                              ${theme === "dark"
+                                ? "bg-purple-500/10 border-purple-500/20 text-purple-400"
+                                : "bg-purple-500/10 border-purple-500/20 text-purple-600"
+                              }
+                              hover:bg-purple-500/20 hover:border-purple-500/30 active:scale-[0.98]
+                              disabled:opacity-50 disabled:cursor-not-allowed
+                            `}
+                          >
+                            {payBooking.isPending ? (
                               <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
-                              Confirming...
-                            </span>
-                          ) : (
-                            "Confirm Booking"
-                          )}
-                        </button>
-                      )}
+                            ) : (
+                              <DollarSign className="w-4 h-4" strokeWidth={2} />
+                            )}
+                            <span>Pay & Confirm</span>
+                          </button>
+                        )}
 
-                      {/* Show cancel/reject button based on user role */}
-                      {booking.status === "PENDING" && (
-                        (() => {
-                          const isStudioOwner = currentUser?.id === (booking as any).studio?.owner?.userId;
-                          const isCustomer = currentUser?.id === (booking as any).userId;
+                        {/* PENDING: Studio owner can also confirm directly */}
+                        {booking.status === "PENDING" && isStudioOwner && (
+                          <button
+                            onClick={() => updateStatus.mutate({ bookingId: booking.id, status: "CONFIRMED" })}
+                            disabled={updateStatus.isPending}
+                            className={`
+                              flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
+                              ${theme === "dark"
+                                ? "bg-green-500/10 border-green-500/20 text-green-400"
+                                : "bg-green-500/10 border-green-500/20 text-green-600"
+                              }
+                              hover:bg-green-500/20 hover:border-green-500/30 active:scale-[0.98]
+                              disabled:opacity-50 disabled:cursor-not-allowed
+                            `}
+                          >
+                            {updateStatus.isPending ? (
+                              <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
+                            ) : (
+                              <Check className="w-4 h-4" strokeWidth={2} />
+                            )}
+                            <span>Confirm Booking</span>
+                          </button>
+                        )}
 
-                          if (!isStudioOwner && !isCustomer) return null;
+                        {/* PENDING: Cancel/Reject */}
+                        {booking.status === "PENDING" && (isStudioOwner || isCustomer) && (
+                          <button
+                            onClick={() => cancelBooking.mutate(booking.id)}
+                            disabled={cancelBooking.isPending}
+                            className={`
+                              flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
+                              ${theme === "dark"
+                                ? "bg-red-500/10 border-red-500/20 text-red-400"
+                                : "bg-red-500/10 border-red-500/20 text-red-600"
+                              }
+                              hover:bg-red-500/20 hover:border-red-500/30 active:scale-[0.98]
+                              disabled:opacity-50 disabled:cursor-not-allowed
+                            `}
+                          >
+                            {cancelBooking.isPending ? (
+                              <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
+                            ) : (
+                              <XCircle className="w-4 h-4" strokeWidth={2} />
+                            )}
+                            <span>{isStudioOwner ? "Reject" : "Cancel"}</span>
+                          </button>
+                        )}
 
-                          return (
-                            <button
-                              onClick={() => cancelBooking.mutate(booking.id)}
-                              disabled={cancelBooking.isPending}
-                              className={`
-                                px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
-                                ${theme === "dark"
-                                  ? "bg-red-500/10 border-red-500/20 text-red-400"
-                                  : "bg-red-500/10 border-red-500/20 text-red-600"
-                                }
-                                hover:bg-red-500/20 hover:border-red-500/30 active:scale-[0.98]
-                                disabled:opacity-50 disabled:cursor-not-allowed
-                              `}
-                            >
-                              {cancelBooking.isPending ? (
-                                <span className="flex items-center gap-2">
-                                  <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
-                                  {isStudioOwner ? 'Rejecting...' : 'Cancelling...'}
-                                </span>
-                              ) : (
-                                isStudioOwner ? 'Reject' : 'Cancel'
-                              )}
-                            </button>
-                          );
-                        })()
-                      )}
+                        {/* CONFIRMED: Studio owner starts session (check-in) */}
+                        {booking.status === "CONFIRMED" && isStudioOwner && (
+                          <button
+                            onClick={() => checkIn.mutate({ bookingId: booking.id })}
+                            disabled={checkIn.isPending}
+                            className={`
+                              flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
+                              ${theme === "dark"
+                                ? "bg-green-500/10 border-green-500/20 text-green-400"
+                                : "bg-green-500/10 border-green-500/20 text-green-600"
+                              }
+                              hover:bg-green-500/20 hover:border-green-500/30 active:scale-[0.98]
+                              disabled:opacity-50 disabled:cursor-not-allowed
+                            `}
+                          >
+                            {checkIn.isPending ? (
+                              <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
+                            ) : (
+                              <Play className="w-4 h-4" strokeWidth={2} />
+                            )}
+                            <span>Start Session</span>
+                          </button>
+                        )}
 
-                      {/* Show message button only to customers on confirmed bookings */}
-                      {booking.status === "CONFIRMED" &&
-                       currentUser?.id === (booking as any).userId && (
-                        <button
-                          onClick={() => router.push(`/bookings/${booking.id}/chat`)}
-                          className={`
-                            px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
-                            ${theme === "dark"
-                              ? "bg-blue-500/10 border-blue-500/20 text-blue-400"
-                              : "bg-blue-500/10 border-blue-500/20 text-blue-600"
+                        {/* ACTIVE: Show live session info */}
+                        {booking.status === "ACTIVE" && sessionInfo && (
+                          <div className={`
+                            flex items-center gap-2 px-4 py-2 text-sm rounded-lg border
+                            ${sessionInfo.isOvertime
+                              ? "bg-orange-500/10 border-orange-500/20 text-orange-400"
+                              : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
                             }
-                            hover:bg-blue-500/20 hover:border-blue-500/30 active:scale-[0.98]
-                          `}
-                        >
-                          <MessageCircle className="w-4 h-4" strokeWidth={2} />
-                          Message Studio Owner
-                        </button>
-                      )}
-                    </>
-                  )}
+                          `}>
+                            <span className={`w-2 h-2 rounded-full animate-pulse ${sessionInfo.isOvertime ? "bg-orange-400" : "bg-emerald-400"}`} />
+                            {sessionInfo.isOvertime
+                              ? `Overtime: +${sessionInfo.currentOvertimeMinutes}m`
+                              : sessionInfo.timeRemaining
+                              ? `${sessionInfo.timeRemaining}m remaining`
+                              : "In Session"
+                            }
+                          </div>
+                        )}
+
+                        {/* ACTIVE: Studio owner ends session (check-out) */}
+                        {booking.status === "ACTIVE" && isStudioOwner && (
+                          <button
+                            onClick={() => {
+                              if (confirm("Are you sure you want to end this session?")) {
+                                checkOut.mutate(booking.id);
+                              }
+                            }}
+                            disabled={checkOut.isPending}
+                            className={`
+                              flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
+                              ${theme === "dark"
+                                ? "bg-red-500/10 border-red-500/20 text-red-400"
+                                : "bg-red-500/10 border-red-500/20 text-red-600"
+                              }
+                              hover:bg-red-500/20 hover:border-red-500/30 active:scale-[0.98]
+                              disabled:opacity-50 disabled:cursor-not-allowed
+                            `}
+                          >
+                            {checkOut.isPending ? (
+                              <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
+                            ) : (
+                              <Square className="w-4 h-4" strokeWidth={2} />
+                            )}
+                            <span>End Session</span>
+                          </button>
+                        )}
+
+                        {/* COMPLETED: Studio owner releases payment */}
+                        {booking.status === "COMPLETED" && isStudioOwner &&
+                         sessionInfo?.paymentStatus === "PAYMENT_HELD" && (
+                          <button
+                            onClick={() => {
+                              if (confirm("Release payment to your account? This cannot be undone.")) {
+                                releasePayment.mutate(booking.id);
+                              }
+                            }}
+                            disabled={releasePayment.isPending}
+                            className={`
+                              flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
+                              ${theme === "dark"
+                                ? "bg-purple-500/10 border-purple-500/20 text-purple-400"
+                                : "bg-purple-500/10 border-purple-500/20 text-purple-600"
+                              }
+                              hover:bg-purple-500/20 hover:border-purple-500/30 active:scale-[0.98]
+                              disabled:opacity-50 disabled:cursor-not-allowed
+                            `}
+                          >
+                            {releasePayment.isPending ? (
+                              <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
+                            ) : (
+                              <DollarSign className="w-4 h-4" strokeWidth={2} />
+                            )}
+                            <span>Release Payment</span>
+                          </button>
+                        )}
+
+                        {/* Payment status badge */}
+                        {sessionInfo?.paymentStatus && sessionInfo.paymentStatus !== "UNPAID" && (
+                          <div className={`
+                            flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg border
+                            ${sessionInfo.paymentStatus === "PAYMENT_RELEASED"
+                              ? "bg-green-500/10 text-green-400 border-green-500/20"
+                              : sessionInfo.paymentStatus === "PAYMENT_HELD"
+                              ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
+                              : "bg-zinc-500/10 text-zinc-400 border-zinc-500/20"
+                            }
+                          `}>
+                            <DollarSign className="w-3 h-3" strokeWidth={2} />
+                            {sessionInfo.paymentStatus === "PAYMENT_RELEASED" ? "Paid" :
+                             sessionInfo.paymentStatus === "PAYMENT_HELD" ? "In Escrow" :
+                             sessionInfo.paymentStatus === "PAYMENT_CAPTURED" ? "Captured" :
+                             sessionInfo.paymentStatus}
+                          </div>
+                        )}
+
+                        {/* Message button for confirmed/active */}
+                        {(booking.status === "CONFIRMED" || booking.status === "ACTIVE") && isCustomer && (
+                          <button
+                            onClick={() => router.push(`/bookings/${booking.id}/chat`)}
+                            className={`
+                              flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
+                              ${theme === "dark"
+                                ? "bg-blue-500/10 border-blue-500/20 text-blue-400"
+                                : "bg-blue-500/10 border-blue-500/20 text-blue-600"
+                              }
+                              hover:bg-blue-500/20 hover:border-blue-500/30 active:scale-[0.98]
+                            `}
+                          >
+                            <MessageCircle className="w-4 h-4" strokeWidth={2} />
+                            <span>Message</span>
+                          </button>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             ))}
