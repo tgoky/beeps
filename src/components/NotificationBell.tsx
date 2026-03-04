@@ -176,6 +176,8 @@ export const NotificationBell = () => {
       case "CONFIRMED":
       case "ACCEPTED":
         return <CheckCircle2 className="w-3.5 h-3.5 text-green-400" strokeWidth={2.5} />;
+      case "ACTIVE":
+        return <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" strokeWidth={2.5} />;
       case "COMPLETED":
         return <CheckCircle2 className="w-3.5 h-3.5 text-blue-400" strokeWidth={2.5} />;
       case "PENDING":
@@ -196,6 +198,10 @@ export const NotificationBell = () => {
         return theme === "dark"
           ? "bg-green-500/10 text-green-400 border-green-500/20"
           : "bg-green-500/10 text-green-600 border-green-500/20";
+      case "ACTIVE":
+        return theme === "dark"
+          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+          : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20";
       case "COMPLETED":
         return theme === "dark"
           ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
