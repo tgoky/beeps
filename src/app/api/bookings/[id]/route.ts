@@ -144,12 +144,60 @@ export async function PATCH(
         }, { status: 403 });
       }
 
-      // Validate status if provided
-      if (body.status && !["PENDING", "CONFIRMED", "ACTIVE", "COMPLETED", "CANCELLED"].includes(body.status)) {
+      // SECURITY: Restrict status transitions via PATCH
+      // Direct status manipulation to ACTIVE or COMPLETED is NOT allowed through PATCH.
+      // Use the proper endpoints: check-in, check-out, confirm-session.
+      if (body.status) {
+        const blockedStatuses = ["ACTIVE", "COMPLETED"];
+        if (blockedStatuses.includes(body.status)) {
+          return NextResponse.json<ApiResponse>({
+            success: false,
+            error: {
+              message: `Cannot set status to ${body.status} directly. Use the proper session lifecycle endpoints (check-in, check-out).`,
+              code: "VALIDATION_ERROR",
+            },
+          }, { status: 400 });
+        }
+
+        if (!["PENDING", "CONFIRMED", "CANCELLED"].includes(body.status)) {
+          return NextResponse.json<ApiResponse>({
+            success: false,
+            error: {
+              message: "Invalid booking status",
+              code: "VALIDATION_ERROR",
+            },
+          }, { status: 400 });
+        }
+
+        // SECURITY: Only studio owner can confirm, and only from PENDING
+        if (body.status === "CONFIRMED" && isStudioOwner && booking.status !== "PENDING") {
+          return NextResponse.json<ApiResponse>({
+            success: false,
+            error: {
+              message: "Can only confirm a PENDING booking",
+              code: "VALIDATION_ERROR",
+            },
+          }, { status: 400 });
+        }
+
+        // SECURITY: Cannot cancel an ACTIVE session via PATCH - must use check-out
+        if (body.status === "CANCELLED" && booking.status === "ACTIVE") {
+          return NextResponse.json<ApiResponse>({
+            success: false,
+            error: {
+              message: "Cannot cancel an active session. Use the check-out endpoint to properly end the session.",
+              code: "VALIDATION_ERROR",
+            },
+          }, { status: 400 });
+        }
+      }
+
+      // SECURITY: Don't allow modifying start/end times on confirmed/active/completed bookings
+      if ((body.startTime || body.endTime) && ["CONFIRMED", "ACTIVE", "COMPLETED"].includes(booking.status)) {
         return NextResponse.json<ApiResponse>({
           success: false,
           error: {
-            message: "Invalid booking status",
+            message: "Cannot modify session times after booking is confirmed. Please cancel and rebook.",
             code: "VALIDATION_ERROR",
           },
         }, { status: 400 });
@@ -161,8 +209,8 @@ export async function PATCH(
         data: {
           ...(body.status && { status: body.status }),
           ...(body.notes !== undefined && { notes: body.notes }),
-          ...(body.startTime && { startTime: new Date(body.startTime) }),
-          ...(body.endTime && { endTime: new Date(body.endTime) }),
+          ...(body.startTime && booking.status === "PENDING" && { startTime: new Date(body.startTime) }),
+          ...(body.endTime && booking.status === "PENDING" && { endTime: new Date(body.endTime) }),
         },
         include: {
           studio: {
@@ -311,28 +359,98 @@ export async function DELETE(
         }, { status: 400 });
       }
 
-      // Update booking status to CANCELLED
+      // SECURITY: Don't allow cancelling ACTIVE sessions via cancel - must use check-out
+      if (booking.status === "ACTIVE") {
+        return NextResponse.json<ApiResponse>({
+          success: false,
+          error: {
+            message: "Cannot cancel an active session. Use the check-out endpoint to properly end the session with pro-rata payment.",
+            code: "VALIDATION_ERROR",
+          },
+        }, { status: 400 });
+      }
+
+      // SECURITY: Auto-refund if payment was already held in escrow
+      const needsRefund = booking.paymentStatus === "PAYMENT_HELD" || booking.paymentStatus === "PAYMENT_CAPTURED";
+      const totalAmount = parseFloat(booking.totalAmount.toString());
+
+      // Update booking status to CANCELLED and refund if needed
       await prisma.booking.update({
         where: { id },
-        data: { status: "CANCELLED" },
+        data: {
+          status: "CANCELLED",
+          ...(needsRefund && { paymentStatus: "REFUNDED" }),
+        },
       });
+
+      // If payment was held, update transaction to REFUNDED
+      if (needsRefund) {
+        await prisma.transaction.updateMany({
+          where: {
+            referenceId: booking.id,
+            referenceType: "booking",
+            userId: booking.userId,
+          },
+          data: {
+            status: "REFUNDED",
+          },
+        });
+
+        // In production: Process Stripe refund
+        // if (booking.paymentIntentId) {
+        //   await stripe.refunds.create({
+        //     payment_intent: booking.paymentIntentId,
+        //   });
+        // }
+      }
 
       // Notify the other party
       const recipientId = isBookingOwner ? booking.studio.owner.userId : booking.userId;
+      const cancelledBy = isBookingOwner ? "artist" : "studio owner";
+
       await prisma.notification.create({
         data: {
           userId: recipientId,
           type: NotificationType.BOOKING_CANCELLED,
           title: "Booking Cancelled",
-          message: `Booking for ${booking.studio.name} has been cancelled`,
+          message: `Booking for ${booking.studio.name} has been cancelled by the ${cancelledBy}.${needsRefund ? ` A full refund of $${totalAmount.toFixed(2)} will be processed.` : ""}`,
           referenceId: booking.id,
           referenceType: "booking",
         },
       });
 
+      // If refund needed, also notify the booker about their refund
+      if (needsRefund && !isBookingOwner) {
+        await prisma.notification.create({
+          data: {
+            userId: booking.userId,
+            type: "PAYMENT_REFUNDED" as any,
+            title: "Payment Refunded",
+            message: `Your payment of $${totalAmount.toFixed(2)} for ${booking.studio.name} has been refunded due to cancellation by the studio owner.`,
+            referenceId: booking.id,
+            referenceType: "booking",
+          },
+        });
+      } else if (needsRefund && isBookingOwner) {
+        await prisma.notification.create({
+          data: {
+            userId: booking.userId,
+            type: "PAYMENT_REFUNDED" as any,
+            title: "Payment Refunded",
+            message: `Your payment of $${totalAmount.toFixed(2)} for ${booking.studio.name} has been refunded due to your cancellation.`,
+            referenceId: booking.id,
+            referenceType: "booking",
+          },
+        });
+      }
+
       return NextResponse.json<ApiResponse>({
         success: true,
-        data: { message: "Booking cancelled successfully" },
+        data: {
+          message: "Booking cancelled successfully",
+          refunded: needsRefund,
+          refundAmount: needsRefund ? totalAmount : 0,
+        },
       });
     } catch (error: any) {
       console.error("Error deleting booking:", error);

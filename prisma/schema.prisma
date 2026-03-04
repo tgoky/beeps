@@ -530,6 +530,27 @@ model Booking {
   paymentIntentId   String?        @map("payment_intent_id")       // Stripe PaymentIntent ID
   platformFee       Decimal        @default(0) @map("platform_fee") @db.Decimal(10, 2)
 
+  // Session security fields
+  bookerConfirmedCheckIn  Boolean    @default(false) @map("booker_confirmed_check_in")   // Artist confirmed they are present
+  bookerConfirmedCheckOut Boolean    @default(false) @map("booker_confirmed_check_out")  // Artist confirmed session end
+  confirmationCode        String?    @map("confirmation_code")                            // Code sent to artist for check-in confirmation
+  confirmationExpiresAt   DateTime?  @map("confirmation_expires_at")                      // Expiry for confirmation code
+  earlyEndReason          String?    @map("early_end_reason")                             // Reason if session ended before scheduled time
+  actualSessionMinutes    Int?       @map("actual_session_minutes")                       // Actual minutes the session ran
+  proRataAmount           Decimal?   @map("pro_rata_amount") @db.Decimal(10, 2)           // Adjusted amount for early end
+  endedBy                 String?    @map("ended_by")                                     // Who ended the session: 'STUDIO_OWNER' or 'BOOKER'
+
+  // Dispute fields
+  disputeStatus           String?    @map("dispute_status")         // OPEN, UNDER_REVIEW, RESOLVED_BOOKER, RESOLVED_OWNER, RESOLVED_SPLIT
+  disputeReason           String?    @map("dispute_reason")
+  disputedAt              DateTime?  @map("disputed_at")
+  disputeResolvedAt       DateTime?  @map("dispute_resolved_at")
+  disputedBy              String?    @map("disputed_by")            // User ID who raised dispute
+
+  // Payment release security
+  paymentReleaseEligibleAt DateTime? @map("payment_release_eligible_at")  // 24h after session end
+  bookerApprovedPayment    Boolean   @default(false) @map("booker_approved_payment")  // Artist approved payment release
+
   createdAt     DateTime       @default(now()) @map("created_at")
   updatedAt     DateTime       @updatedAt @map("updated_at")
 
@@ -771,6 +792,14 @@ enum NotificationType {
   PAYMENT_HELD            // Payment authorized/held in escrow
   PAYMENT_RELEASED        // Payment released to studio owner
   PAYMENT_REFUNDED        // Payment refunded to customer
+  // Session security notifications
+  SESSION_CONFIRM_REQUIRED  // Artist needs to confirm they are present at check-in
+  SESSION_CONFIRMED_BY_BOOKER // Artist confirmed their presence
+  SESSION_EARLY_END         // Session ended before scheduled time
+  SESSION_DISPUTE_OPENED    // Dispute raised on session
+  SESSION_DISPUTE_RESOLVED  // Dispute resolved
+  PAYMENT_APPROVAL_REQUIRED // Artist needs to approve payment release
+  PAYMENT_AUTO_RELEASED     // Payment auto-released after 24h grace period
 }
 
 model Notification {
