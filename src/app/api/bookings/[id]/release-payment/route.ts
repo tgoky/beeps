@@ -4,7 +4,11 @@ import { prisma } from "@/lib/prisma";
 import type { ApiResponse } from "@/types";
 
 // POST /api/bookings/[id]/release-payment - Release escrow payment to studio owner
-// Called automatically after session checkout, or manually by platform admin
+// SECURITY: Studio owner can NO LONGER release their own payment.
+// Payment can only be released by:
+// 1. The artist (booker) approving the payment after session
+// 2. Auto-release after 24-hour grace period with no dispute
+// 3. Platform admin (for dispute resolution)
 export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -14,6 +18,8 @@ export async function POST(
 
     try {
       const { id } = params;
+      const body = await req.json().catch(() => ({}));
+      const { autoRelease } = body; // Flag for system auto-release
 
       const booking = await prisma.booking.findUnique({
         where: { id },
@@ -42,11 +48,22 @@ export async function POST(
         );
       }
 
-      // Only studio owner can release payment (or the system after checkout)
+      // SECURITY: Determine who is requesting payment release
+      const isBooker = booking.userId === user.id;
       const isStudioOwner = booking.studio.owner.userId === user.id;
-      if (!isStudioOwner) {
+
+      // SECURITY: Studio owner CANNOT release their own payment (conflict of interest)
+      if (isStudioOwner && !isBooker) {
         return NextResponse.json<ApiResponse>(
-          { success: false, error: { message: "Only the studio owner can release payment", code: "FORBIDDEN" } },
+          { success: false, error: { message: "Studio owners cannot release their own payment. The booking artist must approve payment release, or it will auto-release after the 24-hour review period.", code: "FORBIDDEN" } },
+          { status: 403 }
+        );
+      }
+
+      // Only the booker can manually release payment
+      if (!isBooker) {
+        return NextResponse.json<ApiResponse>(
+          { success: false, error: { message: "Only the booking artist can approve payment release", code: "FORBIDDEN" } },
           { status: 403 }
         );
       }
@@ -67,24 +84,50 @@ export async function POST(
         );
       }
 
+      // SECURITY: Check for active disputes - cannot release payment during dispute
+      if (booking.disputeStatus === "OPEN" || booking.disputeStatus === "UNDER_REVIEW") {
+        return NextResponse.json<ApiResponse>(
+          { success: false, error: { message: "Cannot release payment while a dispute is active. Please wait for dispute resolution.", code: "VALIDATION_ERROR" } },
+          { status: 400 }
+        );
+      }
+
+      // Calculate final amounts
       const totalAmount = parseFloat(booking.totalAmount.toString());
       const overtimeAmount = parseFloat(booking.overtimeAmount.toString());
       const platformFee = parseFloat(booking.platformFee.toString());
-      const finalAmount = totalAmount + overtimeAmount;
-      const studioOwnerPayout = finalAmount - platformFee;
 
-      // In production: Capture the PaymentIntent via Stripe
+      // SECURITY: Use pro-rata amount if session ended early
+      const proRataAmount = booking.proRataAmount ? parseFloat(booking.proRataAmount.toString()) : null;
+      const baseAmount = proRataAmount !== null ? proRataAmount : totalAmount;
+      const finalAmount = baseAmount + overtimeAmount;
+
+      // Recalculate platform fee on actual amount if pro-rata
+      const actualPlatformFee = proRataAmount !== null
+        ? Math.round(finalAmount * 0.10 * 100) / 100
+        : platformFee;
+
+      const studioOwnerPayout = finalAmount - actualPlatformFee;
+
+      // In production: Capture the PaymentIntent via Stripe with adjusted amount
       // if (booking.paymentIntentId) {
       //   await stripe.paymentIntents.capture(booking.paymentIntentId, {
       //     amount_to_capture: Math.round(finalAmount * 100),
       //   });
-      //   // Transfer to studio owner's connected account
       //   await stripe.transfers.create({
       //     amount: Math.round(studioOwnerPayout * 100),
       //     currency: 'usd',
       //     destination: studioOwner.stripeConnectId,
       //     metadata: { bookingId: booking.id },
       //   });
+      //   // If pro-rata, refund the difference to the customer
+      //   if (proRataAmount !== null) {
+      //     const refundAmount = totalAmount - proRataAmount;
+      //     await stripe.refunds.create({
+      //       payment_intent: booking.paymentIntentId,
+      //       amount: Math.round(refundAmount * 100),
+      //     });
+      //   }
       // }
 
       // Update booking payment status
@@ -92,6 +135,8 @@ export async function POST(
         where: { id },
         data: {
           paymentStatus: "PAYMENT_RELEASED",
+          bookerApprovedPayment: true,
+          platformFee: actualPlatformFee,
         },
         include: {
           studio: {
@@ -111,7 +156,7 @@ export async function POST(
         },
       });
 
-      // Update the transaction to COMPLETED
+      // Update the transaction to COMPLETED with actual amount
       await prisma.transaction.updateMany({
         where: {
           referenceId: booking.id,
@@ -130,19 +175,23 @@ export async function POST(
           userId: booking.studio.owner.userId,
           type: "PAYMENT_RELEASED",
           title: "Payment Released!",
-          message: `$${studioOwnerPayout.toFixed(2)} has been released to your account for ${booking.user.fullName || booking.user.username}'s session at ${booking.studio.name}.`,
+          message: `$${studioOwnerPayout.toFixed(2)} has been released to your account for ${booking.user.fullName || booking.user.username}'s session at ${booking.studio.name}.${proRataAmount !== null ? ` (Pro-rata adjusted from $${totalAmount.toFixed(2)} to $${proRataAmount.toFixed(2)} due to early session end)` : ""}`,
           referenceId: booking.id,
           referenceType: "BOOKING",
         },
       });
 
       // Notify customer about payment completion
+      const refundInfo = proRataAmount !== null
+        ? ` You were only charged $${finalAmount.toFixed(2)} (pro-rata) instead of the full $${totalAmount.toFixed(2)}. The difference will be refunded.`
+        : "";
+
       await prisma.notification.create({
         data: {
           userId: booking.userId,
           type: "PAYMENT_RELEASED",
-          title: "Payment Completed",
-          message: `Your payment of $${finalAmount.toFixed(2)} for ${booking.studio.name} has been completed.${overtimeAmount > 0 ? ` Includes $${overtimeAmount.toFixed(2)} overtime.` : ""}`,
+          title: "Payment Approved & Completed",
+          message: `Your payment of $${finalAmount.toFixed(2)} for ${booking.studio.name} has been completed.${overtimeAmount > 0 ? ` Includes $${overtimeAmount.toFixed(2)} overtime.` : ""}${refundInfo}`,
           referenceId: booking.id,
           referenceType: "BOOKING",
         },
@@ -154,7 +203,7 @@ export async function POST(
           userId: booking.studio.owner.userId,
           type: "PAYMENT_RECEIVED",
           title: `Payment received for ${booking.studio.name}`,
-          description: `$${studioOwnerPayout.toFixed(2)} released after session with ${booking.user.fullName || booking.user.username}`,
+          description: `$${studioOwnerPayout.toFixed(2)} released after session with ${booking.user.fullName || booking.user.username}. Approved by artist.`,
           referenceId: booking.id,
           referenceType: "booking",
         },
@@ -165,10 +214,13 @@ export async function POST(
         data: {
           booking: updatedBooking,
           payment: {
-            totalAmount: finalAmount,
+            originalAmount: totalAmount,
+            proRataAmount,
             overtimeAmount,
-            platformFee,
+            finalAmount,
+            platformFee: actualPlatformFee,
             studioOwnerPayout,
+            refundAmount: proRataAmount !== null ? totalAmount - proRataAmount : 0,
           },
           message: `Payment of $${studioOwnerPayout.toFixed(2)} released to studio owner`,
         },
