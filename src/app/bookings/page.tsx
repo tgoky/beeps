@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAllBookings, useUpdateBookingStatus, useCancelBooking, useCheckIn, useCheckOut, usePayBooking, useReleasePayment } from "@/hooks/useBookings";
+import { useAllBookings, useUpdateBookingStatus, useCancelBooking, useCheckIn, useCheckOut, usePayBooking, useReleasePayment, useConfirmCheckIn } from "@/hooks/useBookings";
 import { useTheme } from "@/providers/ThemeProvider";
 import { createBrowserClient } from "@supabase/ssr";
 import { useUserBySupabaseId } from "@/hooks/api/useUserData";
@@ -53,6 +53,10 @@ export default function BookingsPage() {
   const [expandedBooking, setExpandedBooking] = useState<string | null>(null);
   const [supabaseUser, setSupabaseUser] = useState<any>(null);
   const [updatingServiceRequest, setUpdatingServiceRequest] = useState(false);
+  const [qrCodeInput, setQrCodeInput] = useState<string>("");
+  const [showQrPrompt, setShowQrPrompt] = useState<string | null>(null);
+  const [confirmCodeInput, setConfirmCodeInput] = useState<string>("");
+  const [showConfirmPrompt, setShowConfirmPrompt] = useState<string | null>(null);
 
   // Fetch BOTH customer and provider bookings for accurate combined stats
   const { data: customerBookingsData } = useAllBookings("customer");
@@ -66,6 +70,7 @@ export default function BookingsPage() {
   const checkOut = useCheckOut();
   const payBooking = usePayBooking();
   const releasePayment = useReleasePayment();
+  const confirmCheckIn = useConfirmCheckIn();
 
   // Fetch current user data
   const { data: currentUser } = useUserBySupabaseId(supabaseUser?.id, {
@@ -899,7 +904,7 @@ export default function BookingsPage() {
 
                     return (
                       <>
-                        {/* PENDING: Customer pays to hold in escrow */}
+                        {/* PENDING: Customer can pay to hold in escrow */}
                         {booking.status === "PENDING" && isCustomer && (
                           <button
                             onClick={() => payBooking.mutate({ bookingId: booking.id })}
@@ -923,7 +928,7 @@ export default function BookingsPage() {
                           </button>
                         )}
 
-                        {/* PENDING: Studio owner can also confirm directly */}
+                        {/* PENDING: Studio owner accepts the booking request */}
                         {booking.status === "PENDING" && isStudioOwner && (
                           <button
                             onClick={() => updateStatus.mutate({ bookingId: booking.id, status: "CONFIRMED" })}
@@ -943,7 +948,7 @@ export default function BookingsPage() {
                             ) : (
                               <Check className="w-4 h-4" strokeWidth={2} />
                             )}
-                            <span>Confirm Booking</span>
+                            <span>Accept Booking</span>
                           </button>
                         )}
 
@@ -971,28 +976,136 @@ export default function BookingsPage() {
                           </button>
                         )}
 
-                        {/* CONFIRMED: Studio owner starts session (check-in) */}
-                        {booking.status === "CONFIRMED" && isStudioOwner && (
+                        {/* CONFIRMED + UNPAID: Artist needs to pay (after studio owner accepted) */}
+                        {booking.status === "CONFIRMED" && isCustomer &&
+                         (!sessionInfo?.paymentStatus || sessionInfo?.paymentStatus === "UNPAID") && (
                           <button
-                            onClick={() => checkIn.mutate({ bookingId: booking.id })}
-                            disabled={checkIn.isPending}
+                            onClick={() => payBooking.mutate({ bookingId: booking.id })}
+                            disabled={payBooking.isPending}
                             className={`
                               flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
                               ${theme === "dark"
-                                ? "bg-green-500/10 border-green-500/20 text-green-400"
-                                : "bg-green-500/10 border-green-500/20 text-green-600"
+                                ? "bg-purple-500/10 border-purple-500/20 text-purple-400"
+                                : "bg-purple-500/10 border-purple-500/20 text-purple-600"
                               }
-                              hover:bg-green-500/20 hover:border-green-500/30 active:scale-[0.98]
+                              hover:bg-purple-500/20 hover:border-purple-500/30 active:scale-[0.98]
                               disabled:opacity-50 disabled:cursor-not-allowed
                             `}
                           >
-                            {checkIn.isPending ? (
+                            {payBooking.isPending ? (
                               <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
                             ) : (
-                              <Play className="w-4 h-4" strokeWidth={2} />
+                              <DollarSign className="w-4 h-4" strokeWidth={2} />
                             )}
-                            <span>Start Session</span>
+                            <span>Pay Now</span>
                           </button>
+                        )}
+
+                        {/* CONFIRMED + UNPAID: Cancel for both parties */}
+                        {booking.status === "CONFIRMED" &&
+                         (!sessionInfo?.paymentStatus || sessionInfo?.paymentStatus === "UNPAID") &&
+                         (isStudioOwner || isCustomer) && (
+                          <button
+                            onClick={() => cancelBooking.mutate(booking.id)}
+                            disabled={cancelBooking.isPending}
+                            className={`
+                              flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
+                              ${theme === "dark"
+                                ? "bg-red-500/10 border-red-500/20 text-red-400"
+                                : "bg-red-500/10 border-red-500/20 text-red-600"
+                              }
+                              hover:bg-red-500/20 hover:border-red-500/30 active:scale-[0.98]
+                              disabled:opacity-50 disabled:cursor-not-allowed
+                            `}
+                          >
+                            {cancelBooking.isPending ? (
+                              <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
+                            ) : (
+                              <XCircle className="w-4 h-4" strokeWidth={2} />
+                            )}
+                            <span>Cancel</span>
+                          </button>
+                        )}
+
+                        {/* CONFIRMED + PAID: Studio owner starts session with QR code prompt */}
+                        {booking.status === "CONFIRMED" && isStudioOwner &&
+                         sessionInfo?.paymentStatus === "PAYMENT_HELD" && (
+                          <>
+                            {showQrPrompt === booking.id ? (
+                              <div className="flex items-center gap-2 w-full">
+                                <input
+                                  type="text"
+                                  placeholder="Enter artist's QR code"
+                                  value={qrCodeInput}
+                                  onChange={(e) => setQrCodeInput(e.target.value)}
+                                  className={`
+                                    flex-1 px-4 py-3 text-sm font-light rounded-lg border transition-all duration-200
+                                    ${theme === "dark" ? "bg-zinc-950 border-zinc-800 text-white placeholder:text-zinc-600" : "bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"}
+                                    tracking-wide focus:outline-none focus:ring-1 ${theme === "dark" ? "focus:ring-white" : "focus:ring-black"}
+                                  `}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" && qrCodeInput.trim()) {
+                                      checkIn.mutate({ bookingId: booking.id, qrCode: qrCodeInput.trim() });
+                                      setShowQrPrompt(null);
+                                      setQrCodeInput("");
+                                    }
+                                  }}
+                                />
+                                <button
+                                  onClick={() => {
+                                    if (qrCodeInput.trim()) {
+                                      checkIn.mutate({ bookingId: booking.id, qrCode: qrCodeInput.trim() });
+                                      setShowQrPrompt(null);
+                                      setQrCodeInput("");
+                                    }
+                                  }}
+                                  disabled={checkIn.isPending || !qrCodeInput.trim()}
+                                  className={`
+                                    flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
+                                    ${theme === "dark"
+                                      ? "bg-green-500/10 border-green-500/20 text-green-400"
+                                      : "bg-green-500/10 border-green-500/20 text-green-600"
+                                    }
+                                    hover:bg-green-500/20 hover:border-green-500/30 active:scale-[0.98]
+                                    disabled:opacity-50 disabled:cursor-not-allowed
+                                  `}
+                                >
+                                  {checkIn.isPending ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
+                                  ) : (
+                                    <Check className="w-4 h-4" strokeWidth={2} />
+                                  )}
+                                  <span>Confirm</span>
+                                </button>
+                                <button
+                                  onClick={() => { setShowQrPrompt(null); setQrCodeInput(""); }}
+                                  className={`
+                                    px-3 py-3 text-sm rounded-lg border transition-all duration-200
+                                    ${theme === "dark" ? "border-zinc-800 text-zinc-400 hover:text-white" : "border-gray-300 text-gray-600 hover:text-black"}
+                                  `}
+                                >
+                                  <XCircle className="w-4 h-4" strokeWidth={2} />
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => setShowQrPrompt(booking.id)}
+                                disabled={checkIn.isPending}
+                                className={`
+                                  flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
+                                  ${theme === "dark"
+                                    ? "bg-green-500/10 border-green-500/20 text-green-400"
+                                    : "bg-green-500/10 border-green-500/20 text-green-600"
+                                  }
+                                  hover:bg-green-500/20 hover:border-green-500/30 active:scale-[0.98]
+                                  disabled:opacity-50 disabled:cursor-not-allowed
+                                `}
+                              >
+                                <Play className="w-4 h-4" strokeWidth={2} />
+                                <span>Start Session</span>
+                              </button>
+                            )}
+                          </>
                         )}
 
                         {/* ACTIVE: Show live session info */}
@@ -1014,8 +1127,87 @@ export default function BookingsPage() {
                           </div>
                         )}
 
-                        {/* ACTIVE: Studio owner ends session (check-out) */}
-                        {booking.status === "ACTIVE" && isStudioOwner && (
+                        {/* ACTIVE: Artist confirms presence with confirmation code */}
+                        {booking.status === "ACTIVE" && isCustomer && sessionInfo && !sessionInfo.bookerConfirmedCheckIn && (
+                          <>
+                            {showConfirmPrompt === booking.id ? (
+                              <div className="flex items-center gap-2 w-full">
+                                <input
+                                  type="text"
+                                  placeholder="Enter confirmation code"
+                                  value={confirmCodeInput}
+                                  onChange={(e) => setConfirmCodeInput(e.target.value.toUpperCase())}
+                                  maxLength={6}
+                                  className={`
+                                    flex-1 px-4 py-3 text-sm font-mono font-light rounded-lg border transition-all duration-200
+                                    ${theme === "dark" ? "bg-zinc-950 border-zinc-800 text-white placeholder:text-zinc-600" : "bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"}
+                                    tracking-widest text-center focus:outline-none focus:ring-1 ${theme === "dark" ? "focus:ring-white" : "focus:ring-black"}
+                                  `}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" && confirmCodeInput.trim()) {
+                                      confirmCheckIn.mutate({ bookingId: booking.id, confirmationCode: confirmCodeInput.trim() });
+                                      setShowConfirmPrompt(null);
+                                      setConfirmCodeInput("");
+                                    }
+                                  }}
+                                />
+                                <button
+                                  onClick={() => {
+                                    if (confirmCodeInput.trim()) {
+                                      confirmCheckIn.mutate({ bookingId: booking.id, confirmationCode: confirmCodeInput.trim() });
+                                      setShowConfirmPrompt(null);
+                                      setConfirmCodeInput("");
+                                    }
+                                  }}
+                                  disabled={confirmCheckIn.isPending || !confirmCodeInput.trim()}
+                                  className={`
+                                    flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
+                                    ${theme === "dark"
+                                      ? "bg-green-500/10 border-green-500/20 text-green-400"
+                                      : "bg-green-500/10 border-green-500/20 text-green-600"
+                                    }
+                                    hover:bg-green-500/20 hover:border-green-500/30 active:scale-[0.98]
+                                    disabled:opacity-50 disabled:cursor-not-allowed
+                                  `}
+                                >
+                                  {confirmCheckIn.isPending ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
+                                  ) : (
+                                    <Check className="w-4 h-4" strokeWidth={2} />
+                                  )}
+                                  <span>Verify</span>
+                                </button>
+                                <button
+                                  onClick={() => { setShowConfirmPrompt(null); setConfirmCodeInput(""); }}
+                                  className={`
+                                    px-3 py-3 text-sm rounded-lg border transition-all duration-200
+                                    ${theme === "dark" ? "border-zinc-800 text-zinc-400 hover:text-white" : "border-gray-300 text-gray-600 hover:text-black"}
+                                  `}
+                                >
+                                  <XCircle className="w-4 h-4" strokeWidth={2} />
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => setShowConfirmPrompt(booking.id)}
+                                className={`
+                                  flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
+                                  ${theme === "dark"
+                                    ? "bg-yellow-500/10 border-yellow-500/20 text-yellow-400"
+                                    : "bg-yellow-500/10 border-yellow-500/20 text-yellow-600"
+                                  }
+                                  hover:bg-yellow-500/20 hover:border-yellow-500/30 active:scale-[0.98]
+                                `}
+                              >
+                                <CheckCircle2 className="w-4 h-4" strokeWidth={2} />
+                                <span>Confirm Presence</span>
+                              </button>
+                            )}
+                          </>
+                        )}
+
+                        {/* ACTIVE: Both parties can end session (check-out) */}
+                        {booking.status === "ACTIVE" && (isStudioOwner || isCustomer) && (
                           <button
                             onClick={() => {
                               if (confirm("Are you sure you want to end this session?")) {
@@ -1042,12 +1234,12 @@ export default function BookingsPage() {
                           </button>
                         )}
 
-                        {/* COMPLETED: Studio owner releases payment */}
-                        {booking.status === "COMPLETED" && isStudioOwner &&
+                        {/* COMPLETED: Artist (customer) approves payment release - NOT studio owner */}
+                        {booking.status === "COMPLETED" && isCustomer &&
                          sessionInfo?.paymentStatus === "PAYMENT_HELD" && (
                           <button
                             onClick={() => {
-                              if (confirm("Release payment to your account? This cannot be undone.")) {
+                              if (confirm("Approve payment release to the studio? This cannot be undone.")) {
                                 releasePayment.mutate(booking.id);
                               }
                             }}
@@ -1055,10 +1247,10 @@ export default function BookingsPage() {
                             className={`
                               flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
                               ${theme === "dark"
-                                ? "bg-purple-500/10 border-purple-500/20 text-purple-400"
-                                : "bg-purple-500/10 border-purple-500/20 text-purple-600"
+                                ? "bg-green-500/10 border-green-500/20 text-green-400"
+                                : "bg-green-500/10 border-green-500/20 text-green-600"
                               }
-                              hover:bg-purple-500/20 hover:border-purple-500/30 active:scale-[0.98]
+                              hover:bg-green-500/20 hover:border-green-500/30 active:scale-[0.98]
                               disabled:opacity-50 disabled:cursor-not-allowed
                             `}
                           >
@@ -1067,8 +1259,20 @@ export default function BookingsPage() {
                             ) : (
                               <DollarSign className="w-4 h-4" strokeWidth={2} />
                             )}
-                            <span>Release Payment</span>
+                            <span>Approve Payment</span>
                           </button>
+                        )}
+
+                        {/* COMPLETED: Studio owner sees waiting status */}
+                        {booking.status === "COMPLETED" && isStudioOwner &&
+                         sessionInfo?.paymentStatus === "PAYMENT_HELD" && (
+                          <div className={`
+                            flex items-center gap-2 px-4 py-2 text-sm rounded-lg border
+                            bg-yellow-500/10 border-yellow-500/20 text-yellow-400
+                          `}>
+                            <Clock className="w-4 h-4" strokeWidth={2} />
+                            <span>Awaiting artist payment approval</span>
+                          </div>
                         )}
 
                         {/* Payment status badge */}
@@ -1079,6 +1283,8 @@ export default function BookingsPage() {
                               ? "bg-green-500/10 text-green-400 border-green-500/20"
                               : sessionInfo.paymentStatus === "PAYMENT_HELD"
                               ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
+                              : sessionInfo.paymentStatus === "REFUNDED"
+                              ? "bg-red-500/10 text-red-400 border-red-500/20"
                               : "bg-zinc-500/10 text-zinc-400 border-zinc-500/20"
                             }
                           `}>
@@ -1086,6 +1292,7 @@ export default function BookingsPage() {
                             {sessionInfo.paymentStatus === "PAYMENT_RELEASED" ? "Paid" :
                              sessionInfo.paymentStatus === "PAYMENT_HELD" ? "In Escrow" :
                              sessionInfo.paymentStatus === "PAYMENT_CAPTURED" ? "Captured" :
+                             sessionInfo.paymentStatus === "REFUNDED" ? "Refunded" :
                              sessionInfo.paymentStatus}
                           </div>
                         )}

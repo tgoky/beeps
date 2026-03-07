@@ -124,6 +124,7 @@ export async function GET(req: NextRequest) {
               timeRemaining,
               isOvertime,
               currentOvertimeMinutes: overtimeMinutes,
+              bookerConfirmedCheckIn: booking.bookerConfirmedCheckIn,
             },
           };
         }),

@@ -249,7 +249,7 @@ export async function PATCH(
         let recipientId = booking.userId;
 
         if (body.status === "CONFIRMED" && isStudioOwner) {
-          notificationMessage = `Your booking for ${booking.studio.name} has been confirmed!`;
+          notificationMessage = `Your booking for ${booking.studio.name} has been confirmed by the studio owner! Please proceed to pay to secure your session.`;
           notificationType = NotificationType.BOOKING_CONFIRMED;
           recipientId = booking.userId;
         } else if (body.status === "CANCELLED") {

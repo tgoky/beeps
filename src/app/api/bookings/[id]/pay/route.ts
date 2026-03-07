@@ -54,10 +54,12 @@ export async function POST(
         );
       }
 
-      // Must be PENDING to pay (owner confirms after payment hold)
-      if (booking.status !== "PENDING") {
+      // Must be PENDING or CONFIRMED to pay
+      // PENDING: Artist pays first (auto-confirms)
+      // CONFIRMED: Studio owner confirmed first, artist pays after
+      if (booking.status !== "PENDING" && booking.status !== "CONFIRMED") {
         return NextResponse.json<ApiResponse>(
-          { success: false, error: { message: `Cannot pay for a booking with status: ${booking.status}`, code: "VALIDATION_ERROR" } },
+          { success: false, error: { message: `Cannot pay for a booking with status: ${booking.status}. Booking must be PENDING or CONFIRMED.`, code: "VALIDATION_ERROR" } },
           { status: 400 }
         );
       }

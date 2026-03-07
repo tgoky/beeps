@@ -11,6 +11,7 @@ export interface SessionInfo {
   timeRemaining: number | null;
   isOvertime: boolean;
   currentOvertimeMinutes: number;
+  bookerConfirmedCheckIn: boolean;
 }
 
 export interface StudioBooking {
@@ -226,6 +227,32 @@ export function usePayBooking() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
+    },
+  });
+}
+
+// Confirm check-in (artist confirms presence with code)
+export function useConfirmCheckIn() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ bookingId, confirmationCode }: { bookingId: string; confirmationCode: string }) => {
+      const response = await fetch(`/api/bookings/${bookingId}/confirm-check-in`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirmationCode }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error?.message || "Failed to confirm check-in");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["sessions"] });
     },
   });
 }
