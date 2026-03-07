@@ -57,6 +57,7 @@ export default function BookingsPage() {
   const [showQrPrompt, setShowQrPrompt] = useState<string | null>(null);
   const [confirmCodeInput, setConfirmCodeInput] = useState<string>("");
   const [showConfirmPrompt, setShowConfirmPrompt] = useState<string | null>(null);
+  const [sessionActionError, setSessionActionError] = useState<string | null>(null);
 
   // Fetch BOTH customer and provider bookings for accurate combined stats
   const { data: customerBookingsData } = useAllBookings("customer");
@@ -1027,86 +1028,151 @@ export default function BookingsPage() {
                           </button>
                         )}
 
-                        {/* CONFIRMED + PAID: Studio owner starts session with QR code prompt */}
-                        {booking.status === "CONFIRMED" && isStudioOwner &&
-                         sessionInfo?.paymentStatus === "PAYMENT_HELD" && (
-                          <>
-                            {showQrPrompt === booking.id ? (
-                              <div className="flex items-center gap-2 w-full">
-                                <input
-                                  type="text"
-                                  placeholder="Enter artist's QR code"
-                                  value={qrCodeInput}
-                                  onChange={(e) => setQrCodeInput(e.target.value)}
-                                  className={`
-                                    flex-1 px-4 py-3 text-sm font-light rounded-lg border transition-all duration-200
-                                    ${theme === "dark" ? "bg-zinc-950 border-zinc-800 text-white placeholder:text-zinc-600" : "bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"}
-                                    tracking-wide focus:outline-none focus:ring-1 ${theme === "dark" ? "focus:ring-white" : "focus:ring-black"}
-                                  `}
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter" && qrCodeInput.trim()) {
-                                      checkIn.mutate({ bookingId: booking.id, qrCode: qrCodeInput.trim() });
-                                      setShowQrPrompt(null);
-                                      setQrCodeInput("");
-                                    }
-                                  }}
-                                />
-                                <button
-                                  onClick={() => {
-                                    if (qrCodeInput.trim()) {
-                                      checkIn.mutate({ bookingId: booking.id, qrCode: qrCodeInput.trim() });
-                                      setShowQrPrompt(null);
-                                      setQrCodeInput("");
-                                    }
-                                  }}
-                                  disabled={checkIn.isPending || !qrCodeInput.trim()}
-                                  className={`
-                                    flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
-                                    ${theme === "dark"
-                                      ? "bg-green-500/10 border-green-500/20 text-green-400"
-                                      : "bg-green-500/10 border-green-500/20 text-green-600"
-                                    }
-                                    hover:bg-green-500/20 hover:border-green-500/30 active:scale-[0.98]
-                                    disabled:opacity-50 disabled:cursor-not-allowed
-                                  `}
-                                >
-                                  {checkIn.isPending ? (
-                                    <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
-                                  ) : (
-                                    <Check className="w-4 h-4" strokeWidth={2} />
-                                  )}
-                                  <span>Confirm</span>
-                                </button>
-                                <button
-                                  onClick={() => { setShowQrPrompt(null); setQrCodeInput(""); }}
-                                  className={`
-                                    px-3 py-3 text-sm rounded-lg border transition-all duration-200
-                                    ${theme === "dark" ? "border-zinc-800 text-zinc-400 hover:text-white" : "border-gray-300 text-gray-600 hover:text-black"}
-                                  `}
-                                >
-                                  <XCircle className="w-4 h-4" strokeWidth={2} />
-                                </button>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => setShowQrPrompt(booking.id)}
-                                disabled={checkIn.isPending}
-                                className={`
-                                  flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
-                                  ${theme === "dark"
-                                    ? "bg-green-500/10 border-green-500/20 text-green-400"
-                                    : "bg-green-500/10 border-green-500/20 text-green-600"
+                        {/* CONFIRMED + PAID: Session time info & studio owner starts session */}
+                        {booking.status === "CONFIRMED" &&
+                         sessionInfo?.paymentStatus === "PAYMENT_HELD" && (() => {
+                          const scheduledStart = new Date(booking.startTime);
+                          const earliestCheckIn = new Date(scheduledStart.getTime() - 30 * 60 * 1000);
+                          const latestCheckIn = new Date(scheduledStart.getTime() + 15 * 60 * 1000);
+                          const currentTime = new Date();
+                          const isTooEarly = currentTime < earliestCheckIn;
+                          const isTooLate = currentTime > latestCheckIn;
+                          const minutesUntilSession = Math.ceil((scheduledStart.getTime() - currentTime.getTime()) / (1000 * 60));
+                          const minutesUntilOpen = Math.ceil((earliestCheckIn.getTime() - currentTime.getTime()) / (1000 * 60));
+
+                          return (
+                            <>
+                              {/* Time info for both roles */}
+                              {minutesUntilSession > 0 && (
+                                <div className={`
+                                  flex items-center gap-2 px-4 py-2.5 text-sm rounded-lg border w-full
+                                  ${isTooEarly
+                                    ? theme === "dark" ? "bg-blue-500/5 border-blue-500/20 text-blue-400" : "bg-blue-50 border-blue-200 text-blue-700"
+                                    : theme === "dark" ? "bg-emerald-500/5 border-emerald-500/20 text-emerald-400" : "bg-emerald-50 border-emerald-200 text-emerald-700"
                                   }
-                                  hover:bg-green-500/20 hover:border-green-500/30 active:scale-[0.98]
-                                  disabled:opacity-50 disabled:cursor-not-allowed
-                                `}
-                              >
-                                <Play className="w-4 h-4" strokeWidth={2} />
-                                <span>Start Session</span>
-                              </button>
-                            )}
-                          </>
-                        )}
+                                `}>
+                                  <Clock className="w-4 h-4 flex-shrink-0" strokeWidth={2} />
+                                  <span className="font-light tracking-wide text-xs">
+                                    Session {minutesUntilSession > 60
+                                      ? `in ${Math.floor(minutesUntilSession / 60)}h ${minutesUntilSession % 60}m`
+                                      : `in ${minutesUntilSession}m`
+                                    } ({dayjs(scheduledStart).format("h:mm A")})
+                                    {isTooEarly && ` · Check-in opens at ${dayjs(earliestCheckIn).format("h:mm A")}`}
+                                    {!isTooEarly && !isTooLate && ` · Check-in open`}
+                                  </span>
+                                </div>
+                              )}
+                              {isTooLate && (
+                                <div className={`
+                                  flex items-center gap-2 px-4 py-2.5 text-xs rounded-lg border w-full
+                                  ${theme === "dark" ? "bg-red-500/5 border-red-500/20 text-red-400" : "bg-red-50 border-red-200 text-red-700"}
+                                `}>
+                                  <AlertCircle className="w-4 h-4 flex-shrink-0" strokeWidth={2} />
+                                  <span className="font-light tracking-wide">Check-in window expired</span>
+                                </div>
+                              )}
+
+                              {/* Error display for this booking */}
+                              {sessionActionError && showQrPrompt === booking.id && (
+                                <div className={`
+                                  flex items-center gap-2 px-4 py-2.5 text-xs rounded-lg border w-full
+                                  ${theme === "dark" ? "bg-red-500/5 border-red-500/20 text-red-400" : "bg-red-50 border-red-200 text-red-700"}
+                                `}>
+                                  <AlertCircle className="w-4 h-4 flex-shrink-0" strokeWidth={2} />
+                                  <span className="font-light tracking-wide">{sessionActionError}</span>
+                                </div>
+                              )}
+
+                              {/* Studio owner: Start session with QR code */}
+                              {isStudioOwner && (
+                                <>
+                                  {showQrPrompt === booking.id ? (
+                                    <div className="flex items-center gap-2 w-full">
+                                      <input
+                                        type="text"
+                                        placeholder="Enter artist's QR code"
+                                        value={qrCodeInput}
+                                        onChange={(e) => setQrCodeInput(e.target.value)}
+                                        className={`
+                                          flex-1 px-4 py-3 text-sm font-light rounded-lg border transition-all duration-200
+                                          ${theme === "dark" ? "bg-zinc-950 border-zinc-800 text-white placeholder:text-zinc-600" : "bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"}
+                                          tracking-wide focus:outline-none focus:ring-1 ${theme === "dark" ? "focus:ring-white" : "focus:ring-black"}
+                                        `}
+                                        onKeyDown={(e) => {
+                                          if (e.key === "Enter" && qrCodeInput.trim() && !checkIn.isPending) {
+                                            checkIn.mutate(
+                                              { bookingId: booking.id, qrCode: qrCodeInput.trim() },
+                                              {
+                                                onSuccess: () => { setShowQrPrompt(null); setQrCodeInput(""); setSessionActionError(null); },
+                                                onError: (err: any) => { setSessionActionError(err.message || "Failed to start session"); },
+                                              }
+                                            );
+                                          }
+                                        }}
+                                      />
+                                      <button
+                                        onClick={() => {
+                                          if (qrCodeInput.trim()) {
+                                            checkIn.mutate(
+                                              { bookingId: booking.id, qrCode: qrCodeInput.trim() },
+                                              {
+                                                onSuccess: () => { setShowQrPrompt(null); setQrCodeInput(""); setSessionActionError(null); },
+                                                onError: (err: any) => { setSessionActionError(err.message || "Failed to start session"); },
+                                              }
+                                            );
+                                          }
+                                        }}
+                                        disabled={checkIn.isPending || !qrCodeInput.trim()}
+                                        className={`
+                                          flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
+                                          ${theme === "dark"
+                                            ? "bg-green-500/10 border-green-500/20 text-green-400"
+                                            : "bg-green-500/10 border-green-500/20 text-green-600"
+                                          }
+                                          hover:bg-green-500/20 hover:border-green-500/30 active:scale-[0.98]
+                                          disabled:opacity-50 disabled:cursor-not-allowed
+                                        `}
+                                      >
+                                        {checkIn.isPending ? (
+                                          <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
+                                        ) : (
+                                          <Check className="w-4 h-4" strokeWidth={2} />
+                                        )}
+                                        <span>Confirm</span>
+                                      </button>
+                                      <button
+                                        onClick={() => { setShowQrPrompt(null); setQrCodeInput(""); setSessionActionError(null); }}
+                                        className={`
+                                          px-3 py-3 text-sm rounded-lg border transition-all duration-200
+                                          ${theme === "dark" ? "border-zinc-800 text-zinc-400 hover:text-white" : "border-gray-300 text-gray-600 hover:text-black"}
+                                        `}
+                                      >
+                                        <XCircle className="w-4 h-4" strokeWidth={2} />
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      onClick={() => { setShowQrPrompt(booking.id); setSessionActionError(null); }}
+                                      disabled={checkIn.isPending || isTooLate}
+                                      className={`
+                                        flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
+                                        ${theme === "dark"
+                                          ? "bg-green-500/10 border-green-500/20 text-green-400"
+                                          : "bg-green-500/10 border-green-500/20 text-green-600"
+                                        }
+                                        hover:bg-green-500/20 hover:border-green-500/30 active:scale-[0.98]
+                                        disabled:opacity-50 disabled:cursor-not-allowed
+                                      `}
+                                    >
+                                      <Play className="w-4 h-4" strokeWidth={2} />
+                                      <span>Start Session</span>
+                                    </button>
+                                  )}
+                                </>
+                              )}
+                            </>
+                          );
+                        })()}
 
                         {/* ACTIVE: Show live session info */}
                         {booking.status === "ACTIVE" && sessionInfo && (
@@ -1130,6 +1196,16 @@ export default function BookingsPage() {
                         {/* ACTIVE: Artist confirms presence with confirmation code */}
                         {booking.status === "ACTIVE" && isCustomer && sessionInfo && !sessionInfo.bookerConfirmedCheckIn && (
                           <>
+                            {/* Error display for confirm code */}
+                            {sessionActionError && showConfirmPrompt === booking.id && (
+                              <div className={`
+                                flex items-center gap-2 px-4 py-2.5 text-xs rounded-lg border w-full
+                                ${theme === "dark" ? "bg-red-500/5 border-red-500/20 text-red-400" : "bg-red-50 border-red-200 text-red-700"}
+                              `}>
+                                <AlertCircle className="w-4 h-4 flex-shrink-0" strokeWidth={2} />
+                                <span className="font-light tracking-wide">{sessionActionError}</span>
+                              </div>
+                            )}
                             {showConfirmPrompt === booking.id ? (
                               <div className="flex items-center gap-2 w-full">
                                 <input
@@ -1144,19 +1220,27 @@ export default function BookingsPage() {
                                     tracking-widest text-center focus:outline-none focus:ring-1 ${theme === "dark" ? "focus:ring-white" : "focus:ring-black"}
                                   `}
                                   onKeyDown={(e) => {
-                                    if (e.key === "Enter" && confirmCodeInput.trim()) {
-                                      confirmCheckIn.mutate({ bookingId: booking.id, confirmationCode: confirmCodeInput.trim() });
-                                      setShowConfirmPrompt(null);
-                                      setConfirmCodeInput("");
+                                    if (e.key === "Enter" && confirmCodeInput.trim() && !confirmCheckIn.isPending) {
+                                      confirmCheckIn.mutate(
+                                        { bookingId: booking.id, confirmationCode: confirmCodeInput.trim() },
+                                        {
+                                          onSuccess: () => { setShowConfirmPrompt(null); setConfirmCodeInput(""); setSessionActionError(null); },
+                                          onError: (err: any) => { setSessionActionError(err.message || "Invalid confirmation code"); },
+                                        }
+                                      );
                                     }
                                   }}
                                 />
                                 <button
                                   onClick={() => {
                                     if (confirmCodeInput.trim()) {
-                                      confirmCheckIn.mutate({ bookingId: booking.id, confirmationCode: confirmCodeInput.trim() });
-                                      setShowConfirmPrompt(null);
-                                      setConfirmCodeInput("");
+                                      confirmCheckIn.mutate(
+                                        { bookingId: booking.id, confirmationCode: confirmCodeInput.trim() },
+                                        {
+                                          onSuccess: () => { setShowConfirmPrompt(null); setConfirmCodeInput(""); setSessionActionError(null); },
+                                          onError: (err: any) => { setSessionActionError(err.message || "Invalid confirmation code"); },
+                                        }
+                                      );
                                     }
                                   }}
                                   disabled={confirmCheckIn.isPending || !confirmCodeInput.trim()}
@@ -1178,7 +1262,7 @@ export default function BookingsPage() {
                                   <span>Verify</span>
                                 </button>
                                 <button
-                                  onClick={() => { setShowConfirmPrompt(null); setConfirmCodeInput(""); }}
+                                  onClick={() => { setShowConfirmPrompt(null); setConfirmCodeInput(""); setSessionActionError(null); }}
                                   className={`
                                     px-3 py-3 text-sm rounded-lg border transition-all duration-200
                                     ${theme === "dark" ? "border-zinc-800 text-zinc-400 hover:text-white" : "border-gray-300 text-gray-600 hover:text-black"}
@@ -1189,7 +1273,7 @@ export default function BookingsPage() {
                               </div>
                             ) : (
                               <button
-                                onClick={() => setShowConfirmPrompt(booking.id)}
+                                onClick={() => { setShowConfirmPrompt(booking.id); setSessionActionError(null); }}
                                 className={`
                                   flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
                                   ${theme === "dark"
