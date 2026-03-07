@@ -144,8 +144,8 @@ export default function BookingShowPage() {
     return () => clearInterval(interval);
   }, [booking?.status]);
 
-  const handleAction = async (action: () => Promise<Response>, successMessage?: string) => {
-    if (!booking) return;
+  const handleAction = async (action: () => Promise<Response>, successMessage?: string): Promise<boolean> => {
+    if (!booking) return false;
     setIsUpdating(true);
     setActionError(null);
     try {
@@ -156,8 +156,10 @@ export default function BookingShowPage() {
       }
       // Refresh booking data
       await fetchBooking();
+      return true;
     } catch (err: any) {
       setActionError(err.message || "Something went wrong");
+      return false;
     } finally {
       setIsUpdating(false);
     }
@@ -184,21 +186,33 @@ export default function BookingShowPage() {
     })
   );
 
-  const handleCheckIn = (qrCode: string) => handleAction(() =>
-    fetch(`/api/bookings/${booking!.id}/check-in`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ qrCode }),
-    })
-  );
+  const handleCheckIn = async (qrCode: string) => {
+    const success = await handleAction(() =>
+      fetch(`/api/bookings/${booking!.id}/check-in`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ qrCode }),
+      })
+    );
+    if (success) {
+      setShowQrPrompt(false);
+      setQrCodeInput("");
+    }
+  };
 
-  const handleConfirmCheckIn = (confirmationCode: string) => handleAction(() =>
-    fetch(`/api/bookings/${booking!.id}/confirm-check-in`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ confirmationCode }),
-    })
-  );
+  const handleConfirmCheckIn = async (confirmationCode: string) => {
+    const success = await handleAction(() =>
+      fetch(`/api/bookings/${booking!.id}/confirm-check-in`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirmationCode }),
+      })
+    );
+    if (success) {
+      setShowConfirmPrompt(false);
+      setConfirmCodeInput("");
+    }
+  };
 
   const handleCheckOut = async () => {
     if (!booking || !confirm("Are you sure you want to end this session?")) return;
@@ -396,6 +410,40 @@ export default function BookingShowPage() {
               </div>
             </div>
           )}
+
+          {/* Session Time Window Info - Confirmed bookings */}
+          {booking.status === "CONFIRMED" && booking.paymentStatus === "PAYMENT_HELD" && (() => {
+            const scheduledStart = new Date(booking.startTime);
+            const earliestCheckIn = new Date(scheduledStart.getTime() - 30 * 60 * 1000);
+            const currentTime = new Date();
+            const isTooEarly = currentTime < earliestCheckIn;
+            const minutesUntilOpen = Math.ceil((earliestCheckIn.getTime() - currentTime.getTime()) / (1000 * 60));
+            const minutesUntilSession = Math.ceil((scheduledStart.getTime() - currentTime.getTime()) / (1000 * 60));
+
+            if (minutesUntilSession <= 0) return null;
+
+            return (
+              <div className={`p-4 rounded-xl border ${theme === "dark" ? "border-blue-500/20 bg-blue-500/5" : "border-blue-200 bg-blue-50"}`}>
+                <div className="flex items-center gap-3">
+                  <Clock className={`w-5 h-5 flex-shrink-0 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} strokeWidth={2} />
+                  <div>
+                    <p className={`text-sm font-medium tracking-wide ${theme === "dark" ? "text-blue-400" : "text-blue-700"}`}>
+                      Session {minutesUntilSession > 60
+                        ? `in ${Math.floor(minutesUntilSession / 60)}h ${minutesUntilSession % 60}m`
+                        : `in ${minutesUntilSession}m`
+                      } — {dayjs(scheduledStart).format("h:mm A")}
+                    </p>
+                    <p className={`text-xs font-light tracking-wide mt-0.5 ${theme === "dark" ? "text-blue-400/70" : "text-blue-600/70"}`}>
+                      {isTooEarly
+                        ? `Check-in opens at ${dayjs(earliestCheckIn).format("h:mm A")} (30 min before session)`
+                        : "Check-in window is open"
+                      }
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Session Progress Card - Active sessions */}
           {booking.status === "ACTIVE" && booking.checkedInAt && (() => {
@@ -766,44 +814,75 @@ export default function BookingShowPage() {
                   {/* Studio owner: Start session with QR code */}
                   {isStudioOwner && booking.paymentStatus === "PAYMENT_HELD" && (
                     <>
-                      {showQrPrompt ? (
-                        <div className="flex items-center gap-2 w-full">
-                          <input
-                            type="text"
-                            placeholder="Enter artist's QR code"
-                            value={qrCodeInput}
-                            onChange={(e) => setQrCodeInput(e.target.value)}
-                            className={`flex-1 px-4 py-3 text-sm font-light rounded-lg border transition-all duration-200 ${theme === "dark" ? "bg-zinc-950 border-zinc-800 text-white placeholder:text-zinc-600" : "bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"} tracking-wide focus:outline-none focus:ring-1 ${theme === "dark" ? "focus:ring-white" : "focus:ring-black"}`}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter" && qrCodeInput.trim()) {
-                                handleCheckIn(qrCodeInput.trim());
-                                setShowQrPrompt(false);
-                                setQrCodeInput("");
-                              }
-                            }}
-                          />
-                          <button
-                            onClick={() => { if (qrCodeInput.trim()) { handleCheckIn(qrCodeInput.trim()); setShowQrPrompt(false); setQrCodeInput(""); } }}
-                            disabled={isUpdating || !qrCodeInput.trim()}
-                            className={`flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide ${theme === "dark" ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-green-500/10 border-green-500/20 text-green-600"} hover:bg-green-500/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
-                          >
-                            {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} /> : <Check className="w-4 h-4" strokeWidth={2} />}
-                            <span>Confirm</span>
-                          </button>
-                          <button onClick={() => { setShowQrPrompt(false); setQrCodeInput(""); }} className={`px-3 py-3 text-sm rounded-lg border transition-all duration-200 ${theme === "dark" ? "border-zinc-800 text-zinc-400 hover:text-white" : "border-gray-300 text-gray-600 hover:text-black"}`}>
-                            <XCircle className="w-4 h-4" strokeWidth={2} />
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => setShowQrPrompt(true)}
-                          disabled={isUpdating}
-                          className={`flex items-center gap-2.5 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide ${theme === "dark" ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-green-500/10 border-green-500/20 text-green-600"} hover:bg-green-500/20 hover:border-green-500/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
-                        >
-                          <Play className="w-4 h-4" strokeWidth={2} />
-                          <span>Start Session</span>
-                        </button>
-                      )}
+                      {/* Check-in time window info */}
+                      {(() => {
+                        const scheduledStart = new Date(booking.startTime);
+                        const earliestCheckIn = new Date(scheduledStart.getTime() - 30 * 60 * 1000);
+                        const latestCheckIn = new Date(scheduledStart.getTime() + 15 * 60 * 1000);
+                        const currentTime = new Date();
+                        const isWithinWindow = currentTime >= earliestCheckIn && currentTime <= latestCheckIn;
+                        const isTooEarly = currentTime < earliestCheckIn;
+                        const isTooLate = currentTime > latestCheckIn;
+                        const minutesUntilOpen = Math.ceil((earliestCheckIn.getTime() - currentTime.getTime()) / (1000 * 60));
+
+                        return (
+                          <>
+                            {isTooEarly && (
+                              <div className={`flex items-center gap-2.5 px-4 py-3 text-sm rounded-lg border w-full ${theme === "dark" ? "bg-yellow-500/5 border-yellow-500/20 text-yellow-400" : "bg-yellow-50 border-yellow-200 text-yellow-700"}`}>
+                                <Clock className="w-4 h-4 flex-shrink-0" strokeWidth={2} />
+                                <span className="font-light tracking-wide">
+                                  Check-in opens {minutesUntilOpen > 60
+                                    ? `${Math.floor(minutesUntilOpen / 60)}h ${minutesUntilOpen % 60}m`
+                                    : `${minutesUntilOpen}m`
+                                  } before session ({dayjs(earliestCheckIn).format("h:mm A")})
+                                </span>
+                              </div>
+                            )}
+                            {isTooLate && (
+                              <div className={`flex items-center gap-2.5 px-4 py-3 text-sm rounded-lg border w-full ${theme === "dark" ? "bg-red-500/5 border-red-500/20 text-red-400" : "bg-red-50 border-red-200 text-red-700"}`}>
+                                <AlertCircle className="w-4 h-4 flex-shrink-0" strokeWidth={2} />
+                                <span className="font-light tracking-wide">Check-in window has expired. Contact support or create a new booking.</span>
+                              </div>
+                            )}
+                            {showQrPrompt ? (
+                              <div className="flex items-center gap-2 w-full">
+                                <input
+                                  type="text"
+                                  placeholder="Enter artist's QR code"
+                                  value={qrCodeInput}
+                                  onChange={(e) => setQrCodeInput(e.target.value)}
+                                  className={`flex-1 px-4 py-3 text-sm font-light rounded-lg border transition-all duration-200 ${theme === "dark" ? "bg-zinc-950 border-zinc-800 text-white placeholder:text-zinc-600" : "bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"} tracking-wide focus:outline-none focus:ring-1 ${theme === "dark" ? "focus:ring-white" : "focus:ring-black"}`}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" && qrCodeInput.trim() && !isUpdating) {
+                                      handleCheckIn(qrCodeInput.trim());
+                                    }
+                                  }}
+                                />
+                                <button
+                                  onClick={() => { if (qrCodeInput.trim()) { handleCheckIn(qrCodeInput.trim()); } }}
+                                  disabled={isUpdating || !qrCodeInput.trim()}
+                                  className={`flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide ${theme === "dark" ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-green-500/10 border-green-500/20 text-green-600"} hover:bg-green-500/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
+                                >
+                                  {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} /> : <Check className="w-4 h-4" strokeWidth={2} />}
+                                  <span>Confirm</span>
+                                </button>
+                                <button onClick={() => { setShowQrPrompt(false); setQrCodeInput(""); setActionError(null); }} className={`px-3 py-3 text-sm rounded-lg border transition-all duration-200 ${theme === "dark" ? "border-zinc-800 text-zinc-400 hover:text-white" : "border-gray-300 text-gray-600 hover:text-black"}`}>
+                                  <XCircle className="w-4 h-4" strokeWidth={2} />
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => { setShowQrPrompt(true); setActionError(null); }}
+                                disabled={isUpdating || isTooLate}
+                                className={`flex items-center gap-2.5 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide ${theme === "dark" ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-green-500/10 border-green-500/20 text-green-600"} hover:bg-green-500/20 hover:border-green-500/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
+                              >
+                                <Play className="w-4 h-4" strokeWidth={2} />
+                                <span>Start Session</span>
+                              </button>
+                            )}
+                          </>
+                        );
+                      })()}
                     </>
                   )}
 
@@ -837,28 +916,26 @@ export default function BookingShowPage() {
                             maxLength={6}
                             className={`flex-1 px-4 py-3 text-sm font-mono font-light rounded-lg border transition-all duration-200 ${theme === "dark" ? "bg-zinc-950 border-zinc-800 text-white placeholder:text-zinc-600" : "bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"} tracking-widest text-center focus:outline-none focus:ring-1 ${theme === "dark" ? "focus:ring-white" : "focus:ring-black"}`}
                             onKeyDown={(e) => {
-                              if (e.key === "Enter" && confirmCodeInput.trim()) {
+                              if (e.key === "Enter" && confirmCodeInput.trim() && !isUpdating) {
                                 handleConfirmCheckIn(confirmCodeInput.trim());
-                                setShowConfirmPrompt(false);
-                                setConfirmCodeInput("");
                               }
                             }}
                           />
                           <button
-                            onClick={() => { if (confirmCodeInput.trim()) { handleConfirmCheckIn(confirmCodeInput.trim()); setShowConfirmPrompt(false); setConfirmCodeInput(""); } }}
+                            onClick={() => { if (confirmCodeInput.trim()) { handleConfirmCheckIn(confirmCodeInput.trim()); } }}
                             disabled={isUpdating || !confirmCodeInput.trim()}
                             className={`flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide ${theme === "dark" ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-green-500/10 border-green-500/20 text-green-600"} hover:bg-green-500/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
                           >
                             {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} /> : <Check className="w-4 h-4" strokeWidth={2} />}
                             <span>Verify</span>
                           </button>
-                          <button onClick={() => { setShowConfirmPrompt(false); setConfirmCodeInput(""); }} className={`px-3 py-3 text-sm rounded-lg border transition-all duration-200 ${theme === "dark" ? "border-zinc-800 text-zinc-400 hover:text-white" : "border-gray-300 text-gray-600 hover:text-black"}`}>
+                          <button onClick={() => { setShowConfirmPrompt(false); setConfirmCodeInput(""); setActionError(null); }} className={`px-3 py-3 text-sm rounded-lg border transition-all duration-200 ${theme === "dark" ? "border-zinc-800 text-zinc-400 hover:text-white" : "border-gray-300 text-gray-600 hover:text-black"}`}>
                             <XCircle className="w-4 h-4" strokeWidth={2} />
                           </button>
                         </div>
                       ) : (
                         <button
-                          onClick={() => setShowConfirmPrompt(true)}
+                          onClick={() => { setShowConfirmPrompt(true); setActionError(null); }}
                           className={`flex items-center gap-2.5 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide ${theme === "dark" ? "bg-yellow-500/10 border-yellow-500/20 text-yellow-400" : "bg-yellow-500/10 border-yellow-500/20 text-yellow-600"} hover:bg-yellow-500/20 hover:border-yellow-500/30 active:scale-[0.98]`}
                         >
                           <Shield className="w-4 h-4" strokeWidth={2} />
