@@ -642,7 +642,7 @@ export default function BookingsPage() {
                       {(booking as any).sessionInfo.overtimeMinutes > 0 && (
                         <div>
                           <p className={`text-xs ${textTertiary}`}>Overtime</p>
-                          <p className="text-sm font-light text-orange-400">{(booking as any).sessionInfo.overtimeMinutes}m (+{formatCurrency((booking as any).sessionInfo.overtimeAmount)})</p>
+                          <p className="text-sm font-light text-orange-400">+{Math.floor((booking as any).sessionInfo.overtimeMinutes / 60).toString().padStart(2, "0")}h {((booking as any).sessionInfo.overtimeMinutes % 60).toString().padStart(2, "0")}m (+{formatCurrency((booking as any).sessionInfo.overtimeAmount)})</p>
                         </div>
                       )}
                       {(booking as any).sessionInfo.qrCode && (
