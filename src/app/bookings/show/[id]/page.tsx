@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { useTheme } from "@/providers/ThemeProvider";
 import { createBrowserClient } from "@supabase/ssr";
 import { useUserBySupabaseId } from "@/hooks/api/useUserData";
@@ -77,8 +77,10 @@ interface BookingDetails {
   };
 }
 
-export default function BookingShowPage({ params }: { params: { id: string } }) {
+export default function BookingShowPage() {
   const router = useRouter();
+  const params = useParams<{ id: string }>();
+  const bookingId = params?.id;
   const { theme } = useTheme();
   const [booking, setBooking] = useState<BookingDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -90,6 +92,7 @@ export default function BookingShowPage({ params }: { params: { id: string } }) 
   const [confirmCodeInput, setConfirmCodeInput] = useState("");
   const [showConfirmPrompt, setShowConfirmPrompt] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [now, setNow] = useState(new Date());
 
   const { data: currentUser } = useUserBySupabaseId(supabaseUser?.id, {
     enabled: !!supabaseUser?.id,
@@ -108,11 +111,20 @@ export default function BookingShowPage({ params }: { params: { id: string } }) 
   }, []);
 
   const fetchBooking = async () => {
+    if (!bookingId) {
+      setError("No booking ID provided");
+      setIsLoading(false);
+      return;
+    }
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/bookings/${params.id}`);
-      if (!response.ok) throw new Error("Failed to fetch booking");
+      setError(null);
+      const response = await fetch(`/api/bookings/${bookingId}`);
       const data = await response.json();
+      if (!response.ok) {
+        const errorMessage = data.error?.message || data.message || "Failed to fetch booking";
+        throw new Error(errorMessage);
+      }
       setBooking(data.data?.booking || data.booking);
     } catch (err: any) {
       setError(err.message || "Failed to load booking");
@@ -123,7 +135,14 @@ export default function BookingShowPage({ params }: { params: { id: string } }) 
 
   useEffect(() => {
     fetchBooking();
-  }, [params.id]);
+  }, [bookingId]);
+
+  // Live clock for active session timer
+  useEffect(() => {
+    if (booking?.status !== "ACTIVE") return;
+    const interval = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(interval);
+  }, [booking?.status]);
 
   const handleAction = async (action: () => Promise<Response>, successMessage?: string) => {
     if (!booking) return;
@@ -250,6 +269,11 @@ export default function BookingShowPage({ params }: { params: { id: string } }) 
   };
   const formatCurrency = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
   const calculateDuration = (startTime: string, endTime: string) => dayjs(endTime).diff(dayjs(startTime), 'hour', true);
+  const formatDurationHMS = (minutes: number) => {
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return `${h.toString().padStart(2, "0")}h ${m.toString().padStart(2, "0")}m`;
+  };
 
   const textPrimary = theme === "dark" ? "text-white" : "text-gray-900";
   const textTertiary = theme === "dark" ? "text-zinc-500" : "text-gray-500";
@@ -279,17 +303,27 @@ export default function BookingShowPage({ params }: { params: { id: string } }) 
   }
 
   if (error || !booking) {
+    const isAuthError = error?.toLowerCase().includes("unauthorized") || error?.toLowerCase().includes("forbidden");
     return (
       <div className={`min-h-screen p-6 transition-colors duration-200 ${bgPrimary} ${textPrimary}`}>
         <div className="max-w-4xl mx-auto">
           <div className={`p-12 rounded-xl text-center border ${borderPrimary} ${bgCard}`}>
             <XCircle className={`w-16 h-16 ${theme === "dark" ? "text-zinc-700" : "text-gray-300"} mx-auto mb-4`} strokeWidth={1.5} />
-            <h3 className="text-lg font-light tracking-tight mb-2">Booking not found</h3>
-            <p className="text-sm font-light tracking-wide mb-6">{error || "The booking you're looking for doesn't exist"}</p>
-            <button onClick={() => router.push('/bookings')} className={`inline-flex items-center gap-2.5 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 ${buttonPrimary} tracking-wide`}>
-              <ArrowLeft className="w-4 h-4" strokeWidth={2} />
-              <span>Back to Bookings</span>
-            </button>
+            <h3 className="text-lg font-light tracking-tight mb-2">
+              {isAuthError ? "Access denied" : "Booking not found"}
+            </h3>
+            <p className="text-sm font-light tracking-wide mb-6">
+              {error || "The booking you're looking for doesn't exist"}
+            </p>
+            <div className="flex items-center justify-center gap-3">
+              <button onClick={() => router.push('/bookings')} className={`inline-flex items-center gap-2.5 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 ${buttonPrimary} tracking-wide`}>
+                <ArrowLeft className="w-4 h-4" strokeWidth={2} />
+                <span>Back to Bookings</span>
+              </button>
+              <button onClick={() => fetchBooking()} className={`inline-flex items-center gap-2.5 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 ${buttonSecondary} tracking-wide`}>
+                <span>Try Again</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -364,36 +398,109 @@ export default function BookingShowPage({ params }: { params: { id: string } }) 
           )}
 
           {/* Session Progress Card - Active sessions */}
-          {booking.status === "ACTIVE" && booking.checkedInAt && (
-            <div className={`p-6 rounded-xl border ${theme === "dark" ? "border-emerald-500/20 bg-emerald-500/5" : "border-emerald-500/20 bg-emerald-50"}`}>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse" />
-                <h3 className="text-lg font-light tracking-tight">Session In Progress</h3>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div>
-                  <p className={`text-xs ${textTertiary} mb-1`}>Checked In</p>
-                  <p className="text-sm font-light">{dayjs(booking.checkedInAt).format("h:mm A")}</p>
-                </div>
-                <div>
-                  <p className={`text-xs ${textTertiary} mb-1`}>Scheduled End</p>
-                  <p className="text-sm font-light">{dayjs(booking.endTime).format("h:mm A")}</p>
-                </div>
-                <div>
-                  <p className={`text-xs ${textTertiary} mb-1`}>Presence Confirmed</p>
-                  <p className={`text-sm font-light ${booking.bookerConfirmedCheckIn ? "text-green-400" : "text-yellow-400"}`}>
-                    {booking.bookerConfirmedCheckIn ? "Yes" : "Pending"}
-                  </p>
-                </div>
-                {booking.overtimeMinutes && booking.overtimeMinutes > 0 ? (
-                  <div>
-                    <p className={`text-xs ${textTertiary} mb-1`}>Overtime</p>
-                    <p className="text-sm font-light text-orange-400">+{booking.overtimeMinutes}m</p>
+          {booking.status === "ACTIVE" && booking.checkedInAt && (() => {
+            const endMs = new Date(booking.endTime).getTime();
+            const checkedInMs = new Date(booking.checkedInAt).getTime();
+            const nowMs = now.getTime();
+            const totalMs = endMs - checkedInMs;
+            const elapsedMs = nowMs - checkedInMs;
+            const remainingMs = endMs - nowMs;
+            const isOvertime = remainingMs < 0;
+            const absRemainingMs = Math.abs(remainingMs);
+            const progressPct = Math.min(100, (elapsedMs / totalMs) * 100);
+
+            const rH = Math.floor(absRemainingMs / (1000 * 60 * 60));
+            const rM = Math.floor((absRemainingMs % (1000 * 60 * 60)) / (1000 * 60));
+            const rS = Math.floor((absRemainingMs % (1000 * 60)) / 1000);
+            const countdown = `${rH.toString().padStart(2, "0")}:${rM.toString().padStart(2, "0")}:${rS.toString().padStart(2, "0")}`;
+
+            const eH = Math.floor(elapsedMs / (1000 * 60 * 60));
+            const eM = Math.floor((elapsedMs % (1000 * 60 * 60)) / (1000 * 60));
+            const eS = Math.floor((elapsedMs % (1000 * 60)) / 1000);
+            const elapsed = `${eH.toString().padStart(2, "0")}:${eM.toString().padStart(2, "0")}:${eS.toString().padStart(2, "0")}`;
+
+            return (
+              <div className={`p-6 rounded-xl border ${
+                isOvertime
+                  ? theme === "dark" ? "border-orange-500/20 bg-orange-500/5" : "border-orange-500/20 bg-orange-50"
+                  : theme === "dark" ? "border-emerald-500/20 bg-emerald-500/5" : "border-emerald-500/20 bg-emerald-50"
+              }`}>
+                <div className="flex items-center justify-between mb-5">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-3 h-3 rounded-full animate-pulse ${isOvertime ? "bg-orange-400" : "bg-emerald-400"}`} />
+                    <h3 className="text-lg font-light tracking-tight">
+                      {isOvertime ? "Session Overtime" : "Session In Progress"}
+                    </h3>
                   </div>
-                ) : null}
+                  <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border ${
+                    isOvertime ? "bg-orange-500/10 border-orange-500/20" : "bg-green-500/10 border-green-500/20"
+                  }`}>
+                    <p className={`text-2xl font-mono font-medium tabular-nums tracking-tight ${isOvertime ? "text-orange-400" : "text-green-400"}`}>
+                      {isOvertime ? "+" : ""}{countdown}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Progress bar */}
+                <div className="mb-4">
+                  <div className={`relative h-2 rounded-full ${theme === "dark" ? "bg-zinc-800" : "bg-gray-200"} overflow-hidden`}>
+                    <div
+                      className={`h-full rounded-full transition-all duration-1000 ease-linear ${
+                        isOvertime
+                          ? "bg-gradient-to-r from-orange-500 to-red-500"
+                          : progressPct > 80
+                          ? "bg-gradient-to-r from-green-500 to-yellow-500"
+                          : "bg-gradient-to-r from-green-500 to-emerald-400"
+                      }`}
+                      style={{ width: `${Math.min(progressPct, 100)}%` }}
+                    />
+                    {progressPct <= 100 && (
+                      <div
+                        className={`absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full border-2 shadow-lg transition-all duration-1000 ease-linear ${
+                          isOvertime ? "bg-orange-400 border-orange-300" : "bg-green-400 border-green-300"
+                        }`}
+                        style={{ left: `calc(${Math.min(progressPct, 100)}% - 7px)` }}
+                      />
+                    )}
+                  </div>
+                  <div className="flex justify-between mt-1.5">
+                    <span className={`text-xs font-light ${textTertiary}`}>
+                      {dayjs(booking.checkedInAt).format("h:mm A")}
+                    </span>
+                    <span className={`text-xs font-medium ${isOvertime ? "text-orange-400" : progressPct > 80 ? "text-yellow-400" : "text-green-400"}`}>
+                      {Math.round(progressPct)}%
+                    </span>
+                    <span className={`text-xs font-light ${textTertiary}`}>
+                      {dayjs(booking.endTime).format("h:mm A")}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <p className={`text-xs ${textTertiary} mb-1`}>Elapsed</p>
+                    <p className="text-sm font-mono tabular-nums font-light">{elapsed}</p>
+                  </div>
+                  <div>
+                    <p className={`text-xs ${textTertiary} mb-1`}>Scheduled End</p>
+                    <p className="text-sm font-light">{dayjs(booking.endTime).format("h:mm A")}</p>
+                  </div>
+                  <div>
+                    <p className={`text-xs ${textTertiary} mb-1`}>Presence Confirmed</p>
+                    <p className={`text-sm font-light ${booking.bookerConfirmedCheckIn ? "text-green-400" : "text-yellow-400"}`}>
+                      {booking.bookerConfirmedCheckIn ? "Yes" : "Pending"}
+                    </p>
+                  </div>
+                  {isOvertime && (
+                    <div>
+                      <p className={`text-xs ${textTertiary} mb-1`}>Overtime</p>
+                      <p className="text-sm font-mono tabular-nums font-light text-orange-400">+{countdown}</p>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Session Complete Summary */}
           {booking.status === "COMPLETED" && booking.checkedInAt && (
@@ -416,7 +523,7 @@ export default function BookingShowPage({ params }: { params: { id: string } }) 
                 {booking.actualSessionMinutes != null && (
                   <div>
                     <p className={`text-xs ${textTertiary} mb-1`}>Actual Duration</p>
-                    <p className="text-sm font-light">{booking.actualSessionMinutes}m</p>
+                    <p className="text-sm font-light">{formatDurationHMS(booking.actualSessionMinutes)}</p>
                   </div>
                 )}
                 {booking.proRataAmount != null && (
@@ -428,7 +535,7 @@ export default function BookingShowPage({ params }: { params: { id: string } }) 
                 {booking.overtimeMinutes && booking.overtimeMinutes > 0 ? (
                   <div>
                     <p className={`text-xs ${textTertiary} mb-1`}>Overtime</p>
-                    <p className="text-sm font-light text-orange-400">+{booking.overtimeMinutes}m ({formatCurrency(booking.overtimeAmount || 0)})</p>
+                    <p className="text-sm font-light text-orange-400">+{formatDurationHMS(booking.overtimeMinutes)} ({formatCurrency(booking.overtimeAmount || 0)})</p>
                   </div>
                 ) : null}
                 {booking.endedBy && (

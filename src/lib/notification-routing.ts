@@ -21,8 +21,11 @@ export function getNotificationRoute(
     return { path: null };
   }
 
+  // Normalize referenceType to uppercase for consistent matching
+  const normalizedType = referenceType.toUpperCase();
+
   // Route based on reference type (what the notification is about)
-  switch (referenceType) {
+  switch (normalizedType) {
     // Service Request notifications
     case "SERVICE_REQUEST":
       return {

@@ -58,6 +58,37 @@ export default function SessionsDashboardPage() {
     return m > 0 ? `${h}h ${m}m` : `${h}h`;
   };
 
+  // Format minutes into HH:MM:SS countdown with live seconds
+  const formatCountdown = (totalMinutes: number | null, checkedInAt?: string | null, endTime?: string) => {
+    if (totalMinutes === null || totalMinutes === undefined) return "—";
+    // Use live calculation if we have the actual timestamps for second-level precision
+    if (endTime) {
+      const endMs = new Date(endTime).getTime();
+      const nowMs = now.getTime();
+      const diffMs = endMs - nowMs;
+      const absDiffMs = Math.abs(diffMs);
+      const h = Math.floor(absDiffMs / (1000 * 60 * 60));
+      const m = Math.floor((absDiffMs % (1000 * 60 * 60)) / (1000 * 60));
+      const s = Math.floor((absDiffMs % (1000 * 60)) / 1000);
+      return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+    }
+    // Fallback to minute-based
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:00`;
+  };
+
+  // Format elapsed time from check-in to now
+  const formatElapsed = (checkedInAt: string | null) => {
+    if (!checkedInAt) return "00:00:00";
+    const diffMs = now.getTime() - new Date(checkedInAt).getTime();
+    const absDiffMs = Math.abs(diffMs);
+    const h = Math.floor(absDiffMs / (1000 * 60 * 60));
+    const m = Math.floor((absDiffMs % (1000 * 60 * 60)) / (1000 * 60));
+    const s = Math.floor((absDiffMs % (1000 * 60)) / 1000);
+    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
   };
@@ -258,10 +289,17 @@ export default function SessionsDashboardPage() {
                     {/* Live timer */}
                     {isActive && (
                       <div className="text-right">
-                        <p className={`text-2xl font-mono font-light tracking-tight ${isOvertime ? "text-orange-400" : "text-green-400"}`}>
-                          {isOvertime ? `+${formatMinutes(liveOvertimeMinutes)}` : formatMinutes(info.timeRemaining)}
-                        </p>
-                        <p className={`text-xs font-light ${textTertiary}`}>
+                        <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border ${
+                          isOvertime
+                            ? "bg-orange-500/10 border-orange-500/20"
+                            : "bg-green-500/10 border-green-500/20"
+                        }`}>
+                          <div className={`w-2 h-2 rounded-full animate-pulse ${isOvertime ? "bg-orange-400" : "bg-green-400"}`} />
+                          <p className={`text-2xl font-mono font-medium tabular-nums tracking-tight ${isOvertime ? "text-orange-400" : "text-green-400"}`}>
+                            {isOvertime ? "+" : ""}{formatCountdown(isOvertime ? liveOvertimeMinutes : info.timeRemaining, session.checkedInAt, session.endTime)}
+                          </p>
+                        </div>
+                        <p className={`text-xs font-light mt-1.5 ${textTertiary}`}>
                           {isOvertime ? "overtime" : "remaining"}
                         </p>
                       </div>
@@ -269,10 +307,13 @@ export default function SessionsDashboardPage() {
 
                     {!isActive && info.startsIn !== null && (
                       <div className="text-right">
-                        <p className="text-2xl font-mono font-light tracking-tight text-blue-400">
-                          {formatMinutes(info.startsIn)}
-                        </p>
-                        <p className={`text-xs font-light ${textTertiary}`}>until start</p>
+                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border bg-blue-500/10 border-blue-500/20">
+                          <Clock className="w-4 h-4 text-blue-400" strokeWidth={2} />
+                          <p className="text-2xl font-mono font-medium tabular-nums tracking-tight text-blue-400">
+                            {formatCountdown(info.startsIn)}
+                          </p>
+                        </div>
+                        <p className={`text-xs font-light mt-1.5 ${textTertiary}`}>until start</p>
                       </div>
                     )}
                   </div>
@@ -280,18 +321,45 @@ export default function SessionsDashboardPage() {
                   {/* Progress bar for active sessions */}
                   {isActive && (
                     <div className="mb-4">
-                      <div className={`h-1.5 rounded-full ${theme === "dark" ? "bg-zinc-800" : "bg-gray-200"} overflow-hidden`}>
+                      {/* Elapsed time indicator */}
+                      <div className={`flex items-center justify-between mb-2`}>
+                        <span className={`text-xs font-mono tabular-nums ${isOvertime ? "text-orange-400/70" : "text-green-400/70"}`}>
+                          {formatElapsed(session.checkedInAt)} elapsed
+                        </span>
+                        <span className={`text-xs font-mono tabular-nums ${textTertiary}`}>
+                          {formatMinutes(info.totalMinutes)} total
+                        </span>
+                      </div>
+                      {/* Progress track */}
+                      <div className={`relative h-2 rounded-full ${theme === "dark" ? "bg-zinc-800" : "bg-gray-200"} overflow-hidden`}>
                         <div
-                          className={`h-full rounded-full transition-all duration-1000 ${isOvertime ? "bg-orange-400" : "bg-green-400"}`}
+                          className={`h-full rounded-full transition-all duration-1000 ease-linear ${
+                            isOvertime
+                              ? "bg-gradient-to-r from-orange-500 to-red-500"
+                              : progressPct > 80
+                              ? "bg-gradient-to-r from-green-500 to-yellow-500"
+                              : "bg-gradient-to-r from-green-500 to-emerald-400"
+                          }`}
                           style={{ width: `${Math.min(progressPct, 100)}%` }}
                         />
+                        {/* Progress marker */}
+                        {progressPct <= 100 && (
+                          <div
+                            className={`absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full border-2 ${
+                              isOvertime
+                                ? "bg-orange-400 border-orange-300"
+                                : "bg-green-400 border-green-300"
+                            } shadow-lg transition-all duration-1000 ease-linear`}
+                            style={{ left: `calc(${Math.min(progressPct, 100)}% - 7px)` }}
+                          />
+                        )}
                       </div>
-                      <div className="flex justify-between mt-1">
+                      <div className="flex justify-between mt-1.5">
                         <span className={`text-xs font-light ${textTertiary}`}>
                           {dayjs(session.checkedInAt || session.startTime).format("h:mm A")}
                         </span>
-                        <span className={`text-xs font-light ${textTertiary}`}>
-                          {info.elapsedMinutes}m / {info.totalMinutes}m
+                        <span className={`text-xs font-medium ${isOvertime ? "text-orange-400" : progressPct > 80 ? "text-yellow-400" : "text-green-400"}`}>
+                          {Math.round(progressPct)}%
                         </span>
                         <span className={`text-xs font-light ${textTertiary}`}>
                           {dayjs(session.endTime).format("h:mm A")}
