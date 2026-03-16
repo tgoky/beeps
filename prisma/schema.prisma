@@ -380,33 +380,42 @@ model Studio {
   club          Club?    @relation(fields: [clubId], references: [id], onDelete: SetNull)
 
   location      String
+  streetAddress String?  @map("street_address")
   country       String?
   state         String?
   city          String?
   latitude      Decimal? @db.Decimal(10, 8)
   longitude     Decimal? @db.Decimal(11, 8)
-  
+
   hourlyRate    Decimal  @map("hourly_rate") @db.Decimal(10, 2)
-  
+
   equipment     String[]
   capacity      String?
-  
+
   imageUrl      String?  @map("image_url")
-  
+
   rating        Decimal  @default(0) @db.Decimal(3, 2)
   reviewsCount  Int      @default(0) @map("reviews_count")
-  
+
   isActive      Boolean  @default(true) @map("is_active")
-  
+
+  // Verification
+  verificationStatus    VerificationStatus @default(UNVERIFIED) @map("verification_status")
+  verificationDocuments String[]           @map("verification_documents")
+  verificationNotes     String?            @map("verification_notes")
+  verifiedAt            DateTime?          @map("verified_at")
+  verificationRequestedAt DateTime?        @map("verification_requested_at")
+
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
-  
+
   bookings      Booking[]
   reviews       Review[]
   collaborations Collaboration[]
 
   @@index([ownerId])
   @@index([clubId])
+  @@index([verificationStatus])
   @@map("studios")
 }
 
@@ -483,6 +492,13 @@ model Service {
 // ============================================================================
 // BOOKING & TRANSACTION MODELS
 // ============================================================================
+
+enum VerificationStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  REJECTED
+}
 
 enum BookingStatus {
   PENDING
@@ -800,6 +816,10 @@ enum NotificationType {
   SESSION_DISPUTE_RESOLVED  // Dispute resolved
   PAYMENT_APPROVAL_REQUIRED // Artist needs to approve payment release
   PAYMENT_AUTO_RELEASED     // Payment auto-released after 24h grace period
+  // Studio verification notifications
+  STUDIO_VERIFICATION_SUBMITTED  // Studio owner submitted verification docs
+  STUDIO_VERIFIED                // Studio has been verified by admin
+  STUDIO_VERIFICATION_REJECTED   // Studio verification was rejected
 }
 
 model Notification {
