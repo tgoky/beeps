@@ -20,6 +20,7 @@ import {
   Coffee,
   Users,
   Volume2,
+  BadgeCheck,
 } from "lucide-react";
 
 export default function BookStudio({ params }: { params: { id: string } }) {
@@ -243,10 +244,13 @@ const handleBooking = async () => {
           
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
             <div>
-              <h1 className={`text-2xl font-bold mb-2 ${
+              <h1 className={`text-2xl font-bold mb-2 flex items-center gap-2 ${
                 theme === "dark" ? "text-gray-100" : "text-gray-900"
               }`}>
                 {studio.name}
+                {(studio as any).verificationStatus === "VERIFIED" && (
+                  <BadgeCheck size={22} className="text-blue-500 shrink-0" />
+                )}
               </h1>
               <div className="flex items-center gap-4 flex-wrap">
                 <div className="flex items-center gap-1.5">

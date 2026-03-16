@@ -17,6 +17,7 @@ import {
   ChevronDown,
   GripHorizontal,
   ArrowUpRight,
+  BadgeCheck,
 } from "lucide-react";
 import { useTheme } from "../../providers/ThemeProvider";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -26,14 +27,19 @@ type Studio = {
   id: string;
   name: string;
   location: string;
+  streetAddress: string | null;
   hourlyRate: number;
   rating: number;
   equipment: string[];
   imageUrl: string | null;
   latitude: number | null;
   longitude: number | null;
+  country: string | null;
+  state: string | null;
+  city: string | null;
   description?: string;
   capacity?: string;
+  verificationStatus?: "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED";
 };
 
 // Haversine formula (miles)
@@ -64,7 +70,7 @@ const FILTER_OPTIONS = [
   { label: "Pro", min: 100, max: 9999, text: "$100+/hr" },
 ];
 
-type SortOrder = "price_asc" | "rating_desc" | null;
+type SortOrder = "price_asc" | "rating_desc" | "nearest" | null;
 
 export default function StudioList() {
   const router = useRouter();
@@ -90,6 +96,10 @@ export default function StudioList() {
   const [sortOrder, setSortOrder] = useState<SortOrder>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
+
+  // Location filter state
+  const [filterCountry, setFilterCountry] = useState("");
+  const [filterCity, setFilterCity] = useState("");
 
   // Bottom sheet state
   const [isExpanded, setIsExpanded] = useState(false);
@@ -156,6 +166,25 @@ export default function StudioList() {
     [studios]
   );
 
+  // Extract unique countries and cities for filter dropdowns
+  const availableCountries = useMemo(() => {
+    const countries = new Set<string>();
+    studios.forEach((s) => {
+      if (s.country) countries.add(s.country);
+    });
+    return Array.from(countries).sort();
+  }, [studios]);
+
+  const availableCities = useMemo(() => {
+    const cities = new Set<string>();
+    studios.forEach((s) => {
+      if (s.city && (!filterCountry || s.country === filterCountry)) {
+        cities.add(s.city);
+      }
+    });
+    return Array.from(cities).sort();
+  }, [studios, filterCountry]);
+
   // Filtered & sorted data
   const filteredStudios = useMemo(() => {
     let data = [...studios];
@@ -171,6 +200,16 @@ export default function StudioList() {
       );
     }
 
+    // Country filter
+    if (filterCountry) {
+      data = data.filter((s) => s.country === filterCountry);
+    }
+
+    // City filter
+    if (filterCity) {
+      data = data.filter((s) => s.city === filterCity);
+    }
+
     // Price filter
     if (selectedFilterIndex !== null && FILTER_OPTIONS[selectedFilterIndex]) {
       const range = FILTER_OPTIONS[selectedFilterIndex];
@@ -184,10 +223,20 @@ export default function StudioList() {
       data.sort((a, b) => (a.hourlyRate || 0) - (b.hourlyRate || 0));
     } else if (sortOrder === "rating_desc") {
       data.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    } else if (sortOrder === "nearest" && userLocation) {
+      data.sort((a, b) => {
+        const distA = a.latitude && a.longitude
+          ? calculateDistance(userLocation.lat, userLocation.lon, a.latitude, a.longitude)
+          : Infinity;
+        const distB = b.latitude && b.longitude
+          ? calculateDistance(userLocation.lat, userLocation.lon, b.latitude, b.longitude)
+          : Infinity;
+        return distA - distB;
+      });
     }
 
     return data;
-  }, [studios, searchQuery, selectedFilterIndex, sortOrder]);
+  }, [studios, searchQuery, selectedFilterIndex, sortOrder, userLocation, filterCountry, filterCity]);
 
   // Bottom sheet drag handlers
   const handleSheetPointerDown = useCallback(
@@ -654,11 +703,14 @@ export default function StudioList() {
                 <div className="p-3">
                   <div className="flex justify-between items-start mb-2">
                     <h3
-                      className={`text-sm font-bold leading-tight ${
+                      className={`text-sm font-bold leading-tight flex items-center gap-1 ${
                         isDark ? "text-white" : "text-black"
                       }`}
                     >
                       {selectedStudio.name}
+                      {selectedStudio.verificationStatus === "VERIFIED" && (
+                        <BadgeCheck size={14} className="text-blue-500 shrink-0" />
+                      )}
                     </h3>
                     <button
                       onClick={(e) => {
@@ -859,7 +911,48 @@ export default function StudioList() {
           </div>
 
           {/* Filter Area */}
-          <div className={`transition-all duration-300 overflow-hidden shrink-0 ${showFilters ? "max-h-32 opacity-100 mb-3" : "max-h-0 opacity-0 mb-0"}`}>
+          <div className={`transition-all duration-300 overflow-hidden shrink-0 ${showFilters ? "max-h-64 opacity-100 mb-3" : "max-h-0 opacity-0 mb-0"}`}>
+            {/* Location Filters */}
+            <p className={`text-[10px] font-bold uppercase tracking-wider mb-2 ${isDark ? "text-zinc-500" : "text-gray-500"}`}>
+              Location
+            </p>
+            <div className="flex gap-2 mb-3">
+              <select
+                value={filterCountry}
+                onChange={(e) => {
+                  setFilterCountry(e.target.value);
+                  setFilterCity("");
+                }}
+                className={`flex-1 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all border ${
+                  isDark
+                    ? "bg-zinc-900 border-zinc-800 text-zinc-300"
+                    : "bg-gray-50 border-gray-200 text-gray-700"
+                }`}
+              >
+                <option value="">All Countries</option>
+                {availableCountries.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+              {availableCities.length > 0 && (
+                <select
+                  value={filterCity}
+                  onChange={(e) => setFilterCity(e.target.value)}
+                  className={`flex-1 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all border ${
+                    isDark
+                      ? "bg-zinc-900 border-zinc-800 text-zinc-300"
+                      : "bg-gray-50 border-gray-200 text-gray-700"
+                  }`}
+                >
+                  <option value="">All Cities</option>
+                  {availableCities.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            {/* Price Range */}
             <p className={`text-[10px] font-bold uppercase tracking-wider mb-2 ${isDark ? "text-zinc-500" : "text-gray-500"}`}>
               Price Range
             </p>
@@ -899,6 +992,21 @@ export default function StudioList() {
                 }`}
               >
                 Highest Rated
+              </button>
+              <button
+                onClick={() => {
+                  if (sortOrder === "nearest") {
+                    setSortOrder(null);
+                  } else {
+                    getUserLocation();
+                    setSortOrder("nearest");
+                  }
+                }}
+                className={`text-[11px] font-semibold transition-colors ${
+                  sortOrder === "nearest" ? (isDark ? "text-white" : "text-black") : (isDark ? "text-zinc-500 hover:text-zinc-300" : "text-gray-500 hover:text-gray-700")
+                }`}
+              >
+                Nearest
               </button>
             </div>
           </div>
@@ -947,8 +1055,11 @@ export default function StudioList() {
                     {/* Info */}
                     <div className="flex-1 min-w-0 py-0.5">
                       <div className="flex items-start justify-between gap-2 mb-0.5">
-                        <h4 className={`text-[13px] font-semibold truncate ${isDark ? "text-white" : "text-black"}`}>
+                        <h4 className={`text-[13px] font-semibold truncate flex items-center gap-1 ${isDark ? "text-white" : "text-black"}`}>
                           {studio.name}
+                          {studio.verificationStatus === "VERIFIED" && (
+                            <BadgeCheck size={14} className="text-blue-500 shrink-0" />
+                          )}
                         </h4>
                         <div className={`flex items-baseline gap-0.5 shrink-0 ${isDark ? "text-white" : "text-black"}`}>
                           <span className="text-[12px] font-bold">${studio.hourlyRate}</span>

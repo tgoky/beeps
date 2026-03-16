@@ -3,24 +3,25 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useRegister } from "@refinedev/core";
-import { 
-  Music2, 
-  Mic2, 
-  Building2, 
-  Guitar, 
-  Headphones, 
-  Users, 
-  Mail, 
-  Lock, 
-  User, 
-  MapPin, 
-  ArrowRight, 
+import {
+  Music2,
+  Mic2,
+  Building2,
+  Guitar,
+  Headphones,
+  Users,
+  Mail,
+  Lock,
+  User,
+  MapPin,
+  ArrowRight,
   ArrowLeft,
   CheckCircle2,
   Camera,
   Inbox,
   RefreshCw
 } from "lucide-react";
+import { LocationSelector, type LocationData } from "@/components/LocationSelector";
 
 type UserRole = 'artist' | 'producer' | 'studio-owner' | 'instrument-sales' | 'lyricist' | 'other';
 type Genre = 'Hip Hop' | 'Trap' | 'R&B' | 'Electronic' | 'Pop' | 'Jazz' | 'Soul' | 'Rock' | 'Classical' | 'Reggae';
@@ -102,6 +103,11 @@ export default function SignUp() {
     fullName: '',
     bio: '',
     location: '',
+    locationCountry: '',
+    locationState: '',
+    locationCity: '',
+    locationLatitude: '',
+    locationLongitude: '',
     avatar: '',
     
     // Step 2 - Role-specific fields
@@ -603,21 +609,43 @@ export default function SignUp() {
               <label className="block text-xs font-medium text-zinc-400 tracking-wider uppercase">
                 Location
               </label>
-              <div className="relative">
-                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" strokeWidth={2} />
-                <input
-                  type="text"
-                  value={formData.location}
-                  onChange={(e) => updateField('location', e.target.value)}
-                  className={`
-                    w-full pl-11 pr-4 py-3.5 text-sm font-light rounded-lg border transition-all duration-200
-                    bg-zinc-950 border-zinc-800 text-white placeholder-zinc-600 tracking-wide
-                    focus:outline-none focus:border-white focus:bg-black
-                    ${errors.location ? "border-red-500/50 focus:border-red-500" : ""}
-                  `}
-                  placeholder="City, State, Country"
+              {(formData.role === 'studio-owner' || formData.role === 'instrument-sales') ? (
+                <LocationSelector
+                  onLocationChange={(loc: LocationData) => {
+                    const locationStr = loc.fullAddress || `${loc.city}, ${loc.state}, ${loc.country}`;
+                    setFormData(prev => ({
+                      ...prev,
+                      location: locationStr,
+                      locationCountry: loc.country,
+                      locationState: loc.state,
+                      locationCity: loc.city,
+                      locationLatitude: loc.latitude?.toString() || '',
+                      locationLongitude: loc.longitude?.toString() || '',
+                    }));
+                    if (errors.location) {
+                      setErrors(prev => ({ ...prev, location: '' }));
+                    }
+                  }}
+                  showGeolocation={true}
+                  compact={true}
                 />
-              </div>
+              ) : (
+                <div className="relative">
+                  <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" strokeWidth={2} />
+                  <input
+                    type="text"
+                    value={formData.location}
+                    onChange={(e) => updateField('location', e.target.value)}
+                    className={`
+                      w-full pl-11 pr-4 py-3.5 text-sm font-light rounded-lg border transition-all duration-200
+                      bg-zinc-950 border-zinc-800 text-white placeholder-zinc-600 tracking-wide
+                      focus:outline-none focus:border-white focus:bg-black
+                      ${errors.location ? "border-red-500/50 focus:border-red-500" : ""}
+                    `}
+                    placeholder="City, State, Country"
+                  />
+                </div>
+              )}
               {errors.location && <p className="text-xs font-light text-red-400 tracking-wide">{errors.location}</p>}
             </div>
 
