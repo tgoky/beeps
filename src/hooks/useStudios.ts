@@ -7,6 +7,7 @@ export interface Studio {
   name: string;
   description: string | null;
   location: string;
+  streetAddress: string | null;
   country: string | null;
   state: string | null;
   city: string | null;
@@ -19,6 +20,8 @@ export interface Studio {
   rating: number;
   reviewsCount: number;
   isActive: boolean;
+  verificationStatus: "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED";
+  verifiedAt: string | null;
   ownerId: string;
   owner: {
     id: string;
@@ -59,6 +62,7 @@ export interface CreateStudioInput {
   name: string;
   description?: string;
   location: string;
+  streetAddress?: string;
   country?: string;
   state?: string;
   city?: string;

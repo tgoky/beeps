@@ -107,6 +107,7 @@ export async function POST(request: NextRequest) {
         capacity,
         imageUrl,
         clubId,
+        streetAddress,
       } = body;
 
       // Validate required fields
@@ -156,6 +157,7 @@ export async function POST(request: NextRequest) {
           name,
           description,
           location,
+          streetAddress: streetAddress || null,
           country: country || null,
           state: state || null,
           city: city || null,

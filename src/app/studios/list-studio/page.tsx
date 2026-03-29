@@ -25,6 +25,7 @@ export default function ListStudio() {
     name: "",
     description: "",
     location: "",
+    streetAddress: "",
     country: "",
     state: "",
     city: "",
@@ -90,6 +91,7 @@ export default function ListStudio() {
     setFormData({
       ...formData,
       location: locationData.fullAddress || `${locationData.city}, ${locationData.state}, ${locationData.country}`,
+      streetAddress: locationData.streetAddress || "",
       country: locationData.country,
       state: locationData.state,
       city: locationData.city,
@@ -298,6 +300,7 @@ export default function ListStudio() {
             <LocationSelector
               onLocationChange={handleLocationChange}
               showGeolocation={true}
+              showStreetAddress={true}
             />
 
             {formData.location && (
