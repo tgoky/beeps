@@ -133,13 +133,16 @@ export async function POST(
         },
       });
 
+      const sessionDate = booking.startTime.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+      const sessionTime = booking.startTime.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+
       // Notify studio owner about the confirmed booking + payment
       await prisma.notification.create({
         data: {
           userId: booking.studio.owner.userId,
           type: "PAYMENT_HELD",
-          title: "Booking Paid & Confirmed",
-          message: `${user.fullName || user.username} has paid $${totalAmount.toFixed(2)} for their session at ${booking.studio.name}. Payment is held in escrow until the session completes.`,
+          title: "Session Payment Secured",
+          message: `${user.fullName || user.username} has paid $${totalAmount.toFixed(2)} for their session at ${booking.studio.name} on ${sessionDate} at ${sessionTime}. Payment is held in escrow until the session completes.`,
           referenceId: booking.id,
           referenceType: "BOOKING",
         },
@@ -150,8 +153,8 @@ export async function POST(
         data: {
           userId: user.id,
           type: "PAYMENT_HELD",
-          title: "Payment Held Successfully",
-          message: `Your payment of $${totalAmount.toFixed(2)} for ${booking.studio.name} is held securely. It will be released to the studio after your session completes.`,
+          title: "Payment Secured",
+          message: `Your $${totalAmount.toFixed(2)} payment for ${booking.studio.name} on ${sessionDate} at ${sessionTime} is held securely. Show your QR code at the studio to check in.`,
           referenceId: booking.id,
           referenceType: "BOOKING",
         },
