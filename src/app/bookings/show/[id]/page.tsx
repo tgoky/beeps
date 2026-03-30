@@ -396,80 +396,61 @@ export default function BookingShowPage() {
   const isStudioOwner = currentUser?.id === booking.studio.owner.userId;
 
   return (
-    <div className={`min-h-screen p-6 transition-colors duration-200 ${bgPrimary} ${textPrimary}`}>
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <button onClick={() => router.push('/bookings')} className={`inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 mb-6 ${buttonSecondary} tracking-wide active:scale-[0.98]`}>
+    <div className={`min-h-screen p-4 md:p-6 transition-colors duration-200 ${bgPrimary} ${textPrimary}`}>
+      <div className="max-w-6xl mx-auto">
+
+        {/* Top bar: back + status badges */}
+        <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+          <button onClick={() => router.push('/bookings')} className={`inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border transition-all duration-200 ${buttonSecondary} tracking-wide active:scale-[0.98]`}>
             <ArrowLeft className="w-4 h-4" strokeWidth={2} />
-            <span>Back to Bookings</span>
+            <span>Bookings</span>
           </button>
-
-          <div className="flex items-center gap-3 mb-6">
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${theme === "dark" ? "bg-white" : "bg-black"}`}>
-              <Calendar className={`w-5 h-5 ${theme === "dark" ? "text-black" : "text-white"}`} strokeWidth={2.5} />
-            </div>
-            <h1 className="text-3xl font-light tracking-tight">Booking Details</h1>
-          </div>
-
-          {/* Status Badges */}
-          <div className="flex items-center gap-3 flex-wrap">
-            <span className={`text-sm font-medium tracking-wide px-4 py-2 rounded-full border flex items-center gap-2 ${getStatusColor(booking.status)}`}>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className={`text-xs font-medium tracking-wide px-3 py-1.5 rounded-full border flex items-center gap-1.5 ${getStatusColor(booking.status)}`}>
               {getStatusIcon(booking.status)}
               {booking.status === "ACTIVE" ? "In Session" : booking.status}
             </span>
             {booking.paymentStatus && booking.paymentStatus !== "UNPAID" && (
-              <span className={`text-sm font-medium tracking-wide px-4 py-2 rounded-full border flex items-center gap-2 ${getPaymentStatusColor(booking.paymentStatus)}`}>
-                <DollarSign className="w-4 h-4" strokeWidth={2} />
+              <span className={`text-xs font-medium tracking-wide px-3 py-1.5 rounded-full border flex items-center gap-1.5 ${getPaymentStatusColor(booking.paymentStatus)}`}>
+                <DollarSign className="w-3.5 h-3.5" strokeWidth={2} />
                 {getPaymentStatusLabel(booking.paymentStatus)}
               </span>
             )}
           </div>
         </div>
 
-        {/* Main Content */}
-        <div className="space-y-6">
-          {/* Error Banner */}
-          {actionError && (
-            <div className={`p-4 rounded-xl border ${theme === "dark" ? "border-red-500/30 bg-red-500/10" : "border-red-500/20 bg-red-50"}`}>
-              <div className="flex items-center gap-3">
-                <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" strokeWidth={2} />
-                <p className="text-sm font-light tracking-wide text-red-400">{actionError}</p>
-                <button onClick={() => setActionError(null)} className="ml-auto text-red-400 hover:text-red-300">
-                  <XCircle className="w-4 h-4" strokeWidth={2} />
-                </button>
-              </div>
-            </div>
-          )}
+        {/* Page title */}
+        <div className="mb-6">
+          <h1 className="text-2xl md:text-3xl font-light tracking-tight">{booking.studio.name}</h1>
+          <p className={`text-sm font-light tracking-wide mt-1 ${textTertiary}`}>
+            {formatDate(booking.startTime)} · {formatTime(booking.startTime, booking.endTime)}
+          </p>
+        </div>
 
-          {/* Session Information Card - shown first for quick context */}
-          <div className={`p-6 rounded-xl border ${borderPrimary} ${bgCard}`}>
-            <h3 className="text-lg font-light tracking-tight mb-6">Session Information</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Calendar className={`w-4 h-4 ${textTertiary}`} strokeWidth={2} />
-                  <p className="text-xs font-medium tracking-wider uppercase">Date</p>
-                </div>
-                <p className="text-lg font-light tracking-wide">{formatDate(booking.startTime)}</p>
+        {/* Two-column grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
+
+          {/* ─── LEFT COLUMN (main content) ─── */}
+          <div className="lg:col-span-2 space-y-4">
+
+          {/* Session stats — compact 4-up grid */}
+          <div className={`p-5 rounded-xl border ${borderPrimary} ${bgCard}`}>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-5 divide-x divide-transparent">
+              <div>
+                <p className={`text-xs font-medium tracking-wider uppercase mb-1.5 ${textTertiary}`}>Date</p>
+                <p className="text-sm font-light">{formatDate(booking.startTime)}</p>
               </div>
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Clock className={`w-4 h-4 ${textTertiary}`} strokeWidth={2} />
-                  <p className="text-xs font-medium tracking-wider uppercase">Time</p>
-                </div>
-                <p className="text-lg font-light tracking-wide">{formatTime(booking.startTime, booking.endTime)}</p>
+              <div className={`md:pl-5 md:border-l ${borderPrimary}`}>
+                <p className={`text-xs font-medium tracking-wider uppercase mb-1.5 ${textTertiary}`}>Time</p>
+                <p className="text-sm font-light">{formatTime(booking.startTime, booking.endTime)}</p>
               </div>
-              <div className="space-y-3">
-                <p className="text-xs font-medium tracking-wider uppercase">Duration</p>
-                <p className="text-lg font-light tracking-wide">{duration} {duration === 1 ? 'hour' : 'hours'}</p>
+              <div className={`md:pl-5 md:border-l ${borderPrimary}`}>
+                <p className={`text-xs font-medium tracking-wider uppercase mb-1.5 ${textTertiary}`}>Duration</p>
+                <p className="text-sm font-light">{duration} {duration === 1 ? 'hr' : 'hrs'}</p>
               </div>
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <DollarSign className={`w-4 h-4 ${textTertiary}`} strokeWidth={2} />
-                  <p className="text-xs font-medium tracking-wider uppercase">Total Amount</p>
-                </div>
-                <p className="text-2xl font-light tracking-tight">{formatCurrency(booking.totalAmount)}</p>
+              <div className={`md:pl-5 md:border-l ${borderPrimary}`}>
+                <p className={`text-xs font-medium tracking-wider uppercase mb-1.5 ${textTertiary}`}>Amount</p>
+                <p className="text-xl font-light tracking-tight">{formatCurrency(booking.totalAmount)}</p>
               </div>
             </div>
           </div>
@@ -723,409 +704,355 @@ export default function BookingShowPage() {
             )}
           </div>
 
-          {/* Customer & Owner Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className={`p-6 rounded-xl border ${borderPrimary} ${bgCard}`}>
-              <div className="flex items-center gap-2 mb-4">
-                <User className={`w-4 h-4 ${textTertiary}`} strokeWidth={2} />
-                <p className="text-xs font-medium tracking-wider uppercase">Artist</p>
-              </div>
-              <div className="space-y-2">
-                <p className="text-lg font-light tracking-tight">{booking.user.fullName || booking.user.username}</p>
-                <p className="text-sm font-light tracking-wide">@{booking.user.username}</p>
-              </div>
-            </div>
-            <div className={`p-6 rounded-xl border ${borderPrimary} ${bgCard}`}>
-              <div className="flex items-center gap-2 mb-4">
-                <Building2 className={`w-4 h-4 ${textTertiary}`} strokeWidth={2} />
-                <p className="text-xs font-medium tracking-wider uppercase">Studio Owner</p>
-              </div>
-              <div className="space-y-2">
-                <p className="text-lg font-light tracking-tight">{booking.studio.owner.user.fullName || booking.studio.owner.user.username}</p>
-                <p className="text-sm font-light tracking-wide">@{booking.studio.owner.user.username}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Notes Card */}
+          {/* Notes */}
           {booking.notes && (
-            <div className={`p-6 rounded-xl border ${borderPrimary} ${bgCard}`}>
-              <div className="flex items-center gap-2 mb-4">
+            <div className={`p-5 rounded-xl border ${borderPrimary} ${bgCard}`}>
+              <div className="flex items-center gap-2 mb-3">
                 <FileText className={`w-4 h-4 ${textTertiary}`} strokeWidth={2} />
-                <p className="text-xs font-medium tracking-wider uppercase">Notes</p>
+                <p className={`text-xs font-medium tracking-wider uppercase ${textTertiary}`}>Notes</p>
               </div>
               <p className="text-sm font-light tracking-wide leading-relaxed">{booking.notes}</p>
             </div>
           )}
 
-          {/* Metadata Card */}
-          <div className={`p-6 rounded-xl border ${borderPrimary} ${bgCard}`}>
-            <h3 className="text-sm font-light tracking-tight mb-4">Booking Information</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <p className="text-xs font-medium tracking-wider uppercase">Booking ID</p>
-                <p className="text-sm font-light tracking-wide font-mono">{booking.id}</p>
-              </div>
-              <div className="space-y-2">
-                <p className="text-xs font-medium tracking-wider uppercase">Created</p>
-                <p className="text-sm font-light tracking-wide">{dayjs(booking.createdAt).format("MMM D, YYYY [at] h:mm A")}</p>
-              </div>
-              {booking.updatedAt && (
-                <div className="space-y-2">
-                  <p className="text-xs font-medium tracking-wider uppercase">Last Updated</p>
-                  <p className="text-sm font-light tracking-wide">{dayjs(booking.updatedAt).format("MMM D, YYYY [at] h:mm A")}</p>
-                </div>
-              )}
-            </div>
-          </div>
+          </div>{/* ─── END LEFT COLUMN ─── */}
 
-          {/* Confirmed Artist Quick Actions */}
-          {booking.status === "CONFIRMED" && booking.paymentStatus === "PAYMENT_HELD" && isCustomer && (
-            <div className={`rounded-xl border overflow-hidden ${theme === "dark" ? "border-emerald-500/20 bg-emerald-500/5" : "border-emerald-200 bg-emerald-50"}`}>
-              {/* Header */}
-              <div className="px-6 pt-5 pb-4 flex items-center gap-3">
-                <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" strokeWidth={2} />
-                <div>
-                  <p className={`text-sm font-medium tracking-wide ${theme === "dark" ? "text-emerald-400" : "text-emerald-700"}`}>Booking confirmed — funds in escrow</p>
-                  <p className={`text-xs font-light mt-0.5 ${theme === "dark" ? "text-emerald-400/60" : "text-emerald-600/70"}`}>Payment is held securely until your session is complete</p>
+          {/* ─── RIGHT COLUMN (sticky sidebar) ─── */}
+          <div className="space-y-4 lg:sticky lg:top-6">
+
+            {/* Error Banner */}
+            {actionError && (
+              <div className={`p-3 rounded-xl border ${theme === "dark" ? "border-red-500/30 bg-red-500/10" : "border-red-500/20 bg-red-50"}`}>
+                <div className="flex items-start gap-2.5">
+                  <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" strokeWidth={2} />
+                  <p className="text-xs font-light tracking-wide text-red-400 flex-1">{actionError}</p>
+                  <button onClick={() => setActionError(null)} className="text-red-400 hover:text-red-300 flex-shrink-0">
+                    <XCircle className="w-3.5 h-3.5" strokeWidth={2} />
+                  </button>
                 </div>
               </div>
+            )}
 
-              {/* Quick action row */}
-              <div className={`px-6 pb-5 flex flex-wrap gap-3`}>
-                {/* Get Directions */}
-                <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(booking.studio.location)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`inline-flex items-center gap-2.5 px-5 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 active:scale-[0.98] tracking-wide ${theme === "dark" ? "bg-zinc-900 border-zinc-700 text-zinc-200 hover:border-zinc-500 hover:text-white" : "bg-white border-gray-200 text-gray-800 hover:border-gray-400"}`}
-                >
-                  <Navigation className="w-4 h-4" strokeWidth={2} />
-                  <span>View Directions</span>
-                  <ExternalLink className="w-3 h-3 opacity-50" strokeWidth={2} />
-                </a>
+            {/* Actions */}
+            <div className={`p-4 rounded-xl border ${borderPrimary} ${bgCard}`}>
+              <p className={`text-xs font-medium tracking-wider uppercase mb-3 ${textTertiary}`}>Actions</p>
+              <div className="flex flex-col gap-2">
 
-                {/* Contact Studio Owner */}
+                {/* View Studio */}
                 <button
-                  onClick={() => router.push(`/bookings/${booking.id}/chat`)}
-                  className={`inline-flex items-center gap-2.5 px-5 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 active:scale-[0.98] tracking-wide ${theme === "dark" ? "bg-zinc-900 border-zinc-700 text-zinc-200 hover:border-zinc-500 hover:text-white" : "bg-white border-gray-200 text-gray-800 hover:border-gray-400"}`}
+                  onClick={() => router.push(`/studios/${booking.studioId}`)}
+                  className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 ${buttonPrimary} tracking-wide`}
                 >
-                  <MessageSquare className="w-4 h-4" strokeWidth={2} />
-                  <span>Contact Studio Owner</span>
+                  <Building2 className="w-4 h-4" strokeWidth={2} />
+                  <span>View Studio</span>
                 </button>
 
-                {/* Add to Calendar toggle */}
-                <button
-                  onClick={() => setShowCalendarOptions((v) => !v)}
-                  className={`inline-flex items-center gap-2.5 px-5 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 active:scale-[0.98] tracking-wide ${theme === "dark" ? "bg-zinc-900 border-zinc-700 text-zinc-200 hover:border-zinc-500 hover:text-white" : "bg-white border-gray-200 text-gray-800 hover:border-gray-400"}`}
-                >
-                  <CalendarPlus className="w-4 h-4" strokeWidth={2} />
-                  <span>Add to Calendar</span>
-                  {showCalendarOptions ? <ChevronUp className="w-3 h-3 opacity-50" strokeWidth={2} /> : <ChevronDown className="w-3 h-3 opacity-50" strokeWidth={2} />}
-                </button>
+                {/* Message */}
+                {(booking.status === "CONFIRMED" || booking.status === "ACTIVE") && (
+                  <button
+                    onClick={() => router.push(`/bookings/${booking.id}/chat`)}
+                    className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 ${theme === "dark" ? "bg-blue-500/10 border-blue-500/20 text-blue-400" : "bg-blue-500/10 border-blue-500/20 text-blue-600"} hover:bg-blue-500/20 hover:border-blue-500/30 active:scale-[0.98] tracking-wide`}
+                  >
+                    <MessageSquare className="w-4 h-4" strokeWidth={2} />
+                    <span>Message</span>
+                  </button>
+                )}
+
+                {/* === PENDING === */}
+                {booking.status === "PENDING" && (
+                  <>
+                    {isCustomer && (
+                      <button onClick={handlePayBooking} disabled={isUpdating}
+                        className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide ${theme === "dark" ? "bg-purple-500/10 border-purple-500/20 text-purple-400" : "bg-purple-500/10 border-purple-500/20 text-purple-600"} hover:bg-purple-500/20 hover:border-purple-500/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
+                      >
+                        {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} /> : <DollarSign className="w-4 h-4" strokeWidth={2} />}
+                        <span>Pay & Confirm</span>
+                      </button>
+                    )}
+                    {isStudioOwner && (
+                      <button onClick={handleAcceptBooking} disabled={isUpdating}
+                        className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide ${theme === "dark" ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-green-500/10 border-green-500/20 text-green-600"} hover:bg-green-500/20 hover:border-green-500/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
+                      >
+                        {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} /> : <CheckCircle2 className="w-4 h-4" strokeWidth={2} />}
+                        <span>Accept Booking</span>
+                      </button>
+                    )}
+                    {(isCustomer || isStudioOwner) && (
+                      <button onClick={handleCancelBooking} disabled={isUpdating}
+                        className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide ${theme === "dark" ? "bg-red-500/10 border-red-500/20 text-red-400" : "bg-red-500/10 border-red-500/20 text-red-600"} hover:bg-red-500/20 hover:border-red-500/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
+                      >
+                        {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} /> : <Ban className="w-4 h-4" strokeWidth={2} />}
+                        <span>{isStudioOwner ? 'Reject Booking' : 'Cancel Booking'}</span>
+                      </button>
+                    )}
+                  </>
+                )}
+
+                {/* === CONFIRMED === */}
+                {booking.status === "CONFIRMED" && (
+                  <>
+                    {isCustomer && booking.paymentStatus === "UNPAID" && (
+                      <button onClick={handlePayBooking} disabled={isUpdating}
+                        className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide ${theme === "dark" ? "bg-purple-500/10 border-purple-500/20 text-purple-400" : "bg-purple-500/10 border-purple-500/20 text-purple-600"} hover:bg-purple-500/20 hover:border-purple-500/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
+                      >
+                        {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} /> : <DollarSign className="w-4 h-4" strokeWidth={2} />}
+                        <span>Pay Now</span>
+                      </button>
+                    )}
+                    {isStudioOwner && booking.paymentStatus === "PAYMENT_HELD" && (
+                      <>
+                        {(() => {
+                          const scheduledStart = new Date(booking.startTime);
+                          const earliestCheckIn = new Date(scheduledStart.getTime() - 30 * 60 * 1000);
+                          const latestCheckIn = new Date(scheduledStart.getTime() + 15 * 60 * 1000);
+                          const currentTime = new Date();
+                          const isTooEarly = currentTime < earliestCheckIn;
+                          const isTooLate = currentTime > latestCheckIn;
+                          const minutesUntilOpen = Math.ceil((earliestCheckIn.getTime() - currentTime.getTime()) / (1000 * 60));
+                          return (
+                            <>
+                              {isTooEarly && (
+                                <div className={`flex items-center gap-2 px-3 py-2.5 text-xs rounded-lg border ${theme === "dark" ? "bg-yellow-500/5 border-yellow-500/20 text-yellow-400" : "bg-yellow-50 border-yellow-200 text-yellow-700"}`}>
+                                  <Clock className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} />
+                                  <span className="font-light">Check-in opens {minutesUntilOpen > 60 ? `${Math.floor(minutesUntilOpen / 60)}h ${minutesUntilOpen % 60}m` : `${minutesUntilOpen}m`} before session</span>
+                                </div>
+                              )}
+                              {isTooLate && (
+                                <div className={`flex items-center gap-2 px-3 py-2.5 text-xs rounded-lg border ${theme === "dark" ? "bg-red-500/5 border-red-500/20 text-red-400" : "bg-red-50 border-red-200 text-red-700"}`}>
+                                  <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} />
+                                  <span className="font-light">Check-in window expired. Contact support.</span>
+                                </div>
+                              )}
+                              {showQrPrompt ? (
+                                <div className="flex items-center gap-2 w-full">
+                                  <input type="text" placeholder="Enter artist's QR code" value={qrCodeInput}
+                                    onChange={(e) => setQrCodeInput(e.target.value)}
+                                    className={`flex-1 px-3 py-2.5 text-sm font-light rounded-lg border transition-all duration-200 ${theme === "dark" ? "bg-zinc-950 border-zinc-800 text-white placeholder:text-zinc-600" : "bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"} tracking-wide focus:outline-none focus:ring-1 ${theme === "dark" ? "focus:ring-white" : "focus:ring-black"}`}
+                                    onKeyDown={(e) => { if (e.key === "Enter" && qrCodeInput.trim() && !isUpdating) handleCheckIn(qrCodeInput.trim()); }}
+                                  />
+                                  <button onClick={() => { if (qrCodeInput.trim()) handleCheckIn(qrCodeInput.trim()); }} disabled={isUpdating || !qrCodeInput.trim()}
+                                    className={`flex items-center px-3 py-2.5 rounded-lg border transition-all duration-200 ${theme === "dark" ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-green-500/10 border-green-500/20 text-green-600"} hover:bg-green-500/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
+                                  >
+                                    {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} /> : <Check className="w-4 h-4" strokeWidth={2} />}
+                                  </button>
+                                  <button onClick={() => { setShowQrPrompt(false); setQrCodeInput(""); setActionError(null); }}
+                                    className={`px-2.5 py-2.5 rounded-lg border transition-all duration-200 ${theme === "dark" ? "border-zinc-800 text-zinc-400 hover:text-white" : "border-gray-300 text-gray-600 hover:text-black"}`}
+                                  >
+                                    <XCircle className="w-4 h-4" strokeWidth={2} />
+                                  </button>
+                                </div>
+                              ) : (
+                                <button onClick={() => { setShowQrPrompt(true); setActionError(null); }} disabled={isUpdating || isTooLate}
+                                  className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide ${theme === "dark" ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-green-500/10 border-green-500/20 text-green-600"} hover:bg-green-500/20 hover:border-green-500/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
+                                >
+                                  <Play className="w-4 h-4" strokeWidth={2} />
+                                  <span>Start Session</span>
+                                </button>
+                              )}
+                            </>
+                          );
+                        })()}
+                      </>
+                    )}
+                    {booking.paymentStatus === "UNPAID" && (isCustomer || isStudioOwner) && (
+                      <button onClick={handleCancelBooking} disabled={isUpdating}
+                        className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide ${theme === "dark" ? "bg-red-500/10 border-red-500/20 text-red-400" : "bg-red-500/10 border-red-500/20 text-red-600"} hover:bg-red-500/20 hover:border-red-500/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
+                      >
+                        {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} /> : <Ban className="w-4 h-4" strokeWidth={2} />}
+                        <span>Cancel</span>
+                      </button>
+                    )}
+                  </>
+                )}
+
+                {/* === ACTIVE === */}
+                {booking.status === "ACTIVE" && (
+                  <>
+                    {isCustomer && !booking.bookerConfirmedCheckIn && (
+                      <>
+                        {showConfirmPrompt ? (
+                          <div className="flex items-center gap-2 w-full">
+                            <input type="text" placeholder="6-digit code" value={confirmCodeInput}
+                              onChange={(e) => setConfirmCodeInput(e.target.value.toUpperCase())} maxLength={6}
+                              className={`flex-1 px-3 py-2.5 text-sm font-mono font-light rounded-lg border transition-all duration-200 ${theme === "dark" ? "bg-zinc-950 border-zinc-800 text-white placeholder:text-zinc-600" : "bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"} tracking-widest text-center focus:outline-none focus:ring-1 ${theme === "dark" ? "focus:ring-white" : "focus:ring-black"}`}
+                              onKeyDown={(e) => { if (e.key === "Enter" && confirmCodeInput.trim() && !isUpdating) handleConfirmCheckIn(confirmCodeInput.trim()); }}
+                            />
+                            <button onClick={() => { if (confirmCodeInput.trim()) handleConfirmCheckIn(confirmCodeInput.trim()); }} disabled={isUpdating || !confirmCodeInput.trim()}
+                              className={`flex items-center px-3 py-2.5 rounded-lg border transition-all duration-200 ${theme === "dark" ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-green-500/10 border-green-500/20 text-green-600"} hover:bg-green-500/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
+                            >
+                              {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} /> : <Check className="w-4 h-4" strokeWidth={2} />}
+                            </button>
+                            <button onClick={() => { setShowConfirmPrompt(false); setConfirmCodeInput(""); setActionError(null); }}
+                              className={`px-2.5 py-2.5 rounded-lg border transition-all duration-200 ${theme === "dark" ? "border-zinc-800 text-zinc-400 hover:text-white" : "border-gray-300 text-gray-600 hover:text-black"}`}
+                            >
+                              <XCircle className="w-4 h-4" strokeWidth={2} />
+                            </button>
+                          </div>
+                        ) : (
+                          <button onClick={() => { setShowConfirmPrompt(true); setActionError(null); }}
+                            className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide ${theme === "dark" ? "bg-yellow-500/10 border-yellow-500/20 text-yellow-400" : "bg-yellow-500/10 border-yellow-500/20 text-yellow-600"} hover:bg-yellow-500/20 hover:border-yellow-500/30 active:scale-[0.98]`}
+                          >
+                            <Shield className="w-4 h-4" strokeWidth={2} />
+                            <span>Confirm Presence</span>
+                          </button>
+                        )}
+                      </>
+                    )}
+                    {isCustomer && booking.bookerConfirmedCheckIn && (
+                      <div className="flex items-center gap-2 px-4 py-2.5 text-sm rounded-lg border bg-green-500/10 border-green-500/20 text-green-400">
+                        <CheckCircle2 className="w-4 h-4" strokeWidth={2} />
+                        <span>Presence Confirmed</span>
+                      </div>
+                    )}
+                    {(isStudioOwner || isCustomer) && (
+                      <button onClick={handleCheckOut} disabled={isUpdating}
+                        className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide ${theme === "dark" ? "bg-red-500/10 border-red-500/20 text-red-400" : "bg-red-500/10 border-red-500/20 text-red-600"} hover:bg-red-500/20 hover:border-red-500/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
+                      >
+                        {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} /> : <Square className="w-4 h-4" strokeWidth={2} />}
+                        <span>End Session</span>
+                      </button>
+                    )}
+                  </>
+                )}
+
+                {/* === COMPLETED === */}
+                {booking.status === "COMPLETED" && (
+                  <>
+                    {isCustomer && booking.paymentStatus === "PAYMENT_HELD" && (
+                      <button onClick={handleReleasePayment} disabled={isUpdating}
+                        className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide ${theme === "dark" ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-green-500/10 border-green-500/20 text-green-600"} hover:bg-green-500/20 hover:border-green-500/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
+                      >
+                        {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} /> : <DollarSign className="w-4 h-4" strokeWidth={2} />}
+                        <span>Approve Payment</span>
+                      </button>
+                    )}
+                    {isStudioOwner && booking.paymentStatus === "PAYMENT_HELD" && (
+                      <div className="flex items-center gap-2 px-4 py-2.5 text-sm rounded-lg border bg-yellow-500/10 border-yellow-500/20 text-yellow-400">
+                        <Clock className="w-4 h-4" strokeWidth={2} />
+                        <span>Awaiting artist payment approval</span>
+                      </div>
+                    )}
+                  </>
+                )}
+
               </div>
+            </div>{/* END Actions */}
 
-              {/* Calendar options dropdown */}
-              {showCalendarOptions && (
-                <div className={`mx-6 mb-5 p-4 rounded-xl border ${theme === "dark" ? "bg-zinc-900/60 border-zinc-800" : "bg-white border-gray-200"}`}>
-                  <p className={`text-xs font-medium tracking-wider uppercase mb-3 ${theme === "dark" ? "text-zinc-500" : "text-gray-400"}`}>Add to Calendar</p>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={handleAddToGoogleCalendar}
-                      className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-light rounded-lg border transition-all duration-200 active:scale-[0.98] ${theme === "dark" ? "bg-blue-500/10 border-blue-500/20 text-blue-400 hover:bg-blue-500/20" : "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"}`}
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" strokeWidth={2} />
-                      Google Calendar
-                    </button>
-                    <button
-                      onClick={handleDownloadICS}
-                      className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-light rounded-lg border transition-all duration-200 active:scale-[0.98] ${theme === "dark" ? "bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700" : "bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100"}`}
-                    >
-                      <CalendarPlus className="w-3.5 h-3.5" strokeWidth={2} />
-                      Apple / Outlook (.ics)
-                    </button>
+            {/* Confirmed: directions, calendar, contact, notifications */}
+            {booking.status === "CONFIRMED" && booking.paymentStatus === "PAYMENT_HELD" && isCustomer && (
+              <div className={`rounded-xl border overflow-hidden ${theme === "dark" ? "border-emerald-500/20 bg-emerald-500/5" : "border-emerald-200 bg-emerald-50"}`}>
+                <div className="px-4 pt-4 pb-3 flex items-center gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" strokeWidth={2} />
+                  <div>
+                    <p className={`text-xs font-medium tracking-wide ${theme === "dark" ? "text-emerald-400" : "text-emerald-700"}`}>Funds in escrow</p>
+                    <p className={`text-xs font-light mt-0.5 ${theme === "dark" ? "text-emerald-400/60" : "text-emerald-600/70"}`}>Held until session completes</p>
                   </div>
                 </div>
-              )}
-
-              {/* Need help — notifications reminder */}
-              <div className={`px-6 pb-5`}>
-                <div className={`flex items-start gap-3 p-4 rounded-xl border ${theme === "dark" ? "bg-zinc-900/50 border-zinc-800" : "bg-white/70 border-gray-200"}`}>
-                  <Bell className={`w-4 h-4 mt-0.5 flex-shrink-0 ${theme === "dark" ? "text-zinc-400" : "text-gray-500"}`} strokeWidth={2} />
-                  <div>
-                    <p className={`text-sm font-medium tracking-wide ${theme === "dark" ? "text-zinc-300" : "text-gray-700"}`}>Don't miss your session</p>
-                    <p className={`text-xs font-light mt-1 leading-relaxed ${theme === "dark" ? "text-zinc-500" : "text-gray-500"}`}>
-                      Make sure notifications are enabled so you get reminded before your session starts. You'll receive an alert when check-in opens (30 min before) and when the studio owner starts the session.
+                <div className="px-4 pb-4 flex flex-col gap-2">
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(booking.studio.location)}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className={`w-full inline-flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 active:scale-[0.98] tracking-wide ${theme === "dark" ? "bg-zinc-900 border-zinc-700 text-zinc-200 hover:border-zinc-500 hover:text-white" : "bg-white border-gray-200 text-gray-800 hover:border-gray-400"}`}
+                  >
+                    <Navigation className="w-4 h-4" strokeWidth={2} />
+                    <span>View Directions</span>
+                    <ExternalLink className="w-3 h-3 opacity-50 ml-auto" strokeWidth={2} />
+                  </a>
+                  <button
+                    onClick={() => router.push(`/bookings/${booking.id}/chat`)}
+                    className={`w-full inline-flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 active:scale-[0.98] tracking-wide ${theme === "dark" ? "bg-zinc-900 border-zinc-700 text-zinc-200 hover:border-zinc-500 hover:text-white" : "bg-white border-gray-200 text-gray-800 hover:border-gray-400"}`}
+                  >
+                    <MessageSquare className="w-4 h-4" strokeWidth={2} />
+                    <span>Contact Studio Owner</span>
+                  </button>
+                  <button
+                    onClick={() => setShowCalendarOptions((v) => !v)}
+                    className={`w-full inline-flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 active:scale-[0.98] tracking-wide ${theme === "dark" ? "bg-zinc-900 border-zinc-700 text-zinc-200 hover:border-zinc-500 hover:text-white" : "bg-white border-gray-200 text-gray-800 hover:border-gray-400"}`}
+                  >
+                    <CalendarPlus className="w-4 h-4" strokeWidth={2} />
+                    <span>Add to Calendar</span>
+                    {showCalendarOptions ? <ChevronUp className="w-3 h-3 opacity-50 ml-auto" strokeWidth={2} /> : <ChevronDown className="w-3 h-3 opacity-50 ml-auto" strokeWidth={2} />}
+                  </button>
+                  {showCalendarOptions && (
+                    <div className={`p-3 rounded-lg border flex flex-col gap-2 ${theme === "dark" ? "bg-zinc-900/60 border-zinc-800" : "bg-white border-gray-200"}`}>
+                      <button onClick={handleAddToGoogleCalendar}
+                        className={`w-full inline-flex items-center gap-2 px-3 py-2 text-xs font-light rounded-lg border transition-all duration-200 active:scale-[0.98] ${theme === "dark" ? "bg-blue-500/10 border-blue-500/20 text-blue-400 hover:bg-blue-500/20" : "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"}`}
+                      >
+                        <ExternalLink className="w-3 h-3" strokeWidth={2} />
+                        Google Calendar
+                      </button>
+                      <button onClick={handleDownloadICS}
+                        className={`w-full inline-flex items-center gap-2 px-3 py-2 text-xs font-light rounded-lg border transition-all duration-200 active:scale-[0.98] ${theme === "dark" ? "bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700" : "bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100"}`}
+                      >
+                        <CalendarPlus className="w-3 h-3" strokeWidth={2} />
+                        Apple / Outlook (.ics)
+                      </button>
+                    </div>
+                  )}
+                  <div className={`flex items-start gap-2.5 p-3 rounded-lg border mt-1 ${theme === "dark" ? "bg-zinc-900/50 border-zinc-800" : "bg-white/70 border-gray-200"}`}>
+                    <Bell className={`w-3.5 h-3.5 mt-0.5 flex-shrink-0 ${textTertiary}`} strokeWidth={2} />
+                    <p className={`text-xs font-light leading-relaxed ${textTertiary}`}>
+                      Enable notifications to get reminded 30 min before check-in opens and when your session starts.
                     </p>
                   </div>
                 </div>
               </div>
+            )}
+
+            {/* Participants */}
+            <div className={`p-4 rounded-xl border ${borderPrimary} ${bgCard}`}>
+              <p className={`text-xs font-medium tracking-wider uppercase mb-3 ${textTertiary}`}>Participants</p>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${theme === "dark" ? "bg-zinc-800" : "bg-gray-100"}`}>
+                    <User className="w-4 h-4" strokeWidth={2} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-light truncate">{booking.user.fullName || booking.user.username}</p>
+                    <p className={`text-xs font-light ${textTertiary}`}>@{booking.user.username} · Artist</p>
+                  </div>
+                </div>
+                <div className={`border-t ${borderPrimary}`} />
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${theme === "dark" ? "bg-zinc-800" : "bg-gray-100"}`}>
+                    <Building2 className="w-4 h-4" strokeWidth={2} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-light truncate">{booking.studio.owner.user.fullName || booking.studio.owner.user.username}</p>
+                    <p className={`text-xs font-light ${textTertiary}`}>@{booking.studio.owner.user.username} · Owner</p>
+                  </div>
+                </div>
+              </div>
             </div>
-          )}
 
-          {/* Action Buttons */}
-          <div className={`p-6 rounded-xl border ${borderPrimary} ${bgCard}`}>
-            <div className="flex flex-wrap gap-3">
-              {/* View Studio */}
-              <button
-                onClick={() => router.push(`/studios/${booking.studioId}`)}
-                className={`flex items-center gap-2.5 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 ${buttonPrimary} tracking-wide`}
-              >
-                <Building2 className="w-4 h-4" strokeWidth={2} />
-                <span>View Studio</span>
-              </button>
-
-              {/* Message - available for confirmed/active */}
-              {(booking.status === "CONFIRMED" || booking.status === "ACTIVE") && (
-                <button
-                  onClick={() => router.push(`/bookings/${booking.id}/chat`)}
-                  className={`flex items-center gap-2.5 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 ${theme === "dark" ? "bg-blue-500/10 border-blue-500/20 text-blue-400" : "bg-blue-500/10 border-blue-500/20 text-blue-600"} hover:bg-blue-500/20 hover:border-blue-500/30 active:scale-[0.98] tracking-wide`}
-                >
-                  <MessageSquare className="w-4 h-4" strokeWidth={2} />
-                  <span>Message</span>
-                </button>
-              )}
-
-              {/* === PENDING STATUS === */}
-              {booking.status === "PENDING" && (
-                <>
-                  {/* Customer: Pay to hold in escrow */}
-                  {isCustomer && (
-                    <button
-                      onClick={handlePayBooking}
-                      disabled={isUpdating}
-                      className={`flex items-center gap-2.5 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide ${theme === "dark" ? "bg-purple-500/10 border-purple-500/20 text-purple-400" : "bg-purple-500/10 border-purple-500/20 text-purple-600"} hover:bg-purple-500/20 hover:border-purple-500/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
-                    >
-                      {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} /> : <DollarSign className="w-4 h-4" strokeWidth={2} />}
-                      <span>Pay & Confirm</span>
-                    </button>
-                  )}
-
-                  {/* Studio owner: Accept the booking */}
-                  {isStudioOwner && (
-                    <button
-                      onClick={handleAcceptBooking}
-                      disabled={isUpdating}
-                      className={`flex items-center gap-2.5 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide ${theme === "dark" ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-green-500/10 border-green-500/20 text-green-600"} hover:bg-green-500/20 hover:border-green-500/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
-                    >
-                      {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} /> : <CheckCircle2 className="w-4 h-4" strokeWidth={2} />}
-                      <span>Accept Booking</span>
-                    </button>
-                  )}
-
-                  {/* Both: Cancel/Reject */}
-                  {(isCustomer || isStudioOwner) && (
-                    <button
-                      onClick={handleCancelBooking}
-                      disabled={isUpdating}
-                      className={`flex items-center gap-2.5 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide ${theme === "dark" ? "bg-red-500/10 border-red-500/20 text-red-400" : "bg-red-500/10 border-red-500/20 text-red-600"} hover:bg-red-500/20 hover:border-red-500/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
-                    >
-                      {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} /> : <Ban className="w-4 h-4" strokeWidth={2} />}
-                      <span>{isStudioOwner ? 'Reject Booking' : 'Cancel Booking'}</span>
-                    </button>
-                  )}
-                </>
-              )}
-
-              {/* === CONFIRMED STATUS === */}
-              {booking.status === "CONFIRMED" && (
-                <>
-                  {/* Customer: Pay if not yet paid (owner accepted first) */}
-                  {isCustomer && booking.paymentStatus === "UNPAID" && (
-                    <button
-                      onClick={handlePayBooking}
-                      disabled={isUpdating}
-                      className={`flex items-center gap-2.5 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide ${theme === "dark" ? "bg-purple-500/10 border-purple-500/20 text-purple-400" : "bg-purple-500/10 border-purple-500/20 text-purple-600"} hover:bg-purple-500/20 hover:border-purple-500/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
-                    >
-                      {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} /> : <DollarSign className="w-4 h-4" strokeWidth={2} />}
-                      <span>Pay Now</span>
-                    </button>
-                  )}
-
-                  {/* Studio owner: Start session with QR code */}
-                  {isStudioOwner && booking.paymentStatus === "PAYMENT_HELD" && (
-                    <>
-                      {/* Check-in time window info */}
-                      {(() => {
-                        const scheduledStart = new Date(booking.startTime);
-                        const earliestCheckIn = new Date(scheduledStart.getTime() - 30 * 60 * 1000);
-                        const latestCheckIn = new Date(scheduledStart.getTime() + 15 * 60 * 1000);
-                        const currentTime = new Date();
-                        const isWithinWindow = currentTime >= earliestCheckIn && currentTime <= latestCheckIn;
-                        const isTooEarly = currentTime < earliestCheckIn;
-                        const isTooLate = currentTime > latestCheckIn;
-                        const minutesUntilOpen = Math.ceil((earliestCheckIn.getTime() - currentTime.getTime()) / (1000 * 60));
-
-                        return (
-                          <>
-                            {isTooEarly && (
-                              <div className={`flex items-center gap-2.5 px-4 py-3 text-sm rounded-lg border w-full ${theme === "dark" ? "bg-yellow-500/5 border-yellow-500/20 text-yellow-400" : "bg-yellow-50 border-yellow-200 text-yellow-700"}`}>
-                                <Clock className="w-4 h-4 flex-shrink-0" strokeWidth={2} />
-                                <span className="font-light tracking-wide">
-                                  Check-in opens {minutesUntilOpen > 60
-                                    ? `${Math.floor(minutesUntilOpen / 60)}h ${minutesUntilOpen % 60}m`
-                                    : `${minutesUntilOpen}m`
-                                  } before session ({dayjs(earliestCheckIn).format("h:mm A")})
-                                </span>
-                              </div>
-                            )}
-                            {isTooLate && (
-                              <div className={`flex items-center gap-2.5 px-4 py-3 text-sm rounded-lg border w-full ${theme === "dark" ? "bg-red-500/5 border-red-500/20 text-red-400" : "bg-red-50 border-red-200 text-red-700"}`}>
-                                <AlertCircle className="w-4 h-4 flex-shrink-0" strokeWidth={2} />
-                                <span className="font-light tracking-wide">Check-in window has expired. Contact support or create a new booking.</span>
-                              </div>
-                            )}
-                            {showQrPrompt ? (
-                              <div className="flex items-center gap-2 w-full">
-                                <input
-                                  type="text"
-                                  placeholder="Enter artist's QR code"
-                                  value={qrCodeInput}
-                                  onChange={(e) => setQrCodeInput(e.target.value)}
-                                  className={`flex-1 px-4 py-3 text-sm font-light rounded-lg border transition-all duration-200 ${theme === "dark" ? "bg-zinc-950 border-zinc-800 text-white placeholder:text-zinc-600" : "bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"} tracking-wide focus:outline-none focus:ring-1 ${theme === "dark" ? "focus:ring-white" : "focus:ring-black"}`}
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter" && qrCodeInput.trim() && !isUpdating) {
-                                      handleCheckIn(qrCodeInput.trim());
-                                    }
-                                  }}
-                                />
-                                <button
-                                  onClick={() => { if (qrCodeInput.trim()) { handleCheckIn(qrCodeInput.trim()); } }}
-                                  disabled={isUpdating || !qrCodeInput.trim()}
-                                  className={`flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide ${theme === "dark" ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-green-500/10 border-green-500/20 text-green-600"} hover:bg-green-500/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
-                                >
-                                  {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} /> : <Check className="w-4 h-4" strokeWidth={2} />}
-                                  <span>Confirm</span>
-                                </button>
-                                <button onClick={() => { setShowQrPrompt(false); setQrCodeInput(""); setActionError(null); }} className={`px-3 py-3 text-sm rounded-lg border transition-all duration-200 ${theme === "dark" ? "border-zinc-800 text-zinc-400 hover:text-white" : "border-gray-300 text-gray-600 hover:text-black"}`}>
-                                  <XCircle className="w-4 h-4" strokeWidth={2} />
-                                </button>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => { setShowQrPrompt(true); setActionError(null); }}
-                                disabled={isUpdating || isTooLate}
-                                className={`flex items-center gap-2.5 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide ${theme === "dark" ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-green-500/10 border-green-500/20 text-green-600"} hover:bg-green-500/20 hover:border-green-500/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
-                              >
-                                <Play className="w-4 h-4" strokeWidth={2} />
-                                <span>Start Session</span>
-                              </button>
-                            )}
-                          </>
-                        );
-                      })()}
-                    </>
-                  )}
-
-                  {/* Cancel for unpaid confirmed */}
-                  {booking.paymentStatus === "UNPAID" && (isCustomer || isStudioOwner) && (
-                    <button
-                      onClick={handleCancelBooking}
-                      disabled={isUpdating}
-                      className={`flex items-center gap-2.5 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide ${theme === "dark" ? "bg-red-500/10 border-red-500/20 text-red-400" : "bg-red-500/10 border-red-500/20 text-red-600"} hover:bg-red-500/20 hover:border-red-500/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
-                    >
-                      {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} /> : <Ban className="w-4 h-4" strokeWidth={2} />}
-                      <span>Cancel</span>
-                    </button>
-                  )}
-                </>
-              )}
-
-              {/* === ACTIVE STATUS === */}
-              {booking.status === "ACTIVE" && (
-                <>
-                  {/* Artist: Confirm presence with code */}
-                  {isCustomer && !booking.bookerConfirmedCheckIn && (
-                    <>
-                      {showConfirmPrompt ? (
-                        <div className="flex items-center gap-2 w-full">
-                          <input
-                            type="text"
-                            placeholder="Enter 6-digit code"
-                            value={confirmCodeInput}
-                            onChange={(e) => setConfirmCodeInput(e.target.value.toUpperCase())}
-                            maxLength={6}
-                            className={`flex-1 px-4 py-3 text-sm font-mono font-light rounded-lg border transition-all duration-200 ${theme === "dark" ? "bg-zinc-950 border-zinc-800 text-white placeholder:text-zinc-600" : "bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"} tracking-widest text-center focus:outline-none focus:ring-1 ${theme === "dark" ? "focus:ring-white" : "focus:ring-black"}`}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter" && confirmCodeInput.trim() && !isUpdating) {
-                                handleConfirmCheckIn(confirmCodeInput.trim());
-                              }
-                            }}
-                          />
-                          <button
-                            onClick={() => { if (confirmCodeInput.trim()) { handleConfirmCheckIn(confirmCodeInput.trim()); } }}
-                            disabled={isUpdating || !confirmCodeInput.trim()}
-                            className={`flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide ${theme === "dark" ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-green-500/10 border-green-500/20 text-green-600"} hover:bg-green-500/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
-                          >
-                            {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} /> : <Check className="w-4 h-4" strokeWidth={2} />}
-                            <span>Verify</span>
-                          </button>
-                          <button onClick={() => { setShowConfirmPrompt(false); setConfirmCodeInput(""); setActionError(null); }} className={`px-3 py-3 text-sm rounded-lg border transition-all duration-200 ${theme === "dark" ? "border-zinc-800 text-zinc-400 hover:text-white" : "border-gray-300 text-gray-600 hover:text-black"}`}>
-                            <XCircle className="w-4 h-4" strokeWidth={2} />
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => { setShowConfirmPrompt(true); setActionError(null); }}
-                          className={`flex items-center gap-2.5 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide ${theme === "dark" ? "bg-yellow-500/10 border-yellow-500/20 text-yellow-400" : "bg-yellow-500/10 border-yellow-500/20 text-yellow-600"} hover:bg-yellow-500/20 hover:border-yellow-500/30 active:scale-[0.98]`}
-                        >
-                          <Shield className="w-4 h-4" strokeWidth={2} />
-                          <span>Confirm Presence</span>
-                        </button>
-                      )}
-                    </>
-                  )}
-
-                  {/* Confirmed check-in badge */}
-                  {isCustomer && booking.bookerConfirmedCheckIn && (
-                    <div className="flex items-center gap-2 px-4 py-3 text-sm rounded-lg border bg-green-500/10 border-green-500/20 text-green-400">
-                      <CheckCircle2 className="w-4 h-4" strokeWidth={2} />
-                      <span>Presence Confirmed</span>
+            {/* Booking info */}
+            <div className={`p-4 rounded-xl border ${borderPrimary} ${bgCard}`}>
+              <div className="space-y-3">
+                <div>
+                  <p className={`text-xs font-medium tracking-wider uppercase mb-1 ${textTertiary}`}>Booking ID</p>
+                  <p className={`text-xs font-mono ${textTertiary} truncate`}>{booking.id}</p>
+                </div>
+                <div className={`border-t ${borderPrimary}`} />
+                <div>
+                  <p className={`text-xs font-medium tracking-wider uppercase mb-1 ${textTertiary}`}>Created</p>
+                  <p className="text-xs font-light">{dayjs(booking.createdAt).format("MMM D, YYYY [at] h:mm A")}</p>
+                </div>
+                {booking.updatedAt && (
+                  <>
+                    <div className={`border-t ${borderPrimary}`} />
+                    <div>
+                      <p className={`text-xs font-medium tracking-wider uppercase mb-1 ${textTertiary}`}>Updated</p>
+                      <p className="text-xs font-light">{dayjs(booking.updatedAt).format("MMM D, YYYY [at] h:mm A")}</p>
                     </div>
-                  )}
-
-                  {/* Both: End Session */}
-                  {(isStudioOwner || isCustomer) && (
-                    <button
-                      onClick={handleCheckOut}
-                      disabled={isUpdating}
-                      className={`flex items-center gap-2.5 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide ${theme === "dark" ? "bg-red-500/10 border-red-500/20 text-red-400" : "bg-red-500/10 border-red-500/20 text-red-600"} hover:bg-red-500/20 hover:border-red-500/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
-                    >
-                      {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} /> : <Square className="w-4 h-4" strokeWidth={2} />}
-                      <span>End Session</span>
-                    </button>
-                  )}
-                </>
-              )}
-
-              {/* === COMPLETED STATUS === */}
-              {booking.status === "COMPLETED" && (
-                <>
-                  {/* Artist: Approve payment release */}
-                  {isCustomer && booking.paymentStatus === "PAYMENT_HELD" && (
-                    <button
-                      onClick={handleReleasePayment}
-                      disabled={isUpdating}
-                      className={`flex items-center gap-2.5 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide ${theme === "dark" ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-green-500/10 border-green-500/20 text-green-600"} hover:bg-green-500/20 hover:border-green-500/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
-                    >
-                      {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} /> : <DollarSign className="w-4 h-4" strokeWidth={2} />}
-                      <span>Approve Payment</span>
-                    </button>
-                  )}
-
-                  {/* Studio owner: Waiting for artist approval */}
-                  {isStudioOwner && booking.paymentStatus === "PAYMENT_HELD" && (
-                    <div className="flex items-center gap-2 px-4 py-3 text-sm rounded-lg border bg-yellow-500/10 border-yellow-500/20 text-yellow-400">
-                      <Clock className="w-4 h-4" strokeWidth={2} />
-                      <span>Awaiting artist payment approval</span>
-                    </div>
-                  )}
-                </>
-              )}
+                  </>
+                )}
+              </div>
             </div>
-          </div>
-        </div>
-      </div>
+
+          </div>{/* ─── END RIGHT COLUMN ─── */}
+
+        </div>{/* END grid */}
+      </div>{/* END max-w-6xl */}
     </div>
   );
 }
