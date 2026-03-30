@@ -29,6 +29,8 @@ import {
   ArrowUpRight,
   Clock,
   DollarSign,
+  Lock,
+  Shield,
 } from "lucide-react";
 import { useTheme } from "@/providers/ThemeProvider";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -80,56 +82,131 @@ function RequestServiceModal({
 }: RequestServiceModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [step, setStep] = useState(1);
+  const [error, setError] = useState("");
+  const [serviceRequestId, setServiceRequestId] = useState<string | null>(null);
+  const [otpExpiresAt, setOtpExpiresAt] = useState<Date | null>(null);
   const [formData, setFormData] = useState({
     title: "",
     desc: "",
     budget: "",
     deadline: "",
+    otp: "",
   });
 
-  const handleSubmit = async () => {
+  const handleClose = () => {
+    setStep(1);
+    setError("");
+    setServiceRequestId(null);
+    setOtpExpiresAt(null);
+    setFormData({ title: "", desc: "", budget: "", deadline: "", otp: "" });
+    onClose();
+  };
+
+  // Step 2 → create service request + trigger OTP
+  const handleCreateRequest = async () => {
+    if (!formData.title.trim() || !formData.desc.trim()) {
+      setError("Please fill in the project title and description.");
+      return;
+    }
+    setError("");
     setIsSubmitting(true);
-    setTimeout(() => {
+    try {
+      const res = await fetch("/api/service-requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          producerId,
+          projectTitle: formData.title,
+          projectDescription: formData.desc,
+          budget: formData.budget || undefined,
+          deadline: formData.deadline || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to create request");
+      setServiceRequestId(data.serviceRequest.id);
+      setOtpExpiresAt(data.otpExpiresAt ? new Date(data.otpExpiresAt) : null);
+      setStep(3);
+    } catch (err: any) {
+      setError(err.message || "Something went wrong. Please try again.");
+    } finally {
       setIsSubmitting(false);
-      onClose();
-    }, 1500);
+    }
+  };
+
+  // Step 3 → verify OTP
+  const handleVerifyOtp = async () => {
+    if (!formData.otp.trim() || formData.otp.trim().length !== 6) {
+      setError("Please enter the 6-digit code from your notifications.");
+      return;
+    }
+    if (!serviceRequestId) return;
+    setError("");
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`/api/service-requests/${serviceRequestId}/verify-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ otpCode: formData.otp.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Invalid code");
+      handleClose();
+    } catch (err: any) {
+      setError(err.message || "Verification failed. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (!isOpen) return null;
 
+  const TOTAL_STEPS = 3;
+
   return (
     <div
       className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
+      onClick={(e) => e.target === e.currentTarget && handleClose()}
     >
       <div
         className={`w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 border ${
           theme === "dark" ? "bg-zinc-900 border-zinc-800" : "bg-white border-gray-200"
         }`}
       >
-        <div className={`p-6 flex justify-between items-center ${theme === "dark" ? "border-zinc-800" : "border-gray-100"}`}>
+        {/* Header */}
+        <div className={`p-6 flex justify-between items-center border-b ${theme === "dark" ? "border-zinc-800" : "border-gray-100"}`}>
           <div>
             <h2 className={`text-lg font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-              Request: {producerName}
+              {step === 3 ? "Verify Your Identity" : `Book: ${producerName}`}
             </h2>
             <p className={`text-xs mt-0.5 ${theme === "dark" ? "text-zinc-500" : "text-gray-500"}`}>
-              Step {step} of 2
+              Step {step} of {TOTAL_STEPS}
+              {step === 3 && " · 2FA Security Check"}
             </p>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className={`p-2 rounded-full transition-colors ${theme === "dark" ? "hover:bg-zinc-800 text-zinc-400" : "hover:bg-gray-100"}`}
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
+        {/* Progress bar */}
+        <div className={`h-0.5 ${theme === "dark" ? "bg-zinc-800" : "bg-gray-100"}`}>
+          <div
+            className="h-full bg-blue-600 transition-all duration-300"
+            style={{ width: `${(step / TOTAL_STEPS) * 100}%` }}
+          />
+        </div>
+
         <div className="p-6 min-h-[280px]">
-          {step === 1 ? (
+          {/* Step 1: Project Details */}
+          {step === 1 && (
             <div className="space-y-5">
               <div className="space-y-2">
                 <label className={`text-xs font-semibold ${theme === "dark" ? "text-zinc-400" : "text-gray-600"}`}>
-                  Project Title
+                  Project Title <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -145,11 +222,11 @@ function RequestServiceModal({
               </div>
               <div className="space-y-2">
                 <label className={`text-xs font-semibold ${theme === "dark" ? "text-zinc-400" : "text-gray-600"}`}>
-                  Brief Description
+                  Brief Description <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   rows={4}
-                  placeholder="Describe your vision..."
+                  placeholder="Describe your vision, references, and requirements..."
                   className={`w-full px-4 py-2.5 rounded-lg outline-none border transition-all resize-none text-sm ${
                     theme === "dark"
                       ? "bg-zinc-800 border-zinc-700 focus:border-zinc-500 text-white"
@@ -160,7 +237,10 @@ function RequestServiceModal({
                 />
               </div>
             </div>
-          ) : (
+          )}
+
+          {/* Step 2: Budget & Deadline */}
+          {step === 2 && (
             <div className="space-y-5">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -202,17 +282,79 @@ function RequestServiceModal({
               >
                 <Zap className="w-4 h-4 mt-0.5 flex-shrink-0" />
                 <p className="text-xs leading-relaxed opacity-80">
-                  This producer usually responds within 2 hours. High-budget projects are prioritized.
+                  Funds are held in escrow until the producer completes your project. You will be asked to verify your identity with a one-time code before the request is sent.
                 </p>
               </div>
             </div>
           )}
+
+          {/* Step 3: 2FA OTP Verification */}
+          {step === 3 && (
+            <div className="space-y-5">
+              <div className={`p-4 rounded-xl flex gap-3 items-start border ${
+                theme === "dark"
+                  ? "bg-blue-500/10 border-blue-500/20 text-blue-300"
+                  : "bg-blue-50 border-blue-200 text-blue-800"
+              }`}>
+                <Lock className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-xs font-semibold mb-1">Identity Verification Required</p>
+                  <p className="text-xs leading-relaxed opacity-80">
+                    A 6-digit verification code has been sent to your notifications. Enter it below to confirm your booking request and prevent unauthorised transactions.
+                    {otpExpiresAt && (
+                      <span className="block mt-1 font-medium">
+                        Code expires at {otpExpiresAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}.
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className={`text-xs font-semibold ${theme === "dark" ? "text-zinc-400" : "text-gray-600"}`}>
+                  6-Digit Verification Code
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  placeholder="000000"
+                  className={`w-full px-4 py-3 rounded-lg outline-none border transition-all text-lg font-mono tracking-[0.5em] text-center ${
+                    theme === "dark"
+                      ? "bg-zinc-800 border-zinc-700 focus:border-blue-500 text-white"
+                      : "bg-gray-50 border-gray-200 focus:border-blue-500 text-black"
+                  }`}
+                  value={formData.otp}
+                  onChange={(e) => setFormData({ ...formData, otp: e.target.value.replace(/\D/g, "").slice(0, 6) })}
+                  onKeyDown={(e) => e.key === "Enter" && handleVerifyOtp()}
+                  autoFocus
+                />
+                <p className={`text-xs ${theme === "dark" ? "text-zinc-500" : "text-gray-500"}`}>
+                  Check your notification bell for the code.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Error */}
+          {error && (
+            <div className={`mt-4 p-3 rounded-lg flex gap-2 items-start text-xs ${
+              theme === "dark"
+                ? "bg-red-500/10 border border-red-500/20 text-red-400"
+                : "bg-red-50 border border-red-200 text-red-700"
+            }`}>
+              <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+              {error}
+            </div>
+          )}
         </div>
 
+        {/* Footer */}
         <div className={`p-4 border-t flex gap-3 ${theme === "dark" ? "border-zinc-800" : "border-gray-100"}`}>
-          {step === 2 && (
+          {step > 1 && step < 3 && (
             <button
-              onClick={() => setStep(1)}
+              onClick={() => { setError(""); setStep(step - 1); }}
+              disabled={isSubmitting}
               className={`px-6 py-2.5 rounded-lg font-semibold text-sm ${
                 theme === "dark" ? "text-zinc-400 hover:text-white" : "text-gray-500 hover:text-black"
               }`}
@@ -221,15 +363,32 @@ function RequestServiceModal({
             </button>
           )}
           <button
-            onClick={() => (step === 1 ? setStep(2) : handleSubmit())}
+            onClick={
+              step === 1
+                ? () => { setError(""); setStep(2); }
+                : step === 2
+                ? handleCreateRequest
+                : handleVerifyOtp
+            }
             disabled={isSubmitting}
             className={`flex-1 py-2.5 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-all ${
               theme === "dark"
-                ? "bg-white text-black hover:bg-zinc-200"
-                : "bg-black text-white hover:bg-gray-800"
+                ? "bg-white text-black hover:bg-zinc-200 disabled:opacity-50"
+                : "bg-black text-white hover:bg-gray-800 disabled:opacity-50"
             }`}
           >
-            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : step === 1 ? "Continue" : "Send Request"}
+            {isSubmitting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : step === 1 ? (
+              "Continue"
+            ) : step === 2 ? (
+              "Send & Verify"
+            ) : (
+              <>
+                <Shield className="w-4 h-4" />
+                Confirm Booking
+              </>
+            )}
           </button>
         </div>
       </div>

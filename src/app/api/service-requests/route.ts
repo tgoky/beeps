@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
+import crypto from "crypto";
 
 // GET /api/service-requests - Fetch service requests
 export async function GET(req: NextRequest) {
@@ -129,7 +130,11 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Create the service request
+      // Generate a 6-digit OTP for 2FA verification
+      const otpCode = crypto.randomInt(100000, 999999).toString();
+      const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+      // Create the service request (NOT notifying producer yet - pending 2FA)
       const serviceRequest = await prisma.serviceRequest.create({
         data: {
           clientId: user.id,
@@ -139,6 +144,9 @@ export async function POST(req: NextRequest) {
           budget: budget ? parseFloat(budget) : null,
           deadline: deadline ? new Date(deadline) : null,
           status: "PENDING",
+          otpCode,
+          otpExpiresAt,
+          otpVerified: false,
         },
         include: {
           client: {
@@ -162,34 +170,31 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // Create notification for the producer
+      // Send OTP to the CLIENT via notification (2FA gate before producer is notified)
       await prisma.notification.create({
         data: {
-          userId: producerId,
-          type: "JOB_REQUEST",
-          title: "New Service Request",
-          message: `${user.fullName || user.username} has requested your services for "${projectTitle}"`,
+          userId: user.id,
+          type: "OTP_VERIFICATION",
+          title: "Verify Your Booking Request",
+          message: `Your verification code for booking "${projectTitle}" is: ${otpCode}. This code expires in 10 minutes. Do not share this code.`,
           referenceId: serviceRequest.id,
           referenceType: "SERVICE_REQUEST",
           isRead: false,
         },
       });
 
-      // Create activity log entry
-      await prisma.activity.create({
-        data: {
-          userId: user.id,
-          type: "JOB_REQUEST_SENT",
-          title: "Service Request Sent",
-          description: `Requested services from ${producer.fullName || producer.username} for project: ${projectTitle}`,
-          referenceId: serviceRequest.id,
-          referenceType: "SERVICE_REQUEST",
-        },
-      });
-
       return NextResponse.json({
-        serviceRequest,
-        message: "Service request sent successfully"
+        serviceRequest: {
+          id: serviceRequest.id,
+          projectTitle: serviceRequest.projectTitle,
+          producerId: serviceRequest.producerId,
+          status: serviceRequest.status,
+          otpVerified: serviceRequest.otpVerified,
+          createdAt: serviceRequest.createdAt,
+        },
+        requiresVerification: true,
+        otpExpiresAt,
+        message: "Service request created. Please verify with the OTP sent to your notifications.",
       }, { status: 201 });
     } catch (error: any) {
       console.error("Error creating service request:", error);

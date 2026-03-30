@@ -49,7 +49,6 @@ export function StudioVerificationBadge({
   const { icon: Icon, color, label, bg, border } = config[status];
 
   if (!showLabel) {
-    if (status === "UNVERIFIED") return null;
     return <Icon size={iconSize} className={`${color} shrink-0`} />;
   }
 

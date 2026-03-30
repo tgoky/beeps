@@ -229,7 +229,12 @@ model ServiceRequest {
   
   status              ServiceRequestStatus @default(PENDING)
   producerResponse    String?              @map("producer_response")
-  
+
+  // 2FA OTP fields - must be verified before producer is notified
+  otpCode             String?              @map("otp_code")
+  otpExpiresAt        DateTime?            @map("otp_expires_at")
+  otpVerified         Boolean              @default(false) @map("otp_verified")
+
   respondedAt         DateTime?            @map("responded_at")
   createdAt           DateTime             @default(now()) @map("created_at")
   updatedAt           DateTime             @updatedAt @map("updated_at")
