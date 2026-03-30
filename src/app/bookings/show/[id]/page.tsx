@@ -25,6 +25,12 @@ import {
   Check,
   QrCode,
   Shield,
+  Navigation,
+  Bell,
+  CalendarPlus,
+  ExternalLink,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import dayjs from "dayjs";
 
@@ -93,6 +99,7 @@ export default function BookingShowPage() {
   const [showConfirmPrompt, setShowConfirmPrompt] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [now, setNow] = useState(new Date());
+  const [showCalendarOptions, setShowCalendarOptions] = useState(false);
 
   const { data: currentUser } = useUserBySupabaseId(supabaseUser?.id, {
     enabled: !!supabaseUser?.id,
@@ -232,6 +239,46 @@ export default function BookingShowPage() {
         headers: { "Content-Type": "application/json" },
       })
     );
+  };
+
+  const handleAddToGoogleCalendar = () => {
+    if (!booking) return;
+    const title = encodeURIComponent(`Studio Session — ${booking.studio.name}`);
+    const start = dayjs(booking.startTime).format("YYYYMMDDTHHmmss");
+    const end = dayjs(booking.endTime).format("YYYYMMDDTHHmmss");
+    const details = encodeURIComponent(`Booking ID: ${booking.id}\nStudio: ${booking.studio.name}\nLocation: ${booking.studio.location}`);
+    const location = encodeURIComponent(booking.studio.location);
+    window.open(
+      `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${start}/${end}&details=${details}&location=${location}`,
+      "_blank"
+    );
+  };
+
+  const handleDownloadICS = () => {
+    if (!booking) return;
+    const start = dayjs(booking.startTime).format("YYYYMMDDTHHmmss");
+    const end = dayjs(booking.endTime).format("YYYYMMDDTHHmmss");
+    const ics = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//Beeps//Booking//EN",
+      "BEGIN:VEVENT",
+      `DTSTART:${start}`,
+      `DTEND:${end}`,
+      `SUMMARY:Studio Session — ${booking.studio.name}`,
+      `DESCRIPTION:Booking ID: ${booking.id}\\nStudio: ${booking.studio.name}`,
+      `LOCATION:${booking.studio.location}`,
+      `UID:booking-${booking.id}@beeps`,
+      "END:VEVENT",
+      "END:VCALENDAR",
+    ].join("\r\n");
+    const blob = new Blob([ics], { type: "text/calendar" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `beeps-booking-${booking.id.slice(0, 8)}.ics`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const getStatusIcon = (status: string) => {
@@ -731,6 +778,90 @@ export default function BookingShowPage() {
               )}
             </div>
           </div>
+
+          {/* Confirmed Artist Quick Actions */}
+          {booking.status === "CONFIRMED" && booking.paymentStatus === "PAYMENT_HELD" && isCustomer && (
+            <div className={`rounded-xl border overflow-hidden ${theme === "dark" ? "border-emerald-500/20 bg-emerald-500/5" : "border-emerald-200 bg-emerald-50"}`}>
+              {/* Header */}
+              <div className="px-6 pt-5 pb-4 flex items-center gap-3">
+                <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" strokeWidth={2} />
+                <div>
+                  <p className={`text-sm font-medium tracking-wide ${theme === "dark" ? "text-emerald-400" : "text-emerald-700"}`}>Booking confirmed — funds in escrow</p>
+                  <p className={`text-xs font-light mt-0.5 ${theme === "dark" ? "text-emerald-400/60" : "text-emerald-600/70"}`}>Payment is held securely until your session is complete</p>
+                </div>
+              </div>
+
+              {/* Quick action row */}
+              <div className={`px-6 pb-5 flex flex-wrap gap-3`}>
+                {/* Get Directions */}
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(booking.studio.location)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`inline-flex items-center gap-2.5 px-5 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 active:scale-[0.98] tracking-wide ${theme === "dark" ? "bg-zinc-900 border-zinc-700 text-zinc-200 hover:border-zinc-500 hover:text-white" : "bg-white border-gray-200 text-gray-800 hover:border-gray-400"}`}
+                >
+                  <Navigation className="w-4 h-4" strokeWidth={2} />
+                  <span>View Directions</span>
+                  <ExternalLink className="w-3 h-3 opacity-50" strokeWidth={2} />
+                </a>
+
+                {/* Contact Studio Owner */}
+                <button
+                  onClick={() => router.push(`/bookings/${booking.id}/chat`)}
+                  className={`inline-flex items-center gap-2.5 px-5 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 active:scale-[0.98] tracking-wide ${theme === "dark" ? "bg-zinc-900 border-zinc-700 text-zinc-200 hover:border-zinc-500 hover:text-white" : "bg-white border-gray-200 text-gray-800 hover:border-gray-400"}`}
+                >
+                  <MessageSquare className="w-4 h-4" strokeWidth={2} />
+                  <span>Contact Studio Owner</span>
+                </button>
+
+                {/* Add to Calendar toggle */}
+                <button
+                  onClick={() => setShowCalendarOptions((v) => !v)}
+                  className={`inline-flex items-center gap-2.5 px-5 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 active:scale-[0.98] tracking-wide ${theme === "dark" ? "bg-zinc-900 border-zinc-700 text-zinc-200 hover:border-zinc-500 hover:text-white" : "bg-white border-gray-200 text-gray-800 hover:border-gray-400"}`}
+                >
+                  <CalendarPlus className="w-4 h-4" strokeWidth={2} />
+                  <span>Add to Calendar</span>
+                  {showCalendarOptions ? <ChevronUp className="w-3 h-3 opacity-50" strokeWidth={2} /> : <ChevronDown className="w-3 h-3 opacity-50" strokeWidth={2} />}
+                </button>
+              </div>
+
+              {/* Calendar options dropdown */}
+              {showCalendarOptions && (
+                <div className={`mx-6 mb-5 p-4 rounded-xl border ${theme === "dark" ? "bg-zinc-900/60 border-zinc-800" : "bg-white border-gray-200"}`}>
+                  <p className={`text-xs font-medium tracking-wider uppercase mb-3 ${theme === "dark" ? "text-zinc-500" : "text-gray-400"}`}>Add to Calendar</p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={handleAddToGoogleCalendar}
+                      className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-light rounded-lg border transition-all duration-200 active:scale-[0.98] ${theme === "dark" ? "bg-blue-500/10 border-blue-500/20 text-blue-400 hover:bg-blue-500/20" : "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"}`}
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" strokeWidth={2} />
+                      Google Calendar
+                    </button>
+                    <button
+                      onClick={handleDownloadICS}
+                      className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-light rounded-lg border transition-all duration-200 active:scale-[0.98] ${theme === "dark" ? "bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700" : "bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100"}`}
+                    >
+                      <CalendarPlus className="w-3.5 h-3.5" strokeWidth={2} />
+                      Apple / Outlook (.ics)
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Need help — notifications reminder */}
+              <div className={`px-6 pb-5`}>
+                <div className={`flex items-start gap-3 p-4 rounded-xl border ${theme === "dark" ? "bg-zinc-900/50 border-zinc-800" : "bg-white/70 border-gray-200"}`}>
+                  <Bell className={`w-4 h-4 mt-0.5 flex-shrink-0 ${theme === "dark" ? "text-zinc-400" : "text-gray-500"}`} strokeWidth={2} />
+                  <div>
+                    <p className={`text-sm font-medium tracking-wide ${theme === "dark" ? "text-zinc-300" : "text-gray-700"}`}>Don't miss your session</p>
+                    <p className={`text-xs font-light mt-1 leading-relaxed ${theme === "dark" ? "text-zinc-500" : "text-gray-500"}`}>
+                      Make sure notifications are enabled so you get reminded before your session starts. You'll receive an alert when check-in opens (30 min before) and when the studio owner starts the session.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className={`p-6 rounded-xl border ${borderPrimary} ${bgCard}`}>
