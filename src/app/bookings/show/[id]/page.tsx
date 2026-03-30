@@ -395,8 +395,40 @@ export default function BookingShowPage() {
             </div>
           )}
 
-          {/* QR Code Card - Show to customer after payment */}
-          {booking.qrCode && isCustomer && (booking.status === "CONFIRMED" || booking.status === "ACTIVE") && (
+          {/* Session Information Card - shown first for quick context */}
+          <div className={`p-6 rounded-xl border ${borderPrimary} ${bgCard}`}>
+            <h3 className="text-lg font-light tracking-tight mb-6">Session Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Calendar className={`w-4 h-4 ${textTertiary}`} strokeWidth={2} />
+                  <p className="text-xs font-medium tracking-wider uppercase">Date</p>
+                </div>
+                <p className="text-lg font-light tracking-wide">{formatDate(booking.startTime)}</p>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Clock className={`w-4 h-4 ${textTertiary}`} strokeWidth={2} />
+                  <p className="text-xs font-medium tracking-wider uppercase">Time</p>
+                </div>
+                <p className="text-lg font-light tracking-wide">{formatTime(booking.startTime, booking.endTime)}</p>
+              </div>
+              <div className="space-y-3">
+                <p className="text-xs font-medium tracking-wider uppercase">Duration</p>
+                <p className="text-lg font-light tracking-wide">{duration} {duration === 1 ? 'hour' : 'hours'}</p>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <DollarSign className={`w-4 h-4 ${textTertiary}`} strokeWidth={2} />
+                  <p className="text-xs font-medium tracking-wider uppercase">Total Amount</p>
+                </div>
+                <p className="text-2xl font-light tracking-tight">{formatCurrency(booking.totalAmount)}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* QR Code Card - Show to customer only (never to studio owner) */}
+          {booking.qrCode && isCustomer && !isStudioOwner && (booking.status === "CONFIRMED" || booking.status === "ACTIVE") && (
             <div className={`p-6 rounded-xl border ${theme === "dark" ? "border-purple-500/20 bg-purple-500/5" : "border-purple-500/20 bg-purple-50"}`}>
               <div className="flex items-center gap-3 mb-4">
                 <QrCode className="w-5 h-5 text-purple-400" strokeWidth={2} />
@@ -642,38 +674,6 @@ export default function BookingShowPage() {
                 </div>
               </div>
             )}
-          </div>
-
-          {/* Booking Details Card */}
-          <div className={`p-6 rounded-xl border ${borderPrimary} ${bgCard}`}>
-            <h3 className="text-lg font-light tracking-tight mb-6">Session Information</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Calendar className={`w-4 h-4 ${textTertiary}`} strokeWidth={2} />
-                  <p className="text-xs font-medium tracking-wider uppercase">Date</p>
-                </div>
-                <p className="text-lg font-light tracking-wide">{formatDate(booking.startTime)}</p>
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Clock className={`w-4 h-4 ${textTertiary}`} strokeWidth={2} />
-                  <p className="text-xs font-medium tracking-wider uppercase">Time</p>
-                </div>
-                <p className="text-lg font-light tracking-wide">{formatTime(booking.startTime, booking.endTime)}</p>
-              </div>
-              <div className="space-y-3">
-                <p className="text-xs font-medium tracking-wider uppercase">Duration</p>
-                <p className="text-lg font-light tracking-wide">{duration} {duration === 1 ? 'hour' : 'hours'}</p>
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <DollarSign className={`w-4 h-4 ${textTertiary}`} strokeWidth={2} />
-                  <p className="text-xs font-medium tracking-wider uppercase">Total Amount</p>
-                </div>
-                <p className="text-2xl font-light tracking-tight">{formatCurrency(booking.totalAmount)}</p>
-              </div>
-            </div>
           </div>
 
           {/* Customer & Owner Information */}

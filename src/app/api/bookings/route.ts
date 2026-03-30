@@ -199,12 +199,15 @@ export async function POST(req: NextRequest) {
       });
 
       // Create notification for studio owner
+      const sessionDate = start.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+      const sessionTimeFrom = start.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+      const sessionTimeTo = end.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
       await prisma.notification.create({
         data: {
           userId: studio.owner.userId,
           type: "BOOKING_CONFIRMED",
           title: "New Booking Request",
-          message: `${user.fullName || user.username} requested to book ${studio.name} from ${start.toLocaleDateString()} ${start.toLocaleTimeString()} to ${end.toLocaleTimeString()}`,
+          message: `${user.fullName || user.username} has requested to book ${studio.name} on ${sessionDate}, ${sessionTimeFrom} – ${sessionTimeTo}. Review and accept or decline.`,
           referenceId: booking.id,
           referenceType: "BOOKING",
         },

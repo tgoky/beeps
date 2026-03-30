@@ -248,29 +248,37 @@ export async function PATCH(
         let notificationType: NotificationType | null = null;
         let recipientId = booking.userId;
 
+        const sessionDate = booking.startTime.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+        const sessionTime = booking.startTime.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+        let notificationTitle = "";
+
         if (body.status === "CONFIRMED" && isStudioOwner) {
-          notificationMessage = `Your booking for ${booking.studio.name} has been confirmed by the studio owner! Please proceed to pay to secure your session.`;
+          notificationTitle = "Booking Confirmed";
+          notificationMessage = `Your session at ${booking.studio.name} on ${sessionDate} at ${sessionTime} has been confirmed. Please proceed to pay to secure your spot.`;
           notificationType = NotificationType.BOOKING_CONFIRMED;
           recipientId = booking.userId;
         } else if (body.status === "CANCELLED") {
-          notificationMessage = `Booking for ${booking.studio.name} has been cancelled`;
+          notificationTitle = "Booking Cancelled";
+          const cancelledBy = isStudioOwner ? "the studio owner" : "the artist";
+          notificationMessage = `Your session at ${booking.studio.name} on ${sessionDate} at ${sessionTime} has been cancelled by ${cancelledBy}.`;
           notificationType = NotificationType.BOOKING_CANCELLED;
           recipientId = isStudioOwner ? booking.userId : booking.studio.owner.userId;
         } else if (body.status === "COMPLETED") {
-          notificationMessage = `Booking for ${booking.studio.name} has been completed`;
+          notificationTitle = "Session Completed";
+          notificationMessage = `Your session at ${booking.studio.name} on ${sessionDate} has been completed.`;
           notificationType = NotificationType.TRANSACTION_COMPLETED;
           recipientId = booking.userId;
         }
 
-        if (notificationMessage && notificationType) {
+        if (notificationMessage && notificationType && notificationTitle) {
           await prisma.notification.create({
             data: {
               userId: recipientId,
               type: notificationType,
-              title: "Booking Update",
+              title: notificationTitle,
               message: notificationMessage,
               referenceId: booking.id,
-              referenceType: "booking",
+              referenceType: "BOOKING",
             },
           });
         }
@@ -406,16 +414,18 @@ export async function DELETE(
 
       // Notify the other party
       const recipientId = isBookingOwner ? booking.studio.owner.userId : booking.userId;
-      const cancelledBy = isBookingOwner ? "artist" : "studio owner";
+      const cancelledBy = isBookingOwner ? "the artist" : "the studio owner";
+      const cancelSessionDate = booking.startTime.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+      const cancelSessionTime = booking.startTime.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
 
       await prisma.notification.create({
         data: {
           userId: recipientId,
           type: NotificationType.BOOKING_CANCELLED,
           title: "Booking Cancelled",
-          message: `Booking for ${booking.studio.name} has been cancelled by the ${cancelledBy}.${needsRefund ? ` A full refund of $${totalAmount.toFixed(2)} will be processed.` : ""}`,
+          message: `The session at ${booking.studio.name} on ${cancelSessionDate} at ${cancelSessionTime} has been cancelled by ${cancelledBy}.${needsRefund ? ` A full refund of $${totalAmount.toFixed(2)} will be processed.` : ""}`,
           referenceId: booking.id,
-          referenceType: "booking",
+          referenceType: "BOOKING",
         },
       });
 
@@ -426,9 +436,9 @@ export async function DELETE(
             userId: booking.userId,
             type: "PAYMENT_REFUNDED" as any,
             title: "Payment Refunded",
-            message: `Your payment of $${totalAmount.toFixed(2)} for ${booking.studio.name} has been refunded due to cancellation by the studio owner.`,
+            message: `Your payment of $${totalAmount.toFixed(2)} for ${booking.studio.name} on ${cancelSessionDate} at ${cancelSessionTime} has been refunded due to cancellation by the studio owner.`,
             referenceId: booking.id,
-            referenceType: "booking",
+            referenceType: "BOOKING",
           },
         });
       } else if (needsRefund && isBookingOwner) {
@@ -437,9 +447,9 @@ export async function DELETE(
             userId: booking.userId,
             type: "PAYMENT_REFUNDED" as any,
             title: "Payment Refunded",
-            message: `Your payment of $${totalAmount.toFixed(2)} for ${booking.studio.name} has been refunded due to your cancellation.`,
+            message: `Your payment of $${totalAmount.toFixed(2)} for ${booking.studio.name} on ${cancelSessionDate} at ${cancelSessionTime} has been refunded.`,
             referenceId: booking.id,
-            referenceType: "booking",
+            referenceType: "BOOKING",
           },
         });
       }
