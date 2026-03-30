@@ -317,176 +317,66 @@ export default function BookingsPage() {
     : "bg-gray-50 border-gray-300 text-gray-600 hover:border-gray-400 hover:text-black hover:bg-white";
 
   return (
-    <div className={`min-h-screen p-6 transition-colors duration-200 ${bgPrimary} ${textPrimary}`}>
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-8">
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-              theme === "dark" ? "bg-white" : "bg-black"
-            }`}>
-              <Calendar className={`w-5 h-5 ${theme === "dark" ? "text-black" : "text-white"}`} strokeWidth={2.5} />
-            </div>
-            <h1 className="text-3xl font-light tracking-tight">
-              Beeps
-            </h1>
-          </div>
+    <div className={`min-h-screen p-4 md:p-6 transition-colors duration-200 ${bgPrimary} ${textPrimary}`}>
+      <div className="max-w-5xl mx-auto">
 
-          <div className="space-y-2">
-            <h2 className="text-4xl font-light tracking-tight">
-              Bookings & Purchases
-            </h2>
-            <p className="text-base font-light tracking-wide">
-              Track all your bookings, purchases, and service requests
-            </p>
+        {/* Header row */}
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+          <h1 className="text-2xl font-light tracking-tight">Bookings</h1>
+          {/* View mode toggle */}
+          <div className={`flex rounded-lg border overflow-hidden ${borderPrimary}`}>
+            <button
+              onClick={() => setViewMode("customer")}
+              className={`px-4 py-2 text-sm font-medium transition-all duration-200 tracking-wide ${viewMode === "customer" ? (theme === "dark" ? "bg-white text-black" : "bg-black text-white") : `${bgCard} ${textSecondary} hover:${textPrimary}`}`}
+            >
+              Customer
+            </button>
+            <button
+              onClick={() => setViewMode("provider")}
+              className={`px-4 py-2 text-sm font-medium transition-all duration-200 tracking-wide border-l ${borderPrimary} ${viewMode === "provider" ? (theme === "dark" ? "bg-white text-black" : "bg-black text-white") : `${bgCard} ${textSecondary} hover:${textPrimary}`}`}
+            >
+              Provider
+            </button>
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-8">
-          <div className={`p-6 rounded-xl border ${borderPrimary} ${bgCard}`}>
-            <div className="space-y-2">
-              <p className="text-sm font-light tracking-wide">
-                Total
-              </p>
-              <p className="text-3xl font-light tracking-tight">
-                {stats.total}
-              </p>
-            </div>
-          </div>
-
-          <div className={`p-6 rounded-xl border ${borderPrimary} ${bgCard}`}>
-            <div className="space-y-2">
-              <p className="text-sm font-light tracking-wide">
-                Pending
-              </p>
-              <p className="text-3xl font-light tracking-tight text-yellow-400">
-                {stats.pending}
-              </p>
-            </div>
-          </div>
-
-          <div className={`p-6 rounded-xl border ${borderPrimary} ${bgCard}`}>
-            <div className="space-y-2">
-              <p className="text-sm font-light tracking-wide">
-                Confirmed
-              </p>
-              <p className="text-3xl font-light tracking-tight text-green-400">
-                {stats.confirmed}
-              </p>
-            </div>
-          </div>
-
-          <div className={`p-6 rounded-xl border ${borderPrimary} ${bgCard}`}>
-            <div className="space-y-2">
-              <p className="text-sm font-light tracking-wide">
-                Active
-              </p>
-              <p className="text-3xl font-light tracking-tight text-emerald-400">
-                {stats.active}
-              </p>
-            </div>
-          </div>
-
-          <div className={`p-6 rounded-xl border ${borderPrimary} ${bgCard}`}>
-            <div className="space-y-2">
-              <p className="text-sm font-light tracking-wide">
-                Completed
-              </p>
-              <p className="text-3xl font-light tracking-tight text-blue-400">
-                {stats.completed}
-              </p>
-            </div>
-          </div>
-
-          <div className={`p-6 rounded-xl border ${borderPrimary} ${bgCard}`}>
-            <div className="space-y-2">
-              <p className="text-sm font-light tracking-wide">
-                Cancelled
-              </p>
-              <p className="text-3xl font-light tracking-tight text-red-400">
-                {stats.cancelled}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Filters Card */}
-        <div className={`p-6 rounded-xl border ${borderPrimary} ${bgCard} mb-8`}>
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Filter className={`w-4 h-4 ${textTertiary}`} strokeWidth={2} />
-              <p className="text-sm font-light tracking-wide">
-                Filters
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-4 items-center">
-              {/* View Mode Toggle */}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setViewMode("customer")}
-                  className={`
-                    px-4 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
-                    ${viewMode === "customer"
-                      ? buttonPrimary
-                      : buttonSecondary
-                    }
-                  `}
-                >
-                  As Customer
-                </button>
-                <button
-                  onClick={() => setViewMode("provider")}
-                  className={`
-                    px-4 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
-                    ${viewMode === "provider"
-                      ? buttonPrimary
-                      : buttonSecondary
-                    }
-                  `}
-                >
-                  As Provider
-                </button>
-              </div>
-
-              {/* Type Filter */}
-              <select
-                value={bookingType}
-                onChange={(e) => setBookingType(e.target.value as BookingType)}
-                className={`
-                  px-4 py-2.5 text-sm font-light rounded-lg border transition-all duration-200
-                  ${theme === "dark" ? "bg-zinc-950 border-zinc-800 text-white" : "bg-white border-gray-300 text-gray-900"}
-                  tracking-wide focus:outline-none focus:border-white focus:bg-black
-                  appearance-none
-                `}
-              >
-                <option value="all">All Types</option>
-                <option value="studio">Studios</option>
-                <option value="equipment">Equipment</option>
-                <option value="service">Services</option>
-                <option value="beat">Beats</option>
-              </select>
-
-              {/* Status Filter */}
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-                className={`
-                  px-4 py-2.5 text-sm font-light rounded-lg border transition-all duration-200
-                  ${theme === "dark" ? "bg-zinc-950 border-zinc-800 text-white" : "bg-white border-gray-300 text-gray-900"}
-                  tracking-wide focus:outline-none focus:border-white focus:bg-black
-                  appearance-none
-                `}
-              >
-                <option value="all">All Status</option>
-                <option value="pending">Pending</option>
-                <option value="confirmed">Confirmed</option>
-                <option value="active">In Session</option>
-                <option value="completed">Completed</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
-            </div>
+        {/* Stats bar */}
+        <div className={`flex items-center gap-1 flex-wrap mb-4 p-3 rounded-xl border ${borderPrimary} ${bgCard}`}>
+          <button onClick={() => setStatusFilter("all")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${statusFilter === "all" ? (theme === "dark" ? "bg-zinc-700 text-white" : "bg-gray-200 text-gray-900") : `${textTertiary} hover:${textPrimary}`}`}>
+            <span>All</span><span className="font-light">{stats.total}</span>
+          </button>
+          {stats.active > 0 && (
+            <button onClick={() => setStatusFilter("active")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${statusFilter === "active" ? "bg-emerald-500/20 text-emerald-400" : "text-emerald-400/70 hover:text-emerald-400"}`}>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Active</span><span className="font-light">{stats.active}</span>
+            </button>
+          )}
+          <button onClick={() => setStatusFilter("pending")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${statusFilter === "pending" ? "bg-yellow-500/20 text-yellow-400" : `${textTertiary} hover:${textPrimary}`}`}>
+            <span>Pending</span><span className="font-light text-yellow-400">{stats.pending}</span>
+          </button>
+          <button onClick={() => setStatusFilter("confirmed")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${statusFilter === "confirmed" ? "bg-green-500/20 text-green-400" : `${textTertiary} hover:${textPrimary}`}`}>
+            <span>Confirmed</span><span className="font-light text-green-400">{stats.confirmed}</span>
+          </button>
+          <button onClick={() => setStatusFilter("completed")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${statusFilter === "completed" ? "bg-blue-500/20 text-blue-400" : `${textTertiary} hover:${textPrimary}`}`}>
+            <span>Completed</span><span className="font-light text-blue-400">{stats.completed}</span>
+          </button>
+          {stats.cancelled > 0 && (
+            <button onClick={() => setStatusFilter("cancelled")} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${statusFilter === "cancelled" ? "bg-red-500/20 text-red-400" : `${textTertiary} hover:${textPrimary}`}`}>
+              <span>Cancelled</span><span className="font-light text-red-400">{stats.cancelled}</span>
+            </button>
+          )}
+          <div className="ml-auto flex items-center gap-2">
+            <select
+              value={bookingType}
+              onChange={(e) => setBookingType(e.target.value as BookingType)}
+              className={`px-3 py-1.5 text-xs font-light rounded-lg border transition-all duration-200 ${theme === "dark" ? "bg-zinc-950 border-zinc-800 text-white" : "bg-white border-gray-300 text-gray-900"} focus:outline-none appearance-none`}
+            >
+              <option value="all">All Types</option>
+              <option value="studio">Studios</option>
+              <option value="equipment">Equipment</option>
+              <option value="service">Services</option>
+              <option value="beat">Beats</option>
+            </select>
           </div>
         </div>
 
@@ -527,883 +417,285 @@ export default function BookingsPage() {
             </button>
           </div>
         ) : (
-          <div className="space-y-4">
-            {filteredBookings.map((booking: any) => (
+          <div className="space-y-2">
+            {filteredBookings.map((booking: any) => {
+              const sessionInfo = (booking as any).sessionInfo;
+              const routeMap: any = {
+                STUDIO_BOOKING: `/bookings/show/${booking.id}`,
+                EQUIPMENT_RENTAL: `/equipment/show/${booking.equipmentId}`,
+                SERVICE_REQUEST: `/service-requests/${booking.id}`,
+                BEAT_PURCHASE: `/beats/show/${booking.beatId}`,
+              };
+              const detailRoute = routeMap[booking.type] || "/bookings";
+              const counterpart = viewMode === "customer" ? booking.providerName : booking.customerName;
+              const dateStr = booking.type === "STUDIO_BOOKING"
+                ? `${formatDate(booking.startTime)} · ${formatTime(booking.startTime, booking.endTime)}`
+                : formatDate(booking.createdAt);
+              const amount = formatCurrency(booking.totalAmount || booking.amount || booking.budget || 0);
+              const isActive = booking.status === "ACTIVE";
+
+              return (
               <div
                 key={booking.id}
-                className={`
-                  p-6 rounded-xl border transition-all duration-200
-                  ${borderPrimary} ${bgCard}
-                  hover:${borderSecondary} hover:${bgHover}
-                `}
+                className={`rounded-xl border transition-all duration-200 ${borderPrimary} ${bgCard} ${isActive ? (theme === "dark" ? "border-emerald-500/30" : "border-emerald-400/40") : ""}`}
               >
-                <div className="flex items-start justify-between mb-6">
-                  <div className="flex items-center gap-4">
-                    <div className={`
-                      p-3 rounded-lg border ${borderPrimary} ${theme === "dark" ? "bg-black" : "bg-gray-100"}
-                      flex items-center justify-center
-                    `}>
-                      {getTypeIcon(booking.type)}
+                {/* Main row */}
+                <div
+                  className="flex items-center gap-3 p-4 cursor-pointer"
+                  onClick={() => router.push(detailRoute)}
+                >
+                  {/* Type icon */}
+                  <div className={`flex-shrink-0 w-9 h-9 rounded-lg border ${borderPrimary} ${theme === "dark" ? "bg-zinc-900" : "bg-gray-100"} flex items-center justify-center`}>
+                    {getTypeIcon(booking.type)}
+                  </div>
+
+                  {/* Title + meta */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-medium tracking-tight truncate">{booking.itemName}</span>
+                      <span className={`text-xs font-medium tracking-wide px-2 py-0.5 rounded-full border flex items-center gap-1 ${getStatusColor(booking.status)}`}>
+                        {isActive && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
+                        {getStatusText(booking.status)}
+                      </span>
+                      {sessionInfo?.paymentStatus && sessionInfo.paymentStatus !== "UNPAID" && (
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full border flex items-center gap-1 ${
+                          sessionInfo.paymentStatus === "PAYMENT_RELEASED" ? "bg-green-500/10 text-green-400 border-green-500/20"
+                          : sessionInfo.paymentStatus === "PAYMENT_HELD" ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
+                          : "bg-zinc-500/10 text-zinc-400 border-zinc-500/20"
+                        }`}>
+                          <DollarSign className="w-2.5 h-2.5" strokeWidth={2} />
+                          {sessionInfo.paymentStatus === "PAYMENT_RELEASED" ? "Paid" : sessionInfo.paymentStatus === "PAYMENT_HELD" ? "Escrow" : "Captured"}
+                        </span>
+                      )}
                     </div>
-                    <div className="space-y-1">
-                      <h3 className="text-lg font-light tracking-tight">
-                        {booking.itemName}
-                      </h3>
-                      <div className="flex items-center gap-3">
-                        <span className={`
-                          text-xs font-medium tracking-wide
-                          px-3 py-1 rounded-full border
-                          ${theme === "dark" ? "bg-zinc-900 text-zinc-400 border-zinc-800" : "bg-gray-100 text-gray-600 border-gray-300"}
-                        `}>
-                          {getTypeName(booking.type)}
-                        </span>
-                        <span className={`
-                          text-xs font-medium tracking-wide
-                          px-3 py-1 rounded-full border flex items-center gap-1.5
-                          ${getStatusColor(booking.status)}
-                        `}>
-                          {getStatusIcon(booking.status)}
-                          {getStatusText(booking.status)}
-                        </span>
-                      </div>
+                    <div className={`flex items-center gap-2 mt-0.5 text-xs font-light ${textTertiary} flex-wrap`}>
+                      <span>{dateStr}</span>
+                      {counterpart && <><span>·</span><span>with {counterpart}</span></>}
+                      {isActive && sessionInfo?.timeRemaining && (
+                        <><span>·</span><span className="text-emerald-400">{sessionInfo.timeRemaining}m left</span></>
+                      )}
+                      {isActive && sessionInfo?.isOvertime && (
+                        <><span>·</span><span className="text-orange-400">+{sessionInfo.currentOvertimeMinutes}m overtime</span></>
+                      )}
                     </div>
                   </div>
-                  <button
-                    onClick={() => setExpandedBooking(expandedBooking === booking.id ? null : booking.id)}
-                    className={`
-                      p-2 rounded-lg border transition-all duration-200
-                      ${borderPrimary} ${textTertiary}
-                      hover:${borderSecondary} hover:text-white
-                    `}
-                  >
-                    <MoreVertical className="w-4 h-4" strokeWidth={2} />
-                  </button>
+
+                  {/* Amount */}
+                  <div className="flex-shrink-0 text-right hidden sm:block">
+                    <p className="text-sm font-light">{amount}</p>
+                  </div>
+
+                  {/* Navigate arrow */}
+                  <ChevronRight className={`flex-shrink-0 w-4 h-4 ${textTertiary}`} strokeWidth={2} />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                  <div className="space-y-3">
-                    <p className="text-xs font-medium tracking-wider uppercase">
-                      {viewMode === "customer" ? "Provider" : "Customer"}
-                    </p>
-                    <p className="text-sm font-light tracking-wide">
-                      {viewMode === "customer" ? booking.providerName : booking.customerName}
-                    </p>
-                  </div>
+                {/* Inline action strip — only shows when there's something actionable */}
+                {(() => {
+                  const isStudioOwner = currentUser?.id === (booking as any).studio?.owner?.userId;
+                  const isCustomer = currentUser?.id === (booking as any).userId;
+                  const isProducer = currentUser?.id === (booking as any).producerId;
+                  const isClient = currentUser?.id === (booking as any).userId;
 
-                  <div className="space-y-3">
-                    <p className="text-xs font-medium tracking-wider uppercase">
-                      Date & Time
-                    </p>
-                    {booking.type === "STUDIO_BOOKING" ? (
-                      <div className="space-y-1">
-                        <p className="text-sm font-light tracking-wide">
-                          {formatDate(booking.startTime)}
-                        </p>
-                        <p className="text-xs font-light tracking-wide">
-                          {formatTime(booking.startTime, booking.endTime)}
-                        </p>
-                      </div>
-                    ) : (
-                      <p className="text-sm font-light tracking-wide">
-                        {formatDate(booking.createdAt)}
-                      </p>
-                    )}
-                  </div>
+                  const actions: any[] = [];
 
-                  <div className="space-y-3">
-                    <p className="text-xs font-medium tracking-wider uppercase">
-                      Amount
-                    </p>
-                    <p className="text-lg font-light tracking-wide">
-                      {formatCurrency(booking.totalAmount || booking.amount || booking.budget || 0)}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Session lifecycle info for studio bookings */}
-                {booking.type === "STUDIO_BOOKING" && (booking as any).sessionInfo &&
-                 (booking as any).sessionInfo.paymentStatus !== "UNPAID" && (
-                  <div className={`mb-6 p-4 rounded-lg border ${borderPrimary} ${theme === "dark" ? "bg-black" : "bg-gray-50"}`}>
-                    <p className="text-xs font-medium tracking-wider uppercase mb-3">
-                      Session Details
-                    </p>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      {(booking as any).sessionInfo.checkedInAt && (
-                        <div>
-                          <p className={`text-xs ${textTertiary}`}>Checked In</p>
-                          <p className="text-sm font-light">{dayjs((booking as any).sessionInfo.checkedInAt).format("h:mm A")}</p>
-                        </div>
-                      )}
-                      {(booking as any).sessionInfo.checkedOutAt && (
-                        <div>
-                          <p className={`text-xs ${textTertiary}`}>Checked Out</p>
-                          <p className="text-sm font-light">{dayjs((booking as any).sessionInfo.checkedOutAt).format("h:mm A")}</p>
-                        </div>
-                      )}
-                      {(booking as any).sessionInfo.overtimeMinutes > 0 && (
-                        <div>
-                          <p className={`text-xs ${textTertiary}`}>Overtime</p>
-                          <p className="text-sm font-light text-orange-400">+{Math.floor((booking as any).sessionInfo.overtimeMinutes / 60).toString().padStart(2, "0")}h {((booking as any).sessionInfo.overtimeMinutes % 60).toString().padStart(2, "0")}m (+{formatCurrency((booking as any).sessionInfo.overtimeAmount)})</p>
-                        </div>
-                      )}
-                      {(booking as any).sessionInfo.qrCode && (
-                        <div>
-                          <p className={`text-xs ${textTertiary}`}>QR Code</p>
-                          <p className="text-xs font-mono font-light">{(booking as any).sessionInfo.qrCode}</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {booking.notes && (
-                  <div className={`mb-6 p-4 rounded-lg border ${borderPrimary} ${theme === "dark" ? "bg-black" : "bg-gray-50"}`}>
-                    <p className="text-xs font-medium tracking-wider uppercase mb-2">
-                      Notes
-                    </p>
-                    <p className="text-sm font-light tracking-wide">
-                      {booking.notes}
-                    </p>
-                  </div>
-                )}
-
-                {/* Expanded Details */}
-                {expandedBooking === booking.id && (
-                  <div className={`mt-6 pt-6 border-t ${borderPrimary} space-y-4`}>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-3">
-                        <p className="text-xs font-medium tracking-wider uppercase">
-                          Booking ID
-                        </p>
-                        <p className="text-sm font-light tracking-wide">
-                          {booking.id}
-                        </p>
-                      </div>
-                      <div className="space-y-3">
-                        <p className="text-xs font-medium tracking-wider uppercase">
-                          Created
-                        </p>
-                        <p className="text-sm font-light tracking-wide">
-                          {dayjs(booking.createdAt).format("MMM D, YYYY [at] h:mm A")}
-                        </p>
-                      </div>
-                    </div>
-                    {booking.updatedAt && (
-                      <div className="space-y-3">
-                        <p className="text-xs font-medium tracking-wider uppercase">
-                          Last Updated
-                        </p>
-                        <p className="text-sm font-light tracking-wide">
-                          {dayjs(booking.updatedAt).format("MMM D, YYYY [at] h:mm A")}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Actions */}
-                <div className={`flex flex-wrap gap-3 pt-6 border-t ${borderPrimary}`}>
-                  {/* View Details Button */}
-                  <button
-                    onClick={() => {
-                      const routeMap: any = {
-                        STUDIO_BOOKING: `/bookings/show/${booking.id}`,
-                        EQUIPMENT_RENTAL: `/equipment/show/${booking.equipmentId}`,
-                        SERVICE_REQUEST: `/service-requests/${booking.id}`,
-                        BEAT_PURCHASE: `/beats/show/${booking.beatId}`,
-                      };
-                      router.push(routeMap[booking.type] || "/bookings");
-                    }}
-                    className={`
-                      flex items-center gap-2.5 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200
-                      ${buttonPrimary} tracking-wide active:scale-[0.98]
-                      flex-1 justify-center
-                    `}
-                  >
-                    <span>View Details</span>
-                    <ChevronRight className="w-4 h-4" strokeWidth={2} />
-                  </button>
-
-                  {/* SERVICE REQUEST Actions */}
-                  {booking.type === "SERVICE_REQUEST" && (() => {
-                    const isProducer = currentUser?.id === (booking as any).producerId;
-                    const isClient = currentUser?.id === (booking as any).userId;
-                    const otherUserRole = isProducer ? "Client" : "Producer";
-
-                    return (
-                      <>
-                        {/* Producer Actions - Accept/Reject when PENDING */}
-                        {isProducer && booking.status === "PENDING" && (
-                          <>
-                            <button
-                              onClick={() => handleUpdateServiceRequest(booking.id, "ACCEPTED")}
-                              disabled={updatingServiceRequest}
-                              className={`
-                                flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
-                                ${theme === "dark"
-                                  ? "bg-green-500/10 border-green-500/20 text-green-400"
-                                  : "bg-green-500/10 border-green-500/20 text-green-600"
-                                }
-                                hover:bg-green-500/20 hover:border-green-500/30 active:scale-[0.98]
-                                disabled:opacity-50 disabled:cursor-not-allowed
-                              `}
-                            >
-                              {updatingServiceRequest ? (
-                                <>
-                                  <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
-                                  <span>Processing...</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Check className="w-4 h-4" strokeWidth={2} />
-                                  <span>Accept</span>
-                                </>
-                              )}
-                            </button>
-                            <button
-                              onClick={() => handleUpdateServiceRequest(booking.id, "REJECTED")}
-                              disabled={updatingServiceRequest}
-                              className={`
-                                flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
-                                ${theme === "dark"
-                                  ? "bg-red-500/10 border-red-500/20 text-red-400"
-                                  : "bg-red-500/10 border-red-500/20 text-red-600"
-                                }
-                                hover:bg-red-500/20 hover:border-red-500/30 active:scale-[0.98]
-                                disabled:opacity-50 disabled:cursor-not-allowed
-                              `}
-                            >
-                              {updatingServiceRequest ? (
-                                <>
-                                  <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
-                                  <span>Processing...</span>
-                                </>
-                              ) : (
-                                <>
-                                  <XCircle className="w-4 h-4" strokeWidth={2} />
-                                  <span>Reject</span>
-                                </>
-                              )}
-                            </button>
-                          </>
-                        )}
-
-                        {/* Producer Actions - Start Work when ACCEPTED */}
-                        {isProducer && booking.status === "ACCEPTED" && (
-                          <button
-                            onClick={() => handleUpdateServiceRequest(booking.id, "IN_PROGRESS")}
-                            disabled={updatingServiceRequest}
-                            className={`
-                              flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
-                              ${theme === "dark"
-                                ? "bg-blue-500/10 border-blue-500/20 text-blue-400"
-                                : "bg-blue-500/10 border-blue-500/20 text-blue-600"
-                              }
-                              hover:bg-blue-500/20 hover:border-blue-500/30 active:scale-[0.98]
-                              disabled:opacity-50 disabled:cursor-not-allowed
-                            `}
-                          >
-                            {updatingServiceRequest ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
-                                <span>Processing...</span>
-                              </>
-                            ) : (
-                              <>
-                                <Play className="w-4 h-4" strokeWidth={2} />
-                                <span>Start Work</span>
-                              </>
-                            )}
-                          </button>
-                        )}
-
-                        {/* Producer Actions - Mark Complete when IN_PROGRESS */}
-                        {isProducer && booking.status === "IN_PROGRESS" && (
-                          <button
-                            onClick={() => handleUpdateServiceRequest(booking.id, "COMPLETED")}
-                            disabled={updatingServiceRequest}
-                            className={`
-                              flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
-                              ${theme === "dark"
-                                ? "bg-green-500/10 border-green-500/20 text-green-400"
-                                : "bg-green-500/10 border-green-500/20 text-green-600"
-                              }
-                              hover:bg-green-500/20 hover:border-green-500/30 active:scale-[0.98]
-                              disabled:opacity-50 disabled:cursor-not-allowed
-                            `}
-                          >
-                            {updatingServiceRequest ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
-                                <span>Processing...</span>
-                              </>
-                            ) : (
-                              <>
-                                <CheckCircle2 className="w-4 h-4" strokeWidth={2} />
-                                <span>Mark Complete</span>
-                              </>
-                            )}
-                          </button>
-                        )}
-
-                        {/* Client Actions - Cancel when PENDING or ACCEPTED */}
-                        {isClient && (booking.status === "PENDING" || booking.status === "ACCEPTED") && (
-                          <button
-                            onClick={() => handleUpdateServiceRequest(booking.id, "CANCELLED")}
-                            disabled={updatingServiceRequest}
-                            className={`
-                              flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
-                              ${theme === "dark"
-                                ? "bg-red-500/10 border-red-500/20 text-red-400"
-                                : "bg-red-500/10 border-red-500/20 text-red-600"
-                              }
-                              hover:bg-red-500/20 hover:border-red-500/30 active:scale-[0.98]
-                              disabled:opacity-50 disabled:cursor-not-allowed
-                            `}
-                          >
-                            {updatingServiceRequest ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
-                                <span>Cancelling...</span>
-                              </>
-                            ) : (
-                              <>
-                                <XCircle className="w-4 h-4" strokeWidth={2} />
-                                <span>Cancel</span>
-                              </>
-                            )}
-                          </button>
-                        )}
-
-                        {/* Message Button - RBAC Aware */}
-                        <button
-                          onClick={() => {
-                            const otherUserId = isProducer ? (booking as any).userId : (booking as any).producerId;
-                            router.push(`/messages/${otherUserId}`);
-                          }}
-                          className={`
-                            flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
-                            ${theme === "dark"
-                              ? "bg-blue-500/10 border-blue-500/20 text-blue-400"
-                              : "bg-blue-500/10 border-blue-500/20 text-blue-600"
-                            }
-                            hover:bg-blue-500/20 hover:border-blue-500/30 active:scale-[0.98]
-                          `}
+                  // SERVICE REQUEST actions
+                  if (booking.type === "SERVICE_REQUEST") {
+                    if (isProducer && booking.status === "PENDING") {
+                      actions.push(
+                        <button key="accept" onClick={(e) => { e.stopPropagation(); handleUpdateServiceRequest(booking.id, "ACCEPTED"); }} disabled={updatingServiceRequest}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all duration-200 ${theme === "dark" ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-green-50 border-green-200 text-green-700"} hover:bg-green-500/20 active:scale-[0.98] disabled:opacity-50`}
                         >
-                          <MessageCircle className="w-4 h-4" strokeWidth={2} />
-                          <span>Message {otherUserRole}</span>
+                          {updatingServiceRequest ? <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={2} /> : <Check className="w-3.5 h-3.5" strokeWidth={2} />}
+                          Accept
+                        </button>,
+                        <button key="reject" onClick={(e) => { e.stopPropagation(); handleUpdateServiceRequest(booking.id, "REJECTED"); }} disabled={updatingServiceRequest}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all duration-200 ${theme === "dark" ? "bg-red-500/10 border-red-500/20 text-red-400" : "bg-red-50 border-red-200 text-red-700"} hover:bg-red-500/20 active:scale-[0.98] disabled:opacity-50`}
+                        >
+                          <XCircle className="w-3.5 h-3.5" strokeWidth={2} /> Reject
                         </button>
-                      </>
-                    );
-                  })()}
+                      );
+                    }
+                    if (isProducer && booking.status === "ACCEPTED") {
+                      actions.push(
+                        <button key="start" onClick={(e) => { e.stopPropagation(); handleUpdateServiceRequest(booking.id, "IN_PROGRESS"); }} disabled={updatingServiceRequest}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all duration-200 ${theme === "dark" ? "bg-blue-500/10 border-blue-500/20 text-blue-400" : "bg-blue-50 border-blue-200 text-blue-700"} hover:bg-blue-500/20 active:scale-[0.98] disabled:opacity-50`}
+                        >
+                          <Play className="w-3.5 h-3.5" strokeWidth={2} /> Start Work
+                        </button>
+                      );
+                    }
+                    if (isProducer && booking.status === "IN_PROGRESS") {
+                      actions.push(
+                        <button key="complete" onClick={(e) => { e.stopPropagation(); handleUpdateServiceRequest(booking.id, "COMPLETED"); }} disabled={updatingServiceRequest}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all duration-200 ${theme === "dark" ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-green-50 border-green-200 text-green-700"} hover:bg-green-500/20 active:scale-[0.98] disabled:opacity-50`}
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" strokeWidth={2} /> Mark Complete
+                        </button>
+                      );
+                    }
+                    if (isClient && (booking.status === "PENDING" || booking.status === "ACCEPTED")) {
+                      actions.push(
+                        <button key="cancel-svc" onClick={(e) => { e.stopPropagation(); handleUpdateServiceRequest(booking.id, "CANCELLED"); }} disabled={updatingServiceRequest}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all duration-200 ${theme === "dark" ? "bg-red-500/10 border-red-500/20 text-red-400" : "bg-red-50 border-red-200 text-red-700"} hover:bg-red-500/20 active:scale-[0.98] disabled:opacity-50`}
+                        >
+                          <XCircle className="w-3.5 h-3.5" strokeWidth={2} /> Cancel
+                        </button>
+                      );
+                    }
+                    if (booking.status === "CONFIRMED" || booking.status === "ACTIVE" || booking.status === "ACCEPTED" || booking.status === "IN_PROGRESS") {
+                      const otherUserId = isProducer ? (booking as any).userId : (booking as any).producerId;
+                      actions.push(
+                        <button key="msg-svc" onClick={(e) => { e.stopPropagation(); router.push(`/messages/${otherUserId}`); }}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all duration-200 ${theme === "dark" ? "bg-blue-500/10 border-blue-500/20 text-blue-400" : "bg-blue-50 border-blue-200 text-blue-700"} hover:bg-blue-500/20 active:scale-[0.98]`}
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" strokeWidth={2} /> Message
+                        </button>
+                      );
+                    }
+                  }
 
-                  {/* STUDIO BOOKING Actions */}
-                  {booking.type === "STUDIO_BOOKING" && (() => {
-                    const isStudioOwner = currentUser?.id === (booking as any).studio?.owner?.userId;
-                    const isCustomer = currentUser?.id === (booking as any).userId;
-                    const sessionInfo = (booking as any).sessionInfo;
-
-                    return (
-                      <>
-                        {/* PENDING: Customer can pay to hold in escrow */}
-                        {booking.status === "PENDING" && isCustomer && (
-                          <button
-                            onClick={() => payBooking.mutate({ bookingId: booking.id })}
-                            disabled={payBooking.isPending}
-                            className={`
-                              flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
-                              ${theme === "dark"
-                                ? "bg-purple-500/10 border-purple-500/20 text-purple-400"
-                                : "bg-purple-500/10 border-purple-500/20 text-purple-600"
-                              }
-                              hover:bg-purple-500/20 hover:border-purple-500/30 active:scale-[0.98]
-                              disabled:opacity-50 disabled:cursor-not-allowed
-                            `}
-                          >
-                            {payBooking.isPending ? (
-                              <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
-                            ) : (
-                              <DollarSign className="w-4 h-4" strokeWidth={2} />
-                            )}
-                            <span>Pay & Confirm</span>
-                          </button>
-                        )}
-
-                        {/* PENDING: Studio owner accepts the booking request */}
-                        {booking.status === "PENDING" && isStudioOwner && (
-                          <button
-                            onClick={() => updateStatus.mutate({ bookingId: booking.id, status: "CONFIRMED" })}
-                            disabled={updateStatus.isPending}
-                            className={`
-                              flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
-                              ${theme === "dark"
-                                ? "bg-green-500/10 border-green-500/20 text-green-400"
-                                : "bg-green-500/10 border-green-500/20 text-green-600"
-                              }
-                              hover:bg-green-500/20 hover:border-green-500/30 active:scale-[0.98]
-                              disabled:opacity-50 disabled:cursor-not-allowed
-                            `}
-                          >
-                            {updateStatus.isPending ? (
-                              <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
-                            ) : (
-                              <Check className="w-4 h-4" strokeWidth={2} />
-                            )}
-                            <span>Accept Booking</span>
-                          </button>
-                        )}
-
-                        {/* PENDING: Cancel/Reject */}
-                        {booking.status === "PENDING" && (isStudioOwner || isCustomer) && (
-                          <button
-                            onClick={() => cancelBooking.mutate(booking.id)}
-                            disabled={cancelBooking.isPending}
-                            className={`
-                              flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
-                              ${theme === "dark"
-                                ? "bg-red-500/10 border-red-500/20 text-red-400"
-                                : "bg-red-500/10 border-red-500/20 text-red-600"
-                              }
-                              hover:bg-red-500/20 hover:border-red-500/30 active:scale-[0.98]
-                              disabled:opacity-50 disabled:cursor-not-allowed
-                            `}
-                          >
-                            {cancelBooking.isPending ? (
-                              <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
-                            ) : (
-                              <XCircle className="w-4 h-4" strokeWidth={2} />
-                            )}
-                            <span>{isStudioOwner ? "Reject" : "Cancel"}</span>
-                          </button>
-                        )}
-
-                        {/* CONFIRMED + UNPAID: Artist needs to pay (after studio owner accepted) */}
-                        {booking.status === "CONFIRMED" && isCustomer &&
-                         (!sessionInfo?.paymentStatus || sessionInfo?.paymentStatus === "UNPAID") && (
-                          <button
-                            onClick={() => payBooking.mutate({ bookingId: booking.id })}
-                            disabled={payBooking.isPending}
-                            className={`
-                              flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
-                              ${theme === "dark"
-                                ? "bg-purple-500/10 border-purple-500/20 text-purple-400"
-                                : "bg-purple-500/10 border-purple-500/20 text-purple-600"
-                              }
-                              hover:bg-purple-500/20 hover:border-purple-500/30 active:scale-[0.98]
-                              disabled:opacity-50 disabled:cursor-not-allowed
-                            `}
-                          >
-                            {payBooking.isPending ? (
-                              <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
-                            ) : (
-                              <DollarSign className="w-4 h-4" strokeWidth={2} />
-                            )}
-                            <span>Pay Now</span>
-                          </button>
-                        )}
-
-                        {/* CONFIRMED + UNPAID: Cancel for both parties */}
-                        {booking.status === "CONFIRMED" &&
-                         (!sessionInfo?.paymentStatus || sessionInfo?.paymentStatus === "UNPAID") &&
-                         (isStudioOwner || isCustomer) && (
-                          <button
-                            onClick={() => cancelBooking.mutate(booking.id)}
-                            disabled={cancelBooking.isPending}
-                            className={`
-                              flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
-                              ${theme === "dark"
-                                ? "bg-red-500/10 border-red-500/20 text-red-400"
-                                : "bg-red-500/10 border-red-500/20 text-red-600"
-                              }
-                              hover:bg-red-500/20 hover:border-red-500/30 active:scale-[0.98]
-                              disabled:opacity-50 disabled:cursor-not-allowed
-                            `}
-                          >
-                            {cancelBooking.isPending ? (
-                              <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
-                            ) : (
-                              <XCircle className="w-4 h-4" strokeWidth={2} />
-                            )}
-                            <span>Cancel</span>
-                          </button>
-                        )}
-
-                        {/* CONFIRMED + PAID: Session time info & studio owner starts session */}
-                        {booking.status === "CONFIRMED" &&
-                         sessionInfo?.paymentStatus === "PAYMENT_HELD" && (() => {
-                          const scheduledStart = new Date(booking.startTime);
-                          const earliestCheckIn = new Date(scheduledStart.getTime() - 30 * 60 * 1000);
-                          const latestCheckIn = new Date(scheduledStart.getTime() + 15 * 60 * 1000);
-                          const currentTime = new Date();
-                          const isTooEarly = currentTime < earliestCheckIn;
-                          const isTooLate = currentTime > latestCheckIn;
-                          const minutesUntilSession = Math.ceil((scheduledStart.getTime() - currentTime.getTime()) / (1000 * 60));
-                          const minutesUntilOpen = Math.ceil((earliestCheckIn.getTime() - currentTime.getTime()) / (1000 * 60));
-
-                          return (
-                            <>
-                              {/* Time info for both roles */}
-                              {minutesUntilSession > 0 && (
-                                <div className={`
-                                  flex items-center gap-2 px-4 py-2.5 text-sm rounded-lg border w-full
-                                  ${isTooEarly
-                                    ? theme === "dark" ? "bg-blue-500/5 border-blue-500/20 text-blue-400" : "bg-blue-50 border-blue-200 text-blue-700"
-                                    : theme === "dark" ? "bg-emerald-500/5 border-emerald-500/20 text-emerald-400" : "bg-emerald-50 border-emerald-200 text-emerald-700"
-                                  }
-                                `}>
-                                  <Clock className="w-4 h-4 flex-shrink-0" strokeWidth={2} />
-                                  <span className="font-light tracking-wide text-xs">
-                                    Session {minutesUntilSession > 60
-                                      ? `in ${Math.floor(minutesUntilSession / 60)}h ${minutesUntilSession % 60}m`
-                                      : `in ${minutesUntilSession}m`
-                                    } ({dayjs(scheduledStart).format("h:mm A")})
-                                    {isTooEarly && ` · Check-in opens at ${dayjs(earliestCheckIn).format("h:mm A")}`}
-                                    {!isTooEarly && !isTooLate && ` · Check-in open`}
-                                  </span>
-                                </div>
-                              )}
-                              {isTooLate && (
-                                <div className={`
-                                  flex items-center gap-2 px-4 py-2.5 text-xs rounded-lg border w-full
-                                  ${theme === "dark" ? "bg-red-500/5 border-red-500/20 text-red-400" : "bg-red-50 border-red-200 text-red-700"}
-                                `}>
-                                  <AlertCircle className="w-4 h-4 flex-shrink-0" strokeWidth={2} />
-                                  <span className="font-light tracking-wide">Check-in window expired</span>
-                                </div>
-                              )}
-
-                              {/* Error display for this booking */}
-                              {sessionActionError && showQrPrompt === booking.id && (
-                                <div className={`
-                                  flex items-center gap-2 px-4 py-2.5 text-xs rounded-lg border w-full
-                                  ${theme === "dark" ? "bg-red-500/5 border-red-500/20 text-red-400" : "bg-red-50 border-red-200 text-red-700"}
-                                `}>
-                                  <AlertCircle className="w-4 h-4 flex-shrink-0" strokeWidth={2} />
-                                  <span className="font-light tracking-wide">{sessionActionError}</span>
-                                </div>
-                              )}
-
-                              {/* Studio owner: Start session with QR code */}
-                              {isStudioOwner && (
-                                <>
-                                  {showQrPrompt === booking.id ? (
-                                    <div className="flex items-center gap-2 w-full">
-                                      <input
-                                        type="text"
-                                        placeholder="Enter artist's QR code"
-                                        value={qrCodeInput}
-                                        onChange={(e) => setQrCodeInput(e.target.value)}
-                                        className={`
-                                          flex-1 px-4 py-3 text-sm font-light rounded-lg border transition-all duration-200
-                                          ${theme === "dark" ? "bg-zinc-950 border-zinc-800 text-white placeholder:text-zinc-600" : "bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"}
-                                          tracking-wide focus:outline-none focus:ring-1 ${theme === "dark" ? "focus:ring-white" : "focus:ring-black"}
-                                        `}
-                                        onKeyDown={(e) => {
-                                          if (e.key === "Enter" && qrCodeInput.trim() && !checkIn.isPending) {
-                                            checkIn.mutate(
-                                              { bookingId: booking.id, qrCode: qrCodeInput.trim() },
-                                              {
-                                                onSuccess: () => { setShowQrPrompt(null); setQrCodeInput(""); setSessionActionError(null); },
-                                                onError: (err: any) => { setSessionActionError(err.message || "Failed to start session"); },
-                                              }
-                                            );
-                                          }
-                                        }}
-                                      />
-                                      <button
-                                        onClick={() => {
-                                          if (qrCodeInput.trim()) {
-                                            checkIn.mutate(
-                                              { bookingId: booking.id, qrCode: qrCodeInput.trim() },
-                                              {
-                                                onSuccess: () => { setShowQrPrompt(null); setQrCodeInput(""); setSessionActionError(null); },
-                                                onError: (err: any) => { setSessionActionError(err.message || "Failed to start session"); },
-                                              }
-                                            );
-                                          }
-                                        }}
-                                        disabled={checkIn.isPending || !qrCodeInput.trim()}
-                                        className={`
-                                          flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
-                                          ${theme === "dark"
-                                            ? "bg-green-500/10 border-green-500/20 text-green-400"
-                                            : "bg-green-500/10 border-green-500/20 text-green-600"
-                                          }
-                                          hover:bg-green-500/20 hover:border-green-500/30 active:scale-[0.98]
-                                          disabled:opacity-50 disabled:cursor-not-allowed
-                                        `}
-                                      >
-                                        {checkIn.isPending ? (
-                                          <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
-                                        ) : (
-                                          <Check className="w-4 h-4" strokeWidth={2} />
-                                        )}
-                                        <span>Confirm</span>
-                                      </button>
-                                      <button
-                                        onClick={() => { setShowQrPrompt(null); setQrCodeInput(""); setSessionActionError(null); }}
-                                        className={`
-                                          px-3 py-3 text-sm rounded-lg border transition-all duration-200
-                                          ${theme === "dark" ? "border-zinc-800 text-zinc-400 hover:text-white" : "border-gray-300 text-gray-600 hover:text-black"}
-                                        `}
-                                      >
-                                        <XCircle className="w-4 h-4" strokeWidth={2} />
-                                      </button>
-                                    </div>
-                                  ) : (
-                                    <button
-                                      onClick={() => { setShowQrPrompt(booking.id); setSessionActionError(null); }}
-                                      disabled={checkIn.isPending || isTooLate}
-                                      className={`
-                                        flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
-                                        ${theme === "dark"
-                                          ? "bg-green-500/10 border-green-500/20 text-green-400"
-                                          : "bg-green-500/10 border-green-500/20 text-green-600"
-                                        }
-                                        hover:bg-green-500/20 hover:border-green-500/30 active:scale-[0.98]
-                                        disabled:opacity-50 disabled:cursor-not-allowed
-                                      `}
-                                    >
-                                      <Play className="w-4 h-4" strokeWidth={2} />
-                                      <span>Start Session</span>
-                                    </button>
-                                  )}
-                                </>
-                              )}
-                            </>
-                          );
-                        })()}
-
-                        {/* ACTIVE: Show live session info */}
-                        {booking.status === "ACTIVE" && sessionInfo && (
-                          <div className={`
-                            flex items-center gap-2 px-4 py-2 text-sm rounded-lg border
-                            ${sessionInfo.isOvertime
-                              ? "bg-orange-500/10 border-orange-500/20 text-orange-400"
-                              : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
-                            }
-                          `}>
-                            <span className={`w-2 h-2 rounded-full animate-pulse ${sessionInfo.isOvertime ? "bg-orange-400" : "bg-emerald-400"}`} />
-                            {sessionInfo.isOvertime
-                              ? `Overtime: +${sessionInfo.currentOvertimeMinutes}m`
-                              : sessionInfo.timeRemaining
-                              ? `${sessionInfo.timeRemaining}m remaining`
-                              : "In Session"
-                            }
+                  // STUDIO BOOKING actions
+                  if (booking.type === "STUDIO_BOOKING") {
+                    if (booking.status === "PENDING" && isCustomer) {
+                      actions.push(
+                        <button key="pay" onClick={(e) => { e.stopPropagation(); payBooking.mutate({ bookingId: booking.id }); }} disabled={payBooking.isPending}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all duration-200 ${theme === "dark" ? "bg-purple-500/10 border-purple-500/20 text-purple-400" : "bg-purple-50 border-purple-200 text-purple-700"} hover:bg-purple-500/20 active:scale-[0.98] disabled:opacity-50`}
+                        >
+                          {payBooking.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={2} /> : <DollarSign className="w-3.5 h-3.5" strokeWidth={2} />}
+                          Pay & Confirm
+                        </button>
+                      );
+                    }
+                    if (booking.status === "PENDING" && isStudioOwner) {
+                      actions.push(
+                        <button key="accept-booking" onClick={(e) => { e.stopPropagation(); updateStatus.mutate({ bookingId: booking.id, status: "CONFIRMED" }); }} disabled={updateStatus.isPending}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all duration-200 ${theme === "dark" ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-green-50 border-green-200 text-green-700"} hover:bg-green-500/20 active:scale-[0.98] disabled:opacity-50`}
+                        >
+                          {updateStatus.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={2} /> : <Check className="w-3.5 h-3.5" strokeWidth={2} />}
+                          Accept
+                        </button>
+                      );
+                    }
+                    if (booking.status === "PENDING" && (isStudioOwner || isCustomer)) {
+                      actions.push(
+                        <button key="cancel-booking" onClick={(e) => { e.stopPropagation(); cancelBooking.mutate(booking.id); }} disabled={cancelBooking.isPending}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all duration-200 ${theme === "dark" ? "bg-red-500/10 border-red-500/20 text-red-400" : "bg-red-50 border-red-200 text-red-700"} hover:bg-red-500/20 active:scale-[0.98] disabled:opacity-50`}
+                        >
+                          <XCircle className="w-3.5 h-3.5" strokeWidth={2} />
+                          {isStudioOwner ? "Reject" : "Cancel"}
+                        </button>
+                      );
+                    }
+                    if (booking.status === "CONFIRMED" && isCustomer && (!sessionInfo?.paymentStatus || sessionInfo?.paymentStatus === "UNPAID")) {
+                      actions.push(
+                        <button key="pay-now" onClick={(e) => { e.stopPropagation(); payBooking.mutate({ bookingId: booking.id }); }} disabled={payBooking.isPending}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all duration-200 ${theme === "dark" ? "bg-purple-500/10 border-purple-500/20 text-purple-400" : "bg-purple-50 border-purple-200 text-purple-700"} hover:bg-purple-500/20 active:scale-[0.98] disabled:opacity-50`}
+                        >
+                          {payBooking.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={2} /> : <DollarSign className="w-3.5 h-3.5" strokeWidth={2} />}
+                          Pay Now
+                        </button>
+                      );
+                    }
+                    if (booking.status === "CONFIRMED" && isStudioOwner && sessionInfo?.paymentStatus === "PAYMENT_HELD") {
+                      if (showQrPrompt === booking.id) {
+                        actions.push(
+                          <div key="qr-input" className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                            {sessionActionError && <span className="text-xs text-red-400">{sessionActionError}</span>}
+                            <input type="text" placeholder="QR code" value={qrCodeInput} onChange={(e) => setQrCodeInput(e.target.value)}
+                              className={`px-2.5 py-1.5 text-xs rounded-lg border ${theme === "dark" ? "bg-zinc-950 border-zinc-800 text-white placeholder:text-zinc-600" : "bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"} focus:outline-none w-32`}
+                              onKeyDown={(e) => { if (e.key === "Enter" && qrCodeInput.trim()) checkIn.mutate({ bookingId: booking.id, qrCode: qrCodeInput.trim() }, { onSuccess: () => { setShowQrPrompt(null); setQrCodeInput(""); setSessionActionError(null); }, onError: (err: any) => setSessionActionError(err.message) }); }}
+                            />
+                            <button onClick={() => checkIn.mutate({ bookingId: booking.id, qrCode: qrCodeInput.trim() }, { onSuccess: () => { setShowQrPrompt(null); setQrCodeInput(""); setSessionActionError(null); }, onError: (err: any) => setSessionActionError(err.message) })} disabled={checkIn.isPending || !qrCodeInput.trim()}
+                              className={`flex items-center px-2.5 py-1.5 text-xs rounded-lg border ${theme === "dark" ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-green-50 border-green-200 text-green-700"} disabled:opacity-50`}
+                            >
+                              {checkIn.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={2} /> : <Check className="w-3.5 h-3.5" strokeWidth={2} />}
+                            </button>
+                            <button onClick={() => { setShowQrPrompt(null); setQrCodeInput(""); setSessionActionError(null); }} className={`px-2 py-1.5 text-xs rounded-lg border ${theme === "dark" ? "border-zinc-800 text-zinc-400" : "border-gray-300 text-gray-500"}`}>
+                              <XCircle className="w-3.5 h-3.5" strokeWidth={2} />
+                            </button>
                           </div>
-                        )}
-
-                        {/* ACTIVE: Artist confirms presence with confirmation code */}
-                        {booking.status === "ACTIVE" && isCustomer && sessionInfo && !sessionInfo.bookerConfirmedCheckIn && (
-                          <>
-                            {/* Error display for confirm code */}
-                            {sessionActionError && showConfirmPrompt === booking.id && (
-                              <div className={`
-                                flex items-center gap-2 px-4 py-2.5 text-xs rounded-lg border w-full
-                                ${theme === "dark" ? "bg-red-500/5 border-red-500/20 text-red-400" : "bg-red-50 border-red-200 text-red-700"}
-                              `}>
-                                <AlertCircle className="w-4 h-4 flex-shrink-0" strokeWidth={2} />
-                                <span className="font-light tracking-wide">{sessionActionError}</span>
-                              </div>
-                            )}
-                            {showConfirmPrompt === booking.id ? (
-                              <div className="flex items-center gap-2 w-full">
-                                <input
-                                  type="text"
-                                  placeholder="Enter confirmation code"
-                                  value={confirmCodeInput}
-                                  onChange={(e) => setConfirmCodeInput(e.target.value.toUpperCase())}
-                                  maxLength={6}
-                                  className={`
-                                    flex-1 px-4 py-3 text-sm font-mono font-light rounded-lg border transition-all duration-200
-                                    ${theme === "dark" ? "bg-zinc-950 border-zinc-800 text-white placeholder:text-zinc-600" : "bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"}
-                                    tracking-widest text-center focus:outline-none focus:ring-1 ${theme === "dark" ? "focus:ring-white" : "focus:ring-black"}
-                                  `}
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter" && confirmCodeInput.trim() && !confirmCheckIn.isPending) {
-                                      confirmCheckIn.mutate(
-                                        { bookingId: booking.id, confirmationCode: confirmCodeInput.trim() },
-                                        {
-                                          onSuccess: () => { setShowConfirmPrompt(null); setConfirmCodeInput(""); setSessionActionError(null); },
-                                          onError: (err: any) => { setSessionActionError(err.message || "Invalid confirmation code"); },
-                                        }
-                                      );
-                                    }
-                                  }}
-                                />
-                                <button
-                                  onClick={() => {
-                                    if (confirmCodeInput.trim()) {
-                                      confirmCheckIn.mutate(
-                                        { bookingId: booking.id, confirmationCode: confirmCodeInput.trim() },
-                                        {
-                                          onSuccess: () => { setShowConfirmPrompt(null); setConfirmCodeInput(""); setSessionActionError(null); },
-                                          onError: (err: any) => { setSessionActionError(err.message || "Invalid confirmation code"); },
-                                        }
-                                      );
-                                    }
-                                  }}
-                                  disabled={confirmCheckIn.isPending || !confirmCodeInput.trim()}
-                                  className={`
-                                    flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
-                                    ${theme === "dark"
-                                      ? "bg-green-500/10 border-green-500/20 text-green-400"
-                                      : "bg-green-500/10 border-green-500/20 text-green-600"
-                                    }
-                                    hover:bg-green-500/20 hover:border-green-500/30 active:scale-[0.98]
-                                    disabled:opacity-50 disabled:cursor-not-allowed
-                                  `}
-                                >
-                                  {confirmCheckIn.isPending ? (
-                                    <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
-                                  ) : (
-                                    <Check className="w-4 h-4" strokeWidth={2} />
-                                  )}
-                                  <span>Verify</span>
-                                </button>
-                                <button
-                                  onClick={() => { setShowConfirmPrompt(null); setConfirmCodeInput(""); setSessionActionError(null); }}
-                                  className={`
-                                    px-3 py-3 text-sm rounded-lg border transition-all duration-200
-                                    ${theme === "dark" ? "border-zinc-800 text-zinc-400 hover:text-white" : "border-gray-300 text-gray-600 hover:text-black"}
-                                  `}
-                                >
-                                  <XCircle className="w-4 h-4" strokeWidth={2} />
-                                </button>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => { setShowConfirmPrompt(booking.id); setSessionActionError(null); }}
-                                className={`
-                                  flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
-                                  ${theme === "dark"
-                                    ? "bg-yellow-500/10 border-yellow-500/20 text-yellow-400"
-                                    : "bg-yellow-500/10 border-yellow-500/20 text-yellow-600"
-                                  }
-                                  hover:bg-yellow-500/20 hover:border-yellow-500/30 active:scale-[0.98]
-                                `}
-                              >
-                                <CheckCircle2 className="w-4 h-4" strokeWidth={2} />
-                                <span>Confirm Presence</span>
-                              </button>
-                            )}
-                          </>
-                        )}
-
-                        {/* ACTIVE: Both parties can end session (check-out) */}
-                        {booking.status === "ACTIVE" && (isStudioOwner || isCustomer) && (
-                          <button
-                            onClick={() => {
-                              if (confirm("Are you sure you want to end this session?")) {
-                                checkOut.mutate(booking.id);
-                              }
-                            }}
-                            disabled={checkOut.isPending}
-                            className={`
-                              flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
-                              ${theme === "dark"
-                                ? "bg-red-500/10 border-red-500/20 text-red-400"
-                                : "bg-red-500/10 border-red-500/20 text-red-600"
-                              }
-                              hover:bg-red-500/20 hover:border-red-500/30 active:scale-[0.98]
-                              disabled:opacity-50 disabled:cursor-not-allowed
-                            `}
+                        );
+                      } else {
+                        actions.push(
+                          <button key="start-session" onClick={(e) => { e.stopPropagation(); setShowQrPrompt(booking.id); setSessionActionError(null); }} disabled={checkIn.isPending}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all duration-200 ${theme === "dark" ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-green-50 border-green-200 text-green-700"} hover:bg-green-500/20 active:scale-[0.98] disabled:opacity-50`}
                           >
-                            {checkOut.isPending ? (
-                              <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
-                            ) : (
-                              <Square className="w-4 h-4" strokeWidth={2} />
-                            )}
-                            <span>End Session</span>
+                            <Play className="w-3.5 h-3.5" strokeWidth={2} /> Start Session
                           </button>
-                        )}
-
-                        {/* COMPLETED: Artist (customer) approves payment release - NOT studio owner */}
-                        {booking.status === "COMPLETED" && isCustomer &&
-                         sessionInfo?.paymentStatus === "PAYMENT_HELD" && (
-                          <button
-                            onClick={() => {
-                              if (confirm("Approve payment release to the studio? This cannot be undone.")) {
-                                releasePayment.mutate(booking.id);
-                              }
-                            }}
-                            disabled={releasePayment.isPending}
-                            className={`
-                              flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
-                              ${theme === "dark"
-                                ? "bg-green-500/10 border-green-500/20 text-green-400"
-                                : "bg-green-500/10 border-green-500/20 text-green-600"
-                              }
-                              hover:bg-green-500/20 hover:border-green-500/30 active:scale-[0.98]
-                              disabled:opacity-50 disabled:cursor-not-allowed
-                            `}
-                          >
-                            {releasePayment.isPending ? (
-                              <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
-                            ) : (
-                              <DollarSign className="w-4 h-4" strokeWidth={2} />
-                            )}
-                            <span>Approve Payment</span>
-                          </button>
-                        )}
-
-                        {/* COMPLETED: Studio owner sees waiting status */}
-                        {booking.status === "COMPLETED" && isStudioOwner &&
-                         sessionInfo?.paymentStatus === "PAYMENT_HELD" && (
-                          <div className={`
-                            flex items-center gap-2 px-4 py-2 text-sm rounded-lg border
-                            bg-yellow-500/10 border-yellow-500/20 text-yellow-400
-                          `}>
-                            <Clock className="w-4 h-4" strokeWidth={2} />
-                            <span>Awaiting artist payment approval</span>
+                        );
+                      }
+                    }
+                    if (booking.status === "ACTIVE" && isCustomer && sessionInfo && !sessionInfo.bookerConfirmedCheckIn) {
+                      if (showConfirmPrompt === booking.id) {
+                        actions.push(
+                          <div key="code-input" className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                            {sessionActionError && <span className="text-xs text-red-400">{sessionActionError}</span>}
+                            <input type="text" placeholder="6-digit code" value={confirmCodeInput} onChange={(e) => setConfirmCodeInput(e.target.value.toUpperCase())} maxLength={6}
+                              className={`px-2.5 py-1.5 text-xs font-mono rounded-lg border text-center ${theme === "dark" ? "bg-zinc-950 border-zinc-800 text-white placeholder:text-zinc-600" : "bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"} focus:outline-none w-24 tracking-widest`}
+                              onKeyDown={(e) => { if (e.key === "Enter" && confirmCodeInput.trim()) confirmCheckIn.mutate({ bookingId: booking.id, confirmationCode: confirmCodeInput.trim() }, { onSuccess: () => { setShowConfirmPrompt(null); setConfirmCodeInput(""); setSessionActionError(null); }, onError: (err: any) => setSessionActionError(err.message) }); }}
+                            />
+                            <button onClick={() => confirmCheckIn.mutate({ bookingId: booking.id, confirmationCode: confirmCodeInput.trim() }, { onSuccess: () => { setShowConfirmPrompt(null); setConfirmCodeInput(""); setSessionActionError(null); }, onError: (err: any) => setSessionActionError(err.message) })} disabled={confirmCheckIn.isPending || !confirmCodeInput.trim()}
+                              className={`flex items-center px-2.5 py-1.5 text-xs rounded-lg border ${theme === "dark" ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-green-50 border-green-200 text-green-700"} disabled:opacity-50`}
+                            >
+                              {confirmCheckIn.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={2} /> : <Check className="w-3.5 h-3.5" strokeWidth={2} />}
+                            </button>
+                            <button onClick={() => { setShowConfirmPrompt(null); setConfirmCodeInput(""); setSessionActionError(null); }} className={`px-2 py-1.5 text-xs rounded-lg border ${theme === "dark" ? "border-zinc-800 text-zinc-400" : "border-gray-300 text-gray-500"}`}>
+                              <XCircle className="w-3.5 h-3.5" strokeWidth={2} />
+                            </button>
                           </div>
-                        )}
-
-                        {/* Payment status badge */}
-                        {sessionInfo?.paymentStatus && sessionInfo.paymentStatus !== "UNPAID" && (
-                          <div className={`
-                            flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg border
-                            ${sessionInfo.paymentStatus === "PAYMENT_RELEASED"
-                              ? "bg-green-500/10 text-green-400 border-green-500/20"
-                              : sessionInfo.paymentStatus === "PAYMENT_HELD"
-                              ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
-                              : sessionInfo.paymentStatus === "REFUNDED"
-                              ? "bg-red-500/10 text-red-400 border-red-500/20"
-                              : "bg-zinc-500/10 text-zinc-400 border-zinc-500/20"
-                            }
-                          `}>
-                            <DollarSign className="w-3 h-3" strokeWidth={2} />
-                            {sessionInfo.paymentStatus === "PAYMENT_RELEASED" ? "Paid" :
-                             sessionInfo.paymentStatus === "PAYMENT_HELD" ? "In Escrow" :
-                             sessionInfo.paymentStatus === "PAYMENT_CAPTURED" ? "Captured" :
-                             sessionInfo.paymentStatus === "REFUNDED" ? "Refunded" :
-                             sessionInfo.paymentStatus}
-                          </div>
-                        )}
-
-                        {/* Message button for confirmed/active */}
-                        {(booking.status === "CONFIRMED" || booking.status === "ACTIVE") && isCustomer && (
-                          <button
-                            onClick={() => router.push(`/bookings/${booking.id}/chat`)}
-                            className={`
-                              flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide
-                              ${theme === "dark"
-                                ? "bg-blue-500/10 border-blue-500/20 text-blue-400"
-                                : "bg-blue-500/10 border-blue-500/20 text-blue-600"
-                              }
-                              hover:bg-blue-500/20 hover:border-blue-500/30 active:scale-[0.98]
-                            `}
+                        );
+                      } else {
+                        actions.push(
+                          <button key="confirm-presence" onClick={(e) => { e.stopPropagation(); setShowConfirmPrompt(booking.id); setSessionActionError(null); }}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all duration-200 ${theme === "dark" ? "bg-yellow-500/10 border-yellow-500/20 text-yellow-400" : "bg-yellow-50 border-yellow-200 text-yellow-700"} hover:bg-yellow-500/20 active:scale-[0.98]`}
                           >
-                            <MessageCircle className="w-4 h-4" strokeWidth={2} />
-                            <span>Message</span>
+                            <CheckCircle2 className="w-3.5 h-3.5" strokeWidth={2} /> Confirm Presence
                           </button>
-                        )}
-                      </>
-                    );
-                  })()}
-                </div>
+                        );
+                      }
+                    }
+                    if (booking.status === "ACTIVE" && (isStudioOwner || isCustomer)) {
+                      actions.push(
+                        <button key="end-session" onClick={(e) => { e.stopPropagation(); if (confirm("End this session?")) checkOut.mutate(booking.id); }} disabled={checkOut.isPending}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all duration-200 ${theme === "dark" ? "bg-red-500/10 border-red-500/20 text-red-400" : "bg-red-50 border-red-200 text-red-700"} hover:bg-red-500/20 active:scale-[0.98] disabled:opacity-50`}
+                        >
+                          {checkOut.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={2} /> : <Square className="w-3.5 h-3.5" strokeWidth={2} />}
+                          End Session
+                        </button>
+                      );
+                    }
+                    if (booking.status === "COMPLETED" && isCustomer && sessionInfo?.paymentStatus === "PAYMENT_HELD") {
+                      actions.push(
+                        <button key="approve-payment" onClick={(e) => { e.stopPropagation(); if (confirm("Approve payment release? Cannot be undone.")) releasePayment.mutate(booking.id); }} disabled={releasePayment.isPending}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all duration-200 ${theme === "dark" ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-green-50 border-green-200 text-green-700"} hover:bg-green-500/20 active:scale-[0.98] disabled:opacity-50`}
+                        >
+                          {releasePayment.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={2} /> : <DollarSign className="w-3.5 h-3.5" strokeWidth={2} />}
+                          Approve Payment
+                        </button>
+                      );
+                    }
+                    if ((booking.status === "CONFIRMED" || booking.status === "ACTIVE") && isCustomer) {
+                      actions.push(
+                        <button key="msg" onClick={(e) => { e.stopPropagation(); router.push(`/bookings/${booking.id}/chat`); }}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all duration-200 ${theme === "dark" ? "bg-blue-500/10 border-blue-500/20 text-blue-400" : "bg-blue-50 border-blue-200 text-blue-700"} hover:bg-blue-500/20 active:scale-[0.98]`}
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" strokeWidth={2} /> Message
+                        </button>
+                      );
+                    }
+                  }
+
+                  if (actions.length === 0) return null;
+
+                  return (
+                    <div className={`flex items-center gap-2 flex-wrap px-4 pb-3 pt-0 border-t ${borderPrimary}`} onClick={(e) => e.stopPropagation()}>
+                      {actions}
+                    </div>
+                  );
+                })()}
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
