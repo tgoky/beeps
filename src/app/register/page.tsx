@@ -19,9 +19,11 @@ import {
   CheckCircle2,
   Camera,
   Inbox,
-  RefreshCw
+  RefreshCw,
+  AlertCircle
 } from "lucide-react";
 import { LocationSelector, type LocationData } from "@/components/LocationSelector";
+import { supabaseBrowserClient } from "@/utils/supabase/client";
 
 type UserRole = 'artist' | 'producer' | 'studio-owner' | 'instrument-sales' | 'lyricist' | 'other';
 type Genre = 'Hip Hop' | 'Trap' | 'R&B' | 'Electronic' | 'Pop' | 'Jazz' | 'Soul' | 'Rock' | 'Classical' | 'Reggae';
@@ -51,7 +53,7 @@ const roleConfig = {
     icon: Building2,
     title: "Studio Owner",
     description: "Own or manage a recording studio space",
-    fields: ['studioName', 'capacity', 'equipment', 'location', 'hourlyRate'],
+    fields: ['bio'],
     dbRole: 'STUDIO_OWNER',
     canCreateStudios: true,
     canBookStudios: false
@@ -135,6 +137,8 @@ export default function SignUp() {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendMessage, setResendMessage] = useState('');
 
   const validateStep1 = () => {
     const newErrors: Record<string, string> = {};
@@ -165,9 +169,6 @@ export default function SignUp() {
     const role = formData.role as UserRole;
     if (roleConfig[role].fields.includes('genres') && formData.genres.length === 0) {
       newErrors.genres = 'Please select at least one genre';
-    }
-    if (role === 'studio-owner' && !formData.studioName) {
-      newErrors.studioName = 'Studio name is required';
     }
     if (role === 'instrument-sales' && !formData.businessName) {
       newErrors.businessName = 'Business name is required';
@@ -238,6 +239,27 @@ export default function SignUp() {
         });
       }
     });
+  };
+
+  const handleResendVerification = async () => {
+    if (!formData.email || resendLoading) return;
+    setResendLoading(true);
+    setResendMessage('');
+    try {
+      const { error } = await supabaseBrowserClient.auth.resend({
+        type: 'signup',
+        email: formData.email,
+      });
+      if (error) {
+        setResendMessage('Failed to resend: ' + error.message);
+      } else {
+        setResendMessage('Verification email resent! Check your inbox and spam folder.');
+      }
+    } catch {
+      setResendMessage('Something went wrong. Please try again.');
+    } finally {
+      setResendLoading(false);
+    }
   };
 
   const toggleGenre = (genre: Genre) => {
@@ -368,18 +390,30 @@ export default function SignUp() {
           </div>
 
           {/* Help Text */}
-          <div className="mt-8 pt-8 border-t border-zinc-900 text-center">
+          <div className="mt-8 pt-8 border-t border-zinc-900 text-center space-y-3">
+            {resendMessage && (
+              <p className={`text-xs font-light tracking-wide ${
+                resendMessage.startsWith('Failed') || resendMessage.startsWith('Something')
+                  ? 'text-red-400'
+                  : 'text-green-400'
+              }`}>
+                {resendMessage}
+              </p>
+            )}
             <p className="text-xs font-light text-zinc-600 tracking-wide">
               Didn&apos;t receive the email?{' '}
               <button
                 type="button"
-                onClick={handleSubmit}
-                disabled={isLoading}
+                onClick={handleResendVerification}
+                disabled={resendLoading}
                 className="font-medium text-white hover:text-zinc-300 transition-colors inline-flex items-center gap-1.5"
               >
-                <RefreshCw className="w-3 h-3" strokeWidth={2} />
-                Resend verification email
+                <RefreshCw className={`w-3 h-3 ${resendLoading ? 'animate-spin' : ''}`} strokeWidth={2} />
+                {resendLoading ? 'Sending...' : 'Resend verification email'}
               </button>
+            </p>
+            <p className="text-xs font-light text-zinc-700 tracking-wide">
+              Also check your spam or junk folder.
             </p>
           </div>
         </div>
@@ -751,44 +785,32 @@ export default function SignUp() {
               </div>
             )}
 
-            {/* Studio Owner Fields */}
-            {config.fields.includes('studioName') && (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-3">
-                  <label className="block text-xs font-medium text-zinc-400 tracking-wider uppercase">
-                    Studio Name
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.studioName}
-                    onChange={(e) => updateField('studioName', e.target.value)}
-                    className={`
-                      w-full px-4 py-3.5 text-sm font-light rounded-lg border transition-all duration-200
-                      bg-zinc-950 border-zinc-800 text-white placeholder-zinc-600 tracking-wide
-                      focus:outline-none focus:border-white focus:bg-black
-                      ${errors.studioName ? "border-red-500/50 focus:border-red-500" : ""}
-                    `}
-                    placeholder="Your studio name"
-                  />
-                  {errors.studioName && <p className="text-xs font-light text-red-400 tracking-wide">{errors.studioName}</p>}
+            {/* Studio Owner — Next Steps callout (replaces in-registration studio fields) */}
+            {role === 'studio-owner' && (
+              <div className="space-y-3 p-5 rounded-lg border border-zinc-800 bg-zinc-950">
+                <div className="flex items-center gap-2 mb-1">
+                  <Building2 className="w-4 h-4 text-white" strokeWidth={2} />
+                  <span className="text-sm font-medium text-white tracking-wide">Studio listing — next step</span>
                 </div>
-
-                <div className="space-y-3">
-                  <label className="block text-xs font-medium text-zinc-400 tracking-wider uppercase">
-                    Capacity
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.capacity}
-                    onChange={(e) => updateField('capacity', e.target.value)}
-                    className={`
-                      w-full px-4 py-3.5 text-sm font-light rounded-lg border transition-all duration-200
-                      bg-zinc-950 border-zinc-800 text-white placeholder-zinc-600 tracking-wide
-                      focus:outline-none focus:border-white focus:bg-black
-                    `}
-                    placeholder="e.g., 5 people"
-                  />
+                <p className="text-xs font-light text-zinc-400 tracking-wide leading-relaxed">
+                  Once you verify your email and log in, you&apos;ll be taken straight to <strong className="text-white">List Your Studio</strong> — where you&apos;ll add your studio name, address, equipment, pricing, and submit verification documents.
+                </p>
+                <div className="space-y-2 pt-1">
+                  {[
+                    "Studio name, photos & description",
+                    "Exact street address for directions",
+                    "Equipment & hourly rate",
+                    "Verification docs (ID, light bill, studio pics)",
+                  ].map((item) => (
+                    <div key={item} className="flex items-center gap-2">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-zinc-500 flex-shrink-0" strokeWidth={2} />
+                      <span className="text-xs font-light text-zinc-500 tracking-wide">{item}</span>
+                    </div>
+                  ))}
                 </div>
+                <p className="text-[10px] font-light text-zinc-600 tracking-wide pt-1">
+                  Verification takes up to 72 hours. Your studio will be listed immediately but shown as unverified until approved.
+                </p>
               </div>
             )}
 

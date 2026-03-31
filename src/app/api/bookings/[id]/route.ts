@@ -21,7 +21,17 @@ export async function GET(
         where: { id },
         include: {
           studio: {
-            include: {
+            select: {
+              id: true,
+              name: true,
+              location: true,
+              streetAddress: true,
+              latitude: true,
+              longitude: true,
+              hourlyRate: true,
+              equipment: true,
+              capacity: true,
+              imageUrl: true,
               owner: {
                 select: {
                   id: true,

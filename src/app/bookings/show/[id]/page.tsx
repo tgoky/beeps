@@ -61,6 +61,9 @@ interface BookingDetails {
     id: string;
     name: string;
     location: string;
+    streetAddress?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
     hourlyRate: number;
     equipment: string[];
     capacity?: string;
@@ -950,12 +953,21 @@ export default function BookingShowPage() {
                 </div>
                 <div className="px-4 pb-4 flex flex-col gap-2">
                   <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(booking.studio.location)}`}
+                    href={(() => {
+                      const { latitude, longitude, streetAddress, location } = booking.studio;
+                      if (latitude && longitude) {
+                        // Use coordinates for turn-by-turn directions to exact doorstep
+                        return `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}&travelmode=driving`;
+                      }
+                      // Fall back to full street address or location string
+                      const dest = streetAddress ? `${streetAddress}, ${location}` : location;
+                      return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dest)}&travelmode=driving`;
+                    })()}
                     target="_blank" rel="noopener noreferrer"
                     className={`w-full inline-flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 active:scale-[0.98] tracking-wide ${theme === "dark" ? "bg-zinc-900 border-zinc-700 text-zinc-200 hover:border-zinc-500 hover:text-white" : "bg-white border-gray-200 text-gray-800 hover:border-gray-400"}`}
                   >
                     <Navigation className="w-4 h-4" strokeWidth={2} />
-                    <span>View Directions</span>
+                    <span>Get Directions</span>
                     <ExternalLink className="w-3 h-3 opacity-50 ml-auto" strokeWidth={2} />
                   </a>
                   <button

@@ -1024,6 +1024,35 @@ export default function StudioList() {
             )}
           </div>
 
+          {/* Studio Owner — list your studio prompt */}
+          {permissions.canCreateStudios && (
+            <div
+              onClick={() => router.push("/studios/list-studio")}
+              className={`cursor-pointer mb-4 p-3.5 rounded-xl border transition-all active:scale-[0.98] ${
+                isDark
+                  ? "bg-zinc-900/60 border-zinc-800 hover:border-zinc-600"
+                  : "bg-gray-50 border-gray-200 hover:border-gray-400"
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className={`p-1.5 rounded-lg ${isDark ? "bg-white/10" : "bg-black/5"}`}>
+                    <Plus size={14} className={isDark ? "text-white" : "text-black"} strokeWidth={2.5} />
+                  </div>
+                  <div>
+                    <p className={`text-[12px] font-semibold tracking-wide ${isDark ? "text-white" : "text-black"}`}>
+                      List your studio
+                    </p>
+                    <p className={`text-[10px] font-light ${isDark ? "text-zinc-500" : "text-gray-500"}`}>
+                      Add studio info, address &amp; verification docs
+                    </p>
+                  </div>
+                </div>
+                <ArrowUpRight size={14} className={isDark ? "text-zinc-500" : "text-gray-400"} strokeWidth={2} />
+              </div>
+            </div>
+          )}
+
           {/* Studio List - COMPACT */}
           <div className="flex-1 overflow-y-auto -mx-4 px-4 pb-6 scrollbar-hide">
             {filteredStudios.length > 0 ? (
