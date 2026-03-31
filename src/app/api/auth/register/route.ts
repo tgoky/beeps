@@ -3,7 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { supabaseBrowserClient } from '@/utils/supabase/client';
+import { createSupabaseServerClient } from '@/utils/supabase/server';
 import { getPaymentConfig } from '@/lib/payment-router';
 import type { RegistrationFormData, ApiResponse, UserWithProfiles } from '@/types';
 import { UserRole } from '@prisma/client';
@@ -43,10 +43,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Create user in Supabase Auth
-    const { data: authData, error: authError } = await supabaseBrowserClient.auth.signUp({
+    const supabase = createSupabaseServerClient();
+    const origin = request.headers.get('origin') ?? '';
+    const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
       options: {
+        emailRedirectTo: `${origin}/auth/confirm`,
         data: {
           username,
           full_name: fullName,
