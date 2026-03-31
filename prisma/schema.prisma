@@ -209,7 +209,8 @@ enum ServiceRequestStatus {
   ACCEPTED
   REJECTED
   IN_PROGRESS
-  COMPLETED
+  DELIVERED   // Producer has delivered work, awaiting client confirmation
+  COMPLETED   // Client confirmed delivery, payment released
   CANCELLED
 }
 
@@ -230,10 +231,22 @@ model ServiceRequest {
   status              ServiceRequestStatus @default(PENDING)
   producerResponse    String?              @map("producer_response")
 
-  // 2FA OTP fields - must be verified before producer is notified
-  otpCode             String?              @map("otp_code")
-  otpExpiresAt        DateTime?            @map("otp_expires_at")
-  otpVerified         Boolean              @default(false) @map("otp_verified")
+  // Escrow payment fields (mirrors Booking payment flow)
+  paymentStatus       PaymentStatus        @default(UNPAID) @map("payment_status")
+  paymentIntentId     String?              @map("payment_intent_id")
+  platformFee         Decimal?             @db.Decimal(10, 2) @map("platform_fee")
+
+  // Delivery verification (mirrors studio QR/confirmation code flow)
+  // deliveryCode is generated at payment time and revealed to client only when producer delivers
+  deliveryCode        String?              @unique @map("delivery_code")
+  deliveredAt         DateTime?            @map("delivered_at")
+  clientConfirmedDelivery Boolean          @default(false) @map("client_confirmed_delivery")
+  autoReleaseAt       DateTime?            @map("auto_release_at") // 48h after delivery if client doesn't confirm
+
+  // Dispute
+  disputeStatus       String?              @map("dispute_status")
+  disputeReason       String?              @map("dispute_reason")
+  disputedAt          DateTime?            @map("disputed_at")
 
   respondedAt         DateTime?            @map("responded_at")
   createdAt           DateTime             @default(now()) @map("created_at")

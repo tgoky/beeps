@@ -29,8 +29,6 @@ import {
   ArrowUpRight,
   Clock,
   DollarSign,
-  Lock,
-  Shield,
 } from "lucide-react";
 import { useTheme } from "@/providers/ThemeProvider";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -80,30 +78,25 @@ function RequestServiceModal({
   producerId,
   theme,
 }: RequestServiceModalProps) {
+  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [step, setStep] = useState(1);
   const [error, setError] = useState("");
-  const [serviceRequestId, setServiceRequestId] = useState<string | null>(null);
-  const [otpExpiresAt, setOtpExpiresAt] = useState<Date | null>(null);
   const [formData, setFormData] = useState({
     title: "",
     desc: "",
     budget: "",
     deadline: "",
-    otp: "",
   });
 
   const handleClose = () => {
     setStep(1);
     setError("");
-    setServiceRequestId(null);
-    setOtpExpiresAt(null);
-    setFormData({ title: "", desc: "", budget: "", deadline: "", otp: "" });
+    setFormData({ title: "", desc: "", budget: "", deadline: "" });
     onClose();
   };
 
-  // Step 2 → create service request + trigger OTP
-  const handleCreateRequest = async () => {
+  const handleSubmit = async () => {
     if (!formData.title.trim() || !formData.desc.trim()) {
       setError("Please fill in the project title and description.");
       return;
@@ -123,10 +116,10 @@ function RequestServiceModal({
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to create request");
-      setServiceRequestId(data.serviceRequest.id);
-      setOtpExpiresAt(data.otpExpiresAt ? new Date(data.otpExpiresAt) : null);
-      setStep(3);
+      if (!res.ok) throw new Error(data.error || "Failed to send request");
+      // Navigate to the service request detail page
+      router.push(`/service-requests/${data.serviceRequest.id}`);
+      handleClose();
     } catch (err: any) {
       setError(err.message || "Something went wrong. Please try again.");
     } finally {
@@ -134,34 +127,7 @@ function RequestServiceModal({
     }
   };
 
-  // Step 3 → verify OTP
-  const handleVerifyOtp = async () => {
-    if (!formData.otp.trim() || formData.otp.trim().length !== 6) {
-      setError("Please enter the 6-digit code from your notifications.");
-      return;
-    }
-    if (!serviceRequestId) return;
-    setError("");
-    setIsSubmitting(true);
-    try {
-      const res = await fetch(`/api/service-requests/${serviceRequestId}/verify-otp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ otpCode: formData.otp.trim() }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Invalid code");
-      handleClose();
-    } catch (err: any) {
-      setError(err.message || "Verification failed. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   if (!isOpen) return null;
-
-  const TOTAL_STEPS = 3;
 
   return (
     <div
@@ -177,11 +143,10 @@ function RequestServiceModal({
         <div className={`p-6 flex justify-between items-center border-b ${theme === "dark" ? "border-zinc-800" : "border-gray-100"}`}>
           <div>
             <h2 className={`text-lg font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-              {step === 3 ? "Verify Your Identity" : `Book: ${producerName}`}
+              Book: {producerName}
             </h2>
             <p className={`text-xs mt-0.5 ${theme === "dark" ? "text-zinc-500" : "text-gray-500"}`}>
-              Step {step} of {TOTAL_STEPS}
-              {step === 3 && " · 2FA Security Check"}
+              Step {step} of 2
             </p>
           </div>
           <button
@@ -196,7 +161,7 @@ function RequestServiceModal({
         <div className={`h-0.5 ${theme === "dark" ? "bg-zinc-800" : "bg-gray-100"}`}>
           <div
             className="h-full bg-blue-600 transition-all duration-300"
-            style={{ width: `${(step / TOTAL_STEPS) * 100}%` }}
+            style={{ width: `${(step / 2) * 100}%` }}
           />
         </div>
 
@@ -282,55 +247,7 @@ function RequestServiceModal({
               >
                 <Zap className="w-4 h-4 mt-0.5 flex-shrink-0" />
                 <p className="text-xs leading-relaxed opacity-80">
-                  Funds are held in escrow until the producer completes your project. You will be asked to verify your identity with a one-time code before the request is sent.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Step 3: 2FA OTP Verification */}
-          {step === 3 && (
-            <div className="space-y-5">
-              <div className={`p-4 rounded-xl flex gap-3 items-start border ${
-                theme === "dark"
-                  ? "bg-blue-500/10 border-blue-500/20 text-blue-300"
-                  : "bg-blue-50 border-blue-200 text-blue-800"
-              }`}>
-                <Lock className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="text-xs font-semibold mb-1">Identity Verification Required</p>
-                  <p className="text-xs leading-relaxed opacity-80">
-                    A 6-digit verification code has been sent to your notifications. Enter it below to confirm your booking request and prevent unauthorised transactions.
-                    {otpExpiresAt && (
-                      <span className="block mt-1 font-medium">
-                        Code expires at {otpExpiresAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}.
-                      </span>
-                    )}
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className={`text-xs font-semibold ${theme === "dark" ? "text-zinc-400" : "text-gray-600"}`}>
-                  6-Digit Verification Code
-                </label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={6}
-                  placeholder="000000"
-                  className={`w-full px-4 py-3 rounded-lg outline-none border transition-all text-lg font-mono tracking-[0.5em] text-center ${
-                    theme === "dark"
-                      ? "bg-zinc-800 border-zinc-700 focus:border-blue-500 text-white"
-                      : "bg-gray-50 border-gray-200 focus:border-blue-500 text-black"
-                  }`}
-                  value={formData.otp}
-                  onChange={(e) => setFormData({ ...formData, otp: e.target.value.replace(/\D/g, "").slice(0, 6) })}
-                  onKeyDown={(e) => e.key === "Enter" && handleVerifyOtp()}
-                  autoFocus
-                />
-                <p className={`text-xs ${theme === "dark" ? "text-zinc-500" : "text-gray-500"}`}>
-                  Check your notification bell for the code.
+                  Once the producer accepts, you'll pay into escrow. Funds are only released when you confirm the work has been delivered using a unique delivery code from the producer.
                 </p>
               </div>
             </div>
@@ -351,9 +268,9 @@ function RequestServiceModal({
 
         {/* Footer */}
         <div className={`p-4 border-t flex gap-3 ${theme === "dark" ? "border-zinc-800" : "border-gray-100"}`}>
-          {step > 1 && step < 3 && (
+          {step === 2 && (
             <button
-              onClick={() => { setError(""); setStep(step - 1); }}
+              onClick={() => { setError(""); setStep(1); }}
               disabled={isSubmitting}
               className={`px-6 py-2.5 rounded-lg font-semibold text-sm ${
                 theme === "dark" ? "text-zinc-400 hover:text-white" : "text-gray-500 hover:text-black"
@@ -363,13 +280,7 @@ function RequestServiceModal({
             </button>
           )}
           <button
-            onClick={
-              step === 1
-                ? () => { setError(""); setStep(2); }
-                : step === 2
-                ? handleCreateRequest
-                : handleVerifyOtp
-            }
+            onClick={step === 1 ? () => { setError(""); setStep(2); } : handleSubmit}
             disabled={isSubmitting}
             className={`flex-1 py-2.5 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-all ${
               theme === "dark"
@@ -381,13 +292,8 @@ function RequestServiceModal({
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : step === 1 ? (
               "Continue"
-            ) : step === 2 ? (
-              "Send & Verify"
             ) : (
-              <>
-                <Shield className="w-4 h-4" />
-                Confirm Booking
-              </>
+              "Send Request"
             )}
           </button>
         </div>
