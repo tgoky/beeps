@@ -838,6 +838,9 @@ enum NotificationType {
   STUDIO_VERIFICATION_SUBMITTED  // Studio owner submitted verification docs
   STUDIO_VERIFIED                // Studio has been verified by admin
   STUDIO_VERIFICATION_REJECTED   // Studio verification was rejected
+  // Service request / producer delivery notifications
+  WORK_DELIVERED                 // Producer marked service request work as delivered
+  DISPUTE_OPENED                 // Dispute raised on a service request
 }
 
 model Notification {
