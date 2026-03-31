@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { useTheme } from "@/providers/ThemeProvider";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useGetIdentity } from "@refinedev/core";
 import { useProducer } from "@/hooks/useProducers";
 
 const formatNumber = (num: number): string => {
@@ -310,7 +311,8 @@ export default function ProducerDetailPage() {
   const params = useParams();
   const producerId = params.id as string;
   const { theme } = useTheme();
-  const { permissions, user } = usePermissions();
+  const { permissions } = usePermissions();
+  const { data: user } = useGetIdentity<any>();
 
   const [activeTab, setActiveTab] = useState<"works" | "about" | "services">("works");
   const [showRequestModal, setShowRequestModal] = useState(false);
