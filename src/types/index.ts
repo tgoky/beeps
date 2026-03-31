@@ -183,6 +183,11 @@ export interface RegistrationFormData {
   // NEW: Permission flags (calculated during registration)
   canCreateStudios?: boolean;
   canBookStudios?: boolean;
+
+  // Payment/currency fields (derived from location at registration)
+  countryCode?: string;     // ISO 3166-1 alpha-2 e.g. "NG", "GH", "US"
+  currency?: string;        // ISO 4217 e.g. "NGN", "GHS", "USD"
+  paymentProvider?: string; // "STRIPE" | "PAYSTACK"
 }
 
 export interface LoginFormData {

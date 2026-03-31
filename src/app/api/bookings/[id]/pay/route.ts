@@ -1,12 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
+import { initializePayment, getPaymentConfig } from "@/lib/payment-router";
+import { holdFunds, getOrCreateWallet } from "@/lib/wallet";
 import crypto from "crypto";
 import type { ApiResponse } from "@/types";
 
-// POST /api/bookings/[id]/pay - Hold payment in escrow for a booking
-// In production, this would create a Stripe PaymentIntent with capture_method: manual
-// For now, simulates the escrow hold and generates a QR code for check-in
+/**
+ * POST /api/bookings/[id]/pay
+ * Initiate payment for a booking using Paystack (NGN/GHS) or Stripe (international).
+ *
+ * Flow:
+ *   1. Resolve payment provider from user's country
+ *   2. Initialize payment with provider → get redirect URL or client_secret
+ *   3. Store payment intent/reference on booking
+ *   4. Record escrow hold in wallet
+ *
+ * The booking status transitions to CONFIRMED only after:
+ *   - Paystack: webhook charge.success OR /api/payments/verify confirmation
+ *   - Stripe:   webhook payment_intent.amount_capturable_updated
+ *
+ * For Paystack: return { authorizationUrl, accessCode } → frontend redirects/pops up
+ * For Stripe:   return { clientSecret } → frontend uses Stripe.js to complete payment
+ */
 export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -17,7 +33,7 @@ export async function POST(
     try {
       const { id } = params;
       const body = await req.json().catch(() => ({}));
-      const { paymentMethod } = body;
+      const { callbackUrl } = body;
 
       const booking = await prisma.booking.findUnique({
         where: { id },
@@ -26,15 +42,21 @@ export async function POST(
             include: {
               owner: {
                 include: {
-                  user: {
-                    select: { id: true, username: true, fullName: true },
-                  },
+                  user: { select: { id: true, username: true, fullName: true } },
                 },
               },
             },
           },
           user: {
-            select: { id: true, username: true, fullName: true },
+            select: {
+              id: true,
+              email: true,
+              username: true,
+              fullName: true,
+              countryCode: true,
+              currency: true,
+              paymentProvider: true,
+            },
           },
         },
       });
@@ -46,7 +68,6 @@ export async function POST(
         );
       }
 
-      // Only the booking customer can pay
       if (booking.userId !== user.id) {
         return NextResponse.json<ApiResponse>(
           { success: false, error: { message: "Only the booking customer can make a payment", code: "FORBIDDEN" } },
@@ -54,12 +75,15 @@ export async function POST(
         );
       }
 
-      // Must be PENDING or CONFIRMED to pay
-      // PENDING: Artist pays first (auto-confirms)
-      // CONFIRMED: Studio owner confirmed first, artist pays after
       if (booking.status !== "PENDING" && booking.status !== "CONFIRMED") {
         return NextResponse.json<ApiResponse>(
-          { success: false, error: { message: `Cannot pay for a booking with status: ${booking.status}. Booking must be PENDING or CONFIRMED.`, code: "VALIDATION_ERROR" } },
+          {
+            success: false,
+            error: {
+              message: `Cannot pay for a booking with status: ${booking.status}. Booking must be PENDING or CONFIRMED.`,
+              code: "VALIDATION_ERROR",
+            },
+          },
           { status: 400 }
         );
       }
@@ -71,91 +95,78 @@ export async function POST(
         );
       }
 
-      // Generate a unique QR code for check-in
-      const qrCode = `BEEPS-${booking.id.slice(0, 8)}-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
-
-      // Calculate platform fee (e.g., 10%)
+      // Determine payment config based on user's country
+      const paymentConfig = getPaymentConfig(booking.user.countryCode);
       const totalAmount = parseFloat(booking.totalAmount.toString());
       const platformFeeRate = 0.10;
       const platformFee = Math.round(totalAmount * platformFeeRate * 100) / 100;
 
-      // In production: Create Stripe PaymentIntent with capture_method: "manual"
-      // const paymentIntent = await stripe.paymentIntents.create({
-      //   amount: Math.round(totalAmount * 100), // cents
-      //   currency: 'usd',
-      //   capture_method: 'manual', // Don't capture yet - hold in escrow
-      //   transfer_data: { destination: studioOwner.stripeConnectId },
-      //   application_fee_amount: Math.round(platformFee * 100),
-      //   metadata: { bookingId: booking.id },
-      // });
+      // Initialize payment with provider
+      const paymentResult = await initializePayment({
+        provider: paymentConfig.provider,
+        amount: totalAmount,
+        currency: paymentConfig.currency,
+        email: user.email,
+        bookingId: id,
+        callbackUrl:
+          callbackUrl ??
+          `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/bookings/${id}/payment-callback`,
+        metadata: {
+          bookingId: id,
+          userId: user.id,
+          studioId: booking.studioId,
+        },
+        studioSubaccountCode:
+          booking.studio.owner.paystackSubaccountCode ?? undefined,
+        platformFeePercent: 10,
+      });
 
-      // Simulate a payment intent ID
-      const simulatedPaymentIntentId = `pi_simulated_${crypto.randomBytes(12).toString("hex")}`;
-
-      // Update booking with payment hold and QR code
-      const updatedBooking = await prisma.booking.update({
+      // For Paystack: booking is updated when payment is confirmed via webhook/verify
+      // For Stripe with manual capture: booking is updated when PaymentIntent is authorized
+      // We persist the references now so we can verify later
+      await prisma.booking.update({
         where: { id },
         data: {
-          status: "CONFIRMED",
-          paymentStatus: "PAYMENT_HELD",
-          paymentIntentId: simulatedPaymentIntentId,
+          currency: paymentConfig.currency,
+          paymentProvider: paymentConfig.provider,
           platformFee,
-          qrCode,
-        },
-        include: {
-          studio: {
-            include: {
-              owner: {
-                include: {
-                  user: {
-                    select: { id: true, username: true, fullName: true, avatar: true },
-                  },
-                },
-              },
-            },
-          },
-          user: {
-            select: { id: true, username: true, fullName: true, avatar: true },
-          },
+          ...(paymentResult.paystackReference && {
+            paystackReference: paymentResult.paystackReference,
+            paystackAccessCode: paymentResult.accessCode,
+          }),
+          ...(paymentResult.paymentIntentId && {
+            paymentIntentId: paymentResult.paymentIntentId,
+          }),
         },
       });
 
-      // Create transaction record
-      await prisma.transaction.create({
-        data: {
-          userId: user.id,
-          type: "STUDIO_BOOKING",
-          status: "PENDING", // Pending until session completes and payment is captured
-          amount: totalAmount,
-          referenceId: booking.id,
-          referenceType: "booking",
-          paymentMethod: paymentMethod || "card",
-        },
+      // For Stripe with manual capture, we generate the QR code now
+      // (the booking will be confirmed after the PaymentIntent is authorized)
+      // For Paystack, QR code is generated in the verify/webhook handler
+      let qrCode: string | undefined;
+      if (paymentConfig.provider === "STRIPE") {
+        qrCode = `BEEPS-${id.slice(0, 8)}-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
+        await prisma.booking.update({
+          where: { id },
+          data: { qrCode },
+        });
+      }
+
+      const sessionDate = booking.startTime.toLocaleDateString("en-US", {
+        weekday: "short", month: "short", day: "numeric",
+      });
+      const sessionTime = booking.startTime.toLocaleTimeString("en-US", {
+        hour: "numeric", minute: "2-digit", hour12: true,
       });
 
-      const sessionDate = booking.startTime.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-      const sessionTime = booking.startTime.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
-
-      // Notify studio owner about the confirmed booking + payment
+      // Notify studio owner payment is in progress
       await prisma.notification.create({
         data: {
           userId: booking.studio.owner.userId,
           type: "PAYMENT_HELD",
-          title: "Session Payment Secured",
-          message: `${user.fullName || user.username} has paid $${totalAmount.toFixed(2)} for their session at ${booking.studio.name} on ${sessionDate} at ${sessionTime}. Payment is held in escrow until the session completes.`,
-          referenceId: booking.id,
-          referenceType: "BOOKING",
-        },
-      });
-
-      // Notify customer about successful payment hold
-      await prisma.notification.create({
-        data: {
-          userId: user.id,
-          type: "PAYMENT_HELD",
-          title: "Payment Secured",
-          message: `Your $${totalAmount.toFixed(2)} payment for ${booking.studio.name} on ${sessionDate} at ${sessionTime} is held securely. Show your QR code at the studio to check in.`,
-          referenceId: booking.id,
+          title: "Payment In Progress",
+          message: `${user.fullName || user.username} is paying for their session at ${booking.studio.name} on ${sessionDate} at ${sessionTime}.`,
+          referenceId: id,
           referenceType: "BOOKING",
         },
       });
@@ -163,21 +174,42 @@ export async function POST(
       return NextResponse.json<ApiResponse>({
         success: true,
         data: {
-          booking: updatedBooking,
+          provider: paymentConfig.provider,
+          currency: paymentConfig.currency,
+          currencySymbol: paymentConfig.currencySymbol,
+          amount: totalAmount,
+          platformFee,
+          studioOwnerPayout: totalAmount - platformFee,
+
+          // Paystack fields (redirect or inline popup)
+          authorizationUrl: paymentResult.authorizationUrl,
+          accessCode: paymentResult.accessCode,
+          paystackReference: paymentResult.paystackReference,
+
+          // Stripe fields (complete with Stripe.js on frontend)
+          clientSecret: paymentResult.clientSecret,
+          paymentIntentId: paymentResult.paymentIntentId,
+
+          // QR code (Stripe only — already set; Paystack set after webhook)
           qrCode,
-          paymentIntentId: simulatedPaymentIntentId,
-          escrow: {
-            totalAmount,
-            platformFee,
-            studioOwnerPayout: totalAmount - platformFee,
-          },
-          message: "Payment held in escrow. Show your QR code at the studio to check in.",
+
+          message:
+            paymentConfig.provider === "PAYSTACK"
+              ? "Redirect to Paystack to complete payment. After payment, your session will be confirmed automatically."
+              : "Use the clientSecret to complete payment with Stripe.js. Your session will be confirmed once payment is authorized.",
         },
-      }, { status: 201 });
+      });
     } catch (error: any) {
-      console.error("Error processing payment:", error);
+      console.error("Error initiating payment:", error);
       return NextResponse.json<ApiResponse>(
-        { success: false, error: { message: "Failed to process payment", code: "SERVER_ERROR", details: process.env.NODE_ENV === "development" ? error.message : undefined } },
+        {
+          success: false,
+          error: {
+            message: "Failed to initiate payment",
+            code: "SERVER_ERROR",
+            details: process.env.NODE_ENV === "development" ? error.message : undefined,
+          },
+        },
         { status: 500 }
       );
     }

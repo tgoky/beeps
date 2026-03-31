@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { supabaseBrowserClient } from '@/utils/supabase/client';
+import { getPaymentConfig } from '@/lib/payment-router';
 import type { RegistrationFormData, ApiResponse, UserWithProfiles } from '@/types';
 import { UserRole } from '@prisma/client';
 
@@ -75,9 +76,13 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
+    // Derive payment config from user's country
+    const countryCode = body.countryCode ?? null;
+    const paymentConfig = getPaymentConfig(countryCode);
+
     // Create user in database with transaction for atomicity
     const user = await prisma.$transaction(async (tx) => {
-      // Create base user with permissions
+      // Create base user with permissions + payment config
       const newUser = await tx.user.create({
         data: {
           email,
@@ -88,7 +93,18 @@ export async function POST(request: NextRequest) {
           primaryRole: role as UserRole,
           bio: body.bio,
           avatar: body.avatar,
+          countryCode,
+          currency: paymentConfig.currency,
+          paymentProvider: paymentConfig.provider,
         }
+      });
+
+      // Create wallet for the new user
+      await tx.wallet.create({
+        data: {
+          userId: newUser.id,
+          currency: paymentConfig.currency,
+        },
       });
 
       // Create role-specific profile with permissions

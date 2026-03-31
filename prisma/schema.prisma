@@ -35,7 +35,7 @@ model User {
   id            String           @id @default(uuid())
   email         String           @unique
   supabaseId    String           @unique @map("supabase_id")
-  
+
   // Profile Information
   username      String           @unique
   fullName      String?          @map("full_name")
@@ -50,26 +50,31 @@ model User {
   primaryRole   UserRole         @map("primary_role")
   verified      Boolean          @default(false)
   membershipTier MembershipTier  @default(FREE) @map("membership_tier")
-  
+
+  // Payment & Currency Settings
+  countryCode       String?  @map("country_code")        // ISO 3166-1 alpha-2 e.g. "NG", "GH", "US"
+  currency          String   @default("USD") @map("currency")  // ISO 4217 e.g. "NGN", "GHS", "USD"
+  paymentProvider   String   @default("STRIPE") @map("payment_provider")  // "STRIPE" | "PAYSTACK"
+
   // Stats
   followersCount Int             @default(0) @map("followers_count")
   followingCount Int             @default(0) @map("following_count")
-  
+
   // Timestamps
   createdAt     DateTime         @default(now()) @map("created_at")
   updatedAt     DateTime         @updatedAt @map("updated_at")
   lastLoginAt   DateTime?        @map("last_login_at")
-  
+
   // Relations
   artistProfile     ArtistProfile?
   producerProfile   ProducerProfile?
   studioProfile     StudioOwnerProfile?
   gearProfile       GearSalesProfile?
   lyricistProfile   LyricistProfile?
-  
+
   clubMemberships   ClubMember[]
   ownedClubs        Club[]           @relation("ClubOwner")
-  
+
   uploadedBeats     Beat[]
   offeredServices   Service[]
   bookings          Booking[]
@@ -77,10 +82,10 @@ model User {
   receivedReviews   Review[]         @relation("ReviewTarget")
 
   transactions      Transaction[]
-  
+
   followers         Follow[]         @relation("Following")
   following         Follow[]         @relation("Follower")
-  
+
   activities        Activity[]
   notifications     Notification[]
 
@@ -98,8 +103,11 @@ model User {
   createdCollaborations Collaboration[] @relation("CollaborationCreator")
   collaborationBids     CollaborationBid[]
 
-  // ✅ NEW: Beat Likes
+  // Beat Likes
   beatLikes         BeatLike[]       @relation("UserBeatLikes")
+
+  // Wallet
+  wallet            Wallet?
 
   @@map("users")
 }
@@ -155,9 +163,16 @@ model StudioOwnerProfile {
   equipment     String[]
   hourlyRate    String?  @map("hourly_rate")
 
-  // Stripe Connect for receiving payments
+  // Stripe Connect for receiving payments (international)
   stripeConnectId   String?  @map("stripe_connect_id")
   stripeOnboarded   Boolean  @default(false) @map("stripe_onboarded")
+
+  // Paystack for Nigerian/Ghanaian payments
+  paystackSubaccountCode String?  @map("paystack_subaccount_code")  // For split payments
+  paystackRecipientCode  String?  @map("paystack_recipient_code")   // For transfers/payouts
+  paystackBankCode       String?  @map("paystack_bank_code")
+  paystackAccountNumber  String?  @map("paystack_account_number")
+  paystackAccountName    String?  @map("paystack_account_name")
 
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
@@ -585,6 +600,13 @@ model Booking {
   paymentReleaseEligibleAt DateTime? @map("payment_release_eligible_at")  // 24h after session end
   bookerApprovedPayment    Boolean   @default(false) @map("booker_approved_payment")  // Artist approved payment release
 
+  // Payment provider fields
+  currency          String    @default("USD") @map("currency")         // Currency used for this booking
+  paymentProvider   String    @default("STRIPE") @map("payment_provider") // "STRIPE" | "PAYSTACK"
+  paystackReference String?   @map("paystack_reference")               // Paystack transaction reference
+  paystackAccessCode String?  @map("paystack_access_code")             // Paystack popup access code
+  refundReference   String?   @map("refund_reference")                 // Reference for the refund transaction
+
   createdAt     DateTime       @default(now()) @map("created_at")
   updatedAt     DateTime       @updatedAt @map("updated_at")
 
@@ -952,4 +974,111 @@ model CommunityLike {
   @@index([postId])
   @@index([userId])
   @@map("community_likes")
+}
+// ============================================================================
+// WALLET & PAYMENT MODELS
+// ============================================================================
+
+enum WalletTransactionType {
+  CREDIT          // Funds added (session payment received)
+  DEBIT           // Funds removed (withdrawal processed)
+  HOLD            // Funds held in escrow for pending session
+  RELEASE         // Escrow released to available balance
+  REFUND_RECEIVED // Refund credited back to payer wallet
+  REFUND_SENT     // Refund debited from studio owner wallet
+  PLATFORM_FEE    // Platform fee deduction recorded
+  WITHDRAWAL      // Withdrawal to bank account
+}
+
+enum WithdrawalStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model Wallet {
+  id               String   @id @default(uuid())
+  userId           String   @unique @map("user_id")
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Balance breakdown
+  availableBalance Decimal  @default(0) @map("available_balance") @db.Decimal(12, 2)
+  pendingBalance   Decimal  @default(0) @map("pending_balance")   @db.Decimal(12, 2)  // Funds held in escrow
+  totalEarned      Decimal  @default(0) @map("total_earned")      @db.Decimal(12, 2)  // All-time earnings
+  totalWithdrawn   Decimal  @default(0) @map("total_withdrawn")   @db.Decimal(12, 2)  // All-time withdrawals
+
+  currency         String   @default("USD") @map("currency")  // Primary currency for this wallet
+
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  transactions     WalletTransaction[]
+  withdrawals      WithdrawalRequest[]
+
+  @@map("wallets")
+}
+
+model WalletTransaction {
+  id            String               @id @default(uuid())
+  walletId      String               @map("wallet_id")
+  wallet        Wallet               @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  type          WalletTransactionType
+  amount        Decimal              @db.Decimal(12, 2)
+  currency      String               @default("USD")
+  description   String
+
+  // Balance snapshot after this transaction
+  balanceAfter  Decimal              @map("balance_after") @db.Decimal(12, 2)
+  pendingAfter  Decimal              @map("pending_after") @db.Decimal(12, 2)
+
+  // Traceability
+  referenceId   String?              @map("reference_id")
+  referenceType String?              @map("reference_type")  // "booking" | "withdrawal" | "refund"
+
+  // Payment provider details
+  paymentProvider    String?          @map("payment_provider")
+  providerReference  String?          @map("provider_reference")  // Paystack ref or Stripe charge ID
+
+  createdAt     DateTime             @default(now()) @map("created_at")
+
+  @@index([walletId])
+  @@index([referenceId])
+  @@index([createdAt])
+  @@map("wallet_transactions")
+}
+
+model WithdrawalRequest {
+  id              String           @id @default(uuid())
+  walletId        String           @map("wallet_id")
+  wallet          Wallet           @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  amount          Decimal          @db.Decimal(12, 2)
+  currency        String
+  status          WithdrawalStatus @default(PENDING)
+
+  // Bank account details
+  bankName        String?          @map("bank_name")
+  bankCode        String?          @map("bank_code")          // Paystack bank code or Stripe routing number
+  accountNumber   String?          @map("account_number")
+  accountName     String?          @map("account_name")       // Name on the bank account
+
+  // Payment provider transfer references
+  paymentProvider      String?     @map("payment_provider")
+  paystackTransferCode String?     @map("paystack_transfer_code")
+  paystackTransferId   String?     @map("paystack_transfer_id")
+  stripePayoutId       String?     @map("stripe_payout_id")
+
+  notes           String?
+  failureReason   String?          @map("failure_reason")
+
+  processedAt     DateTime?        @map("processed_at")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+
+  @@index([walletId])
+  @@index([status])
+  @@map("withdrawal_requests")
 }

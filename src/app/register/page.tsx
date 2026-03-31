@@ -222,7 +222,10 @@ export default function SignUp() {
       socialLinks: formData.socialLinks,
       // Permission flags based on role configuration
       canCreateStudios: config.canCreateStudios === true || (config.canCreateStudios === 'conditional' && formData.hasStudio),
-      canBookStudios: config.canBookStudios
+      canBookStudios: config.canBookStudios,
+
+      // Payment/currency fields derived from selected location country
+      countryCode: formData.locationCountry || undefined,
     };
 
     register(payload, {

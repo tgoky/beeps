@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
+import { processRefund } from "@/lib/payment-router";
+import { refundHold } from "@/lib/wallet";
 import type { ApiResponse } from "@/types";
 import { NotificationType } from "@prisma/client";
 
@@ -381,36 +383,67 @@ export async function DELETE(
       // SECURITY: Auto-refund if payment was already held in escrow
       const needsRefund = booking.paymentStatus === "PAYMENT_HELD" || booking.paymentStatus === "PAYMENT_CAPTURED";
       const totalAmount = parseFloat(booking.totalAmount.toString());
+      const currency = (booking as any).currency ?? "USD";
+      const paymentProvider = ((booking as any).paymentProvider ?? "STRIPE") as "STRIPE" | "PAYSTACK";
 
-      // Update booking status to CANCELLED and refund if needed
-      await prisma.booking.update({
-        where: { id },
-        data: {
-          status: "CANCELLED",
-          ...(needsRefund && { paymentStatus: "REFUNDED" }),
-        },
-      });
+      let refundReference: string | undefined;
 
-      // If payment was held, update transaction to REFUNDED
+      // Process actual payment provider refund
       if (needsRefund) {
-        await prisma.transaction.updateMany({
-          where: {
-            referenceId: booking.id,
-            referenceType: "booking",
-            userId: booking.userId,
-          },
+        try {
+          const refundResult = await processRefund({
+            provider: paymentProvider,
+            paymentIntentId: booking.paymentIntentId ?? undefined,
+            paystackReference: (booking as any).paystackReference ?? undefined,
+            amount: totalAmount,
+            currency,
+            reason: `Booking cancelled by ${isBookingOwner ? "artist" : "studio owner"}`,
+          });
+          refundReference = refundResult.refundId ?? refundResult.refundReference;
+          console.log(`[Booking Cancel] Refund processed: ${refundReference}`);
+        } catch (refundError: any) {
+          // Log but don't block — refund can be retried manually
+          console.error("[Booking Cancel] Refund failed:", refundError.message);
+        }
+      }
+
+      // Update booking status to CANCELLED and refund if needed (DB)
+      await prisma.$transaction(async (tx) => {
+        await tx.booking.update({
+          where: { id },
           data: {
-            status: "REFUNDED",
+            status: "CANCELLED",
+            ...(needsRefund && { paymentStatus: "REFUNDED" }),
+            ...(refundReference && { refundReference }),
           },
         });
 
-        // In production: Process Stripe refund
-        // if (booking.paymentIntentId) {
-        //   await stripe.refunds.create({
-        //     payment_intent: booking.paymentIntentId,
-        //   });
-        // }
-      }
+        if (needsRefund) {
+          await tx.transaction.updateMany({
+            where: { referenceId: booking.id, referenceType: "booking", userId: booking.userId },
+            data: { status: "REFUNDED" },
+          });
+
+          // Reverse the escrow hold in the studio owner's wallet (if the booking had a hold)
+          const studioOwnerUser = await tx.studioOwnerProfile.findUnique({
+            where: { id: booking.studio.ownerId },
+            select: { userId: true },
+          });
+          if (studioOwnerUser) {
+            const wallet = await tx.wallet.findUnique({ where: { userId: studioOwnerUser.userId } });
+            if (wallet && Number(wallet.pendingBalance) > 0) {
+              await refundHold(
+                tx,
+                studioOwnerUser.userId,
+                Math.min(totalAmount, Number(wallet.pendingBalance)),
+                currency,
+                booking.id,
+                `Booking cancelled — escrow hold reversed`
+              );
+            }
+          }
+        }
+      });
 
       // Notify the other party
       const recipientId = isBookingOwner ? booking.studio.owner.userId : booking.userId;
