@@ -25,17 +25,19 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Check if username is already taken
-    const existingUser = await prisma.user.findUnique({
-      where: { username }
+    // Check if email or username is already taken
+    const existingUser = await prisma.user.findFirst({
+      where: { OR: [{ username }, { email }] },
+      select: { username: true, email: true }
     });
 
     if (existingUser) {
+      const isEmailTaken = existingUser.email === email;
       return NextResponse.json<ApiResponse>({
         success: false,
         error: {
-          message: 'Username already taken',
-          code: 'USERNAME_EXISTS'
+          message: isEmailTaken ? 'Email already in use' : 'Username already taken',
+          code: isEmailTaken ? 'EMAIL_EXISTS' : 'USERNAME_EXISTS'
         }
       }, { status: 409 });
     }
@@ -142,7 +144,18 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error('Registration error:', error);
-    
+
+    // Handle Prisma unique constraint violations
+    if (error.code === 'P2002') {
+      const field = error.meta?.target?.[0];
+      const message = field === 'email' ? 'Email already in use' : 'Username already taken';
+      const code = field === 'email' ? 'EMAIL_EXISTS' : 'USERNAME_EXISTS';
+      return NextResponse.json<ApiResponse>({
+        success: false,
+        error: { message, code }
+      }, { status: 409 });
+    }
+
     return NextResponse.json<ApiResponse>({
       success: false,
       error: {
