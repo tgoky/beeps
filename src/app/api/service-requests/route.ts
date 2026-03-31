@@ -162,7 +162,7 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // Create notification for the producer
+      // Notify the producer immediately
       await prisma.notification.create({
         data: {
           userId: producerId,
@@ -175,7 +175,7 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // Create activity log entry
+      // Activity log
       await prisma.activity.create({
         data: {
           userId: user.id,
@@ -189,7 +189,7 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({
         serviceRequest,
-        message: "Service request sent successfully"
+        message: "Service request sent successfully",
       }, { status: 201 });
     } catch (error: any) {
       console.error("Error creating service request:", error);

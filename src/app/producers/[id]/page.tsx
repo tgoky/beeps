@@ -78,8 +78,10 @@ function RequestServiceModal({
   producerId,
   theme,
 }: RequestServiceModalProps) {
+  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [step, setStep] = useState(1);
+  const [error, setError] = useState("");
   const [formData, setFormData] = useState({
     title: "",
     desc: "",
@@ -87,12 +89,42 @@ function RequestServiceModal({
     deadline: "",
   });
 
+  const handleClose = () => {
+    setStep(1);
+    setError("");
+    setFormData({ title: "", desc: "", budget: "", deadline: "" });
+    onClose();
+  };
+
   const handleSubmit = async () => {
+    if (!formData.title.trim() || !formData.desc.trim()) {
+      setError("Please fill in the project title and description.");
+      return;
+    }
+    setError("");
     setIsSubmitting(true);
-    setTimeout(() => {
+    try {
+      const res = await fetch("/api/service-requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          producerId,
+          projectTitle: formData.title,
+          projectDescription: formData.desc,
+          budget: formData.budget || undefined,
+          deadline: formData.deadline || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to send request");
+      // Navigate to the service request detail page
+      router.push(`/service-requests/${data.serviceRequest.id}`);
+      handleClose();
+    } catch (err: any) {
+      setError(err.message || "Something went wrong. Please try again.");
+    } finally {
       setIsSubmitting(false);
-      onClose();
-    }, 1500);
+    }
   };
 
   if (!isOpen) return null;
@@ -100,36 +132,46 @@ function RequestServiceModal({
   return (
     <div
       className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
+      onClick={(e) => e.target === e.currentTarget && handleClose()}
     >
       <div
         className={`w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 border ${
           theme === "dark" ? "bg-zinc-900 border-zinc-800" : "bg-white border-gray-200"
         }`}
       >
-        <div className={`p-6 flex justify-between items-center ${theme === "dark" ? "border-zinc-800" : "border-gray-100"}`}>
+        {/* Header */}
+        <div className={`p-6 flex justify-between items-center border-b ${theme === "dark" ? "border-zinc-800" : "border-gray-100"}`}>
           <div>
             <h2 className={`text-lg font-bold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-              Request: {producerName}
+              Book: {producerName}
             </h2>
             <p className={`text-xs mt-0.5 ${theme === "dark" ? "text-zinc-500" : "text-gray-500"}`}>
               Step {step} of 2
             </p>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className={`p-2 rounded-full transition-colors ${theme === "dark" ? "hover:bg-zinc-800 text-zinc-400" : "hover:bg-gray-100"}`}
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
+        {/* Progress bar */}
+        <div className={`h-0.5 ${theme === "dark" ? "bg-zinc-800" : "bg-gray-100"}`}>
+          <div
+            className="h-full bg-blue-600 transition-all duration-300"
+            style={{ width: `${(step / 2) * 100}%` }}
+          />
+        </div>
+
         <div className="p-6 min-h-[280px]">
-          {step === 1 ? (
+          {/* Step 1: Project Details */}
+          {step === 1 && (
             <div className="space-y-5">
               <div className="space-y-2">
                 <label className={`text-xs font-semibold ${theme === "dark" ? "text-zinc-400" : "text-gray-600"}`}>
-                  Project Title
+                  Project Title <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -145,11 +187,11 @@ function RequestServiceModal({
               </div>
               <div className="space-y-2">
                 <label className={`text-xs font-semibold ${theme === "dark" ? "text-zinc-400" : "text-gray-600"}`}>
-                  Brief Description
+                  Brief Description <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   rows={4}
-                  placeholder="Describe your vision..."
+                  placeholder="Describe your vision, references, and requirements..."
                   className={`w-full px-4 py-2.5 rounded-lg outline-none border transition-all resize-none text-sm ${
                     theme === "dark"
                       ? "bg-zinc-800 border-zinc-700 focus:border-zinc-500 text-white"
@@ -160,7 +202,10 @@ function RequestServiceModal({
                 />
               </div>
             </div>
-          ) : (
+          )}
+
+          {/* Step 2: Budget & Deadline */}
+          {step === 2 && (
             <div className="space-y-5">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -202,17 +247,31 @@ function RequestServiceModal({
               >
                 <Zap className="w-4 h-4 mt-0.5 flex-shrink-0" />
                 <p className="text-xs leading-relaxed opacity-80">
-                  This producer usually responds within 2 hours. High-budget projects are prioritized.
+                  Once the producer accepts, you will pay into escrow. Funds are only released when you confirm the work has been delivered using a unique delivery code from the producer.
                 </p>
               </div>
             </div>
           )}
+
+          {/* Error */}
+          {error && (
+            <div className={`mt-4 p-3 rounded-lg flex gap-2 items-start text-xs ${
+              theme === "dark"
+                ? "bg-red-500/10 border border-red-500/20 text-red-400"
+                : "bg-red-50 border border-red-200 text-red-700"
+            }`}>
+              <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+              {error}
+            </div>
+          )}
         </div>
 
+        {/* Footer */}
         <div className={`p-4 border-t flex gap-3 ${theme === "dark" ? "border-zinc-800" : "border-gray-100"}`}>
           {step === 2 && (
             <button
-              onClick={() => setStep(1)}
+              onClick={() => { setError(""); setStep(1); }}
+              disabled={isSubmitting}
               className={`px-6 py-2.5 rounded-lg font-semibold text-sm ${
                 theme === "dark" ? "text-zinc-400 hover:text-white" : "text-gray-500 hover:text-black"
               }`}
@@ -221,15 +280,21 @@ function RequestServiceModal({
             </button>
           )}
           <button
-            onClick={() => (step === 1 ? setStep(2) : handleSubmit())}
+            onClick={step === 1 ? () => { setError(""); setStep(2); } : handleSubmit}
             disabled={isSubmitting}
             className={`flex-1 py-2.5 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-all ${
               theme === "dark"
-                ? "bg-white text-black hover:bg-zinc-200"
-                : "bg-black text-white hover:bg-gray-800"
+                ? "bg-white text-black hover:bg-zinc-200 disabled:opacity-50"
+                : "bg-black text-white hover:bg-gray-800 disabled:opacity-50"
             }`}
           >
-            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : step === 1 ? "Continue" : "Send Request"}
+            {isSubmitting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : step === 1 ? (
+              "Continue"
+            ) : (
+              "Send Request"
+            )}
           </button>
         </div>
       </div>
