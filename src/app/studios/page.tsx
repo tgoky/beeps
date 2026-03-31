@@ -17,11 +17,11 @@ import {
   ChevronDown,
   GripHorizontal,
   ArrowUpRight,
-  BadgeCheck,
 } from "lucide-react";
 import { useTheme } from "../../providers/ThemeProvider";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useStudios } from "@/hooks/useStudios";
+import { StudioVerificationBadge } from "@/components/StudioVerificationBadge";
 
 type Studio = {
   id: string;
@@ -708,8 +708,12 @@ export default function StudioList() {
                       }`}
                     >
                       {selectedStudio.name}
-                      {selectedStudio.verificationStatus === "VERIFIED" && (
-                        <BadgeCheck size={14} className="text-blue-500 shrink-0" />
+                      {selectedStudio.verificationStatus && (
+                        <StudioVerificationBadge
+                          status={selectedStudio.verificationStatus}
+                          size="sm"
+                          showLabel={false}
+                        />
                       )}
                     </h3>
                     <button
@@ -1057,8 +1061,12 @@ export default function StudioList() {
                       <div className="flex items-start justify-between gap-2 mb-0.5">
                         <h4 className={`text-[13px] font-semibold truncate flex items-center gap-1 ${isDark ? "text-white" : "text-black"}`}>
                           {studio.name}
-                          {studio.verificationStatus === "VERIFIED" && (
-                            <BadgeCheck size={14} className="text-blue-500 shrink-0" />
+                          {studio.verificationStatus && (
+                            <StudioVerificationBadge
+                              status={studio.verificationStatus}
+                              size="sm"
+                              showLabel={false}
+                            />
                           )}
                         </h4>
                         <div className={`flex items-baseline gap-0.5 shrink-0 ${isDark ? "text-white" : "text-black"}`}>
