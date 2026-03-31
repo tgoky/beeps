@@ -19,9 +19,11 @@ import {
   CheckCircle2,
   Camera,
   Inbox,
-  RefreshCw
+  RefreshCw,
+  AlertCircle
 } from "lucide-react";
 import { LocationSelector, type LocationData } from "@/components/LocationSelector";
+import { supabaseBrowserClient } from "@/utils/supabase/client";
 
 type UserRole = 'artist' | 'producer' | 'studio-owner' | 'instrument-sales' | 'lyricist' | 'other';
 type Genre = 'Hip Hop' | 'Trap' | 'R&B' | 'Electronic' | 'Pop' | 'Jazz' | 'Soul' | 'Rock' | 'Classical' | 'Reggae';
@@ -135,6 +137,8 @@ export default function SignUp() {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendMessage, setResendMessage] = useState('');
 
   const validateStep1 = () => {
     const newErrors: Record<string, string> = {};
@@ -238,6 +242,27 @@ export default function SignUp() {
         });
       }
     });
+  };
+
+  const handleResendVerification = async () => {
+    if (!formData.email || resendLoading) return;
+    setResendLoading(true);
+    setResendMessage('');
+    try {
+      const { error } = await supabaseBrowserClient.auth.resend({
+        type: 'signup',
+        email: formData.email,
+      });
+      if (error) {
+        setResendMessage('Failed to resend: ' + error.message);
+      } else {
+        setResendMessage('Verification email resent! Check your inbox and spam folder.');
+      }
+    } catch {
+      setResendMessage('Something went wrong. Please try again.');
+    } finally {
+      setResendLoading(false);
+    }
   };
 
   const toggleGenre = (genre: Genre) => {
@@ -368,18 +393,30 @@ export default function SignUp() {
           </div>
 
           {/* Help Text */}
-          <div className="mt-8 pt-8 border-t border-zinc-900 text-center">
+          <div className="mt-8 pt-8 border-t border-zinc-900 text-center space-y-3">
+            {resendMessage && (
+              <p className={`text-xs font-light tracking-wide ${
+                resendMessage.startsWith('Failed') || resendMessage.startsWith('Something')
+                  ? 'text-red-400'
+                  : 'text-green-400'
+              }`}>
+                {resendMessage}
+              </p>
+            )}
             <p className="text-xs font-light text-zinc-600 tracking-wide">
               Didn&apos;t receive the email?{' '}
               <button
                 type="button"
-                onClick={handleSubmit}
-                disabled={isLoading}
+                onClick={handleResendVerification}
+                disabled={resendLoading}
                 className="font-medium text-white hover:text-zinc-300 transition-colors inline-flex items-center gap-1.5"
               >
-                <RefreshCw className="w-3 h-3" strokeWidth={2} />
-                Resend verification email
+                <RefreshCw className={`w-3 h-3 ${resendLoading ? 'animate-spin' : ''}`} strokeWidth={2} />
+                {resendLoading ? 'Sending...' : 'Resend verification email'}
               </button>
+            </p>
+            <p className="text-xs font-light text-zinc-700 tracking-wide">
+              Also check your spam or junk folder.
             </p>
           </div>
         </div>
@@ -612,10 +649,10 @@ export default function SignUp() {
               <label className="block text-xs font-medium text-zinc-400 tracking-wider uppercase">
                 Location
               </label>
-              {(formData.role === 'studio-owner' || formData.role === 'instrument-sales') ? (
+              {(formData.role === 'studio-owner' || formData.role === 'instrument-sales' || (formData.role === 'producer' && formData.hasStudio)) ? (
                 <LocationSelector
                   onLocationChange={(loc: LocationData) => {
-                    const locationStr = loc.fullAddress || `${loc.city}, ${loc.state}, ${loc.country}`;
+                    const locationStr = loc.fullAddress || `${loc.streetAddress ? loc.streetAddress + ', ' : ''}${loc.city}, ${loc.state}, ${loc.country}`;
                     setFormData(prev => ({
                       ...prev,
                       location: locationStr,
@@ -630,6 +667,7 @@ export default function SignUp() {
                     }
                   }}
                   showGeolocation={true}
+                  showStreetAddress={formData.role === 'studio-owner' || (formData.role === 'producer' && formData.hasStudio)}
                   compact={true}
                 />
               ) : (

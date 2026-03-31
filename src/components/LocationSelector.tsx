@@ -222,40 +222,66 @@ export function LocationSelector({
     setIsLoadingGeo(true);
     setGeoError(null);
 
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
+    const tryGetPosition = (highAccuracy: boolean) => {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
 
-        try {
-          const response = await fetch(
-            `/api/locations/reverse-geocode?lat=${latitude}&lon=${longitude}`
-          );
-          const data = await response.json();
+          try {
+            const response = await fetch(
+              `/api/locations/reverse-geocode?lat=${latitude}&lon=${longitude}`
+            );
+            const data = await response.json();
 
-          if (data.success) {
-            setSelectedCountry(data.countryCode);
-            setSelectedState(data.stateCode);
-            setSelectedCity(data.city);
+            if (data.success) {
+              setSelectedCountry(data.countryCode);
+              setSelectedState(data.stateCode);
+              setSelectedCity(data.city);
 
-            onLocationChange({
-              ...data,
-              latitude,
-              longitude,
-            });
-          } else {
-            setGeoError("Could not determine location details");
+              onLocationChange({
+                ...data,
+                latitude,
+                longitude,
+              });
+            } else {
+              setGeoError("Could not determine location details. Please select manually.");
+            }
+          } catch {
+            setGeoError("Failed to resolve location. Please select manually.");
+          } finally {
+            setIsLoadingGeo(false);
           }
-        } catch {
-          setGeoError("Failed to reverse geocode location");
-        } finally {
+        },
+        (error) => {
+          if (highAccuracy && (error.code === error.POSITION_UNAVAILABLE || error.code === error.TIMEOUT)) {
+            // Retry without high accuracy (network-based fallback)
+            tryGetPosition(false);
+            return;
+          }
           setIsLoadingGeo(false);
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              setGeoError("Location access denied. Please allow location access or select manually.");
+              break;
+            case error.POSITION_UNAVAILABLE:
+              setGeoError("Location unavailable. Please select your location manually.");
+              break;
+            case error.TIMEOUT:
+              setGeoError("Location request timed out. Please select manually.");
+              break;
+            default:
+              setGeoError("Unable to retrieve location. Please select manually.");
+          }
+        },
+        {
+          enableHighAccuracy: highAccuracy,
+          timeout: highAccuracy ? 8000 : 15000,
+          maximumAge: 60000,
         }
-      },
-      (error) => {
-        setIsLoadingGeo(false);
-        setGeoError(error.message || "Unable to retrieve location");
-      }
-    );
+      );
+    };
+
+    tryGetPosition(true);
   };
 
   return (
@@ -397,23 +423,24 @@ export function LocationSelector({
         </div>
       )}
 
-      {/* Street Address (optional, for studios) */}
+      {/* Street Address (for studios - required) */}
       {showStreetAddress && selectedCity && (
         <div className="space-y-3">
           <label className={labelClass}>
-            Street Address
+            Street Address <span className="text-red-500 normal-case font-normal">*</span>
           </label>
           <input
             type="text"
             value={streetAddress}
             onChange={(e) => setStreetAddress(e.target.value)}
             placeholder="e.g., 42 Allen Avenue, Ikeja"
+            required
             className={inputClass}
           />
           <p className={`text-xs font-light tracking-wide ${
             isDark ? "text-zinc-500" : "text-gray-500"
           }`}>
-            Helps users find your studio. Will be shown on your listing.
+            Exact street address so clients can navigate directly to your studio door.
           </p>
         </div>
       )}
