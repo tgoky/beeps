@@ -15,7 +15,6 @@ import {
   SlidersHorizontal,
   ChevronUp,
   ChevronDown,
-  GripHorizontal,
   ArrowUpRight,
   BadgeCheck,
 } from "lucide-react";
@@ -116,17 +115,6 @@ export default function StudioList() {
   const mapDragStart = useRef({ x: 0, y: 0 });
   const [tiltMode, setTiltMode] = useState(false);
 
-  // Theme colors
-  const colors = {
-    bg: isDark ? "#000" : "#FFF",
-    card: isDark ? "#121212" : "#FFF",
-    text: isDark ? "#FFF" : "#000",
-    subtext: "#8E8E93",
-    border: isDark ? "#333" : "#E5E5EA",
-    accent: isDark ? "#FFF" : "#000",
-    input: isDark ? "#1A1A1A" : "#F2F2F7",
-  };
-
   // Get user location
   const getUserLocation = useCallback(() => {
     if (!navigator.geolocation) return;
@@ -189,7 +177,6 @@ export default function StudioList() {
   const filteredStudios = useMemo(() => {
     let data = [...studios];
 
-    // Search filter
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       data = data.filter(
@@ -200,17 +187,14 @@ export default function StudioList() {
       );
     }
 
-    // Country filter
     if (filterCountry) {
       data = data.filter((s) => s.country === filterCountry);
     }
 
-    // City filter
     if (filterCity) {
       data = data.filter((s) => s.city === filterCity);
     }
 
-    // Price filter
     if (selectedFilterIndex !== null && FILTER_OPTIONS[selectedFilterIndex]) {
       const range = FILTER_OPTIONS[selectedFilterIndex];
       data = data.filter(
@@ -218,7 +202,6 @@ export default function StudioList() {
       );
     }
 
-    // Sort
     if (sortOrder === "price_asc") {
       data.sort((a, b) => (a.hourlyRate || 0) - (b.hourlyRate || 0));
     } else if (sortOrder === "rating_desc") {
@@ -314,7 +297,6 @@ export default function StudioList() {
     return { x, y };
   };
 
-  // Auto-expand sheet on search focus
   const handleSearchFocus = () => {
     setSearchFocused(true);
     setIsExpanded(true);
@@ -326,23 +308,19 @@ export default function StudioList() {
 
   return (
     <div
-      className="relative w-full overflow-hidden"
-      style={{
-        height: "100vh",
-        backgroundColor: colors.bg,
-      }}
+      className="relative w-full overflow-hidden bg-[#030303] selection:bg-white selection:text-black"
+      style={{ height: "100vh" }}
     >
       {/* ═══════════════════════════════════════════ */}
       {/* MAP BACKGROUND LAYER                        */}
       {/* ═══════════════════════════════════════════ */}
       <div
         className="absolute inset-0 transition-all duration-500 ease-out"
-        style={{ paddingBottom: isExpanded ? "90vh" : "55vh" }}
+        // PERFECT BALANCE: 62vh leaves 38% for the map, pushing the sheet up enough to reveal cards fully
+       style={{ paddingBottom: isExpanded ? "75vh" : "42vh" }}
       >
         <div
-          className={`relative w-full h-full overflow-hidden select-none ${
-            isDark ? "bg-[#0f172a]" : "bg-[#a5c5d9]"
-          }`}
+          className={`relative w-full h-full overflow-hidden select-none bg-[#0f172a]`}
           onWheel={handleMapWheel}
           onMouseDown={handleMapMouseDown}
           onMouseMove={handleMapMouseMove}
@@ -375,44 +353,27 @@ export default function StudioList() {
               viewBox="0 0 100 100"
               preserveAspectRatio="none"
             >
-              <defs>
-                <filter
-                  id="land-shadow"
-                  x="-20%"
-                  y="-20%"
-                  width="140%"
-                  height="140%"
-                >
-                  <feDropShadow
-                    dx="0"
-                    dy="1"
-                    stdDeviation="0.5"
-                    floodOpacity="0.2"
-                  />
-                </filter>
-              </defs>
               <path
                 d="M 15 0 L 100 0 L 100 100 L 30 100 C 30 100 25 80 40 70 C 55 60 50 40 30 35 C 10 30 5 15 15 0 Z"
-                fill={isDark ? "#18181b" : "#e5e7eb"}
-                filter="url(#land-shadow)"
+                fill="#18181b"
               />
               <path
                 d="M 60 0 L 100 0 L 100 40 Q 80 50 60 30 Q 50 15 60 0 Z"
-                fill={isDark ? "#14532d" : "#c4d7a8"}
+                fill="#14532d"
                 opacity="0.8"
               />
               <path
                 d="M 60 55 L 75 55 L 75 65 L 60 65 Z"
-                fill={isDark ? "#14532d" : "#c4d7a8"}
+                fill="#14532d"
                 opacity="0.8"
               />
               <path
                 d="M 70 80 L 100 80 L 100 100 L 70 100 Z"
-                fill={isDark ? "#27272a" : "#d1d5db"}
+                fill="#27272a"
               />
               <path
                 d="M 30 100 C 30 100 25 80 40 70 C 55 60 50 40 30 35 C 10 30 5 15 15 0 L 12 0 C 2 15 8 32 28 38 C 48 44 52 62 38 72 C 22 82 28 100 28 100 Z"
-                fill={isDark ? "#451a03" : "#fde047"}
+                fill="#451a03"
                 opacity="0.6"
               />
             </svg>
@@ -423,10 +384,7 @@ export default function StudioList() {
               viewBox="0 0 100 100"
               preserveAspectRatio="none"
             >
-              <g
-                stroke={isDark ? "#3f3f46" : "#ffffff"}
-                strokeWidth="0.8"
-              >
+              <g stroke="#3f3f46" strokeWidth="0.8">
                 {[45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95].map((x) => (
                   <line key={`v-${x}`} x1={x} y1="0" x2={x} y2="100" />
                 ))}
@@ -436,33 +394,33 @@ export default function StudioList() {
               </g>
               <path
                 d="M 40 0 L 40 100 M 0 45 L 100 45"
-                stroke={isDark ? "#52525b" : "#ffffff"}
+                stroke="#52525b"
                 strokeWidth="2"
               />
               <g fill="none">
                 <path
                   d="M 20 0 Q 30 50 80 60 L 100 65"
-                  stroke={isDark ? "#000000" : "#a3a3a3"}
+                  stroke="#000000"
                   strokeWidth="3.5"
-                  strokeLinecap="round"
+                  strokeLinecap="square"
                 />
                 <path
                   d="M 60 100 L 60 40 Q 60 20 100 10"
-                  stroke={isDark ? "#000000" : "#a3a3a3"}
+                  stroke="#000000"
                   strokeWidth="3.5"
-                  strokeLinecap="round"
+                  strokeLinecap="square"
                 />
                 <path
                   d="M 20 0 Q 30 50 80 60 L 100 65"
-                  stroke={isDark ? "#ca8a04" : "#fcd34d"}
+                  stroke="#ca8a04"
                   strokeWidth="2"
-                  strokeLinecap="round"
+                  strokeLinecap="square"
                 />
                 <path
                   d="M 60 100 L 60 40 Q 60 20 100 10"
-                  stroke={isDark ? "#ca8a04" : "#fcd34d"}
+                  stroke="#ca8a04"
                   strokeWidth="2"
-                  strokeLinecap="round"
+                  strokeLinecap="square"
                 />
               </g>
             </svg>
@@ -481,17 +439,12 @@ export default function StudioList() {
               ].map((b, i) => (
                 <div
                   key={i}
-                  className={`absolute shadow-sm ${
-                    isDark
-                      ? "bg-zinc-700 shadow-black"
-                      : "bg-gray-300 shadow-gray-400"
-                  }`}
+                  className="absolute bg-zinc-800"
                   style={{
                     left: `${b.l}%`,
                     top: `${b.t}%`,
                     width: `${b.w}%`,
                     height: `${b.h}%`,
-                    borderRadius: "2px",
                   }}
                 />
               ))}
@@ -524,56 +477,32 @@ export default function StudioList() {
                 >
                   <div
                     className={`relative flex flex-col items-center justify-center transition-transform duration-200 ${
-                      isSelected || isHovered ? "scale-125" : "scale-100"
+                      isSelected || isHovered ? "scale-110" : "scale-100"
                     }`}
                   >
                     {(isSelected || isHovered) && (
-                      <div
-                        className={`absolute bottom-[140%] mb-2 px-2 py-1 text-[9px] font-black uppercase tracking-widest whitespace-nowrap rounded shadow-lg border-2 ${
-                          isDark
-                            ? "bg-zinc-900 text-white border-zinc-700"
-                            : "bg-white text-black border-black"
-                        }`}
-                      >
+                      <div className="absolute bottom-[140%] mb-1 px-2 py-1 text-[9px] font-black uppercase tracking-widest whitespace-nowrap bg-black text-white border border-white/20">
                         {studio.name}
-                        <div
-                          className={`absolute left-1/2 -bottom-1.5 -translate-x-1/2 w-2 h-2 rotate-45 border-r-2 border-b-2 ${
-                            isDark
-                              ? "bg-zinc-900 border-zinc-700"
-                              : "bg-white border-black"
-                          }`}
-                        />
+                        <div className="absolute left-1/2 -bottom-1 -translate-x-1/2 w-1.5 h-1.5 rotate-45 border-r border-b bg-black border-white/20" />
                       </div>
                     )}
                     <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center border-2 shadow-lg relative z-10 ${
+                      className={`w-8 h-8 flex items-center justify-center border relative z-10 ${
                         isSelected
-                          ? isDark
-                            ? "bg-white border-black text-black"
-                            : "bg-black border-white text-white"
-                          : isDark
-                            ? "bg-zinc-800 border-zinc-600 text-zinc-400"
-                            : "bg-white border-black text-black"
+                          ? "bg-white border-white text-black"
+                          : "bg-black border-white/20 text-white"
                       }`}
                     >
                       {isSelected ? (
-                        <Mic2 size={14} strokeWidth={3} />
+                        <Mic2 size={14} strokeWidth={2} />
                       ) : (
                         <span className="text-[9px] font-bold tracking-tighter">
                           ${studio.hourlyRate}
                         </span>
                       )}
                     </div>
-                    <div
-                      className={`w-0.5 h-2 ${isDark ? "bg-white/30" : "bg-black/40"}`}
-                    />
-                    <div
-                      className={`px-1.5 py-0.5 rounded-[3px] border shadow-sm mt-[-1px] ${
-                        isDark
-                          ? "bg-black/90 border-zinc-700 text-zinc-500"
-                          : "bg-white/90 border-gray-300 text-gray-500"
-                      }`}
-                    >
+                    <div className="w-px h-3 bg-white/40" />
+                    <div className="px-1.5 py-0.5 border mt-[-1px] bg-black/90 border-white/10 text-zinc-400">
                       <span className="text-[7px] font-black uppercase tracking-wider leading-none whitespace-nowrap block">
                         {studio.location.split(",")[0]}
                       </span>
@@ -590,88 +519,56 @@ export default function StudioList() {
                 style={{ left: "35%", top: "40%" }}
               >
                 <div className="relative">
-                  <div className="absolute inset-0 bg-blue-500/30 blur-md rounded-full animate-pulse" />
+                  <div className="absolute inset-0 bg-white/20 blur-sm animate-pulse" />
                   <Navigation
-                    size={20}
-                    className="fill-blue-500 text-white drop-shadow-md transform rotate-45"
+                    size={16}
+                    className="fill-white text-white transform rotate-45"
                   />
                 </div>
               </div>
             )}
           </div>
 
-          {/* Map HUD - Top Right */}
-          <div className="absolute top-3 right-3 z-30 flex flex-col gap-1.5">
+          {/* Map HUD - Sharp, Bordered Controls */}
+          <div className="absolute top-4 right-4 z-30 flex flex-col gap-2">
             <button
               onClick={() => setTiltMode(!tiltMode)}
-              className={`px-2 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider shadow-lg transition-all border ${
-                isDark
-                  ? "bg-zinc-900/90 border-zinc-700 text-white backdrop-blur-sm"
-                  : "bg-white/90 border-gray-200 text-black backdrop-blur-sm"
-              }`}
+              className="w-10 h-10 flex items-center justify-center text-[9px] font-bold uppercase tracking-wider bg-black border border-white/10 text-white hover:bg-white hover:text-black transition-colors"
             >
               {tiltMode ? "3D" : "2D"}
             </button>
           </div>
 
-          {/* Map HUD - Bottom Right */}
-          <div className="absolute bottom-3 right-3 flex flex-col gap-1 z-30">
-            <div
-              className={`flex flex-col rounded-lg overflow-hidden border shadow-lg backdrop-blur-sm ${
-                isDark
-                  ? "bg-zinc-900/90 border-zinc-700"
-                  : "bg-white/90 border-gray-200"
-              }`}
-            >
+          <div className="absolute bottom-4 right-4 flex flex-col gap-px z-30">
+            <div className="flex flex-col border border-white/10">
               <button
                 onClick={() => setMapZoom((z) => Math.min(z + 0.5, 4))}
-                className={`p-2 border-b transition-colors ${
-                  isDark ? "hover:bg-zinc-800 border-zinc-700" : "hover:bg-gray-100 border-gray-200"
-                }`}
+                className="w-10 h-10 flex items-center justify-center bg-black hover:bg-white text-white hover:text-black transition-colors border-b border-white/10"
               >
-                <Maximize2
-                  size={14}
-                  className={isDark ? "text-white" : "text-black"}
-                />
+                <Plus size={16} strokeWidth={1.5} />
               </button>
               <button
                 onClick={() => setMapZoom((z) => Math.max(z - 0.5, 0.8))}
-                className={`p-2 transition-colors ${
-                  isDark ? "hover:bg-zinc-800" : "hover:bg-gray-100"
-                }`}
+                className="w-10 h-10 flex items-center justify-center bg-black hover:bg-white text-white hover:text-black transition-colors"
               >
-                <Minimize2
-                  size={14}
-                  className={isDark ? "text-white" : "text-black"}
-                />
+                <Minimize2 size={16} strokeWidth={1.5} />
               </button>
             </div>
           </div>
 
-          {/* Map HUD - Top Left floating actions */}
-          <div className="absolute top-3 left-3 z-30 flex items-center gap-1.5">
-            {/* Recenter button */}
+          <div className="absolute top-4 left-4 z-30 flex flex-col gap-2">
             <button
               onClick={getUserLocation}
               disabled={isLoadingLocation}
-              className={`w-8 h-8 rounded-full flex items-center justify-center shadow-lg border backdrop-blur-sm transition-all ${
-                isDark
-                  ? "bg-zinc-900/90 border-zinc-700 text-white"
-                  : "bg-white/90 border-gray-200 text-black"
-              } ${isLoadingLocation ? "opacity-50" : ""}`}
+              className={`w-10 h-10 flex items-center justify-center bg-black border border-white/10 text-white hover:bg-white hover:text-black transition-colors ${isLoadingLocation ? "opacity-50" : ""}`}
             >
-              <Navigation size={14} />
+              <Navigation size={16} strokeWidth={1.5} />
             </button>
 
-            {/* Create Studio button */}
             {permissions.canCreateStudios && (
               <button
                 onClick={() => router.push("/studios/list-studio")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-semibold shadow-lg backdrop-blur-sm transition-all border border-transparent ${
-                  isDark
-                    ? "bg-white text-black hover:bg-zinc-200"
-                    : "bg-black text-white hover:bg-zinc-800"
-                }`}
+                className="px-4 py-2.5 text-[9px] font-black uppercase tracking-widest bg-white text-black hover:bg-zinc-300 transition-colors flex items-center gap-1.5"
               >
                 <Plus size={12} strokeWidth={2.5} />
                 List Studio
@@ -679,37 +576,22 @@ export default function StudioList() {
             )}
           </div>
 
-          {/* Loading overlay */}
           {isLoadingStudios && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm z-50">
-              <div
-                className={`animate-spin rounded-full h-8 w-8 border-3 border-t-transparent ${
-                  isDark ? "border-white" : "border-black"
-                }`}
-              />
+            <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-50">
+              <div className="animate-spin h-8 w-8 border-2 border-t-transparent border-white" />
             </div>
           )}
 
-          {/* Selected Studio Card */}
+          {/* Sharp Selected Studio Card */}
           {selectedStudio && (
-            <div className="absolute top-3 left-12 z-40 w-64 animate-in slide-in-from-left-4 duration-300">
-              <div
-                className={`relative overflow-hidden rounded-xl border shadow-2xl ${
-                  isDark
-                    ? "bg-zinc-900/95 border-zinc-700 backdrop-blur-md"
-                    : "bg-white/95 border-gray-200 backdrop-blur-md"
-                }`}
-              >
+            <div className="absolute top-4 left-16 z-40 w-56 animate-in slide-in-from-left-4 duration-300">
+              <div className="bg-black border border-white/20">
                 <div className="p-3">
                   <div className="flex justify-between items-start mb-2">
-                    <h3
-                      className={`text-sm font-bold leading-tight flex items-center gap-1 ${
-                        isDark ? "text-white" : "text-black"
-                      }`}
-                    >
+                    <h3 className="text-[10px] font-black uppercase tracking-widest text-white flex items-center gap-1.5 line-clamp-1">
                       {selectedStudio.name}
                       {selectedStudio.verificationStatus === "VERIFIED" && (
-                        <BadgeCheck size={14} className="text-blue-500 shrink-0" />
+                        <BadgeCheck size={10} className="text-white shrink-0" />
                       )}
                     </h3>
                     <button
@@ -717,59 +599,22 @@ export default function StudioList() {
                         e.stopPropagation();
                         setSelectedStudio(null);
                       }}
-                      className={`p-0.5 rounded-full transition-colors ${
-                        isDark
-                          ? "hover:bg-zinc-800 text-zinc-400"
-                          : "hover:bg-gray-100 text-gray-400"
-                      }`}
+                      className="text-zinc-500 hover:text-white transition-colors"
                     >
-                      <X size={14} />
+                      <X size={12} strokeWidth={1.5} />
                     </button>
                   </div>
 
-                  <div className="relative h-20 w-full mb-2 rounded-lg overflow-hidden">
-                    <img
-                      src={
-                        selectedStudio.imageUrl ||
-                        "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=800&q=80"
-                      }
-                      className="w-full h-full object-cover"
-                      alt={selectedStudio.name}
-                    />
-                    <div className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/70 rounded">
-                      <span className="text-[8px] text-white font-medium">
-                        {selectedStudio.location}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-1.5 text-zinc-400">
+                      <Star size={8} className="fill-current" />
+                      <span className="text-[8px] font-bold">
+                        {selectedStudio.rating ? Number(selectedStudio.rating).toFixed(1) : "NEW"}
                       </span>
                     </div>
-                  </div>
-
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-1">
-                      <Star
-                        size={12}
-                        className="text-yellow-400 fill-yellow-400"
-                      />
-                      <span
-                        className={`text-xs font-semibold ${
-                          isDark ? "text-white" : "text-black"
-                        }`}
-                      >
-                        {selectedStudio.rating ? Number(selectedStudio.rating).toFixed(1) : "New"}
-                      </span>
-                    </div>
-                    <div
-                      className={`text-sm font-bold ${
-                        isDark ? "text-white" : "text-black"
-                      }`}
-                    >
+                    <div className="text-[11px] font-black text-white">
                       ${selectedStudio.hourlyRate}
-                      <span
-                        className={`text-[9px] font-normal ${
-                          isDark ? "text-zinc-500" : "text-gray-400"
-                        }`}
-                      >
-                        /hr
-                      </span>
+                      <span className="text-[7px] font-bold text-zinc-500 uppercase tracking-widest">/hr</span>
                     </div>
                   </div>
 
@@ -778,11 +623,7 @@ export default function StudioList() {
                       e.stopPropagation();
                       router.push(`/studios/create/${selectedStudio.id}`);
                     }}
-                    className={`w-full py-2 text-xs font-bold rounded-lg transition-all active:scale-95 ${
-                      isDark
-                        ? "bg-white text-black hover:bg-zinc-200"
-                        : "bg-black text-white hover:bg-zinc-800"
-                    }`}
+                    className="w-full py-2 bg-white text-black text-[8px] font-black uppercase tracking-widest hover:bg-zinc-300 transition-colors"
                   >
                     Book Session
                   </button>
@@ -794,69 +635,42 @@ export default function StudioList() {
       </div>
 
       {/* ═══════════════════════════════════════════ */}
-      {/* BOTTOM SHEET - COMPACT VERSION              */}
+      {/* BOTTOM SHEET - BRUTALIST & BALANCED HEIGHT  */}
       {/* ═══════════════════════════════════════════ */}
       <div
         ref={sheetRef}
-        className={`absolute left-0 right-0 bottom-0 z-40 transition-all duration-500 flex flex-col border-t ${
-          isDark
-            ? "bg-zinc-950/95 border-zinc-800 backdrop-blur-xl shadow-[0_-12px_40px_rgba(0,0,0,0.8)]"
-            : "bg-white/95 border-gray-200 backdrop-blur-xl shadow-[0_-12px_40px_rgba(0,0,0,0.12)]"
-        }`}
+        className="absolute left-0 right-0 bottom-0 z-40 transition-all duration-500 flex flex-col bg-[#030303] border-t border-white/10"
         style={{
-          height: isExpanded ? "90vh" : "50vh",
-          borderTopLeftRadius: "24px",
-          borderTopRightRadius: "24px",
+          // Sheet defaults to 62vh. This is the sweet spot that pushes the cards up completely above the fold.
+          height: isExpanded ? "90vh" : "58vh",
           transitionTimingFunction: "cubic-bezier(0.32, 0.72, 0, 1)"
         }}
       >
-        {/* Drag Handle Area */}
+        {/* Sharp Drag Handle */}
         <div
-          className="w-full cursor-grab active:cursor-grabbing touch-none flex flex-col items-center pt-2 pb-3 shrink-0"
+          className="w-full cursor-grab active:cursor-grabbing touch-none flex flex-col items-center pt-2 pb-2 shrink-0"
           onPointerDown={handleSheetPointerDown}
           onPointerMove={handleSheetPointerMove}
           onPointerUp={handleSheetPointerUp}
         >
-          <div
-            className={`w-10 h-1 rounded-full mb-1 ${
-              isDark ? "bg-zinc-600" : "bg-gray-300"
-            }`}
-          />
-          
+          <div className="w-12 h-0.5 bg-white/20 mb-1" />
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className={`p-0.5 rounded-full transition-colors ${
-              isDark ? "text-zinc-500 hover:text-white hover:bg-zinc-800" : "text-gray-400 hover:text-black hover:bg-gray-100"
-            }`}
+            className="text-zinc-500 hover:text-white transition-colors"
           >
-            {isExpanded ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+            {isExpanded ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
           </button>
         </div>
 
-        {/* Sheet Content Container */}
-        <div className="flex flex-col flex-1 px-4 overflow-hidden">
+        <div className="flex flex-col flex-1 px-4 lg:px-8 overflow-hidden pt-2">
           
-          {/* Search Row - NO BORDER */}
-          <div className="relative z-50 shrink-0 mb-3">
-            <div
-              className={`flex items-center rounded-xl transition-all duration-300 ${
-                searchFocused
-                  ? isDark
-                    ? "bg-zinc-800 shadow-md"
-                    : "bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
-                  : isDark
-                    ? "bg-zinc-900/80 hover:bg-zinc-800 shadow-sm"
-                    : "bg-gray-100/80 hover:bg-gray-100 shadow-sm"
-              }`}
-            >
-              <Search
-                size={16}
-                className="ml-3 shrink-0"
-                style={{ color: isDark ? "#A1A1AA" : "#9CA3AF" }}
-              />
+          {/* Brutalist Search Row - NO BORDERS WHATSOEVER */}
+          <div className="relative z-50 shrink-0 mb-4">
+            <div className="flex items-center bg-[#111111] rounded-sm">
+              <Search size={14} className="ml-4 shrink-0 text-zinc-500" />
               <input
                 type="text"
-                placeholder="Where are you recording?"
+                placeholder="WHERE ARE YOU RECORDING?"
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -864,44 +678,33 @@ export default function StudioList() {
                 }}
                 onFocus={handleSearchFocus}
                 onBlur={handleSearchBlur}
-                className={`flex-1 px-2 py-2.5 text-[13px] font-medium bg-transparent outline-none placeholder:font-normal ${
-                  isDark ? "text-white placeholder:text-zinc-500" : "text-black placeholder:text-gray-500"
-                }`}
+                className="flex-1 px-3 py-3.5 text-[10px] font-bold uppercase tracking-widest bg-transparent outline-none ring-0 border-none text-white placeholder:text-zinc-600 focus:ring-0 focus:outline-none"
               />
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className={`pr-3 pl-2 py-2.5 flex items-center justify-center transition-colors ${
-                  showFilters 
-                    ? (isDark ? "text-white" : "text-black") 
-                    : (isDark ? "text-zinc-500" : "text-gray-400")
+                className={`pr-4 pl-3 py-3.5 flex items-center justify-center transition-colors bg-transparent border-none outline-none ${
+                  showFilters ? "text-white" : "text-zinc-500 hover:text-white"
                 }`}
               >
-                <SlidersHorizontal size={16} />
+                <SlidersHorizontal size={14} />
               </button>
             </div>
 
-            {/* Search Suggestions Dropdown */}
             {searchSuggestions.length > 0 && (
-              <div
-                className={`absolute top-full left-0 right-0 mt-1 rounded-xl overflow-hidden z-50 ${
-                  isDark ? "bg-zinc-800 shadow-2xl" : "bg-white border border-gray-100 shadow-xl"
-                }`}
-              >
+              <div className="absolute top-full left-0 right-0 mt-1 bg-[#111111] z-50 rounded-sm">
                 {searchSuggestions.map((suggestion, index) => (
                   <button
                     key={index}
-                    className={`flex items-center gap-2 w-full px-3 py-2.5 text-left transition-colors ${
-                      isDark ? "hover:bg-zinc-700" : "hover:bg-gray-50"
-                    } ${index > 0 ? (isDark ? "border-t border-zinc-700/50" : "border-t border-gray-100") : ""}`}
+                    className={`flex items-center gap-3 w-full px-4 py-3 text-left hover:bg-white/5 transition-colors ${
+                      index > 0 ? "border-t border-white/5" : ""
+                    }`}
                     onClick={() => {
                       setSearchQuery(suggestion);
                       setSearchSuggestions([]);
                     }}
                   >
-                    <div className={`p-1.5 rounded-full ${isDark ? "bg-zinc-900" : "bg-gray-100"}`}>
-                      <MapPin size={12} className={isDark ? "text-zinc-400" : "text-gray-500"} />
-                    </div>
-                    <span className={`text-[13px] font-medium ${isDark ? "text-zinc-200" : "text-gray-800"}`}>
+                    <MapPin size={12} className="text-zinc-500" />
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-300">
                       {suggestion}
                     </span>
                   </button>
@@ -911,84 +714,73 @@ export default function StudioList() {
           </div>
 
           {/* Filter Area */}
-          <div className={`transition-all duration-300 overflow-hidden shrink-0 ${showFilters ? "max-h-64 opacity-100 mb-3" : "max-h-0 opacity-0 mb-0"}`}>
-            {/* Location Filters */}
-            <p className={`text-[10px] font-bold uppercase tracking-wider mb-2 ${isDark ? "text-zinc-500" : "text-gray-500"}`}>
-              Location
-            </p>
-            <div className="flex gap-2 mb-3">
-              <select
-                value={filterCountry}
-                onChange={(e) => {
-                  setFilterCountry(e.target.value);
-                  setFilterCity("");
-                }}
-                className={`flex-1 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all border ${
-                  isDark
-                    ? "bg-zinc-900 border-zinc-800 text-zinc-300"
-                    : "bg-gray-50 border-gray-200 text-gray-700"
-                }`}
-              >
-                <option value="">All Countries</option>
-                {availableCountries.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-              {availableCities.length > 0 && (
+          <div className={`transition-all duration-300 overflow-hidden shrink-0 ${showFilters ? "max-h-64 opacity-100 mb-4 border-b border-white/5 pb-4" : "max-h-0 opacity-0 mb-0"}`}>
+            
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div>
+                <span className="block text-[8px] font-black uppercase tracking-widest text-zinc-600 mb-1.5">Country</span>
                 <select
-                  value={filterCity}
-                  onChange={(e) => setFilterCity(e.target.value)}
-                  className={`flex-1 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all border ${
-                    isDark
-                      ? "bg-zinc-900 border-zinc-800 text-zinc-300"
-                      : "bg-gray-50 border-gray-200 text-gray-700"
-                  }`}
+                  value={filterCountry}
+                  onChange={(e) => {
+                    setFilterCountry(e.target.value);
+                    setFilterCity("");
+                  }}
+                  className="w-full px-3 py-2 bg-black border border-white/10 text-[9px] font-bold uppercase tracking-widest text-white outline-none focus:border-white/30 cursor-pointer"
                 >
-                  <option value="">All Cities</option>
-                  {availableCities.map((c) => (
+                  <option value="">ALL COUNTRIES</option>
+                  {availableCountries.map((c) => (
                     <option key={c} value={c}>{c}</option>
                   ))}
                 </select>
+              </div>
+
+              {availableCities.length > 0 && (
+                <div>
+                  <span className="block text-[8px] font-black uppercase tracking-widest text-zinc-600 mb-1.5">City</span>
+                  <select
+                    value={filterCity}
+                    onChange={(e) => setFilterCity(e.target.value)}
+                    className="w-full px-3 py-2 bg-black border border-white/10 text-[9px] font-bold uppercase tracking-widest text-white outline-none focus:border-white/30 cursor-pointer"
+                  >
+                    <option value="">ALL CITIES</option>
+                    {availableCities.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
               )}
             </div>
 
-            {/* Price Range */}
-            <p className={`text-[10px] font-bold uppercase tracking-wider mb-2 ${isDark ? "text-zinc-500" : "text-gray-500"}`}>
-              Price Range
-            </p>
-            <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4">
+            <span className="block text-[8px] font-black uppercase tracking-widest text-zinc-600 mb-2">Price</span>
+            <div className="flex flex-wrap gap-2 mb-4">
               {FILTER_OPTIONS.map((option, i) => (
                 <button
                   key={i}
                   onClick={() => setSelectedFilterIndex(selectedFilterIndex === i ? null : i)}
-                  className={`px-3 py-1.5 rounded-full text-[11px] font-medium whitespace-nowrap transition-all ${
+                  className={`px-3 py-1.5 text-[8px] font-black uppercase tracking-widest transition-all border ${
                     selectedFilterIndex === i
-                      ? isDark
-                        ? "bg-white text-black"
-                        : "bg-black text-white"
-                      : isDark
-                        ? "bg-transparent text-zinc-300 hover:bg-zinc-800"
-                        : "bg-transparent text-gray-700 hover:bg-gray-100"
+                      ? "bg-white text-black border-white"
+                      : "bg-black text-zinc-500 border-white/10 hover:text-white hover:border-white/40"
                   }`}
                 >
-                  {option.text}
+                  {option.label}
                 </button>
               ))}
             </div>
 
-            <div className="flex gap-4 mt-3 pl-1">
+            <div className="flex gap-4">
               <button
                 onClick={() => setSortOrder(sortOrder === "price_asc" ? null : "price_asc")}
-                className={`text-[11px] font-semibold transition-colors ${
-                  sortOrder === "price_asc" ? (isDark ? "text-white" : "text-black") : (isDark ? "text-zinc-500 hover:text-zinc-300" : "text-gray-500 hover:text-gray-700")
+                className={`text-[9px] font-bold uppercase tracking-widest transition-colors pb-1 border-b ${
+                  sortOrder === "price_asc" ? "text-white border-white" : "text-zinc-600 border-transparent hover:text-zinc-400"
                 }`}
               >
                 Lowest Price
               </button>
               <button
                 onClick={() => setSortOrder(sortOrder === "rating_desc" ? null : "rating_desc")}
-                className={`text-[11px] font-semibold transition-colors ${
-                  sortOrder === "rating_desc" ? (isDark ? "text-white" : "text-black") : (isDark ? "text-zinc-500 hover:text-zinc-300" : "text-gray-500 hover:text-gray-700")
+                className={`text-[9px] font-bold uppercase tracking-widest transition-colors pb-1 border-b ${
+                  sortOrder === "rating_desc" ? "text-white border-white" : "text-zinc-600 border-transparent hover:text-zinc-400"
                 }`}
               >
                 Highest Rated
@@ -1002,8 +794,8 @@ export default function StudioList() {
                     setSortOrder("nearest");
                   }
                 }}
-                className={`text-[11px] font-semibold transition-colors ${
-                  sortOrder === "nearest" ? (isDark ? "text-white" : "text-black") : (isDark ? "text-zinc-500 hover:text-zinc-300" : "text-gray-500 hover:text-gray-700")
+                className={`text-[9px] font-bold uppercase tracking-widest transition-colors pb-1 border-b ${
+                  sortOrder === "nearest" ? "text-white border-white" : "text-zinc-600 border-transparent hover:text-zinc-400"
                 }`}
               >
                 Nearest
@@ -1012,117 +804,91 @@ export default function StudioList() {
           </div>
 
           {/* Results Header */}
-          <div className="flex items-center justify-between mt-1 mb-3 shrink-0">
-            <h3 className={`text-[14px] font-bold ${isDark ? "text-white" : "text-black"}`}>
-              {filteredStudios.length} {filteredStudios.length === 1 ? "Studio" : "Studios"}
+          <div className="flex items-center justify-between mb-4 shrink-0">
+            <h3 className="text-xs font-black uppercase tracking-widest text-zinc-500">
+              {filteredStudios.length} {filteredStudios.length === 1 ? "RESULT" : "RESULTS"}
             </h3>
             {permissions.canBookStudios && !permissions.canCreateStudios && (
-              <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full ${isDark ? "bg-zinc-900 text-zinc-400" : "bg-gray-100 text-gray-500"}`}>
-                <Mic2 size={12} />
-                <span className="text-[9px] font-medium">Book ready</span>
+              <div className="flex items-center gap-1.5 px-2 py-1 border border-white/10 text-zinc-400">
+                <Mic2 size={10} />
+                <span className="text-[8px] font-black uppercase tracking-widest">BOOK READY</span>
               </div>
             )}
           </div>
 
-          {/* Studio Owner — list your studio prompt */}
-          {permissions.canCreateStudios && (
-            <div
-              onClick={() => router.push("/studios/list-studio")}
-              className={`cursor-pointer mb-4 p-3.5 rounded-xl border transition-all active:scale-[0.98] ${
-                isDark
-                  ? "bg-zinc-900/60 border-zinc-800 hover:border-zinc-600"
-                  : "bg-gray-50 border-gray-200 hover:border-gray-400"
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className={`p-1.5 rounded-lg ${isDark ? "bg-white/10" : "bg-black/5"}`}>
-                    <Plus size={14} className={isDark ? "text-white" : "text-black"} strokeWidth={2.5} />
-                  </div>
-                  <div>
-                    <p className={`text-[12px] font-semibold tracking-wide ${isDark ? "text-white" : "text-black"}`}>
-                      List your studio
-                    </p>
-                    <p className={`text-[10px] font-light ${isDark ? "text-zinc-500" : "text-gray-500"}`}>
-                      Add studio info, address &amp; verification docs
-                    </p>
-                  </div>
-                </div>
-                <ArrowUpRight size={14} className={isDark ? "text-zinc-500" : "text-gray-400"} strokeWidth={2} />
-              </div>
-            </div>
-          )}
-
-          {/* Studio List - COMPACT */}
-          <div className="flex-1 overflow-y-auto -mx-4 px-4 pb-6 scrollbar-hide">
+          {/* ═══════════════════════════════════════════ */}
+          {/* COMPACT SQUARE GRID FEED                    */}
+          {/* ═══════════════════════════════════════════ */}
+          <div className="flex-1 overflow-y-auto pb-6 scrollbar-hide">
             {filteredStudios.length > 0 ? (
-              filteredStudios.map((studio, index) => {
-                const distance =
-                  userLocation && studio.latitude && studio.longitude
-                    ? calculateDistance(userLocation.lat, userLocation.lon, studio.latitude, studio.longitude)
-                    : null;
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+                {filteredStudios.map((studio) => {
+                  const distance =
+                    userLocation && studio.latitude && studio.longitude
+                      ? calculateDistance(userLocation.lat, userLocation.lon, studio.latitude, studio.longitude)
+                      : null;
 
-                return (
-                  <div
-                    key={studio.id}
-                    className={`group flex items-center gap-3 py-3 cursor-pointer transition-all duration-200 ${
-                      index > 0 ? (isDark ? "border-t border-zinc-800/50" : "border-t border-gray-100") : ""
-                    }`}
-                    onClick={() => router.push(`/studios/create/${studio.id}`)}
-                    onMouseEnter={() => setHoveredStudio(studio.id)}
-                    onMouseLeave={() => setHoveredStudio(null)}
-                  >
-                    {/* Thumbnail */}
-                    <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-zinc-800 relative shadow-sm">
-                      <img
-                        src={studio.imageUrl || "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=400&q=80"}
-                        alt={studio.name}
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                      />
-                    </div>
-
-                    {/* Info */}
-                    <div className="flex-1 min-w-0 py-0.5">
-                      <div className="flex items-start justify-between gap-2 mb-0.5">
-                        <h4 className={`text-[13px] font-semibold truncate flex items-center gap-1 ${isDark ? "text-white" : "text-black"}`}>
-                          {studio.name}
-                          {studio.verificationStatus === "VERIFIED" && (
-                            <BadgeCheck size={14} className="text-blue-500 shrink-0" />
-                          )}
-                        </h4>
-                        <div className={`flex items-baseline gap-0.5 shrink-0 ${isDark ? "text-white" : "text-black"}`}>
-                          <span className="text-[12px] font-bold">${studio.hourlyRate}</span>
-                          <span className={`text-[9px] ${isDark ? "text-zinc-500" : "text-gray-500"}`}>/hr</span>
+                  return (
+                    <div
+                      key={studio.id}
+                      className="group flex flex-col bg-black border border-white/10 hover:border-white/40 transition-colors duration-300 cursor-pointer"
+                      onClick={() => router.push(`/studios/create/${studio.id}`)}
+                      onMouseEnter={() => setHoveredStudio(studio.id)}
+                      onMouseLeave={() => setHoveredStudio(null)}
+                    >
+                      {/* SQUARE IMAGE CONTAINER */}
+                      <div className="relative w-full aspect-square overflow-hidden bg-[#0A0A0A]">
+                        <img
+                          src={studio.imageUrl || "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=400&q=80"}
+                          alt={studio.name}
+                          className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        />
+                        {studio.verificationStatus === "VERIFIED" && (
+                          <div className="absolute top-2 right-2 bg-black/90 p-1 border border-white/10">
+                            <BadgeCheck size={10} className="text-white" />
+                          </div>
+                        )}
+                        <div className="absolute bottom-2 left-2 bg-black/90 px-1.5 py-0.5 border border-white/10">
+                           <span className="text-[7px] font-black tracking-widest uppercase text-white flex items-center gap-1">
+                             <Star size={7} className="fill-white" />
+                             {studio.rating ? Number(studio.rating).toFixed(1) : "NEW"}
+                           </span>
                         </div>
                       </div>
-                      
-                      <p className={`text-[11px] truncate mb-1 ${isDark ? "text-zinc-400" : "text-gray-500"}`}>
-                        {studio.location.split(",")[0]}
-                        {distance !== null && <span> • {Math.round(distance)} mi</span>}
-                      </p>
-                      
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-1">
-                          <Star size={10} className="text-black dark:text-white fill-black dark:fill-white" />
-                          <span className={`text-[11px] font-semibold ${isDark ? "text-white" : "text-black"}`}>
-                            {studio.rating ? Number(studio.rating).toFixed(1) : "New"}
+
+                      {/* COMPACT META DATA */}
+                      <div className="p-3 flex flex-col gap-1.5 flex-grow bg-[#050505]">
+                        <div className="flex justify-between items-start">
+                          <h4 className="text-[9px] font-bold uppercase tracking-widest text-white line-clamp-1 pr-2">
+                            {studio.name}
+                          </h4>
+                          <span className="text-[9px] font-black text-white shrink-0">
+                            ${studio.hourlyRate}
                           </span>
                         </div>
+                        
+                        <p className="text-[8px] font-black uppercase tracking-widest text-zinc-500 truncate">
+                          {studio.location.split(",")[0]}
+                        </p>
+
+                        {distance !== null && (
+                          <p className="text-[7px] font-bold uppercase tracking-widest text-zinc-600 mt-auto pt-1.5 border-t border-white/5">
+                            {Math.round(distance)} MI AWAY
+                          </p>
+                        )}
                       </div>
                     </div>
-                  </div>
-                );
-              })
+                  );
+                })}
+              </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <div className={`p-3 rounded-full mb-2 ${isDark ? "bg-zinc-900 text-zinc-600" : "bg-gray-100 text-gray-400"}`}>
-                  <Search size={20} />
-                </div>
-                <h4 className={`text-[13px] font-semibold mb-0.5 ${isDark ? "text-zinc-300" : "text-gray-700"}`}>
-                  No studios found
+              <div className="flex flex-col items-center justify-center py-20 border border-white/5 border-dashed">
+                <Search size={20} className="text-zinc-700 mb-3" strokeWidth={1.5} />
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">
+                  NO STUDIOS FOUND
                 </h4>
-                <p className={`text-[11px] ${isDark ? "text-zinc-500" : "text-gray-500"}`}>
-                  {searchQuery ? `Try adjusting "${searchQuery}"` : "Try adjusting your filters"}
+                <p className="text-[8px] font-bold uppercase tracking-widest text-zinc-600">
+                  {searchQuery ? `TRY ADJUSTING "${searchQuery}"` : "ADJUST YOUR FILTERS"}
                 </p>
               </div>
             )}
@@ -1130,18 +896,7 @@ export default function StudioList() {
         </div>
       </div>
 
-      {/* Styles */}
       <style jsx>{`
-        @keyframes fadeSlideIn {
-          from {
-            opacity: 0;
-            transform: translateY(8px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
         .scrollbar-hide::-webkit-scrollbar {
           display: none;
         }
