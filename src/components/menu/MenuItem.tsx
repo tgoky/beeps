@@ -1,10 +1,17 @@
-// MenuItem.tsx
 "use client";
 
 import Link from "next/link";
-import { useTheme } from "../../providers/ThemeProvider";
-import { IMenuItem } from "./NavigationMenu";
 import { MenuIcon } from "./MenuIcon";
+
+export interface IMenuItem {
+  key: string;
+  name: string;
+  label?: string;
+  route?: string;
+  icon?: React.ReactNode;
+  children?: IMenuItem[];
+  checked?: boolean;
+}
 
 interface MenuItemProps {
   item: IMenuItem;
@@ -21,30 +28,36 @@ export const MenuItem = ({
   pathname,
   nested = false,
 }: MenuItemProps) => {
-  const { theme } = useTheme();
+  
+  const isSelected = selected || pathname === item.route;
+  const displayLabel = item.label || item.name;
 
   return (
     <Link
       href={item.route ?? "#"}
       className={`
-        flex items-center gap-3 py-2.5 text-sm no-underline transition-all duration-200 rounded-lg
-        ${nested ? "px-5" : "px-3"}
-        ${selected || pathname === item.route
-          ? theme === "dark"
-            ? "bg-zinc-900 text-zinc-200 border-l-2 border-emerald-500"
-            : "bg-zinc-100 text-zinc-900 border-l-2 border-emerald-500"
-          : theme === "dark"
-            ? "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900"
-            : "text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100"
+        group/menu-item flex items-center gap-3 py-3 px-3 transition-all duration-300 no-underline border
+        ${nested ? "ml-2" : ""} 
+        ${isSelected
+            ? "bg-white/5 border-white/20 text-white"
+            : "bg-transparent border-transparent text-zinc-500 hover:text-white hover:border-white/10"
         }
       `}
       onClick={(e) => e.stopPropagation()}
-      style={{ fontFamily: "'Manrope', sans-serif" }}
     >
-      <span className={`${selected ? "text-emerald-500" : ""}`}>
+      <span className={`flex-shrink-0 transition-colors duration-300 ${isSelected ? "text-white" : "text-zinc-600 group-hover/menu-item:text-white"}`}>
         <MenuIcon name={item.name} />
       </span>
-      {!collapsed && <span className="font-medium text-xs tracking-wide">{item.label}</span>}
+
+      {!collapsed && (
+        <span className={`text-[10px] font-black tracking-widest uppercase transition-colors duration-300 truncate ${isSelected ? "text-white" : "text-zinc-500 group-hover/menu-item:text-zinc-300"}`}>
+          {displayLabel}
+        </span>
+      )}
+
+      {collapsed && isSelected && (
+        <div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-white" />
+      )}
     </Link>
   );
 };

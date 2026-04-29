@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import {
   Search,
   MapPin,
@@ -21,6 +21,8 @@ import {
 import { useTheme } from "../../providers/ThemeProvider";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useStudios } from "@/hooks/useStudios";
+
+import StudioBookingDrawer from "../../components/StudioBookingDrawer";
 
 type Studio = {
   id: string;
@@ -73,11 +75,32 @@ type SortOrder = "price_asc" | "rating_desc" | "nearest" | null;
 
 export default function StudioList() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
   const { theme } = useTheme();
   const { permissions } = usePermissions();
   const isDark = theme === "dark";
 
   const { data: studios = [], isLoading: isLoadingStudios } = useStudios();
+
+  // URL State for Drawer
+  const drawerStudioId = searchParams.get("id");
+
+  // Drawer Handlers (Shallow Routing)
+  const openDrawer = useCallback(
+    (id: string) => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("id", id);
+      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    },
+    [pathname, router, searchParams]
+  );
+
+  const closeDrawer = useCallback(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("id");
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+  }, [pathname, router, searchParams]);
 
   // Location state
   const [userLocation, setUserLocation] = useState<{
@@ -208,18 +231,38 @@ export default function StudioList() {
       data.sort((a, b) => (b.rating || 0) - (a.rating || 0));
     } else if (sortOrder === "nearest" && userLocation) {
       data.sort((a, b) => {
-        const distA = a.latitude && a.longitude
-          ? calculateDistance(userLocation.lat, userLocation.lon, a.latitude, a.longitude)
-          : Infinity;
-        const distB = b.latitude && b.longitude
-          ? calculateDistance(userLocation.lat, userLocation.lon, b.latitude, b.longitude)
-          : Infinity;
+        const distA =
+          a.latitude && a.longitude
+            ? calculateDistance(
+                userLocation.lat,
+                userLocation.lon,
+                a.latitude,
+                a.longitude
+              )
+            : Infinity;
+        const distB =
+          b.latitude && b.longitude
+            ? calculateDistance(
+                userLocation.lat,
+                userLocation.lon,
+                b.latitude,
+                b.longitude
+              )
+            : Infinity;
         return distA - distB;
       });
     }
 
     return data;
-  }, [studios, searchQuery, selectedFilterIndex, sortOrder, userLocation, filterCountry, filterCity]);
+  }, [
+    studios,
+    searchQuery,
+    selectedFilterIndex,
+    sortOrder,
+    userLocation,
+    filterCountry,
+    filterCity,
+  ]);
 
   // Bottom sheet drag handlers
   const handleSheetPointerDown = useCallback(
@@ -317,7 +360,7 @@ export default function StudioList() {
       <div
         className="absolute inset-0 transition-all duration-500 ease-out"
         // PERFECT BALANCE: 62vh leaves 38% for the map, pushing the sheet up enough to reveal cards fully
-       style={{ paddingBottom: isExpanded ? "75vh" : "42vh" }}
+        style={{ paddingBottom: isExpanded ? "75vh" : "42vh" }}
       >
         <div
           className={`relative w-full h-full overflow-hidden select-none bg-[#0f172a]`}
@@ -331,7 +374,9 @@ export default function StudioList() {
           <div
             className="absolute inset-0 w-full h-full origin-center will-change-transform"
             style={{
-              transform: `scale(${mapZoom}) translate(${mapOffset.x / mapZoom}px, ${mapOffset.y / mapZoom}px) ${
+              transform: `scale(${mapZoom}) translate(${
+                mapOffset.x / mapZoom
+              }px, ${mapOffset.y / mapZoom}px) ${
                 tiltMode ? "perspective(1000px) rotateX(35deg)" : ""
               }`,
               transition: isMapDragging
@@ -560,7 +605,9 @@ export default function StudioList() {
             <button
               onClick={getUserLocation}
               disabled={isLoadingLocation}
-              className={`w-10 h-10 flex items-center justify-center bg-black border border-white/10 text-white hover:bg-white hover:text-black transition-colors ${isLoadingLocation ? "opacity-50" : ""}`}
+              className={`w-10 h-10 flex items-center justify-center bg-black border border-white/10 text-white hover:bg-white hover:text-black transition-colors ${
+                isLoadingLocation ? "opacity-50" : ""
+              }`}
             >
               <Navigation size={16} strokeWidth={1.5} />
             </button>
@@ -609,19 +656,23 @@ export default function StudioList() {
                     <div className="flex items-center gap-1.5 text-zinc-400">
                       <Star size={8} className="fill-current" />
                       <span className="text-[8px] font-bold">
-                        {selectedStudio.rating ? Number(selectedStudio.rating).toFixed(1) : "NEW"}
+                        {selectedStudio.rating
+                          ? Number(selectedStudio.rating).toFixed(1)
+                          : "NEW"}
                       </span>
                     </div>
                     <div className="text-[11px] font-black text-white">
                       ${selectedStudio.hourlyRate}
-                      <span className="text-[7px] font-bold text-zinc-500 uppercase tracking-widest">/hr</span>
+                      <span className="text-[7px] font-bold text-zinc-500 uppercase tracking-widest">
+                        /hr
+                      </span>
                     </div>
                   </div>
 
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      router.push(`/studios/create/${selectedStudio.id}`);
+                      openDrawer(selectedStudio.id);
                     }}
                     className="w-full py-2 bg-white text-black text-[8px] font-black uppercase tracking-widest hover:bg-zinc-300 transition-colors"
                   >
@@ -643,7 +694,7 @@ export default function StudioList() {
         style={{
           // Sheet defaults to 62vh. This is the sweet spot that pushes the cards up completely above the fold.
           height: isExpanded ? "90vh" : "58vh",
-          transitionTimingFunction: "cubic-bezier(0.32, 0.72, 0, 1)"
+          transitionTimingFunction: "cubic-bezier(0.32, 0.72, 0, 1)",
         }}
       >
         {/* Sharp Drag Handle */}
@@ -653,17 +704,23 @@ export default function StudioList() {
           onPointerMove={handleSheetPointerMove}
           onPointerUp={handleSheetPointerUp}
         >
-          <div className="w-12 h-0.5 bg-white/20 mb-1" />
+          {/* Faint indicator line above the button */}
+          <div className="w-12 h-0.5 bg-white/10 mb-2" />
+
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="text-zinc-500 hover:text-white transition-colors"
+            // 👇 Clean black background, wider rectangle, NO border, and bright white text
+            className="bg-black border-none outline-none px-7 py-1 flex items-center justify-center text-white/90 hover:text-white transition-colors"
           >
-            {isExpanded ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+            {isExpanded ? (
+              // Icon color inherits from button 'text-white/90'
+              <ChevronDown size={14} strokeWidth={1.5} />
+            ) : (
+              <ChevronUp size={14} strokeWidth={1.5} />
+            )}
           </button>
         </div>
-
         <div className="flex flex-col flex-1 px-4 lg:px-8 overflow-hidden pt-2">
-          
           {/* Brutalist Search Row - NO BORDERS WHATSOEVER */}
           <div className="relative z-50 shrink-0 mb-4">
             <div className="flex items-center bg-[#111111] rounded-sm">
@@ -714,11 +771,18 @@ export default function StudioList() {
           </div>
 
           {/* Filter Area */}
-          <div className={`transition-all duration-300 overflow-hidden shrink-0 ${showFilters ? "max-h-64 opacity-100 mb-4 border-b border-white/5 pb-4" : "max-h-0 opacity-0 mb-0"}`}>
-            
+          <div
+            className={`transition-all duration-300 overflow-hidden shrink-0 ${
+              showFilters
+                ? "max-h-64 opacity-100 mb-4 border-b border-white/5 pb-4"
+                : "max-h-0 opacity-0 mb-0"
+            }`}
+          >
             <div className="grid grid-cols-2 gap-3 mb-4">
               <div>
-                <span className="block text-[8px] font-black uppercase tracking-widest text-zinc-600 mb-1.5">Country</span>
+                <span className="block text-[8px] font-black uppercase tracking-widest text-zinc-600 mb-1.5">
+                  Country
+                </span>
                 <select
                   value={filterCountry}
                   onChange={(e) => {
@@ -729,14 +793,18 @@ export default function StudioList() {
                 >
                   <option value="">ALL COUNTRIES</option>
                   {availableCountries.map((c) => (
-                    <option key={c} value={c}>{c}</option>
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
                   ))}
                 </select>
               </div>
 
               {availableCities.length > 0 && (
                 <div>
-                  <span className="block text-[8px] font-black uppercase tracking-widest text-zinc-600 mb-1.5">City</span>
+                  <span className="block text-[8px] font-black uppercase tracking-widest text-zinc-600 mb-1.5">
+                    City
+                  </span>
                   <select
                     value={filterCity}
                     onChange={(e) => setFilterCity(e.target.value)}
@@ -744,19 +812,27 @@ export default function StudioList() {
                   >
                     <option value="">ALL CITIES</option>
                     {availableCities.map((c) => (
-                      <option key={c} value={c}>{c}</option>
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
                     ))}
                   </select>
                 </div>
               )}
             </div>
 
-            <span className="block text-[8px] font-black uppercase tracking-widest text-zinc-600 mb-2">Price</span>
+            <span className="block text-[8px] font-black uppercase tracking-widest text-zinc-600 mb-2">
+              Price
+            </span>
             <div className="flex flex-wrap gap-2 mb-4">
               {FILTER_OPTIONS.map((option, i) => (
                 <button
                   key={i}
-                  onClick={() => setSelectedFilterIndex(selectedFilterIndex === i ? null : i)}
+                  onClick={() =>
+                    setSelectedFilterIndex(
+                      selectedFilterIndex === i ? null : i
+                    )
+                  }
                   className={`px-3 py-1.5 text-[8px] font-black uppercase tracking-widest transition-all border ${
                     selectedFilterIndex === i
                       ? "bg-white text-black border-white"
@@ -770,17 +846,29 @@ export default function StudioList() {
 
             <div className="flex gap-4">
               <button
-                onClick={() => setSortOrder(sortOrder === "price_asc" ? null : "price_asc")}
+                onClick={() =>
+                  setSortOrder(
+                    sortOrder === "price_asc" ? null : "price_asc"
+                  )
+                }
                 className={`text-[9px] font-bold uppercase tracking-widest transition-colors pb-1 border-b ${
-                  sortOrder === "price_asc" ? "text-white border-white" : "text-zinc-600 border-transparent hover:text-zinc-400"
+                  sortOrder === "price_asc"
+                    ? "text-white border-white"
+                    : "text-zinc-600 border-transparent hover:text-zinc-400"
                 }`}
               >
                 Lowest Price
               </button>
               <button
-                onClick={() => setSortOrder(sortOrder === "rating_desc" ? null : "rating_desc")}
+                onClick={() =>
+                  setSortOrder(
+                    sortOrder === "rating_desc" ? null : "rating_desc"
+                  )
+                }
                 className={`text-[9px] font-bold uppercase tracking-widest transition-colors pb-1 border-b ${
-                  sortOrder === "rating_desc" ? "text-white border-white" : "text-zinc-600 border-transparent hover:text-zinc-400"
+                  sortOrder === "rating_desc"
+                    ? "text-white border-white"
+                    : "text-zinc-600 border-transparent hover:text-zinc-400"
                 }`}
               >
                 Highest Rated
@@ -795,7 +883,9 @@ export default function StudioList() {
                   }
                 }}
                 className={`text-[9px] font-bold uppercase tracking-widest transition-colors pb-1 border-b ${
-                  sortOrder === "nearest" ? "text-white border-white" : "text-zinc-600 border-transparent hover:text-zinc-400"
+                  sortOrder === "nearest"
+                    ? "text-white border-white"
+                    : "text-zinc-600 border-transparent hover:text-zinc-400"
                 }`}
               >
                 Nearest
@@ -806,12 +896,13 @@ export default function StudioList() {
           {/* Results Header */}
           <div className="flex items-center justify-between mb-4 shrink-0">
             <h3 className="text-xs font-black uppercase tracking-widest text-zinc-500">
-              {filteredStudios.length} {filteredStudios.length === 1 ? "RESULT" : "RESULTS"}
+              {filteredStudios.length}{" "}
+              {filteredStudios.length === 1 ? "RESULT" : "RESULTS"}
             </h3>
             {permissions.canBookStudios && !permissions.canCreateStudios && (
               <div className="flex items-center gap-1.5 px-2 py-1 border border-white/10 text-zinc-400">
-                <Mic2 size={10} />
-                <span className="text-[8px] font-black uppercase tracking-widest">BOOK READY</span>
+                {/* <Mic2 size={10} /> */}
+                {/* <span className="text-[8px] font-black uppercase tracking-widest">BOOK READY</span> */}
               </div>
             )}
           </div>
@@ -825,21 +916,29 @@ export default function StudioList() {
                 {filteredStudios.map((studio) => {
                   const distance =
                     userLocation && studio.latitude && studio.longitude
-                      ? calculateDistance(userLocation.lat, userLocation.lon, studio.latitude, studio.longitude)
+                      ? calculateDistance(
+                          userLocation.lat,
+                          userLocation.lon,
+                          studio.latitude,
+                          studio.longitude
+                        )
                       : null;
 
                   return (
                     <div
                       key={studio.id}
                       className="group flex flex-col bg-black border border-white/10 hover:border-white/40 transition-colors duration-300 cursor-pointer"
-                      onClick={() => router.push(`/studios/create/${studio.id}`)}
+                      onClick={() => openDrawer(studio.id)}
                       onMouseEnter={() => setHoveredStudio(studio.id)}
                       onMouseLeave={() => setHoveredStudio(null)}
                     >
                       {/* SQUARE IMAGE CONTAINER */}
                       <div className="relative w-full aspect-square overflow-hidden bg-[#0A0A0A]">
                         <img
-                          src={studio.imageUrl || "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=400&q=80"}
+                          src={
+                            studio.imageUrl ||
+                            "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=400&q=80"
+                          }
                           alt={studio.name}
                           className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                         />
@@ -849,10 +948,12 @@ export default function StudioList() {
                           </div>
                         )}
                         <div className="absolute bottom-2 left-2 bg-black/90 px-1.5 py-0.5 border border-white/10">
-                           <span className="text-[7px] font-black tracking-widest uppercase text-white flex items-center gap-1">
-                             <Star size={7} className="fill-white" />
-                             {studio.rating ? Number(studio.rating).toFixed(1) : "NEW"}
-                           </span>
+                          <span className="text-[7px] font-black tracking-widest uppercase text-white flex items-center gap-1">
+                            <Star size={7} className="fill-white" />
+                            {studio.rating
+                              ? Number(studio.rating).toFixed(1)
+                              : "NEW"}
+                          </span>
                         </div>
                       </div>
 
@@ -866,7 +967,7 @@ export default function StudioList() {
                             ${studio.hourlyRate}
                           </span>
                         </div>
-                        
+
                         <p className="text-[8px] font-black uppercase tracking-widest text-zinc-500 truncate">
                           {studio.location.split(",")[0]}
                         </p>
@@ -883,18 +984,34 @@ export default function StudioList() {
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-20 border border-white/5 border-dashed">
-                <Search size={20} className="text-zinc-700 mb-3" strokeWidth={1.5} />
+                <Search
+                  size={20}
+                  className="text-zinc-700 mb-3"
+                  strokeWidth={1.5}
+                />
                 <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">
                   NO STUDIOS FOUND
                 </h4>
                 <p className="text-[8px] font-bold uppercase tracking-widest text-zinc-600">
-                  {searchQuery ? `TRY ADJUSTING "${searchQuery}"` : "ADJUST YOUR FILTERS"}
+                  {searchQuery
+                    ? `TRY ADJUSTING "${searchQuery}"`
+                    : "ADJUST YOUR FILTERS"}
                 </p>
               </div>
             )}
           </div>
         </div>
       </div>
+
+      {/* ═══════════════════════════════════════════ */}
+      {/* STUDIO BOOKING DRAWER                       */}
+      {/* ═══════════════════════════════════════════ */}
+      {drawerStudioId && (
+        <StudioBookingDrawer
+          studioId={drawerStudioId}
+          onClose={closeDrawer}
+        />
+      )}
 
       <style jsx>{`
         .scrollbar-hide::-webkit-scrollbar {

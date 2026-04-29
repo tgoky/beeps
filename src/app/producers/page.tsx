@@ -316,9 +316,7 @@ export default function ProducerHub() {
       }`}>
         <div className="w-full px-6 h-16 flex items-center justify-between gap-6">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-[0_0_15px_-3px_rgba(37,99,235,0.5)]">
-              <Zap className="w-5 h-5 text-white" />
-            </div>
+          
             <span className="text-lg font-bold tracking-tight">ProducerHub</span>
           </div>
 
