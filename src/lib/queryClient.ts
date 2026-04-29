@@ -9,8 +9,7 @@ export const queryClient = new QueryClient({
       gcTime: 10 * 60 * 1000,
       // Retry failed requests
       retry: 1,
-      // Refetch on window focus for real-time feel
-      refetchOnWindowFocus: true,
+      refetchOnWindowFocus: false,
       // Refetch on reconnect
       refetchOnReconnect: true,
     },

@@ -77,21 +77,36 @@ export interface CreateStudioInput {
 /**
  * Fetch all studios with optional filters
  */
-export function useStudios(filters?: { location?: string; minRate?: number; maxRate?: number }) {
-  return useQuery<Studio[]>({
+export interface StudiosResponse {
+  studios: Studio[];
+  pagination: { total: number; limit: number; offset: number };
+}
+
+export function useStudios(filters?: {
+  location?: string;
+  minRate?: number;
+  maxRate?: number;
+  limit?: number;
+  offset?: number;
+}) {
+  return useQuery<StudiosResponse>({
     queryKey: ["studios", filters],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (filters?.location) params.append("location", filters.location);
       if (filters?.minRate) params.append("minRate", filters.minRate.toString());
       if (filters?.maxRate) params.append("maxRate", filters.maxRate.toString());
+      params.append("limit", (filters?.limit ?? 20).toString());
+      params.append("offset", (filters?.offset ?? 0).toString());
 
       const response = await fetch(`/api/studios?${params.toString()}`);
       if (!response.ok) throw new Error("Failed to fetch studios");
-      
+
       const data = await response.json();
-      // FIXED: Extract studios array from the response object
-      return data.studios || [];
+      return {
+        studios: data.studios || [],
+        pagination: data.pagination ?? { total: 0, limit: filters?.limit ?? 20, offset: filters?.offset ?? 0 },
+      };
     },
   });
 }

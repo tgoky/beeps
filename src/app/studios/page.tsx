@@ -81,7 +81,8 @@ export default function StudioList() {
   const { permissions } = usePermissions();
   const isDark = theme === "dark";
 
-  const { data: studios = [], isLoading: isLoadingStudios } = useStudios();
+  const { data: studiosData, isLoading: isLoadingStudios } = useStudios();
+  const studios = studiosData?.studios ?? [];
 
   // URL State for Drawer
   const drawerStudioId = searchParams.get("id");

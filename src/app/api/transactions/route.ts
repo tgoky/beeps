@@ -46,104 +46,55 @@ export async function GET(req: NextRequest) {
         ...(offset && { skip: parseInt(offset) }),
       });
 
-      // Fetch related resources for each transaction
-      const transactionsWithResources = await Promise.all(
-        transactions.map(async (transaction) => {
-          let relatedResource = null;
+      // Collect IDs by type so we can batch-fetch in parallel (eliminates N+1)
+      const idsByType: Record<string, string[]> = { beat: [], equipment: [], booking: [], service: [] };
+      for (const t of transactions) {
+        if (t.referenceId && t.referenceType && idsByType[t.referenceType]) {
+          idsByType[t.referenceType].push(t.referenceId);
+        }
+      }
 
-          if (transaction.referenceId && transaction.referenceType) {
-            try {
-              switch (transaction.referenceType) {
-                case "beat":
-                  relatedResource = await prisma.beat.findUnique({
-                    where: { id: transaction.referenceId },
-                    select: {
-                      id: true,
-                      title: true,
-                      imageUrl: true,
-                      price: true,
-                      producer: {
-                        select: {
-                          id: true,
-                          username: true,
-                          avatar: true,
-                        },
-                      },
-                    },
-                  });
-                  break;
+      const [beats, equipmentItems, bookingItems, serviceItems] = await Promise.all([
+        idsByType.beat.length
+          ? prisma.beat.findMany({
+              where: { id: { in: idsByType.beat } },
+              select: { id: true, title: true, imageUrl: true, price: true, producer: { select: { id: true, username: true, avatar: true } } },
+            })
+          : [],
+        idsByType.equipment.length
+          ? prisma.equipment.findMany({
+              where: { id: { in: idsByType.equipment } },
+              select: { id: true, name: true, imageUrl: true, category: true, seller: { select: { businessName: true, user: { select: { id: true, username: true, avatar: true } } } } },
+            })
+          : [],
+        idsByType.booking.length
+          ? prisma.booking.findMany({
+              where: { id: { in: idsByType.booking } },
+              select: { id: true, startTime: true, endTime: true, studio: { select: { id: true, name: true, imageUrl: true } } },
+            })
+          : [],
+        idsByType.service.length
+          ? prisma.service.findMany({
+              where: { id: { in: idsByType.service } },
+              select: { id: true, title: true, imageUrl: true, provider: { select: { id: true, username: true, avatar: true } } },
+            })
+          : [],
+      ]);
 
-                case "equipment":
-                  relatedResource = await prisma.equipment.findUnique({
-                    where: { id: transaction.referenceId },
-                    select: {
-                      id: true,
-                      name: true,
-                      imageUrl: true,
-                      category: true,
-                      seller: {
-                        select: {
-                          businessName: true,
-                          user: {
-                            select: {
-                              id: true,
-                              username: true,
-                              avatar: true,
-                            },
-                          },
-                        },
-                      },
-                    },
-                  });
-                  break;
+      const resourceMap: Record<string, Record<string, any>> = {
+        beat: Object.fromEntries((beats as any[]).map((r) => [r.id, r])),
+        equipment: Object.fromEntries((equipmentItems as any[]).map((r) => [r.id, r])),
+        booking: Object.fromEntries((bookingItems as any[]).map((r) => [r.id, r])),
+        service: Object.fromEntries((serviceItems as any[]).map((r) => [r.id, r])),
+      };
 
-                case "booking":
-                  relatedResource = await prisma.booking.findUnique({
-                    where: { id: transaction.referenceId },
-                    select: {
-                      id: true,
-                      startTime: true,
-                      endTime: true,
-                      studio: {
-                        select: {
-                          id: true,
-                          name: true,
-                          imageUrl: true,
-                        },
-                      },
-                    },
-                  });
-                  break;
-
-                case "service":
-                  relatedResource = await prisma.service.findUnique({
-                    where: { id: transaction.referenceId },
-                    select: {
-                      id: true,
-                      title: true,
-                      imageUrl: true,
-                      provider: {
-                        select: {
-                          id: true,
-                          username: true,
-                          avatar: true,
-                        },
-                      },
-                    },
-                  });
-                  break;
-              }
-            } catch (error) {
-              console.error("Error fetching related resource:", error);
-            }
-          }
-
-          return {
-            ...transaction,
-            relatedResource,
-          };
-        })
-      );
+      const transactionsWithResources = transactions.map((transaction) => ({
+        ...transaction,
+        relatedResource:
+          transaction.referenceId && transaction.referenceType && resourceMap[transaction.referenceType]
+            ? resourceMap[transaction.referenceType][transaction.referenceId] ?? null
+            : null,
+      }));
 
       // Get total count for pagination
       const totalCount = await prisma.transaction.count({ where });

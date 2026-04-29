@@ -28,109 +28,113 @@ export async function GET(req: NextRequest) {
       where.specialties = { has: skill };
     }
 
-    const producerProfiles = await prisma.producerProfile.findMany({
-      where: {
-        ...where,
-        ...(Object.keys(userWhere).length > 0 && { user: userWhere }),
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            fullName: true,
-            avatar: true,
-            bio: true,
-            location: true,
-            verified: true,
-            email: true,
-            followersCount: true,
-            followingCount: true,
-            uploadedBeats: {
-              where: { isActive: true },
-              select: {
-                id: true,
-                title: true,
-                imageUrl: true,
-                plays: true,
-                likes: true,
-                price: true,
+    const limit = parseInt(searchParams.get("limit") || "20");
+    const offset = parseInt(searchParams.get("offset") || "0");
+
+    const [producerProfiles, total] = await Promise.all([
+      prisma.producerProfile.findMany({
+        where: {
+          ...where,
+          ...(Object.keys(userWhere).length > 0 && { user: userWhere }),
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              fullName: true,
+              avatar: true,
+              bio: true,
+              location: true,
+              verified: true,
+              email: true,
+              followersCount: true,
+              followingCount: true,
+              uploadedBeats: {
+                where: { isActive: true },
+                select: {
+                  id: true,
+                  title: true,
+                  imageUrl: true,
+                  plays: true,
+                  likes: true,
+                  price: true,
+                },
+                take: 5,
+                orderBy: { createdAt: "desc" },
               },
-              take: 5,
-              orderBy: {
-                createdAt: "desc",
+              receivedServiceRequests: {
+                select: { id: true, status: true },
               },
-            },
-            receivedServiceRequests: {
-              select: {
-                id: true,
-                status: true,
-              },
-            },
-            _count: {
-              select: {
-                uploadedBeats: true,
-                receivedServiceRequests: true,
+              _count: {
+                select: {
+                  uploadedBeats: true,
+                  receivedServiceRequests: true,
+                },
               },
             },
           },
         },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+        orderBy: { createdAt: "desc" },
+        take: limit,
+        skip: offset,
+      }),
+      prisma.producerProfile.count({
+        where: {
+          ...where,
+          ...(Object.keys(userWhere).length > 0 && { user: userWhere }),
+        },
+      }),
+    ]);
 
-    // Transform the data to match the expected format
-    const producers = await Promise.all(
-      producerProfiles.map(async (profile) => {
-        // Fetch studios for this user
-        const studios = await prisma.studio.findMany({
-          where: {
-            owner: {
-              userId: profile.userId,
+    // Batch-fetch studios for all producers in one query (eliminates N+1)
+    const userIds = producerProfiles.map((p) => p.userId);
+    const studioOwnerProfiles = userIds.length
+      ? await prisma.studioOwnerProfile.findMany({
+          where: { userId: { in: userIds } },
+          select: {
+            userId: true,
+            studios: {
+              select: { id: true, name: true, location: true, hourlyRate: true },
+              take: 5,
             },
           },
-          select: {
-            id: true,
-            name: true,
-            location: true,
-            hourlyRate: true,
-          },
-          take: 5,
-        });
+        })
+      : [];
 
-        return {
-          id: profile.user.id,
-          name: profile.user.fullName,
-          email: profile.user.email,
-          imageUrl: profile.user.avatar,
-          bio: profile.user.bio,
-          location: profile.user.location,
-          verified: profile.user.verified,
-          followersCount: profile.user.followersCount || 0,
-          followingCount: profile.user.followingCount || 0,
-          genres: profile.genres || [],
-          specialties: profile.specialties || [],
-          studios: studios.map((studio) => ({
-            id: studio.id,
-            name: studio.name,
-            location: studio.location,
-            hourlyRate: Number(studio.hourlyRate),
-          })),
-          beats: profile.user.uploadedBeats.map((beat) => ({
-            id: beat.id,
-            title: beat.title,
-            price: Number(beat.price || 0),
-            likeCount: beat.likes || 0,
-          })),
-          services: [], // Placeholder for now
-          createdAt: profile.createdAt.toISOString(),
-        };
-      })
+    const studiosByUserId = Object.fromEntries(
+      studioOwnerProfiles.map((sop) => [sop.userId, sop.studios])
     );
 
-    return NextResponse.json({ producers });
+    const producers = producerProfiles.map((profile) => ({
+      id: profile.user.id,
+      name: profile.user.fullName,
+      email: profile.user.email,
+      imageUrl: profile.user.avatar,
+      bio: profile.user.bio,
+      location: profile.user.location,
+      verified: profile.user.verified,
+      followersCount: profile.user.followersCount || 0,
+      followingCount: profile.user.followingCount || 0,
+      genres: profile.genres || [],
+      specialties: profile.specialties || [],
+      studios: (studiosByUserId[profile.userId] || []).map((studio) => ({
+        id: studio.id,
+        name: studio.name,
+        location: studio.location,
+        hourlyRate: Number(studio.hourlyRate),
+      })),
+      beats: profile.user.uploadedBeats.map((beat) => ({
+        id: beat.id,
+        title: beat.title,
+        price: Number(beat.price || 0),
+        likeCount: beat.likes || 0,
+      })),
+      services: [],
+      createdAt: profile.createdAt.toISOString(),
+    }));
+
+    return NextResponse.json({ producers, pagination: { total, limit, offset } });
   } catch (error: any) {
     console.error("Error fetching producers:", error);
     return NextResponse.json(

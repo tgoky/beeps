@@ -14,6 +14,8 @@ export async function GET(req: NextRequest) {
     const minRate = searchParams.get("minRate");
     const maxRate = searchParams.get("maxRate");
     const ownerId = searchParams.get("ownerId");
+    const limit = parseInt(searchParams.get("limit") || "20");
+    const offset = parseInt(searchParams.get("offset") || "0");
 
     const where: any = {
       isActive: true,
@@ -52,34 +54,63 @@ export async function GET(req: NextRequest) {
       where.ownerId = ownerId;
     }
 
-    const studios = await prisma.studio.findMany({
-      where,
-      include: {
-        owner: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                username: true,
-                fullName: true,
-                avatar: true,
+    const [studios, total] = await Promise.all([
+      prisma.studio.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          location: true,
+          streetAddress: true,
+          country: true,
+          state: true,
+          city: true,
+          latitude: true,
+          longitude: true,
+          hourlyRate: true,
+          imageUrl: true,
+          equipment: true,
+          capacity: true,
+          rating: true,
+          reviewsCount: true,
+          isActive: true,
+          verificationStatus: true,
+          verifiedAt: true,
+          ownerId: true,
+          createdAt: true,
+          updatedAt: true,
+          owner: {
+            select: {
+              id: true,
+              user: {
+                select: {
+                  id: true,
+                  username: true,
+                  fullName: true,
+                  avatar: true,
+                },
               },
             },
           },
-        },
-        _count: {
-          select: {
-            bookings: true,
-            reviews: true,
+          _count: {
+            select: {
+              bookings: true,
+              reviews: true,
+            },
           },
         },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+        orderBy: { createdAt: "desc" },
+        take: limit,
+        skip: offset,
+      }),
+      prisma.studio.count({ where }),
+    ]);
 
-    return NextResponse.json({ studios });
+    return NextResponse.json({
+      studios,
+      pagination: { total, limit, offset },
+    });
   } catch (error: any) {
     console.error("Error fetching studios:", error);
     return NextResponse.json(
