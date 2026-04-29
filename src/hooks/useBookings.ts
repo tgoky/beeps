@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useCallback } from "react";
 
 export interface SessionInfo {
   isActive: boolean;
@@ -340,4 +341,35 @@ export function useActiveSessions(includeUpcoming: boolean = true) {
     refetchInterval: 30000,
     refetchIntervalInBackground: false,
   });
+}
+
+// ============================================================================
+// REAL-TIME SESSION STREAM
+// Opens a persistent SSE connection to /api/sessions/stream.
+// When the server emits a "session_updated" event (on check-in or check-out),
+// this hook invalidates the sessions and bookings queries so they refetch
+// immediately instead of waiting for the next 30-second poll.
+// Usage: call useSessionStream() once in the studio owner dashboard component.
+// ============================================================================
+export function useSessionStream() {
+  const queryClient = useQueryClient();
+
+  const handleSessionUpdate = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["sessions"] });
+    queryClient.invalidateQueries({ queryKey: ["bookings"] });
+  }, [queryClient]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const es = new EventSource("/api/sessions/stream");
+
+    es.addEventListener("session_updated", handleSessionUpdate);
+
+    es.onerror = () => {
+      // EventSource auto-reconnects after ~3 seconds on failure
+    };
+
+    return () => es.close();
+  }, [handleSessionUpdate]);
 }

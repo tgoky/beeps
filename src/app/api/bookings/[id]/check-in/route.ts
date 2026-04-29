@@ -3,6 +3,7 @@ import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
 import type { ApiResponse } from "@/types";
+import { emitToUser } from "@/lib/session-emitter";
 
 // POST /api/bookings/[id]/check-in - Studio owner initiates check-in (requires artist confirmation)
 // SECURITY: QR code is MANDATORY, time window enforced, two-party confirmation required
@@ -140,6 +141,11 @@ export async function POST(
           },
         },
       });
+
+      // Push real-time update to both parties so their dashboards refresh instantly
+      const sessionPayload = { bookingId: id, status: "ACTIVE", checkedInAt: now.toISOString() };
+      emitToUser(user.id, "session_updated", sessionPayload);
+      emitToUser(booking.userId, "session_updated", sessionPayload);
 
       // Notify the artist that they need to confirm their presence
       await prisma.notification.create({

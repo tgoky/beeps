@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Search, Music2, Play, Pause, Heart, ShoppingCart, TrendingUp, DollarSign,
@@ -84,8 +84,15 @@ export default function BeatMarketplace() {
   const [selectedMood, setSelectedMood] = useState("all");
   const [currentlyPlaying, setCurrentlyPlaying] = useState<number | null>(null);
 
-  // Fetch beats from API
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchQuery), 400);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
+  // All filtering (search, genre, mood) is handled server-side
   const { data, isLoading, error } = useBeats({
+    search: debouncedSearch || undefined,
     genre: selectedGenre !== "all" ? selectedGenre : undefined,
     mood: selectedMood !== "all" ? selectedMood : undefined,
   });
@@ -116,13 +123,8 @@ export default function BeatMarketplace() {
     setCurrentlyPlaying(currentlyPlaying === id ? null : id);
   };
 
-  const filteredBeats = beats.filter(beat => {
-    const matchesSearch = beat.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         beat.producer.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesGenre = selectedGenre === "all" || beat.genre.includes(selectedGenre);
-    const matchesMood = selectedMood === "all" || beat.mood.includes(selectedMood);
-    return matchesSearch && matchesGenre && matchesMood;
-  });
+  // API handles all filtering; beats is already the correct subset
+  const filteredBeats = beats;
 
   // Beat Card Actions Component - Role-based buttons
   const BeatCardActions = ({ beat }: { beat: Beat }) => {

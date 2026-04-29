@@ -13,7 +13,8 @@ export async function GET(req: NextRequest) {
     const minPrice = searchParams.get("minPrice");
     const maxPrice = searchParams.get("maxPrice");
     const sellerId = searchParams.get("sellerId");
-    const hasRental = searchParams.get("hasRental"); // "true" to show only rentable
+    const forRent = searchParams.get("forRent") === "true";
+    const forSale = searchParams.get("forSale") === "true";
     const limit = searchParams.get("limit");
     const offset = searchParams.get("offset");
 
@@ -47,9 +48,8 @@ export async function GET(req: NextRequest) {
       where.sellerId = sellerId;
     }
 
-    if (hasRental === "true") {
-      where.rentalRate = { not: null };
-    }
+    if (forRent) where.rentalRate = { not: null };
+    if (forSale) where.rentalRate = null;
 
     const equipment = await prisma.equipment.findMany({
       where,

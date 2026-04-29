@@ -83,7 +83,10 @@ export interface StudiosResponse {
 }
 
 export function useStudios(filters?: {
+  search?: string;
   location?: string;
+  country?: string;
+  city?: string;
   minRate?: number;
   maxRate?: number;
   limit?: number;
@@ -93,7 +96,10 @@ export function useStudios(filters?: {
     queryKey: ["studios", filters],
     queryFn: async () => {
       const params = new URLSearchParams();
+      if (filters?.search) params.append("search", filters.search);
       if (filters?.location) params.append("location", filters.location);
+      if (filters?.country) params.append("country", filters.country);
+      if (filters?.city) params.append("city", filters.city);
       if (filters?.minRate) params.append("minRate", filters.minRate.toString());
       if (filters?.maxRate) params.append("maxRate", filters.maxRate.toString());
       params.append("limit", (filters?.limit ?? 20).toString());

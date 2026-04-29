@@ -42,6 +42,7 @@ export function useProducers(filters?: {
   hasBeats?: boolean;
   hasServices?: boolean;
   search?: string;
+  genre?: string;
 }) {
   return useQuery<Producer[]>({
     queryKey: ["producers", filters],
@@ -51,6 +52,7 @@ export function useProducers(filters?: {
       if (filters?.hasBeats !== undefined) params.append("hasBeats", filters.hasBeats.toString());
       if (filters?.hasServices !== undefined) params.append("hasServices", filters.hasServices.toString());
       if (filters?.search) params.append("search", filters.search);
+      if (filters?.genre) params.append("genre", filters.genre);
 
       const response = await fetch(`/api/producers?${params.toString()}`);
       if (!response.ok) throw new Error("Failed to fetch producers");

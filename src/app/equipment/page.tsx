@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Search, ShoppingCart, Heart, Star, MapPin, Clock, TrendingUp, DollarSign, Zap, Package, Truck, Shield, Users, CheckCircle, Share2, Plus, Loader2 } from "lucide-react";
 import { useTheme } from "../../providers/ThemeProvider";
@@ -103,8 +103,15 @@ export default function GearMarketplace() {
   const [showBidModal, setShowBidModal] = useState(false);
   const [bidPrice, setBidPrice] = useState(600);
 
-  // Fetch equipment from API
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchQuery), 400);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
+  // Search, category, and type are filtered server-side
   const { data: apiEquipment = [], isLoading, error } = useEquipment({
+    search: debouncedSearch || undefined,
     category: selectedCategory !== "all" ? selectedCategory : undefined,
     forRent: activeTab === "rent" ? true : undefined,
     forSale: activeTab === "sale" ? true : undefined,
@@ -119,17 +126,10 @@ export default function GearMarketplace() {
     console.log("Like equipment:", id);
   };
 
-  const filteredGear = gear.filter(item => {
-    const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.brand.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.seller.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === "all" || item.category === selectedCategory;
-    const matchesBrand = selectedBrand === "all" || item.brand === selectedBrand;
-    const matchesTab = activeTab === "rent" ? item.type === "rent" :
-                       activeTab === "sale" ? item.type === "sale" :
-                       activeTab === "auction" ? item.type === "auction" : true;
-    return matchesSearch && matchesCategory && matchesBrand && matchesTab;
-  });
+  // API handles search, category, and type; brand filter is display-only since it's derived from name
+  const filteredGear = selectedBrand !== "all"
+    ? gear.filter(item => item.brand === selectedBrand)
+    : gear;
 
   return (
     <div className={`min-h-screen p-6 transition-colors duration-200 ${

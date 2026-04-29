@@ -249,8 +249,11 @@ export default function ProducerHub() {
     availability: null as string | null
   });
 
-  // Fetch
-  const { data: apiProducers = [], isLoading } = useProducers({ search: searchQuery || undefined });
+  // Genre and search are handled server-side
+  const { data: apiProducers = [], isLoading } = useProducers({
+    search: searchQuery || undefined,
+    genre: filters.genre || undefined,
+  });
 
   // Transform Data + Mock Distance
   const producers: Producer[] = apiProducers.map((p, i) => ({
@@ -265,11 +268,11 @@ export default function ProducerHub() {
   }));
 
   // Logic: Filter -> Sort
+  // Genre is handled server-side; only mock/UI filters remain here
   let filteredProducers = producers.filter(p => {
-    if (filters.genre && !p.genres.includes(filters.genre)) return false;
     if (filters.availability === "Online Now" && !p.isOnline) return false;
     if (filters.rating === "4.8+" && p.rating < 4.8) return false;
-    if (userLocation && p.distance > 20) return false; // If location on, filter > 20km (simple mock)
+    if (userLocation && p.distance > 20) return false;
     return true;
   });
 

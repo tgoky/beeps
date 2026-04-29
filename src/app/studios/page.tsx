@@ -81,9 +81,6 @@ export default function StudioList() {
   const { permissions } = usePermissions();
   const isDark = theme === "dark";
 
-  const { data: studiosData, isLoading: isLoadingStudios } = useStudios();
-  const studios = studiosData?.studios ?? [];
-
   // URL State for Drawer
   const drawerStudioId = searchParams.get("id");
 
@@ -123,6 +120,25 @@ export default function StudioList() {
   // Location filter state
   const [filterCountry, setFilterCountry] = useState("");
   const [filterCity, setFilterCity] = useState("");
+
+  // Debounce search so the API is only hit once the user stops typing
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchQuery), 400);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
+  const { data: studiosData, isLoading: isLoadingStudios } = useStudios({
+    search: debouncedSearch || undefined,
+    country: filterCountry || undefined,
+    city: filterCity || undefined,
+    minRate: selectedFilterIndex !== null ? FILTER_OPTIONS[selectedFilterIndex].min : undefined,
+    maxRate:
+      selectedFilterIndex !== null && FILTER_OPTIONS[selectedFilterIndex].max < 9999
+        ? FILTER_OPTIONS[selectedFilterIndex].max
+        : undefined,
+  });
+  const studios = studiosData?.studios ?? [];
 
   // Bottom sheet state
   const [isExpanded, setIsExpanded] = useState(false);
@@ -197,35 +213,9 @@ export default function StudioList() {
     return Array.from(cities).sort();
   }, [studios, filterCountry]);
 
-  // Filtered & sorted data
+  // Only sort client-side; all text/location/price filtering is done by the API
   const filteredStudios = useMemo(() => {
-    let data = [...studios];
-
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      data = data.filter(
-        (s) =>
-          s.name.toLowerCase().includes(q) ||
-          s.location.toLowerCase().includes(q) ||
-          (s.description || "").toLowerCase().includes(q)
-      );
-    }
-
-    if (filterCountry) {
-      data = data.filter((s) => s.country === filterCountry);
-    }
-
-    if (filterCity) {
-      data = data.filter((s) => s.city === filterCity);
-    }
-
-    if (selectedFilterIndex !== null && FILTER_OPTIONS[selectedFilterIndex]) {
-      const range = FILTER_OPTIONS[selectedFilterIndex];
-      data = data.filter(
-        (s) => s.hourlyRate >= range.min && s.hourlyRate < range.max
-      );
-    }
-
+    const data = [...studios];
     if (sortOrder === "price_asc") {
       data.sort((a, b) => (a.hourlyRate || 0) - (b.hourlyRate || 0));
     } else if (sortOrder === "rating_desc") {
@@ -234,36 +224,17 @@ export default function StudioList() {
       data.sort((a, b) => {
         const distA =
           a.latitude && a.longitude
-            ? calculateDistance(
-                userLocation.lat,
-                userLocation.lon,
-                a.latitude,
-                a.longitude
-              )
+            ? calculateDistance(userLocation.lat, userLocation.lon, a.latitude, a.longitude)
             : Infinity;
         const distB =
           b.latitude && b.longitude
-            ? calculateDistance(
-                userLocation.lat,
-                userLocation.lon,
-                b.latitude,
-                b.longitude
-              )
+            ? calculateDistance(userLocation.lat, userLocation.lon, b.latitude, b.longitude)
             : Infinity;
         return distA - distB;
       });
     }
-
     return data;
-  }, [
-    studios,
-    searchQuery,
-    selectedFilterIndex,
-    sortOrder,
-    userLocation,
-    filterCountry,
-    filterCity,
-  ]);
+  }, [studios, sortOrder, userLocation]);
 
   // Bottom sheet drag handlers
   const handleSheetPointerDown = useCallback(
