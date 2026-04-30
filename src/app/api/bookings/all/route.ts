@@ -9,6 +9,8 @@ export async function GET(req: NextRequest) {
       const user = req.user!;
       const { searchParams } = new URL(req.url);
       const view = searchParams.get("view"); // "customer" or "provider"
+      const limit = parseInt(searchParams.get("limit") || "20");
+      const offset = parseInt(searchParams.get("offset") || "0");
 
       // Studio Bookings
       const studioBookingsWhere = view === "provider"
@@ -17,11 +19,33 @@ export async function GET(req: NextRequest) {
 
       const studioBookings = await prisma.booking.findMany({
         where: studioBookingsWhere,
-        include: {
+        select: {
+          id: true,
+          studioId: true,
+          userId: true,
+          startTime: true,
+          endTime: true,
+          status: true,
+          totalAmount: true,
+          notes: true,
+          paymentStatus: true,
+          checkedInAt: true,
+          checkedOutAt: true,
+          qrCode: true,
+          overtimeMinutes: true,
+          overtimeAmount: true,
+          bookerConfirmedCheckIn: true,
+          createdAt: true,
           studio: {
-            include: {
+            select: {
+              id: true,
+              name: true,
+              location: true,
+              hourlyRate: true,
+              imageUrl: true,
               owner: {
-                include: {
+                select: {
+                  id: true,
                   user: {
                     select: {
                       id: true,
@@ -43,9 +67,9 @@ export async function GET(req: NextRequest) {
             },
           },
         },
-        orderBy: {
-          startTime: "desc",
-        },
+        orderBy: { startTime: "desc" },
+        take: limit,
+        skip: offset,
       });
 
       // Service Requests (if they exist in your schema)

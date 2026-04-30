@@ -337,6 +337,7 @@ export function useActiveSessions(includeUpcoming: boolean = true) {
       const data = await response.json();
       return data.data;
     },
-    refetchInterval: 30000, // Refresh every 30 seconds for live updates
+    refetchInterval: 30000,
+    refetchIntervalInBackground: false,
   });
 }
