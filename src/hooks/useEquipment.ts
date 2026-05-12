@@ -36,6 +36,7 @@ export interface CreateEquipmentInput {
  * Fetch all equipment with optional filters
  */
 export function useEquipment(filters?: {
+  search?: string;
   category?: string;
   condition?: string;
   minPrice?: number;
@@ -47,12 +48,13 @@ export function useEquipment(filters?: {
     queryKey: ["equipment", filters],
     queryFn: async () => {
       const params = new URLSearchParams();
+      if (filters?.search) params.append("search", filters.search);
       if (filters?.category) params.append("category", filters.category);
       if (filters?.condition) params.append("condition", filters.condition);
       if (filters?.minPrice) params.append("minPrice", filters.minPrice.toString());
       if (filters?.maxPrice) params.append("maxPrice", filters.maxPrice.toString());
-      if (filters?.forRent !== undefined) params.append("forRent", filters.forRent.toString());
-      if (filters?.forSale !== undefined) params.append("forSale", filters.forSale.toString());
+      if (filters?.forRent) params.append("forRent", "true");
+      if (filters?.forSale) params.append("forSale", "true");
 
       const response = await fetch(`/api/equipment?${params.toString()}`);
       if (!response.ok) throw new Error("Failed to fetch equipment");

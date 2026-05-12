@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useActiveSessions, useCheckIn, useCheckOut, useReleasePayment } from "@/hooks/useBookings";
+import { useActiveSessions, useCheckIn, useCheckOut, useReleasePayment, useSessionStream } from "@/hooks/useBookings";
 import { useTheme } from "@/providers/ThemeProvider";
 import { createBrowserClient } from "@supabase/ssr";
 import {
@@ -32,6 +32,7 @@ export default function SessionsDashboardPage() {
   const checkIn = useCheckIn();
   const checkOut = useCheckOut();
   const releasePayment = useReleasePayment();
+  useSessionStream(); // Opens SSE connection; invalidates queries instantly on check-in/check-out
   const [now, setNow] = useState(new Date());
 
   // Live clock - update every second for real-time session timers

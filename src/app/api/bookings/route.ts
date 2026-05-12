@@ -10,6 +10,8 @@ export async function GET(req: NextRequest) {
       const { searchParams } = new URL(req.url);
       const status = searchParams.get("status");
       const asOwner = searchParams.get("asOwner") === "true";
+      const limit = parseInt(searchParams.get("limit") || "20");
+      const offset = parseInt(searchParams.get("offset") || "0");
 
       let where: any = {};
 
@@ -33,40 +35,69 @@ export async function GET(req: NextRequest) {
         where.status = status;
       }
 
-      const bookings = await prisma.booking.findMany({
-        where,
-        include: {
-          studio: {
-            include: {
-              owner: {
-                include: {
-                  user: {
-                    select: {
-                      id: true,
-                      username: true,
-                      fullName: true,
-                      avatar: true,
+      const [bookings, total] = await Promise.all([
+        prisma.booking.findMany({
+          where,
+          select: {
+            id: true,
+            studioId: true,
+            userId: true,
+            startTime: true,
+            endTime: true,
+            status: true,
+            totalAmount: true,
+            notes: true,
+            paymentStatus: true,
+            checkedInAt: true,
+            checkedOutAt: true,
+            qrCode: true,
+            overtimeMinutes: true,
+            overtimeAmount: true,
+            bookerConfirmedCheckIn: true,
+            createdAt: true,
+            updatedAt: true,
+            studio: {
+              select: {
+                id: true,
+                name: true,
+                location: true,
+                hourlyRate: true,
+                imageUrl: true,
+                owner: {
+                  select: {
+                    id: true,
+                    user: {
+                      select: {
+                        id: true,
+                        username: true,
+                        fullName: true,
+                        avatar: true,
+                      },
                     },
                   },
                 },
               },
             },
-          },
-          user: {
-            select: {
-              id: true,
-              username: true,
-              fullName: true,
-              avatar: true,
+            user: {
+              select: {
+                id: true,
+                username: true,
+                fullName: true,
+                avatar: true,
+              },
             },
           },
-        },
-        orderBy: {
-          startTime: "desc",
-        },
-      });
+          orderBy: { startTime: "desc" },
+          take: limit,
+          skip: offset,
+        }),
+        prisma.booking.count({ where }),
+      ]);
 
-      return NextResponse.json({ bookings });
+      return NextResponse.json({
+        bookings,
+        pagination: { total, limit, offset },
+      });
     } catch (error: any) {
       console.error("Error fetching bookings:", error);
       return NextResponse.json(

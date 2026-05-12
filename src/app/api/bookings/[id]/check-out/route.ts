@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 import type { ApiResponse } from "@/types";
+import { emitToUser } from "@/lib/session-emitter";
 
 // POST /api/bookings/[id]/check-out - End a session (studio owner OR artist)
 // SECURITY: Both parties can end session. Early end = pro-rata payment. Reason required for early end.
@@ -146,6 +147,11 @@ export async function POST(
           },
         },
       });
+
+      // Push real-time update to both parties so their dashboards refresh instantly
+      const sessionPayload = { bookingId: id, status: "COMPLETED", checkedOutAt: now.toISOString() };
+      emitToUser(booking.studio.owner.userId, "session_updated", sessionPayload);
+      emitToUser(booking.userId, "session_updated", sessionPayload);
 
       // Build notification messages
       const earlyEndInfo = isEarlyEnd

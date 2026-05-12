@@ -1,19 +1,23 @@
-// components/Layout.tsx
 "use client";
 
 import type { PropsWithChildren } from "react";
-import { Breadcrumb } from "../breadcrumb";
+import { Breadcrumb } from "../breadcrumb"; // Make sure this is imported!
 import { Menu } from "../menu";
 
 export const Layout: React.FC<PropsWithChildren> = ({ children }) => {
   return (
-    <div className="flex h-screen bg-background-light dark:bg-background-dark overflow-hidden">
+    <div className="flex h-screen bg-[#030303] overflow-hidden">
       <Menu />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="bg-white dark:bg-gray-800 shadow-sm z-10">
+      
+      <div className="flex-1 flex flex-col overflow-hidden relative">
+        {/* BREADCRUMBS ARE BACK! 
+            Using true black background and a subtle white border instead of a white box */}
+        <div className="bg-[#030303] border-b border-white/10 z-10 px-4 py-3 shrink-0">
           <Breadcrumb />
         </div>
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-background-light dark:bg-background-dark">
+
+        {/* The map/content area stays edge-to-edge */}
+        <main className="flex-1 overflow-hidden bg-[#030303] w-full h-full relative">
           {children}
         </main>
       </div>

@@ -74,6 +74,7 @@ export interface CreateBeatInput {
  * Fetch all beats with optional filters
  */
 export function useBeats(filters?: {
+  search?: string;
   genre?: string;
   mood?: string;
   minPrice?: number;
@@ -87,6 +88,7 @@ export function useBeats(filters?: {
     queryKey: ["beats", filters],
     queryFn: async () => {
       const params = new URLSearchParams();
+      if (filters?.search) params.append("search", filters.search);
       if (filters?.genre) params.append("genre", filters.genre);
       if (filters?.mood) params.append("mood", filters.mood);
       if (filters?.minPrice) params.append("minPrice", filters.minPrice.toString());

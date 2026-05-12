@@ -20,11 +20,11 @@ type BookingType = "all" | "studio" | "equipment" | "service" | "beat";
 type ViewMode = "customer" | "provider";
 type StatusFilter = "all" | "pending" | "confirmed" | "active" | "cancelled" | "completed";
 
-// --- Custom Brutalist Tooltip Component ---
+// Custom Tooltip Component
 const Tooltip = ({ text }: { text: string }) => (
-  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5 bg-white text-black text-[8px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 whitespace-nowrap shadow-2xl">
+  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-zinc-800 text-zinc-200 text-xs rounded shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 whitespace-nowrap">
     {text}
-    <svg className="absolute top-full left-1/2 -translate-x-1/2 w-2 h-2 text-white" viewBox="0 0 10 10">
+    <svg className="absolute top-full left-1/2 -translate-x-1/2 w-2 h-2 text-zinc-800" viewBox="0 0 10 10">
       <polygon points="0,0 10,0 5,5" fill="currentColor" />
     </svg>
   </span>
@@ -115,82 +115,81 @@ export default function BookingsPage() {
     cancelled: uniqueCombinedBookings.filter((b: any) => b.status === "CANCELLED" || b.status === "REJECTED").length,
   };
 
-  // --- Guided Status Indicators ---
   const getStatusBadge = (status: string) => {
     switch (status?.toUpperCase()) {
       case "PENDING": 
         return (
-          <div className="group relative flex items-center gap-2 text-zinc-500 text-[9px] font-black uppercase tracking-widest cursor-help w-max">
-            <Clock className="w-5 h-5" /> PENDING <Tooltip text="Awaiting provider confirmation" />
+          <div className="group relative flex items-center gap-2 px-2.5 py-1 rounded-full bg-yellow-500/10 text-yellow-500 text-xs font-medium w-max cursor-help">
+            <Clock className="w-3.5 h-3.5" /> Pending <Tooltip text="Awaiting provider confirmation" />
           </div>
         );
       case "CONFIRMED":
       case "ACCEPTED": 
         return (
-          <div className="group relative flex items-center gap-2 text-white text-[9px] font-black uppercase tracking-widest cursor-help w-max">
-            <CheckCircle2 className="w-5 h-5" /> CONFIRMED <Tooltip text="Accepted and ready for session" />
+          <div className="group relative flex items-center gap-2 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 text-xs font-medium w-max cursor-help">
+            <CheckCircle2 className="w-3.5 h-3.5" /> Confirmed <Tooltip text="Accepted and ready for session" />
           </div>
         );
       case "ACTIVE": 
         return (
-          <div className="group relative flex items-center gap-2 text-white text-[9px] font-black uppercase tracking-widest cursor-help w-max">
-            <Zap className="w-5 h-5 fill-white" /> IN SESSION <Tooltip text="Session is currently ongoing" />
+          <div className="group relative flex items-center gap-2 px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-400 text-xs font-medium w-max cursor-help">
+            <Zap className="w-3.5 h-3.5 fill-purple-400" /> In Session <Tooltip text="Session is currently ongoing" />
           </div>
         );
       case "COMPLETED": 
         return (
-          <div className="group relative flex items-center gap-2 text-zinc-500 text-[9px] font-black uppercase tracking-widest cursor-help w-max">
-            <CheckCheck className="w-5 h-5" /> COMPLETED <Tooltip text="Session ended successfully" />
+          <div className="group relative flex items-center gap-2 px-2.5 py-1 rounded-full bg-green-500/10 text-green-400 text-xs font-medium w-max cursor-help">
+            <CheckCheck className="w-3.5 h-3.5" /> Completed <Tooltip text="Session ended successfully" />
           </div>
         );
       case "CANCELLED":
       case "REJECTED": 
         return (
-          <div className="group relative flex items-center gap-2 text-zinc-600 text-[9px] font-black uppercase tracking-widest cursor-help w-max">
-            <XCircle className="w-5 h-5" /> CANCELLED <Tooltip text="Booking was cancelled or rejected" />
+          <div className="group relative flex items-center gap-2 px-2.5 py-1 rounded-full bg-zinc-800/50 text-zinc-400 text-xs font-medium w-max cursor-help border border-zinc-700">
+            <XCircle className="w-3.5 h-3.5" /> Cancelled <Tooltip text="Booking was cancelled or rejected" />
           </div>
         );
       default: 
-        return <div className="flex items-center gap-2 text-zinc-600 text-[9px] font-black uppercase tracking-widest">UNKNOWN</div>;
+        return <div className="px-2.5 py-1 rounded-full bg-zinc-800 text-zinc-400 text-xs font-medium w-max">Unknown</div>;
     }
   };
 
   const getPaymentBadge = (status: string) => {
     if (status === "PAYMENT_HELD") {
       return (
-        <div className="group relative flex items-center gap-2 text-white text-[9px] font-black uppercase tracking-widest cursor-help w-max">
-          <Lock className="w-5 h-5" /> ESCROW SECURED <Tooltip text="Funds held securely until completion" />
+        <div className="group relative flex items-center gap-2 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-medium w-max cursor-help border border-emerald-500/20">
+          <Lock className="w-3.5 h-3.5" /> Escrow Secured <Tooltip text="Funds held securely until completion" />
         </div>
       );
     }
     if (status === "PAYMENT_RELEASED") {
       return (
-        <div className="group relative flex items-center gap-2 text-zinc-500 text-[9px] font-black uppercase tracking-widest cursor-help w-max">
-          <Wallet className="w-5 h-5" /> PAID OUT <Tooltip text="Funds successfully released to provider" />
+        <div className="group relative flex items-center gap-2 px-2.5 py-1 rounded-full bg-zinc-800/50 text-zinc-400 text-xs font-medium w-max cursor-help border border-zinc-700/50">
+          <Wallet className="w-3.5 h-3.5" /> Paid Out <Tooltip text="Funds successfully released to provider" />
         </div>
       );
     }
     return (
-      <div className="group relative flex items-center gap-2 text-zinc-500 text-[9px] font-black uppercase tracking-widest cursor-help w-max">
-        <CreditCard className="w-5 h-5" /> LOGGED <Tooltip text="Payment logged but not captured" />
+      <div className="group relative flex items-center gap-2 px-2.5 py-1 rounded-full bg-zinc-800/50 text-zinc-400 text-xs font-medium w-max cursor-help border border-zinc-700/50">
+        <CreditCard className="w-3.5 h-3.5" /> Logged <Tooltip text="Payment logged but not captured" />
       </div>
     );
   };
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case "STUDIO_BOOKING": return <Building2 className="w-6 h-6 text-white" strokeWidth={1.5} />;
-      case "EQUIPMENT_RENTAL": return <Guitar className="w-6 h-6 text-white" strokeWidth={1.5} />;
-      case "SERVICE_REQUEST": return <Briefcase className="w-6 h-6 text-white" strokeWidth={1.5} />;
-      case "BEAT_PURCHASE": return <Music2 className="w-6 h-6 text-white" strokeWidth={1.5} />;
-      default: return <Calendar className="w-6 h-6 text-white" strokeWidth={1.5} />;
+      case "STUDIO_BOOKING": return <Building2 className="w-5 h-5 text-blue-400" />;
+      case "EQUIPMENT_RENTAL": return <Guitar className="w-5 h-5 text-orange-400" />;
+      case "SERVICE_REQUEST": return <Briefcase className="w-5 h-5 text-purple-400" />;
+      case "BEAT_PURCHASE": return <Music2 className="w-5 h-5 text-green-400" />;
+      default: return <Calendar className="w-5 h-5 text-zinc-400" />;
     }
   };
 
   const formatDate = (dateString: string) => dayjs(dateString).format("MMM D, YYYY");
   const formatTime = (startTime: string, endTime?: string) => {
-    if (!endTime) return dayjs(startTime).format("HH:mm");
-    return `${dayjs(startTime).format("HH:mm")} - ${dayjs(endTime).format("HH:mm")}`;
+    if (!endTime) return dayjs(startTime).format("h:mm A");
+    return `${dayjs(startTime).format("h:mm A")} - ${dayjs(endTime).format("h:mm A")}`;
   };
   const formatCurrency = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 
@@ -210,326 +209,327 @@ export default function BookingsPage() {
     }
   };
 
-  // Base subtle action class
-  const actionBtnClass = "flex items-center justify-center gap-2 bg-transparent text-zinc-500 hover:text-white transition-colors outline-none disabled:opacity-50 shrink-0 text-[10px] font-black uppercase tracking-widest whitespace-nowrap p-0 border-none";
-  // Standout Green Action
-  const payBtnClass = "flex items-center justify-center gap-2 bg-green-500 text-black hover:bg-green-400 transition-colors outline-none disabled:opacity-50 shrink-0 text-[10px] font-black uppercase tracking-widest whitespace-nowrap px-3 py-2";
-  // Standout Red Action
-  const cancelBtnClass = "flex items-center justify-center gap-2 bg-red-500 text-black hover:bg-red-400 transition-colors outline-none disabled:opacity-50 shrink-0 text-[10px] font-black uppercase tracking-widest whitespace-nowrap px-3 py-2";
+  const actionBtnClass = "p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors shrink-0 outline-none disabled:opacity-50";
+  const payBtnClass = "flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-black font-medium text-sm hover:bg-zinc-200 transition-colors shrink-0 outline-none disabled:opacity-50";
+  const cancelBtnClass = "flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 text-red-500 font-medium text-sm hover:bg-red-500/20 transition-colors shrink-0 outline-none disabled:opacity-50";
 
   return (
-    <div className="min-h-screen bg-[#030303] text-white px-4 md:px-8 pt-4 pb-12 w-full overflow-x-hidden selection:bg-white selection:text-black">
-      
-      {/* HEADER SECTION - Pushed Up */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-8">
-        <div>
-          <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter">Bookings</h1>
-        </div>
+    <div className="h-full overflow-y-auto bg-[#030303] text-white">
+      <div className="max-w-[1600px] mx-auto p-6 md:p-8">
         
-        {/* VIEW MODE TOGGLE - Zero Borders, Black & White */}
-        <div className="flex items-center gap-8 shrink-0">
-          <button
-            onClick={() => setViewMode("customer")}
-            className={`text-[11px] font-black uppercase tracking-widest transition-colors outline-none bg-transparent border-none p-0 ${
-              viewMode === "customer" ? "text-white" : "text-zinc-600 hover:text-zinc-400"
-            }`}
-          >
-            CUSTOMER
-          </button>
-          <button
-            onClick={() => setViewMode("provider")}
-            className={`text-[11px] font-black uppercase tracking-widest transition-colors outline-none bg-transparent border-none p-0 ${
-              viewMode === "provider" ? "text-white" : "text-zinc-600 hover:text-zinc-400"
-            }`}
-          >
-            PROVIDER
-          </button>
-        </div>
-      </div>
-
-      {/* FILTER BAR - Flex Wrap instead of Scroll */}
-      <div className="flex flex-wrap items-center gap-6 border-b border-white/10 mb-8 pb-3">
-        <div className="flex items-center pr-6 border-r border-white/10 shrink-0">
-          <SlidersHorizontal className="w-5 h-5 text-zinc-500" />
-        </div>
-
-        <button onClick={() => setStatusFilter("all")} className={`text-[10px] font-black uppercase tracking-widest outline-none bg-transparent border-none p-0 whitespace-nowrap transition-colors ${statusFilter === "all" ? "text-white" : "text-zinc-600 hover:text-zinc-400"}`}>
-          ALL ({stats.total})
-        </button>
-        {stats.active > 0 && (
-          <button onClick={() => setStatusFilter("active")} className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest outline-none bg-transparent border-none p-0 whitespace-nowrap transition-colors ${statusFilter === "active" ? "text-white" : "text-zinc-600 hover:text-zinc-400"}`}>
-            <Zap className="w-4 h-4" /> ACTIVE ({stats.active})
-          </button>
-        )}
-        <button onClick={() => setStatusFilter("pending")} className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest outline-none bg-transparent border-none p-0 whitespace-nowrap transition-colors ${statusFilter === "pending" ? "text-white" : "text-zinc-600 hover:text-zinc-400"}`}>
-          <Clock className="w-4 h-4" /> PENDING ({stats.pending})
-        </button>
-        <button onClick={() => setStatusFilter("confirmed")} className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest outline-none bg-transparent border-none p-0 whitespace-nowrap transition-colors ${statusFilter === "confirmed" ? "text-white" : "text-zinc-600 hover:text-zinc-400"}`}>
-          <CheckCircle2 className="w-4 h-4" /> CONFIRMED ({stats.confirmed})
-        </button>
-        <button onClick={() => setStatusFilter("completed")} className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest outline-none bg-transparent border-none p-0 whitespace-nowrap transition-colors ${statusFilter === "completed" ? "text-white" : "text-zinc-600 hover:text-zinc-400"}`}>
-          <CheckCheck className="w-4 h-4" /> COMPLETED ({stats.completed})
-        </button>
-
-        {/* TYPE DROPDOWN */}
-        <select
-          value={bookingType}
-          onChange={(e) => setBookingType(e.target.value as BookingType)}
-          className="md:ml-auto bg-transparent text-[10px] font-black uppercase tracking-widest text-zinc-400 focus:text-white outline-none cursor-pointer appearance-none shrink-0 border-none p-0"
-        >
-          <option value="all" className="bg-black">All Items</option>
-          <option value="studio" className="bg-black">Studios</option>
-          <option value="equipment" className="bg-black">Equipment</option>
-          <option value="service" className="bg-black">Services</option>
-          <option value="beat" className="bg-black">Beats</option>
-        </select>
-      </div>
-
-      {/* BOOKINGS LIST */}
-      {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-24">
-          <Loader2 className="w-6 h-6 animate-spin text-zinc-500 mb-4" strokeWidth={1.5} />
-        </div>
-      ) : error ? (
-        <div className="py-12 text-center">
-          <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">System Error. Could not load data.</span>
-        </div>
-      ) : filteredBookings.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-32">
-          <Calendar className="w-10 h-10 text-zinc-800 mb-4" strokeWidth={1.5} />
-          <span className="text-[10px] font-black tracking-widest uppercase text-zinc-600">Log Empty</span>
-        </div>
-      ) : (
-        <div className="flex flex-col">
+        {/* Header Section */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight text-white mb-1">Your Bookings</h1>
+            <p className="text-sm text-zinc-400">Manage your studio sessions, rentals, and services</p>
+          </div>
           
-          {/* Table Header (Desktop) */}
-          <div className="hidden md:flex items-center gap-4 py-4 border-b border-white/20 text-[9px] font-black uppercase tracking-widest text-zinc-600 mb-2">
-            <div className="w-[30%]">Item Details</div>
-            <div className="w-[20%]">Schedule</div>
-            <div className="w-[20%]">Status</div>
-            <div className="w-[30%] text-right pr-2">Actions</div>
+          <div className="flex bg-zinc-900 border border-zinc-800 rounded-lg p-1">
+            <button
+              onClick={() => setViewMode("customer")}
+              className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+                viewMode === "customer" ? "bg-zinc-800 text-white shadow-sm" : "text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              Customer
+            </button>
+            <button
+              onClick={() => setViewMode("provider")}
+              className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+                viewMode === "provider" ? "bg-zinc-800 text-white shadow-sm" : "text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              Provider
+            </button>
+          </div>
+        </div>
+
+        {/* Filter Bar */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 w-full sm:w-auto scrollbar-hide">
+            <button onClick={() => setStatusFilter("all")} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${statusFilter === "all" ? "bg-white text-black" : "bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-zinc-200"}`}>
+              All <span className={`px-1.5 py-0.5 rounded-full text-xs ${statusFilter === "all" ? "bg-black/10" : "bg-zinc-800"}`}>{stats.total}</span>
+            </button>
+            {stats.active > 0 && (
+              <button onClick={() => setStatusFilter("active")} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${statusFilter === "active" ? "bg-purple-500 text-white" : "bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-zinc-200"}`}>
+                <Zap className="w-4 h-4" /> Active <span className={`px-1.5 py-0.5 rounded-full text-xs ${statusFilter === "active" ? "bg-black/20" : "bg-zinc-800"}`}>{stats.active}</span>
+              </button>
+            )}
+            <button onClick={() => setStatusFilter("pending")} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${statusFilter === "pending" ? "bg-yellow-500 text-black" : "bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-zinc-200"}`}>
+              Pending <span className={`px-1.5 py-0.5 rounded-full text-xs ${statusFilter === "pending" ? "bg-black/10" : "bg-zinc-800"}`}>{stats.pending}</span>
+            </button>
+            <button onClick={() => setStatusFilter("confirmed")} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${statusFilter === "confirmed" ? "bg-blue-500 text-white" : "bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-zinc-200"}`}>
+              Confirmed <span className={`px-1.5 py-0.5 rounded-full text-xs ${statusFilter === "confirmed" ? "bg-black/20" : "bg-zinc-800"}`}>{stats.confirmed}</span>
+            </button>
+            <button onClick={() => setStatusFilter("completed")} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${statusFilter === "completed" ? "bg-green-500 text-black" : "bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-zinc-200"}`}>
+              Completed <span className={`px-1.5 py-0.5 rounded-full text-xs ${statusFilter === "completed" ? "bg-black/10" : "bg-zinc-800"}`}>{stats.completed}</span>
+            </button>
           </div>
 
-          {/* Rows */}
-          <div className="flex flex-col">
-            {filteredBookings.map((booking: any) => {
-              const sessionInfo = (booking as any).sessionInfo;
-              const routeMap: any = { STUDIO_BOOKING: `/bookings/show/${booking.id}`, EQUIPMENT_RENTAL: `/equipment/show/${booking.equipmentId}`, SERVICE_REQUEST: `/service-requests/${booking.id}`, BEAT_PURCHASE: `/beats/show/${booking.beatId}` };
-              const detailRoute = routeMap[booking.type] || "/bookings";
-              const counterpart = viewMode === "customer" ? booking.providerName : booking.customerName;
-              const isStudio = booking.type === "STUDIO_BOOKING";
-              const amount = formatCurrency(booking.totalAmount || booking.amount || booking.budget || 0);
+          <select
+            value={bookingType}
+            onChange={(e) => setBookingType(e.target.value as BookingType)}
+            className="w-full sm:w-48 bg-zinc-900 border border-zinc-800 text-zinc-300 text-sm rounded-lg focus:ring-1 focus:ring-zinc-600 focus:border-zinc-600 block px-3 py-2 outline-none cursor-pointer"
+          >
+            <option value="all">All Types</option>
+            <option value="studio">Studios</option>
+            <option value="equipment">Equipment</option>
+            <option value="service">Services</option>
+            <option value="beat">Beats</option>
+          </select>
+        </div>
 
-              const isStudioOwner = currentUser?.id === (booking as any).studio?.owner?.userId;
-              const isCustomer = currentUser?.id === (booking as any).userId;
-              const isProducer = currentUser?.id === (booking as any).producerId;
-              const isClient = currentUser?.id === (booking as any).userId;
+        {/* Bookings List */}
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-32 bg-zinc-950 border border-zinc-800 rounded-2xl">
+            <Loader2 className="w-8 h-8 animate-spin text-zinc-500 mb-4" strokeWidth={2} />
+            <p className="text-zinc-400 text-sm">Loading your bookings...</p>
+          </div>
+        ) : error ? (
+          <div className="py-16 text-center bg-red-500/10 border border-red-500/20 rounded-2xl">
+            <span className="text-sm font-medium text-red-400">Failed to load bookings. Please try again.</span>
+          </div>
+        ) : filteredBookings.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-32 bg-zinc-950 border border-zinc-800 rounded-2xl border-dashed">
+            <div className="w-16 h-16 bg-zinc-900 rounded-2xl flex items-center justify-center mb-4 border border-zinc-800">
+              <Calendar className="w-8 h-8 text-zinc-500" strokeWidth={1.5} />
+            </div>
+            <h3 className="text-lg font-medium text-zinc-200 mb-1">No Bookings Found</h3>
+            <p className="text-sm text-zinc-500">You don't have any bookings matching this filter.</p>
+          </div>
+        ) : (
+          <div className="bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden shadow-xl">
+            
+            {/* Table Header */}
+            <div className="hidden md:flex items-center gap-4 px-6 py-4 border-b border-zinc-800 bg-zinc-900/50 text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+              <div className="w-[35%]">Details</div>
+              <div className="w-[20%]">Schedule</div>
+              <div className="w-[20%]">Status</div>
+              <div className="w-[25%] text-right pr-4">Amount & Actions</div>
+            </div>
 
-              return (
-                <div 
-                  key={booking.id} 
-                  onClick={() => router.push(detailRoute)}
-                  className="flex flex-col md:flex-row md:items-center py-5 border-b border-white/10 last:border-b-0 hover:bg-white/[0.02] transition-colors cursor-pointer group"
-                >
-                  
-                  {/* Col 1: Icon + Details */}
-                  <div className="w-full md:w-[30%] flex items-center gap-4 min-w-0 pr-4">
-                    <div className="shrink-0 flex items-center justify-center">
-                      {getTypeIcon(booking.type)}
-                    </div>
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-sm font-bold text-white uppercase tracking-widest truncate">
-                        {booking.itemName}
-                      </span>
-                      {counterpart && (
-                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1 truncate">
-                          @{counterpart}
-                        </span>
-                      )}
-                    </div>
-                  </div>
+            {/* Rows */}
+            <div className="flex flex-col divide-y divide-zinc-800">
+              {filteredBookings.map((booking: any) => {
+                const sessionInfo = (booking as any).sessionInfo;
+                const routeMap: any = { STUDIO_BOOKING: `/bookings/show/${booking.id}`, EQUIPMENT_RENTAL: `/equipment/show/${booking.equipmentId}`, SERVICE_REQUEST: `/service-requests/${booking.id}`, BEAT_PURCHASE: `/beats/show/${booking.beatId}` };
+                const detailRoute = routeMap[booking.type] || "/bookings";
+                const counterpart = viewMode === "customer" ? booking.providerName : booking.customerName;
+                const isStudio = booking.type === "STUDIO_BOOKING";
+                const amount = formatCurrency(booking.totalAmount || booking.amount || booking.budget || 0);
 
-                  {/* Col 2: Schedule */}
-                  <div className="w-full md:w-[20%] flex flex-col mt-4 md:mt-0">
-                    <span className="text-xs font-bold text-white uppercase tracking-widest">
-                      {isStudio ? formatDate(booking.startTime) : formatDate(booking.createdAt)}
-                    </span>
-                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">
-                      {isStudio ? formatTime(booking.startTime, booking.endTime) : "LOGGED"}
-                    </span>
-                  </div>
+                const isStudioOwner = currentUser?.id === (booking as any).studio?.owner?.userId;
+                const isCustomer = currentUser?.id === (booking as any).userId;
+                const isProducer = currentUser?.id === (booking as any).producerId;
+                const isClient = currentUser?.id === (booking as any).userId;
 
-                  {/* Col 3: Status Text + Tooltips */}
-                  <div className="w-full md:w-[20%] flex flex-col items-start gap-3 mt-4 md:mt-0">
-                    {getStatusBadge(booking.status)}
-                    {sessionInfo?.paymentStatus && sessionInfo.paymentStatus !== "UNPAID" && getPaymentBadge(sessionInfo.paymentStatus)}
-                  </div>
-
-                  {/* Col 4: Inline Actions & Amount */}
-                  <div className="w-full md:w-[30%] flex items-center justify-between md:justify-end gap-6 mt-6 md:mt-0" onClick={(e) => e.stopPropagation()}>
+                return (
+                  <div 
+                    key={booking.id} 
+                    onClick={() => router.push(detailRoute)}
+                    className="flex flex-col md:flex-row md:items-center px-6 py-5 hover:bg-zinc-900/50 transition-colors cursor-pointer group"
+                  >
                     
-                    {/* Inline Actions Array */}
-                    <div className="flex items-center gap-4">
-                      {(() => {
-                        const actions: any[] = [];
+                    {/* Col 1: Icon + Details */}
+                    <div className="w-full md:w-[35%] flex items-center gap-4 pr-4">
+                      <div className="w-12 h-12 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center flex-shrink-0 group-hover:border-zinc-700 transition-colors">
+                        {getTypeIcon(booking.type)}
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-sm font-semibold text-white truncate mb-1">
+                          {booking.itemName}
+                        </span>
+                        {counterpart && (
+                          <span className="text-xs text-zinc-400 truncate flex items-center gap-1">
+                            {viewMode === 'customer' ? 'With' : 'For'} <span className="font-medium text-zinc-300">@{counterpart}</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
 
-                        if (booking.type === "SERVICE_REQUEST") {
-                          if (isProducer && booking.status === "PENDING") {
-                            actions.push(
-                              <button key="acc" onClick={(e) => { e.stopPropagation(); handleUpdateServiceRequest(booking.id, "ACCEPTED"); }} disabled={updatingServiceRequest} className={payBtnClass}>
-                                {updatingServiceRequest ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} ACCEPT
-                              </button>,
-                              <button key="rej" onClick={(e) => { e.stopPropagation(); handleUpdateServiceRequest(booking.id, "REJECTED"); }} disabled={updatingServiceRequest} className={cancelBtnClass}>
-                                <X className="w-4 h-4" /> REJECT
-                              </button>
-                            );
-                          }
-                          if (isProducer && booking.status === "ACCEPTED") {
-                            actions.push(
-                              <button key="start" onClick={(e) => { e.stopPropagation(); handleUpdateServiceRequest(booking.id, "IN_PROGRESS"); }} disabled={updatingServiceRequest} className={actionBtnClass}>
-                                <Play className="w-5 h-5 fill-current" />
-                              </button>
-                            );
-                          }
-                          if (isProducer && booking.status === "IN_PROGRESS") {
-                            actions.push(
-                              <button key="done" onClick={(e) => { e.stopPropagation(); handleUpdateServiceRequest(booking.id, "COMPLETED"); }} disabled={updatingServiceRequest} className={actionBtnClass}>
-                                <CheckCheck className="w-5 h-5" />
-                              </button>
-                            );
-                          }
-                          if (isClient && (booking.status === "PENDING" || booking.status === "ACCEPTED")) {
-                            actions.push(
-                              <button key="cnc" onClick={(e) => { e.stopPropagation(); handleUpdateServiceRequest(booking.id, "CANCELLED"); }} disabled={updatingServiceRequest} className={cancelBtnClass}>
-                                <Trash2 className="w-4 h-4" /> CANCEL
-                              </button>
-                            );
-                          }
-                          if (booking.status === "CONFIRMED" || booking.status === "ACTIVE" || booking.status === "ACCEPTED" || booking.status === "IN_PROGRESS") {
-                            actions.push(
-                              <button key="msg" onClick={(e) => { e.stopPropagation(); router.push(`/messages/${isProducer ? (booking as any).userId : (booking as any).producerId}`); }} className={actionBtnClass}>
-                                <MessageCircle className="w-5 h-5" />
-                              </button>
-                            );
-                          }
-                        }
+                    {/* Col 2: Schedule */}
+                    <div className="w-full md:w-[20%] flex flex-col mt-4 md:mt-0 gap-1 text-sm">
+                      <div className="flex items-center gap-2 text-zinc-200">
+                        <Calendar className="w-4 h-4 text-zinc-500" />
+                        <span>{isStudio ? formatDate(booking.startTime) : formatDate(booking.createdAt)}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-zinc-400">
+                        <Clock className="w-4 h-4 text-zinc-500" />
+                        <span>{isStudio ? formatTime(booking.startTime, booking.endTime) : "Logged"}</span>
+                      </div>
+                    </div>
 
-                        if (booking.type === "STUDIO_BOOKING") {
-                          if (booking.status === "PENDING" && isCustomer) {
-                            actions.push(
-                              <button key="pay1" onClick={(e) => { e.stopPropagation(); payBooking.mutate({ bookingId: booking.id }); }} disabled={payBooking.isPending} className={payBtnClass}>
-                                {payBooking.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <DollarSign className="w-4 h-4" />} PAY 
-                              </button>
-                            );
-                          }
-                          if (booking.status === "PENDING" && isStudioOwner) {
-                            actions.push(
-                              <button key="acc1" onClick={(e) => { e.stopPropagation(); updateStatus.mutate({ bookingId: booking.id, status: "CONFIRMED" }); }} disabled={updateStatus.isPending} className={payBtnClass}>
-                                {updateStatus.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} ACCEPT
-                              </button>
-                            );
-                          }
-                          if (booking.status === "PENDING" && (isStudioOwner || isCustomer)) {
-                            actions.push(
-                              <button key="cnc1" onClick={(e) => { e.stopPropagation(); cancelBooking.mutate(booking.id); }} disabled={cancelBooking.isPending} className={cancelBtnClass}>
-                                <X className="w-4 h-4" /> {isStudioOwner ? "REJECT" : "CANCEL"}
-                              </button>
-                            );
-                          }
-                          if (booking.status === "CONFIRMED" && isCustomer && (!sessionInfo?.paymentStatus || sessionInfo?.paymentStatus === "UNPAID")) {
-                            actions.push(
-                              <button key="pay2" onClick={(e) => { e.stopPropagation(); payBooking.mutate({ bookingId: booking.id }); }} disabled={payBooking.isPending} className={payBtnClass}>
-                                {payBooking.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />} PAY NOW
-                              </button>
-                            );
-                          }
-                          
-                          // QR Flow
-                          if (booking.status === "CONFIRMED" && isStudioOwner && sessionInfo?.paymentStatus === "PAYMENT_HELD") {
-                            if (showQrPrompt === booking.id) {
+                    {/* Col 3: Status Text + Tooltips */}
+                    <div className="w-full md:w-[20%] flex flex-col items-start gap-2 mt-4 md:mt-0">
+                      {getStatusBadge(booking.status)}
+                      {sessionInfo?.paymentStatus && sessionInfo.paymentStatus !== "UNPAID" && getPaymentBadge(sessionInfo.paymentStatus)}
+                    </div>
+
+                    {/* Col 4: Inline Actions & Amount */}
+                    <div className="w-full md:w-[25%] flex items-center justify-between md:justify-end gap-6 mt-6 md:mt-0" onClick={(e) => e.stopPropagation()}>
+                      
+                      {/* Inline Actions Array */}
+                      <div className="flex items-center gap-2">
+                        {(() => {
+                          const actions: any[] = [];
+
+                          if (booking.type === "SERVICE_REQUEST") {
+                            if (isProducer && booking.status === "PENDING") {
                               actions.push(
-                                <div key="qr" className="flex items-center gap-2 border-b border-zinc-600 pb-1" onClick={(e) => e.stopPropagation()}>
-                                  <input type="text" placeholder="SCAN QR" value={qrCodeInput} onChange={(e) => setQrCodeInput(e.target.value)} className="w-20 bg-transparent text-[10px] font-black uppercase tracking-widest text-white outline-none placeholder:text-zinc-600" />
-                                  <button onClick={() => checkIn.mutate({ bookingId: booking.id, qrCode: qrCodeInput.trim() }, { onSuccess: () => { setShowQrPrompt(null); setQrCodeInput(""); } })} disabled={checkIn.isPending || !qrCodeInput.trim()} className="text-white hover:text-green-400 outline-none">
-                                    <Check className="w-4 h-4" />
-                                  </button>
-                                  <button onClick={() => setShowQrPrompt(null)} className="text-zinc-500 hover:text-white outline-none"><X className="w-4 h-4" /></button>
-                                </div>
+                                <button key="acc" onClick={(e) => { e.stopPropagation(); handleUpdateServiceRequest(booking.id, "ACCEPTED"); }} disabled={updatingServiceRequest} className={payBtnClass}>
+                                  {updatingServiceRequest ? <Loader2 className="w-4 h-4 animate-spin" /> : "Accept"}
+                                </button>,
+                                <button key="rej" onClick={(e) => { e.stopPropagation(); handleUpdateServiceRequest(booking.id, "REJECTED"); }} disabled={updatingServiceRequest} className={cancelBtnClass}>
+                                  Reject
+                                </button>
                               );
-                            } else {
+                            }
+                            if (isProducer && booking.status === "ACCEPTED") {
                               actions.push(
-                                <button key="strt" onClick={(e) => { e.stopPropagation(); setShowQrPrompt(booking.id); }} disabled={checkIn.isPending} className={actionBtnClass}>
+                                <button key="start" onClick={(e) => { e.stopPropagation(); handleUpdateServiceRequest(booking.id, "IN_PROGRESS"); }} disabled={updatingServiceRequest} className={actionBtnClass} title="Start Session">
                                   <Play className="w-5 h-5 fill-current" />
                                 </button>
                               );
                             }
-                          }
-
-                          // Code Flow
-                          if (booking.status === "ACTIVE" && isCustomer && sessionInfo && !sessionInfo.bookerConfirmedCheckIn) {
-                            if (showConfirmPrompt === booking.id) {
+                            if (isProducer && booking.status === "IN_PROGRESS") {
                               actions.push(
-                                <div key="code" className="flex items-center gap-2 border-b border-zinc-600 pb-1" onClick={(e) => e.stopPropagation()}>
-                                  <input type="text" placeholder="CODE" maxLength={6} value={confirmCodeInput} onChange={(e) => setConfirmCodeInput(e.target.value.toUpperCase())} className="w-16 bg-transparent text-[10px] font-black uppercase tracking-widest text-white outline-none text-center placeholder:text-zinc-600" />
-                                  <button onClick={() => confirmCheckIn.mutate({ bookingId: booking.id, confirmationCode: confirmCodeInput.trim() }, { onSuccess: () => { setShowConfirmPrompt(null); setConfirmCodeInput(""); } })} disabled={confirmCheckIn.isPending || !confirmCodeInput.trim()} className="text-white hover:text-green-400 outline-none">
-                                    <Check className="w-4 h-4" />
-                                  </button>
-                                  <button onClick={() => setShowConfirmPrompt(null)} className="text-zinc-500 hover:text-white outline-none"><X className="w-4 h-4" /></button>
-                                </div>
+                                <button key="done" onClick={(e) => { e.stopPropagation(); handleUpdateServiceRequest(booking.id, "COMPLETED"); }} disabled={updatingServiceRequest} className={actionBtnClass} title="Mark Completed">
+                                  <CheckCheck className="w-5 h-5" />
+                                </button>
                               );
-                            } else {
+                            }
+                            if (isClient && (booking.status === "PENDING" || booking.status === "ACCEPTED")) {
                               actions.push(
-                                <button key="cfrm" onClick={(e) => { e.stopPropagation(); setShowConfirmPrompt(booking.id); }} className={actionBtnClass}>
-                                  <MapPin className="w-5 h-5" />
+                                <button key="cnc" onClick={(e) => { e.stopPropagation(); handleUpdateServiceRequest(booking.id, "CANCELLED"); }} disabled={updatingServiceRequest} className={cancelBtnClass}>
+                                  Cancel
+                                </button>
+                              );
+                            }
+                            if (booking.status === "CONFIRMED" || booking.status === "ACTIVE" || booking.status === "ACCEPTED" || booking.status === "IN_PROGRESS") {
+                              actions.push(
+                                <button key="msg" onClick={(e) => { e.stopPropagation(); router.push(`/messages/${isProducer ? (booking as any).userId : (booking as any).producerId}`); }} className={actionBtnClass} title="Message">
+                                  <MessageCircle className="w-5 h-5" />
                                 </button>
                               );
                             }
                           }
 
-                          if (booking.status === "ACTIVE" && (isStudioOwner || isCustomer)) {
-                            actions.push(
-                              <button key="end" onClick={(e) => { e.stopPropagation(); if (confirm("End Session?")) checkOut.mutate(booking.id); }} disabled={checkOut.isPending} className={actionBtnClass}>
-                                {checkOut.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Square className="w-5 h-5 fill-current" />}
-                              </button>
-                            );
+                          if (booking.type === "STUDIO_BOOKING") {
+                            if (booking.status === "PENDING" && isCustomer) {
+                              actions.push(
+                                <button key="pay1" onClick={(e) => { e.stopPropagation(); payBooking.mutate({ bookingId: booking.id }); }} disabled={payBooking.isPending} className={payBtnClass}>
+                                  {payBooking.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Pay Deposit"}
+                                </button>
+                              );
+                            }
+                            if (booking.status === "PENDING" && isStudioOwner) {
+                              actions.push(
+                                <button key="acc1" onClick={(e) => { e.stopPropagation(); updateStatus.mutate({ bookingId: booking.id, status: "CONFIRMED" }); }} disabled={updateStatus.isPending} className={payBtnClass}>
+                                  {updateStatus.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Accept"}
+                                </button>
+                              );
+                            }
+                            if (booking.status === "PENDING" && (isStudioOwner || isCustomer)) {
+                              actions.push(
+                                <button key="cnc1" onClick={(e) => { e.stopPropagation(); cancelBooking.mutate(booking.id); }} disabled={cancelBooking.isPending} className={cancelBtnClass}>
+                                  {isStudioOwner ? "Reject" : "Cancel"}
+                                </button>
+                              );
+                            }
+                            if (booking.status === "CONFIRMED" && isCustomer && (!sessionInfo?.paymentStatus || sessionInfo?.paymentStatus === "UNPAID")) {
+                              actions.push(
+                                <button key="pay2" onClick={(e) => { e.stopPropagation(); payBooking.mutate({ bookingId: booking.id }); }} disabled={payBooking.isPending} className={payBtnClass}>
+                                  {payBooking.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Pay Full Amount"}
+                                </button>
+                              );
+                            }
+                            
+                            // QR Flow
+                            if (booking.status === "CONFIRMED" && isStudioOwner && sessionInfo?.paymentStatus === "PAYMENT_HELD") {
+                              if (showQrPrompt === booking.id) {
+                                actions.push(
+                                  <div key="qr" className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-lg p-1" onClick={(e) => e.stopPropagation()}>
+                                    <input type="text" placeholder="Scan QR" value={qrCodeInput} onChange={(e) => setQrCodeInput(e.target.value)} className="w-24 bg-transparent text-sm text-white outline-none px-2 placeholder:text-zinc-600" />
+                                    <button onClick={() => checkIn.mutate({ bookingId: booking.id, qrCode: qrCodeInput.trim() }, { onSuccess: () => { setShowQrPrompt(null); setQrCodeInput(""); } })} disabled={checkIn.isPending || !qrCodeInput.trim()} className="p-1 rounded bg-green-500/20 text-green-500 hover:bg-green-500/30">
+                                      <Check className="w-4 h-4" />
+                                    </button>
+                                    <button onClick={() => setShowQrPrompt(null)} className="p-1 rounded bg-zinc-800 text-zinc-400 hover:text-white"><X className="w-4 h-4" /></button>
+                                  </div>
+                                );
+                              } else {
+                                actions.push(
+                                  <button key="strt" onClick={(e) => { e.stopPropagation(); setShowQrPrompt(booking.id); }} disabled={checkIn.isPending} className={actionBtnClass} title="Start Session">
+                                    <Play className="w-5 h-5 fill-current" />
+                                  </button>
+                                );
+                              }
+                            }
+
+                            // Code Flow
+                            if (booking.status === "ACTIVE" && isCustomer && sessionInfo && !sessionInfo.bookerConfirmedCheckIn) {
+                              if (showConfirmPrompt === booking.id) {
+                                actions.push(
+                                  <div key="code" className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-lg p-1" onClick={(e) => e.stopPropagation()}>
+                                    <input type="text" placeholder="Code" maxLength={6} value={confirmCodeInput} onChange={(e) => setConfirmCodeInput(e.target.value.toUpperCase())} className="w-16 bg-transparent text-sm text-white outline-none text-center placeholder:text-zinc-600" />
+                                    <button onClick={() => confirmCheckIn.mutate({ bookingId: booking.id, confirmationCode: confirmCodeInput.trim() }, { onSuccess: () => { setShowConfirmPrompt(null); setConfirmCodeInput(""); } })} disabled={confirmCheckIn.isPending || !confirmCodeInput.trim()} className="p-1 rounded bg-green-500/20 text-green-500 hover:bg-green-500/30">
+                                      <Check className="w-4 h-4" />
+                                    </button>
+                                    <button onClick={() => setShowConfirmPrompt(null)} className="p-1 rounded bg-zinc-800 text-zinc-400 hover:text-white"><X className="w-4 h-4" /></button>
+                                  </div>
+                                );
+                              } else {
+                                actions.push(
+                                  <button key="cfrm" onClick={(e) => { e.stopPropagation(); setShowConfirmPrompt(booking.id); }} className={actionBtnClass} title="Confirm Location">
+                                    <MapPin className="w-5 h-5" />
+                                  </button>
+                                );
+                              }
+                            }
+
+                            if (booking.status === "ACTIVE" && (isStudioOwner || isCustomer)) {
+                              actions.push(
+                                <button key="end" onClick={(e) => { e.stopPropagation(); if (confirm("End Session?")) checkOut.mutate(booking.id); }} disabled={checkOut.isPending} className={actionBtnClass} title="End Session">
+                                  {checkOut.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Square className="w-5 h-5 fill-current" />}
+                                </button>
+                              );
+                            }
+
+                            if (booking.status === "COMPLETED" && isCustomer && sessionInfo?.paymentStatus === "PAYMENT_HELD") {
+                              actions.push(
+                                <button key="rel" onClick={(e) => { e.stopPropagation(); if (confirm("Approve payment release?")) releasePayment.mutate(booking.id); }} disabled={releasePayment.isPending} className={payBtnClass}>
+                                  {releasePayment.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Release Funds"}
+                                </button>
+                              );
+                            }
+
+                            if ((booking.status === "CONFIRMED" || booking.status === "ACTIVE") && isCustomer) {
+                              actions.push(
+                                <button key="msg" onClick={(e) => { e.stopPropagation(); router.push(`/bookings/${booking.id}/chat`); }} className={actionBtnClass} title="Message">
+                                  <MessageCircle className="w-5 h-5" />
+                                </button>
+                              );
+                            }
                           }
 
-                          if (booking.status === "COMPLETED" && isCustomer && sessionInfo?.paymentStatus === "PAYMENT_HELD") {
-                            actions.push(
-                              <button key="rel" onClick={(e) => { e.stopPropagation(); if (confirm("Approve payment release?")) releasePayment.mutate(booking.id); }} disabled={releasePayment.isPending} className={payBtnClass}>
-                                {releasePayment.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />} RELEASE
-                              </button>
-                            );
-                          }
+                          return actions;
+                        })()}
+                      </div>
 
-                          if ((booking.status === "CONFIRMED" || booking.status === "ACTIVE") && isCustomer) {
-                            actions.push(
-                              <button key="msg" onClick={(e) => { e.stopPropagation(); router.push(`/bookings/${booking.id}/chat`); }} className={actionBtnClass}>
-                                <MessageCircle className="w-5 h-5" />
-                              </button>
-                            );
-                          }
-                        }
+                      {/* Amount */}
+                      <div className="flex flex-col items-end min-w-[80px]">
+                        <span className="text-sm font-semibold text-white">
+                          {amount}
+                        </span>
+                      </div>
 
-                        return actions;
-                      })()}
                     </div>
-
-                    {/* Amount */}
-                    <div className="flex items-center gap-4 shrink-0">
-                      <div className="hidden lg:block w-px h-6 bg-white/20" />
-                      <span className="text-[13px] font-black text-white w-20 text-right tracking-widest">
-                        {amount}
-                      </span>
-                    </div>
-
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

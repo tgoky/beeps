@@ -2,8 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Heart, Play, Pause, Music2, Users, FileText, Mic, Award, Crown, MessageCircle, Plus, TrendingUp, Clock, CheckCircle, Lock, Globe, UserPlus, Eye, EyeOff, AlertCircle, Info, Pencil, Send } from "lucide-react";
-import { useTheme } from "../../providers/ThemeProvider";
+import { Search, Heart, Play, Pause, Music2, Users, FileText, Mic, Crown, MessageCircle, Plus, TrendingUp, Clock, CheckCircle, Lock, Globe, UserPlus, EyeOff, AlertCircle, Info, Pencil, Send } from "lucide-react";
 import { usePermissions } from "../../hooks/usePermissions";
 
 type MusicService = {
@@ -26,14 +25,14 @@ type MusicService = {
   duration?: string;
   audioUrl?: string;
   lyrics?: string;
-  lyricsVisibility?: 'public' | 'club' | 'followers'; // Privacy level
+  lyricsVisibility?: 'public' | 'club' | 'followers';
   price?: number | string;
   deadline?: string;
   status?: 'open' | 'completed' | 'in-progress';
   collaborators?: number;
   comments?: number;
   date: string;
-  allowsAnonymous?: boolean; // For auditions
+  allowsAnonymous?: boolean;
 };
 
 // Mock Data
@@ -192,7 +191,6 @@ const formatNumber = (num: number): string => {
   return num.toString();
 };
 
-// Get reputation tier from follower count
 const getReputationTier = (followers: number): 'newbie' | 'rising' | 'verified' | 'pro' | 'industry' => {
   if (followers >= 500000) return 'industry';
   if (followers >= 50000) return 'pro';
@@ -201,21 +199,19 @@ const getReputationTier = (followers: number): 'newbie' | 'rising' | 'verified' 
   return 'newbie';
 };
 
-// Get reputation badge config
-const getReputationBadge = (tier: string, theme: string) => {
+const getReputationBadge = (tier: string) => {
   const configs = {
-    newbie: { label: 'Newbie', color: theme === 'dark' ? 'bg-gray-500/10 text-gray-400 border-gray-500/20' : 'bg-gray-100 text-gray-600 border-gray-300' },
-    rising: { label: 'Rising', color: theme === 'dark' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-green-50 text-green-600 border-green-200' },
-    verified: { label: 'Verified', color: theme === 'dark' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-blue-50 text-blue-600 border-blue-200' },
-    pro: { label: 'Pro', color: theme === 'dark' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-purple-50 text-purple-600 border-purple-200' },
-    industry: { label: 'Industry', color: theme === 'dark' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' : 'bg-yellow-50 text-yellow-600 border-yellow-200' }
+    newbie: { label: 'Newbie', color: 'bg-zinc-800/50 text-zinc-400 border-zinc-700/50' },
+    rising: { label: 'Rising', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
+    verified: { label: 'Verified', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20' },
+    pro: { label: 'Pro', color: 'bg-purple-500/10 text-purple-400 border-purple-500/20' },
+    industry: { label: 'Industry', color: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' }
   };
   return configs[tier as keyof typeof configs] || configs.newbie;
 };
 
 export default function MusicServices() {
   const router = useRouter();
-  const { theme } = useTheme();
   const { permissions, isArtist, isProducer, isLyricist } = usePermissions();
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -249,27 +245,20 @@ export default function MusicServices() {
     }
   };
 
-  // Filter auditions by role type
   const canViewAudition = (audition: MusicService) => {
     if (!audition.auditionType || !permissions.canViewAuditionsByType) {
-      return permissions.canSubmitToAuditions; // Fallback: can view if can submit
+      return permissions.canSubmitToAuditions;
     }
-
-    // Role-based audition visibility
     if (audition.auditionType === 'artist' && isArtist) return true;
     if (audition.auditionType === 'producer' && isProducer) return true;
     if (audition.auditionType === 'lyricist' && isLyricist) return true;
-
-    // Studio owners and labels can view all auditions
     return permissions.canHostAuditions;
   };
 
-  // Filter lyrics by privacy level
   const canViewLyrics = (lyrics: MusicService) => {
     if (!lyrics.lyricsVisibility || lyrics.lyricsVisibility === 'public') {
       return permissions.canViewLyrics;
     }
-    // For private lyrics, need special permission
     return permissions.canViewPrivateLyrics;
   };
 
@@ -286,7 +275,6 @@ export default function MusicServices() {
                        activeTab === "auditions" ? service.type === "audition" :
                        activeTab === "labels" ? service.type === "label" : true;
 
-    // Apply permission-based filtering
     if (service.type === 'audition' && !canViewAudition(service)) return false;
     if (service.type === 'lyrics' && !canViewLyrics(service)) return false;
 
@@ -295,12 +283,12 @@ export default function MusicServices() {
 
   const getTypeConfig = (type: string) => {
     const configs = {
-      snippet: { color: theme === "dark" ? "bg-blue-500/10 text-blue-400 border-blue-500/20" : "bg-blue-50 text-blue-600 border-blue-200/50", label: "SNIPPET", icon: <Music2 className="w-3 h-3" /> },
-      collab: { color: theme === "dark" ? "bg-purple-500/10 text-purple-400 border-purple-500/20" : "bg-purple-50 text-purple-600 border-purple-200/50", label: "COLLAB", icon: <Users className="w-3 h-3" /> },
-      lyrics: { color: theme === "dark" ? "bg-green-500/10 text-green-400 border-green-500/20" : "bg-green-50 text-green-600 border-green-200/50", label: "LYRICS", icon: <FileText className="w-3 h-3" /> },
-      writer: { color: theme === "dark" ? "bg-orange-500/10 text-orange-400 border-orange-500/20" : "bg-orange-50 text-orange-600 border-orange-200/50", label: "WRITER", icon: <FileText className="w-3 h-3" /> },
-      audition: { color: theme === "dark" ? "bg-red-500/10 text-red-400 border-red-500/20" : "bg-red-50 text-red-600 border-red-200/50", label: "AUDITION", icon: <Mic className="w-3 h-3" /> },
-      label: { color: theme === "dark" ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20" : "bg-yellow-50 text-yellow-600 border-yellow-200/50", label: "LABEL", icon: <Crown className="w-3 h-3" /> }
+      snippet: { color: "bg-blue-500/10 text-blue-400 border-blue-500/20", label: "Snippet", icon: <Music2 className="w-3 h-3" /> },
+      collab: { color: "bg-purple-500/10 text-purple-400 border-purple-500/20", label: "Collab", icon: <Users className="w-3 h-3" /> },
+      lyrics: { color: "bg-green-500/10 text-green-400 border-green-500/20", label: "Lyrics", icon: <FileText className="w-3 h-3" /> },
+      writer: { color: "bg-orange-500/10 text-orange-400 border-orange-500/20", label: "Writer", icon: <FileText className="w-3 h-3" /> },
+      audition: { color: "bg-red-500/10 text-red-400 border-red-500/20", label: "Audition", icon: <Mic className="w-3 h-3" /> },
+      label: { color: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20", label: "Label", icon: <Crown className="w-3 h-3" /> }
     };
     return configs[type as keyof typeof configs] || configs.snippet;
   };
@@ -318,77 +306,64 @@ export default function MusicServices() {
   };
 
   return (
-    <div className={`min-h-screen p-6 transition-colors duration-200 ${
-      theme === "dark"
-        ? "bg-black text-white"
-        : "bg-gray-50 text-gray-900"
-    }`}>
+    <div className="h-full overflow-y-auto p-6 bg-[#030303] text-white">
       <div className="max-w-[1600px] mx-auto">
+        
         {/* Permission Banner */}
         {showPermissionBanner && (
-          <div className={`mb-6 p-4 rounded-xl border ${
-            theme === "dark"
-              ? "border-blue-500/20 bg-blue-500/5"
-              : "border-blue-200 bg-blue-50"
-          }`}>
+          <div className="mb-6 p-4 rounded-xl border border-blue-900/30 bg-blue-950/20">
             <div className="flex items-start justify-between">
               <div className="flex items-start gap-3 flex-1">
-                <Info className={`w-5 h-5 mt-0.5 flex-shrink-0 ${
-                  theme === "dark" ? "text-blue-400" : "text-blue-600"
-                }`} />
+                <Info className="w-5 h-5 mt-0.5 flex-shrink-0 text-blue-400" />
                 <div>
-                  <h3 className={`text-sm font-medium mb-2 ${
-                    theme === "dark" ? "text-blue-400" : "text-blue-600"
-                  }`}>
+                  <h3 className="text-sm font-medium mb-2 text-blue-300">
                     Your Music Services Permissions ({permissions.role})
                   </h3>
-                  <div className={`text-xs space-y-1 ${
-                    theme === "dark" ? "text-blue-300/70" : "text-blue-700/70"
-                  }`}>
+                  <div className="text-xs space-y-1 text-blue-400/70">
                     <div className="flex flex-wrap gap-2">
                       {permissions.canUploadSnippets && (
                         <span className="flex items-center gap-1">
-                          <CheckCircle className="w-3 h-3" /> Upload Snippets
+                          <CheckCircle className="w-3 h-3 text-blue-400" /> Upload Snippets
                         </span>
                       )}
                       {permissions.canPostLyrics && (
                         <span className="flex items-center gap-1">
-                          <CheckCircle className="w-3 h-3" /> Post Lyrics
+                          <CheckCircle className="w-3 h-3 text-blue-400" /> Post Lyrics
                         </span>
                       )}
                       {permissions.canCreateWriterGigs && (
                         <span className="flex items-center gap-1">
-                          <CheckCircle className="w-3 h-3" /> Create Writer Gigs
+                          <CheckCircle className="w-3 h-3 text-blue-400" /> Create Writer Gigs
                         </span>
                       )}
                       {permissions.canHostAuditions && (
                         <span className="flex items-center gap-1">
-                          <CheckCircle className="w-3 h-3" /> Host Auditions
+                          <CheckCircle className="w-3 h-3 text-blue-400" /> Host Auditions
                         </span>
                       )}
                       {permissions.canSubmitToAuditions && (
                         <span className="flex items-center gap-1">
-                          <CheckCircle className="w-3 h-3" /> Submit to Auditions
+                          <CheckCircle className="w-3 h-3 text-blue-400" /> Submit to Auditions
                         </span>
                       )}
                       {permissions.canSubmitAnonymousAudition && (
                         <span className="flex items-center gap-1">
-                          <CheckCircle className="w-3 h-3" /> Anonymous Submissions
+                          <CheckCircle className="w-3 h-3 text-blue-400" /> Anonymous Submissions
                         </span>
                       )}
                       {permissions.canCreateCollabRequest && (
                         <span className="flex items-center gap-1">
-                          <CheckCircle className="w-3 h-3" /> Create Collabs
+                          <CheckCircle className="w-3 h-3 text-blue-400" /> Create Collabs
                         </span>
                       )}
                       {permissions.canGiveProfessionalReview && (
                         <span className="flex items-center gap-1">
-                          <CheckCircle className="w-3 h-3" /> Professional Reviews
+                          <CheckCircle className="w-3 h-3 text-blue-400" /> Professional Reviews
                         </span>
                       )}
                     </div>
                     <p className="mt-2">
-                      Reputation Tier: <span className="font-medium">{permissions.reputationTier.charAt(0).toUpperCase() + permissions.reputationTier.slice(1)}</span>
+                      Reputation Tier: <span className="font-medium text-blue-300">{permissions.reputationTier.charAt(0).toUpperCase() + permissions.reputationTier.slice(1)}</span>
                       {permissions.isVerifiedCreator && " • Verified Creator"}
                       {permissions.isProfessionalReviewer && " • Professional Reviewer"}
                       {permissions.isLabelPartner && " • Label Partner"}
@@ -398,9 +373,7 @@ export default function MusicServices() {
               </div>
               <button
                 onClick={() => setShowPermissionBanner(false)}
-                className={`text-xs px-2 py-1 rounded hover:bg-black/5 ${
-                  theme === "dark" ? "text-blue-400" : "text-blue-600"
-                }`}
+                className="text-xs px-2 py-1 rounded text-blue-400 hover:bg-black/20"
               >
                 Dismiss
               </button>
@@ -413,61 +386,37 @@ export default function MusicServices() {
           {/* Main Content - 3 columns */}
           <div className="xl:col-span-3">
             {/* Header */}
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
               <div className="space-y-1">
                 <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                    theme === "dark" ? "bg-white" : "bg-gray-900"
-                  }`}>
-                    <Music2 className={`w-4 h-4 ${
-                      theme === "dark" ? "text-black" : "text-white"
-                    }`} strokeWidth={2.5} />
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white">
+                    <Music2 className="w-4 h-4 text-black" strokeWidth={2.5} />
                   </div>
-                  <h1 className="text-2xl font-light tracking-tight">
+                  <h1 className="text-2xl font-light tracking-tight text-white">
                     Music Services
                   </h1>
                 </div>
-                <p className={`text-sm font-light tracking-wide ${
-                  theme === "dark" ? "text-zinc-500" : "text-gray-600"
-                }`}>
+                <p className="text-sm font-light tracking-wide text-zinc-400">
                   Collaborate, create, and connect with music professionals
                 </p>
               </div>
 
-              {/* Multiple Create Buttons based on Permissions */}
-              <div className="flex items-center gap-2">
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center gap-2">
                 {permissions.canUploadSnippets && (
-                  <button
-                    className={`flex items-center gap-2 px-4 py-2.5 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
-                      theme === "dark"
-                        ? "bg-white border-white text-black hover:bg-zinc-100"
-                        : "bg-black border-black text-white hover:bg-gray-800"
-                    }`}
-                  >
+                  <button className="flex items-center gap-2 px-4 py-2 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 bg-white border-white text-black hover:bg-zinc-200">
                     <Plus className="w-4 h-4" strokeWidth={2} />
                     Upload Snippet
                   </button>
                 )}
                 {permissions.canPostLyrics && (
-                  <button
-                    className={`flex items-center gap-2 px-4 py-2.5 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
-                      theme === "dark"
-                        ? "border-zinc-700 text-zinc-300 hover:border-zinc-600 hover:bg-zinc-900"
-                        : "border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50"
-                    }`}
-                  >
+                  <button className="flex items-center gap-2 px-4 py-2 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 bg-zinc-900 border-zinc-700 text-white hover:bg-zinc-800">
                     <Pencil className="w-4 h-4" strokeWidth={2} />
                     Post Lyrics
                   </button>
                 )}
                 {permissions.canHostAuditions && (
-                  <button
-                    className={`flex items-center gap-2 px-4 py-2.5 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
-                      theme === "dark"
-                        ? "border-zinc-700 text-zinc-300 hover:border-zinc-600 hover:bg-zinc-900"
-                        : "border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50"
-                    }`}
-                  >
+                  <button className="flex items-center gap-2 px-4 py-2 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 bg-zinc-900 border-zinc-700 text-white hover:bg-zinc-800">
                     <Mic className="w-4 h-4" strokeWidth={2} />
                     Host Audition
                   </button>
@@ -476,26 +425,16 @@ export default function MusicServices() {
             </div>
 
             {/* Filters */}
-            <div className={`flex flex-wrap gap-3 mb-8 p-4 rounded-xl border ${
-              theme === "dark"
-                ? "border-zinc-800 bg-zinc-950"
-                : "border-gray-300 bg-white"
-            }`}>
+            <div className="flex flex-wrap gap-3 mb-8 p-4 rounded-xl border border-zinc-800 bg-[#0A0A0A]">
               {/* Search */}
               <div className="relative flex-1 min-w-[250px]">
-                <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${
-                  theme === "dark" ? "text-zinc-600" : "text-gray-500"
-                }`} strokeWidth={2} />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" strokeWidth={2} />
                 <input
                   type="text"
                   placeholder="Search services, users..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className={`w-full pl-10 pr-4 py-3 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide focus:outline-none ${
-                    theme === "dark"
-                      ? "bg-zinc-900 border-zinc-800 text-white placeholder-zinc-600 focus:border-white focus:bg-black"
-                      : "bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-500 focus:border-gray-900 focus:bg-white"
-                  }`}
+                  className="w-full pl-10 pr-4 py-3 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide focus:outline-none bg-zinc-900 border-zinc-800 text-white placeholder-zinc-500 focus:border-zinc-600 focus:bg-zinc-800"
                 />
               </div>
 
@@ -503,11 +442,7 @@ export default function MusicServices() {
               <select
                 value={selectedGenre}
                 onChange={(e) => setSelectedGenre(e.target.value)}
-                className={`px-4 py-3 text-sm font-light rounded-lg border transition-all duration-200 cursor-pointer tracking-wide focus:outline-none ${
-                  theme === "dark"
-                    ? "bg-zinc-900 border-zinc-800 text-white focus:border-white focus:bg-black"
-                    : "bg-gray-50 border-gray-300 text-gray-900 focus:border-gray-900 focus:bg-white"
-                }`}
+                className="px-4 py-3 text-sm font-light rounded-lg border transition-all duration-200 cursor-pointer tracking-wide focus:outline-none bg-zinc-900 border-zinc-800 text-white focus:border-zinc-600 focus:bg-zinc-800"
               >
                 <option value="all">All Genres</option>
                 <option value="Pop">Pop</option>
@@ -518,9 +453,7 @@ export default function MusicServices() {
               </select>
 
               {/* Tab Filters */}
-              <div className={`flex items-center gap-1 p-1 rounded-lg border ${
-                theme === "dark" ? "border-zinc-800 bg-zinc-900" : "border-gray-300 bg-gray-100"
-              }`}>
+              <div className="flex items-center gap-1 p-1 rounded-lg border border-zinc-800 bg-zinc-900 overflow-x-auto no-scrollbar">
                 {[
                   { key: "snippets", label: "Snippets", icon: Music2 },
                   { key: "collabs", label: "Collabs", icon: Users },
@@ -535,14 +468,10 @@ export default function MusicServices() {
                       key={tab.key}
                       onClick={() => setActiveTab(tab.key)}
                       className={`
-                        flex items-center gap-2 px-4 py-2 text-sm font-light rounded transition-all duration-200 tracking-wide
+                        flex items-center gap-2 px-4 py-2 text-sm font-light rounded transition-all duration-200 tracking-wide whitespace-nowrap
                         ${activeTab === tab.key
-                          ? theme === "dark"
-                            ? "bg-white text-black"
-                            : "bg-black text-white"
-                          : theme === "dark"
-                            ? "text-zinc-400 hover:text-white"
-                            : "text-gray-600 hover:text-black"
+                          ? "bg-white text-black"
+                          : "text-zinc-400 hover:text-white"
                         }
                       `}
                     >
@@ -555,9 +484,7 @@ export default function MusicServices() {
             </div>
 
             {/* Results Count */}
-            <div className={`text-sm font-light tracking-wide mb-6 ${
-              theme === "dark" ? "text-zinc-500" : "text-gray-600"
-            }`}>
+            <div className="text-sm font-light tracking-wide mb-6 text-zinc-500">
               {filteredServices.length} {filteredServices.length === 1 ? "service" : "services"} found
             </div>
 
@@ -566,9 +493,8 @@ export default function MusicServices() {
               {filteredServices.map((service) => {
                 const typeConfig = getTypeConfig(service.type);
                 const repTier = getReputationTier(service.user.followers);
-                const repBadge = getReputationBadge(repTier, theme);
+                const repBadge = getReputationBadge(repTier);
 
-                // Determine if user can interact with this service
                 const canInteract =
                   (service.type === 'snippet' && permissions.canUploadSnippets) ||
                   (service.type === 'collab' && permissions.canJoinPaidCollabs) ||
@@ -580,11 +506,7 @@ export default function MusicServices() {
                 return (
                   <div
                     key={service.id}
-                    className={`group rounded-xl border overflow-hidden transition-all duration-200 cursor-pointer active:scale-[0.98] ${
-                      theme === "dark"
-                        ? "border-zinc-800 bg-zinc-950 hover:border-zinc-700 hover:bg-zinc-900"
-                        : "border-gray-300 bg-white hover:border-gray-400 hover:bg-gray-50"
-                    }`}
+                    className="group rounded-xl border overflow-hidden transition-all duration-200 cursor-pointer active:scale-[0.98] border-zinc-800 bg-zinc-950 hover:border-zinc-700 hover:bg-zinc-900"
                     onClick={() => router.push(`/services/${service.id}`)}
                   >
                     <div className="p-4">
@@ -598,19 +520,15 @@ export default function MusicServices() {
                           />
                           <div>
                             <div className="flex items-center gap-1">
-                              <span className={`text-sm font-light tracking-wide ${
-                                theme === "dark" ? "text-white" : "text-gray-900"
-                              }`}>
+                              <span className="text-sm font-light tracking-wide text-white">
                                 {service.user.name}
                               </span>
                               {service.user.verified && (
-                                <CheckCircle className="w-3.5 h-3.5 text-blue-500" />
+                                <CheckCircle className="w-3.5 h-3.5 text-blue-400" />
                               )}
                             </div>
                             <div className="flex items-center gap-2">
-                              <div className={`text-xs font-light tracking-wide ${
-                                theme === "dark" ? "text-zinc-500" : "text-gray-600"
-                              }`}>
+                              <div className="text-xs font-light tracking-wide text-zinc-400">
                                 {formatNumber(service.user.followers)} followers
                               </div>
                               <span className={`px-1.5 py-0.5 rounded text-[10px] font-light tracking-wide border ${repBadge.color}`}>
@@ -624,9 +542,7 @@ export default function MusicServices() {
                             {typeConfig.icon}
                             {typeConfig.label}
                           </span>
-                          <span className={`text-xs font-light tracking-wide ${
-                            theme === "dark" ? "text-zinc-500" : "text-gray-600"
-                          }`}>
+                          <span className="text-xs font-light tracking-wide text-zinc-500">
                             {service.date}
                           </span>
                         </div>
@@ -637,10 +553,10 @@ export default function MusicServices() {
                         <div className="mb-2">
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-light tracking-wide border ${
                             service.lyricsVisibility === 'club'
-                              ? theme === "dark" ? "bg-amber-500/10 text-amber-400 border-amber-500/20" : "bg-amber-50 text-amber-600 border-amber-200"
+                              ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
                               : service.lyricsVisibility === 'followers'
-                              ? theme === "dark" ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" : "bg-indigo-50 text-indigo-600 border-indigo-200"
-                              : theme === "dark" ? "bg-green-500/10 text-green-400 border-green-500/20" : "bg-green-50 text-green-600 border-green-200"
+                              ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
+                              : "bg-green-500/10 text-green-400 border-green-500/20"
                           }`}>
                             {getPrivacyIcon(service.lyricsVisibility)}
                             {getPrivacyLabel(service.lyricsVisibility)}
@@ -651,9 +567,7 @@ export default function MusicServices() {
                       {/* Anonymous Badge for Auditions */}
                       {service.type === 'audition' && service.allowsAnonymous && permissions.canSubmitAnonymousAudition && (
                         <div className="mb-2">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-light tracking-wide border ${
-                            theme === "dark" ? "bg-purple-500/10 text-purple-400 border-purple-500/20" : "bg-purple-50 text-purple-600 border-purple-200"
-                          }`}>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-light tracking-wide border bg-purple-500/10 text-purple-400 border-purple-500/20">
                             <EyeOff className="w-3 h-3" />
                             Anonymous Submissions Allowed
                           </span>
@@ -661,36 +575,20 @@ export default function MusicServices() {
                       )}
 
                       {/* Title & Description */}
-                      <h3 className={`text-base font-light tracking-wide mb-2 ${
-                        theme === "dark" ? "text-white" : "text-gray-900"
-                      }`}>
+                      <h3 className="text-base font-medium tracking-wide mb-2 text-white line-clamp-1">
                         {service.title}
                       </h3>
-                      <p className={`text-sm font-light tracking-wide mb-3 line-clamp-2 ${
-                        theme === "dark" ? "text-zinc-400" : "text-gray-600"
-                      }`}>
+                      <p className="text-sm font-light tracking-wide mb-3 line-clamp-2 text-zinc-400">
                         {service.description}
                       </p>
 
                       {/* Audio Player for Snippets */}
                       {service.type === 'snippet' && (
-                        <div className={`
-                          p-3 rounded-lg mb-3 border
-                          ${theme === "dark"
-                            ? "bg-zinc-900 border-zinc-800"
-                            : "bg-gray-50 border-gray-300"
-                          }
-                        `}>
+                        <div className="p-3 rounded-lg mb-3 border bg-zinc-900 border-zinc-800">
                           <div className="flex items-center justify-between mb-2">
                             <button
                               onClick={(e) => togglePlay(service.id, e)}
-                              className={`
-                                p-2 rounded-full transition-colors
-                                ${theme === "dark"
-                                  ? "bg-purple-500/20 hover:bg-purple-500/30 text-purple-400"
-                                  : "bg-purple-100 hover:bg-purple-200 text-purple-600"
-                                }
-                              `}
+                              className="p-2 rounded-full transition-colors bg-purple-500/20 hover:bg-purple-500/30 text-purple-400"
                             >
                               {isPlaying === service.id ? (
                                 <Pause className="w-4 h-4" />
@@ -698,24 +596,16 @@ export default function MusicServices() {
                                 <Play className="w-4 h-4" />
                               )}
                             </button>
-                            <span className={`text-xs font-light tracking-wide ${
-                              theme === "dark" ? "text-zinc-500" : "text-gray-600"
-                            }`}>
+                            <span className="text-xs font-light tracking-wide text-zinc-400">
                               {service.duration}
                             </span>
-                            <span className={`text-xs font-light tracking-wide ${
-                              theme === "dark" ? "text-zinc-500" : "text-gray-600"
-                            }`}>
+                            <span className="text-xs font-light tracking-wide text-zinc-400">
                               {formatNumber(service.plays!)} plays
                             </span>
                           </div>
-                          <div className={`h-1 rounded-full overflow-hidden ${
-                            theme === "dark" ? "bg-zinc-700" : "bg-gray-200"
-                          }`}>
+                          <div className="h-1 rounded-full overflow-hidden bg-zinc-800">
                             <div
-                              className={`h-full ${
-                                theme === "dark" ? "bg-purple-500" : "bg-purple-600"
-                              }`}
+                              className="h-full bg-purple-500"
                               style={{ width: isPlaying === service.id ? "70%" : "0%" }}
                             />
                           </div>
@@ -724,26 +614,14 @@ export default function MusicServices() {
 
                       {/* Lyrics Preview */}
                       {service.type === 'lyrics' && service.lyrics && canViewLyrics(service) && (
-                        <div className={`
-                          p-3 rounded-lg mb-3 border italic
-                          ${theme === "dark"
-                            ? "bg-zinc-900 border-zinc-800 text-zinc-400"
-                            : "bg-gray-50 border-gray-300 text-gray-600"
-                          }
-                        `}>
+                        <div className="p-3 rounded-lg mb-3 border italic bg-zinc-900 border-zinc-800 text-zinc-400">
                           <p className="text-xs font-light tracking-wide line-clamp-2">{service.lyrics}</p>
                         </div>
                       )}
 
                       {/* Blocked Lyrics Preview */}
                       {service.type === 'lyrics' && !canViewLyrics(service) && (
-                        <div className={`
-                          p-3 rounded-lg mb-3 border flex items-center gap-2
-                          ${theme === "dark"
-                            ? "bg-zinc-900 border-zinc-800 text-zinc-500"
-                            : "bg-gray-50 border-gray-300 text-gray-500"
-                          }
-                        `}>
+                        <div className="p-3 rounded-lg mb-3 border flex items-center gap-2 bg-zinc-900 border-zinc-800 text-zinc-500">
                           <Lock className="w-4 h-4" />
                           <p className="text-xs font-light tracking-wide">
                             {service.lyricsVisibility === 'club'
@@ -754,15 +632,11 @@ export default function MusicServices() {
                       )}
 
                       {/* Tags */}
-                      <div className="flex flex-wrap gap-1 mb-3">
+                      <div className="flex flex-wrap gap-1.5 mb-3">
                         {service.tags.slice(0, 3).map((tag, i) => (
                           <span
                             key={i}
-                            className={`px-2 py-0.5 text-xs font-light tracking-wide rounded ${
-                              theme === "dark"
-                                ? "bg-zinc-800 text-zinc-400"
-                                : "bg-gray-100 text-gray-600"
-                            }`}
+                            className="px-2 py-1 text-xs font-light tracking-wide rounded bg-zinc-900 text-zinc-400 border border-zinc-800"
                           >
                             {tag}
                           </span>
@@ -770,11 +644,7 @@ export default function MusicServices() {
                         {service.genre.map((genre, i) => (
                           <span
                             key={`g-${i}`}
-                            className={`px-2 py-0.5 text-xs font-light tracking-wide rounded border ${
-                              theme === "dark"
-                                ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
-                                : "bg-blue-50 text-blue-600 border-blue-200/50"
-                            }`}
+                            className="px-2 py-1 text-xs font-light tracking-wide rounded border bg-blue-500/10 text-blue-400 border-blue-500/20"
                           >
                             {genre}
                           </span>
@@ -782,37 +652,31 @@ export default function MusicServices() {
                       </div>
 
                       {/* Footer */}
-                      <div className={`flex items-center justify-between pt-3 border-t ${
-                        theme === "dark" ? "border-zinc-800" : "border-gray-300"
-                      }`}>
-                        <div className="flex items-center gap-3">
+                      <div className="flex items-center justify-between pt-3 border-t border-zinc-800">
+                        <div className="flex items-center gap-4">
                           <button
                             onClick={(e) => toggleLike(service.id, e)}
-                            className="flex items-center gap-1"
+                            className="flex items-center gap-1.5 group/btn"
                           >
-                            <Heart className={`w-3.5 h-3.5 ${service.liked ? "fill-red-500 text-red-500" : theme === "dark" ? "text-zinc-500" : "text-gray-500"}`} />
+                            <Heart className={`w-3.5 h-3.5 ${service.liked ? "fill-red-500 text-red-500" : "text-zinc-500 group-hover/btn:text-white transition-colors"}`} />
                             <span className={`text-xs font-light tracking-wide ${
-                              service.liked ? "text-red-500" : theme === "dark" ? "text-zinc-400" : "text-gray-600"
+                              service.liked ? "text-red-500" : "text-zinc-400"
                             }`}>
                               {service.likes}
                             </span>
                           </button>
                           {service.comments !== undefined && (
-                            <div className="flex items-center gap-1">
-                              <MessageCircle className={`w-3.5 h-3.5 ${theme === "dark" ? "text-zinc-500" : "text-gray-500"}`} />
-                              <span className={`text-xs font-light tracking-wide ${
-                                theme === "dark" ? "text-zinc-400" : "text-gray-600"
-                              }`}>
+                            <div className="flex items-center gap-1.5">
+                              <MessageCircle className="w-3.5 h-3.5 text-zinc-500" />
+                              <span className="text-xs font-light tracking-wide text-zinc-400">
                                 {service.comments}
                               </span>
                             </div>
                           )}
                           {service.collaborators !== undefined && (
-                            <div className="flex items-center gap-1">
-                              <Users className={`w-3.5 h-3.5 ${theme === "dark" ? "text-zinc-500" : "text-gray-500"}`} />
-                              <span className={`text-xs font-light tracking-wide ${
-                                theme === "dark" ? "text-zinc-400" : "text-gray-600"
-                              }`}>
+                            <div className="flex items-center gap-1.5">
+                              <Users className="w-3.5 h-3.5 text-zinc-500" />
+                              <span className="text-xs font-light tracking-wide text-zinc-400">
                                 {service.collaborators}
                               </span>
                             </div>
@@ -822,17 +686,11 @@ export default function MusicServices() {
                         {/* Permission-based Action Button */}
                         {canInteract ? (
                           <button
-                            className={`
-                              flex items-center gap-1.5 px-3 py-1.5 text-xs font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95
-                              ${theme === "dark"
-                                ? "bg-white border-white text-black hover:bg-zinc-100"
-                                : "bg-black border-black text-white hover:bg-gray-800"
-                              }
-                            `}
+                            className="flex items-center gap-1.5 px-4 py-2 text-xs font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 bg-white border-white text-black hover:bg-zinc-200"
                             onClick={(e) => {
                               e.stopPropagation();
                               if (service.type === 'snippet') {
-                                // Handle snippet action
+                                // Handled contextually
                               } else if (service.type === 'collab') {
                                 router.push(`/collabs/create/${service.id}`);
                               } else if (service.type === 'lyrics') {
@@ -852,11 +710,9 @@ export default function MusicServices() {
                              service.type === 'audition' ? 'Submit' : 'Contact'}
                           </button>
                         ) : (
-                          <div className={`text-xs font-light tracking-wide flex items-center gap-1 ${
-                            theme === "dark" ? "text-zinc-600" : "text-gray-500"
-                          }`}>
-                            <AlertCircle className="w-3 h-3" />
-                            No Permission
+                          <div className="text-xs font-light tracking-wide flex items-center gap-1 text-zinc-500">
+                            <AlertCircle className="w-3.5 h-3.5" />
+                            No Access
                           </div>
                         )}
                       </div>
@@ -868,22 +724,12 @@ export default function MusicServices() {
 
             {/* Empty State */}
             {filteredServices.length === 0 && (
-              <div className={`text-center py-16 rounded-xl border ${
-                theme === "dark"
-                  ? "border-zinc-800 bg-zinc-950"
-                  : "border-gray-300 bg-white"
-              }`}>
-                <Music2 className={`w-12 h-12 mx-auto mb-3 ${
-                  theme === "dark" ? "text-zinc-700" : "text-gray-400"
-                }`} />
-                <p className={`text-sm font-light tracking-wide mb-1 ${
-                  theme === "dark" ? "text-zinc-400" : "text-gray-600"
-                }`}>
+              <div className="text-center py-16 rounded-xl border border-zinc-800 bg-zinc-950">
+                <Music2 className="w-12 h-12 mx-auto mb-3 text-zinc-600" />
+                <p className="text-sm font-medium tracking-wide mb-1 text-zinc-300">
                   No services found
                 </p>
-                <p className={`text-xs font-light tracking-wide ${
-                  theme === "dark" ? "text-zinc-600" : "text-gray-500"
-                }`}>
+                <p className="text-xs font-light tracking-wide text-zinc-500">
                   Try adjusting your filters or search query
                 </p>
               </div>
@@ -892,19 +738,12 @@ export default function MusicServices() {
 
           {/* Sidebar - 1 column */}
           <div className="xl:col-span-1 space-y-6">
+            
             {/* Trending Snippets */}
-            <div className={`rounded-xl border p-4 ${
-              theme === "dark"
-                ? "border-zinc-800 bg-zinc-950"
-                : "border-gray-300 bg-white"
-            }`}>
+            <div className="rounded-xl border p-5 border-zinc-800 bg-[#0A0A0A]">
               <div className="flex items-center gap-2 mb-4">
-                <TrendingUp className={`w-4 h-4 ${
-                  theme === "dark" ? "text-purple-400" : "text-purple-600"
-                }`} />
-                <h2 className={`text-lg font-light tracking-wide ${
-                  theme === "dark" ? "text-white" : "text-gray-900"
-                }`}>
+                <TrendingUp className="w-4 h-4 text-purple-400" />
+                <h2 className="text-lg font-light tracking-wide text-white">
                   Trending Snippets
                 </h2>
               </div>
@@ -912,71 +751,35 @@ export default function MusicServices() {
                 {trendingSnippets.map((snippet) => (
                   <div
                     key={snippet.id}
-                    className={`flex items-center gap-3 p-2.5 rounded-lg border transition-all duration-200 cursor-pointer ${
-                      theme === "dark"
-                        ? "border-zinc-800 bg-zinc-900 hover:border-zinc-700 hover:bg-zinc-800"
-                        : "border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100"
-                    }`}
+                    className="flex items-center gap-3 p-3 rounded-lg border transition-all duration-200 cursor-pointer border-zinc-800 bg-zinc-900 hover:border-zinc-700 hover:bg-zinc-800"
                   >
-                    <div className={`
-                      w-10 h-10 rounded-lg flex items-center justify-center
-                      ${theme === "dark" ? "bg-purple-500/20" : "bg-purple-100"}
-                    `}>
-                      <Play className={`w-4 h-4 ${
-                        theme === "dark" ? "text-purple-400" : "text-purple-600"
-                      }`} />
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-purple-500/20">
+                      <Play className="w-4 h-4 text-purple-400" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className={`text-sm font-light tracking-wide truncate ${
-                        theme === "dark" ? "text-white" : "text-gray-900"
-                      }`}>
+                      <div className="text-sm font-medium tracking-wide truncate text-zinc-200">
                         {snippet.title}
                       </div>
-                      <div className={`text-xs font-light tracking-wide ${
-                        theme === "dark" ? "text-zinc-500" : "text-gray-600"
-                      }`}>
+                      <div className="text-xs font-light tracking-wide text-zinc-500">
                         {snippet.user}
                       </div>
                     </div>
-                    <div className={`text-xs font-light tracking-wide flex-shrink-0 ${
-                      theme === "dark" ? "text-zinc-500" : "text-gray-600"
-                    }`}>
+                    <div className="text-xs font-light tracking-wide flex-shrink-0 text-zinc-500">
                       {snippet.duration}
                     </div>
                   </div>
                 ))}
               </div>
-              <button
-                className={`
-                  w-full mt-3 px-3 py-2 text-xs font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95
-                  ${theme === "dark"
-                    ? "border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-600"
-                    : "border-gray-300 text-gray-600 hover:text-black hover:border-gray-400"
-                  }
-                `}
-              >
+              <button className="w-full mt-4 px-3 py-2 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-600">
                 View All
               </button>
             </div>
 
-            {/* Divider */}
-            <div className={`h-px ${
-              theme === "dark" ? "bg-zinc-800" : "bg-gray-300"
-            }`} />
-
-            {/* Half Songs */}
-            <div className={`rounded-xl border p-4 ${
-              theme === "dark"
-                ? "border-zinc-800 bg-zinc-950"
-                : "border-gray-300 bg-white"
-            }`}>
+            {/* Finish Songs */}
+            <div className="rounded-xl border p-5 border-zinc-800 bg-[#0A0A0A]">
               <div className="flex items-center gap-2 mb-4">
-                <Music2 className={`w-4 h-4 ${
-                  theme === "dark" ? "text-purple-400" : "text-purple-600"
-                }`} />
-                <h2 className={`text-lg font-light tracking-wide ${
-                  theme === "dark" ? "text-white" : "text-gray-900"
-                }`}>
+                <Music2 className="w-4 h-4 text-purple-400" />
+                <h2 className="text-lg font-light tracking-wide text-white">
                   Finish These Songs
                 </h2>
               </div>
@@ -986,120 +789,65 @@ export default function MusicServices() {
                   { title: "City Lights", needs: "Needs Hook", genre: "R&B", progress: 60 },
                   { title: "Revolution", needs: "Needs Bridge", genre: "Rock", progress: 75 }
                 ].map((song, i) => (
-                  <div
-                    key={i}
-                    className={`p-3 rounded-lg border ${
-                      theme === "dark"
-                        ? "border-zinc-800 bg-zinc-900"
-                        : "border-gray-300 bg-gray-50"
-                    }`}
-                  >
-                    <div className={`text-sm font-light tracking-wide mb-1 ${
-                      theme === "dark" ? "text-white" : "text-gray-900"
-                    }`}>
-                      {song.title} ({song.needs})
+                  <div key={i} className="p-3 rounded-lg border border-zinc-800 bg-zinc-900">
+                    <div className="text-sm font-medium tracking-wide mb-1 text-zinc-200">
+                      {song.title} <span className="text-zinc-500 font-light">({song.needs})</span>
                     </div>
-                    <div className={`text-xs font-light tracking-wide mb-2 ${
-                      theme === "dark" ? "text-zinc-500" : "text-gray-600"
-                    }`}>
+                    <div className="text-xs font-light tracking-wide mb-3 text-zinc-500">
                       {song.genre} • {song.progress}% complete
                     </div>
-                    <div className={`h-1.5 rounded-full overflow-hidden ${
-                      theme === "dark" ? "bg-zinc-800" : "bg-gray-200"
-                    }`}>
+                    <div className="h-1.5 rounded-full overflow-hidden bg-zinc-800">
                       <div
-                        className={`h-full ${
-                          theme === "dark" ? "bg-purple-500" : "bg-purple-600"
-                        }`}
+                        className="h-full bg-purple-500"
                         style={{ width: `${song.progress}%` }}
                       />
                     </div>
                   </div>
                 ))}
               </div>
-              <button
-                className={`
-                  w-full mt-3 px-3 py-2 text-xs font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95
-                  ${theme === "dark"
-                    ? "border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-600"
-                    : "border-gray-300 text-gray-600 hover:text-black hover:border-gray-400"
-                  }
-                `}
-              >
+              <button className="w-full mt-4 px-3 py-2 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-600">
                 Browse More
               </button>
             </div>
 
-            {/* Divider */}
-            <div className={`h-px ${
-              theme === "dark" ? "bg-zinc-800" : "bg-gray-300"
-            }`} />
-
             {/* Recent Activity */}
-            <div className={`rounded-xl border p-4 ${
-              theme === "dark"
-                ? "border-zinc-800 bg-zinc-950"
-                : "border-gray-300 bg-white"
-            }`}>
+            <div className="rounded-xl border p-5 border-zinc-800 bg-[#0A0A0A]">
               <div className="flex items-center gap-2 mb-4">
-                <Clock className={`w-4 h-4 ${
-                  theme === "dark" ? "text-purple-400" : "text-purple-600"
-                }`} />
-                <h2 className={`text-lg font-light tracking-wide ${
-                  theme === "dark" ? "text-white" : "text-gray-900"
-                }`}>
+                <Clock className="w-4 h-4 text-purple-400" />
+                <h2 className="text-lg font-light tracking-wide text-white">
                   Recent Activity
                 </h2>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {[
                   { name: "Beat Master", avatar: "https://randomuser.me/api/portraits/men/41.jpg", action: "liked your snippet", item: "summer vibes", time: "15 min ago" },
                   { name: "Lyric Queen", avatar: "https://randomuser.me/api/portraits/women/63.jpg", action: "requested to collab on", item: "your track", time: "1 hour ago" },
                   { name: "Urban Records", avatar: "https://randomuser.me/api/portraits/men/32.jpg", action: "viewed", item: "your profile", time: "3 hours ago" }
                 ].map((activity, i) => (
-                  <div
-                    key={i}
-                    className={`flex items-start gap-3 p-2.5 rounded-lg border transition-all duration-200 ${
-                      theme === "dark"
-                        ? "border-zinc-800 bg-zinc-900"
-                        : "border-gray-300 bg-gray-50"
-                    }`}
-                  >
+                  <div key={i} className="flex items-start gap-3 p-3 rounded-lg border transition-all duration-200 border-zinc-800 bg-zinc-900">
                     <img
                       src={activity.avatar}
                       alt={activity.name}
-                      className="w-8 h-8 rounded-full object-cover"
+                      className="w-10 h-10 rounded-full object-cover"
                     />
                     <div className="flex-1 min-w-0">
-                      <div className={`text-xs font-light tracking-wide ${
-                        theme === "dark" ? "text-white" : "text-gray-900"
-                      }`}>
-                        <span className="font-light">{activity.name}</span>
+                      <div className="text-sm font-light tracking-wide text-zinc-300">
+                        <span className="font-medium text-white">{activity.name}</span>
                         {' '}
-                        <span className={theme === "dark" ? "text-zinc-500" : "text-gray-600"}>
+                        <span className="text-zinc-500">
                           {activity.action}
                         </span>
                         {' '}
-                        <span className="font-light">{activity.item}</span>
+                        <span className="font-medium">{activity.item}</span>
                       </div>
-                      <div className={`text-xs font-light tracking-wide mt-0.5 ${
-                        theme === "dark" ? "text-zinc-600" : "text-gray-500"
-                      }`}>
+                      <div className="text-xs font-light tracking-wide mt-1 text-zinc-500">
                         {activity.time}
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
-              <button
-                className={`
-                  w-full mt-3 px-3 py-2 text-xs font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95
-                  ${theme === "dark"
-                    ? "border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-600"
-                    : "border-gray-300 text-gray-600 hover:text-black hover:border-gray-400"
-                  }
-                `}
-              >
+              <button className="w-full mt-4 px-3 py-2 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-600">
                 See All Activity
               </button>
             </div>

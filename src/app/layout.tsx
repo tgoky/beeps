@@ -13,7 +13,7 @@ import { ThemeProvider } from "@providers/ThemeProvider";
 import { ToastProvider } from "@providers/ToastProvider";
 import { QueryProvider } from "@providers/QueryProvider";
 import { PermissionsProvider } from "@/hooks/usePermissions";
-import "@styles/global.css";
+import "../styles/global.css";
 
 export const metadata: Metadata = {
   title: "Beeps",
@@ -29,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="light">
+    <html lang="en" className="dark">
       <body>
         <Suspense>
           <RefineKbarProvider>

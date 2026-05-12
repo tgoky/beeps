@@ -27,32 +27,27 @@ export async function GET(req: NextRequest) {
         take: limit,
       });
 
-      // Enrich notifications with related data (like booking status)
-      const enrichedNotifications = await Promise.all(
-        notifications.map(async (notification) => {
-          let relatedData = null;
+      // Batch-fetch booking statuses for all booking notifications in one query
+      const bookingIds = notifications
+        .filter((n) => n.referenceType === "BOOKING" && n.referenceId)
+        .map((n) => n.referenceId as string);
 
-          // Fetch booking status if it's a booking notification
-          if (notification.referenceType === "BOOKING" && notification.referenceId) {
-            try {
-              const booking = await prisma.booking.findUnique({
-                where: { id: notification.referenceId },
-                select: { status: true },
-              });
-              if (booking) {
-                relatedData = { status: booking.status };
-              }
-            } catch (error) {
-              console.error("Error fetching booking data for notification:", error);
-            }
-          }
+      const bookingStatusMap: Record<string, string> = {};
+      if (bookingIds.length > 0) {
+        const bookings = await prisma.booking.findMany({
+          where: { id: { in: bookingIds } },
+          select: { id: true, status: true },
+        });
+        for (const b of bookings) bookingStatusMap[b.id] = b.status;
+      }
 
-          return {
-            ...notification,
-            relatedData,
-          };
-        })
-      );
+      const enrichedNotifications = notifications.map((notification) => ({
+        ...notification,
+        relatedData:
+          notification.referenceType === "BOOKING" && notification.referenceId && bookingStatusMap[notification.referenceId]
+            ? { status: bookingStatusMap[notification.referenceId] }
+            : null,
+      }));
 
       const unreadCount = await prisma.notification.count({
         where: {
