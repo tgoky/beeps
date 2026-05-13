@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback, memo } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import {
   Search,
@@ -61,6 +61,31 @@ const calculateDistance = (
   return R * c;
 };
 
+// Simple hash function to turn an ID into a consistent number
+const hashString = (str: string) => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return Math.abs(hash);
+};
+
+// Improved getPosition with Hash Jitter
+const getPosition = (lat: number, lon: number, studioId: string) => {
+  const mapMinX = 20, mapMaxX = 80;
+  const mapMinY = 20, mapMaxY = 80;
+  
+  // Use the studio ID to generate a consistent but pseudo-random offset
+  const hash = hashString(studioId);
+  const jitterX = (hash % 10) - 5; // Spread between -5% and +5%
+  const jitterY = ((hash >> 2) % 10) - 5; 
+
+  const x = mapMinX + (Math.abs(lon * 100) % (mapMaxX - mapMinX)) + jitterX;
+  const y = mapMinY + (Math.abs(lat * 100) % (mapMaxY - mapMinY)) + jitterY;
+  
+  return { x, y };
+};
+
 // Price filter options
 const FILTER_OPTIONS = [
   { label: "Budget", min: 0, max: 25, text: "Under $25/hr" },
@@ -71,53 +96,439 @@ const FILTER_OPTIONS = [
 
 type SortOrder = "price_asc" | "rating_desc" | "nearest" | null;
 
+// --- ISOLATED COMPONENTS FOR PERFORMANCE ---
+
+// 1. Memoized Map Marker
+const MapMarker = memo(({ 
+  studio, 
+  isSelected, 
+  isHovered, 
+  onSelect, 
+  onHover 
+}: { 
+  studio: Studio; 
+  isSelected: boolean; 
+  isHovered: boolean; 
+  onSelect: (s: Studio) => void; 
+  onHover: (id: string | null) => void;
+}) => {
+  const pos = studio.latitude && studio.longitude 
+    ? getPosition(studio.latitude, studio.longitude, studio.id) 
+    : { x: 50, y: 50 };
+
+  return (
+    <div
+      className="absolute transform -translate-x-1/2 -translate-y-1/2 z-20 cursor-pointer transition-all duration-200 will-change-transform pointer-events-auto"
+      style={{ left: `${pos.x}%`, top: `${pos.y}%`, zIndex: isSelected || isHovered ? 50 : 10 }}
+      onClick={(e) => { e.stopPropagation(); onSelect(studio); }}
+      onPointerEnter={() => onHover(studio.id)}
+      onPointerLeave={() => onHover(null)}
+    >
+      <div className={`relative flex flex-col items-center justify-center transition-transform duration-200 ${isSelected || isHovered ? "scale-110" : "scale-100"}`}>
+        {(isSelected || isHovered) && (
+          <div className="absolute bottom-[140%] mb-1 px-3 py-1.5 text-xs font-medium whitespace-nowrap bg-zinc-900 text-white rounded-lg shadow-xl border border-zinc-800">
+            {studio.name}
+            <div className="absolute left-1/2 -bottom-1 -translate-x-1/2 w-2 h-2 rotate-45 border-r border-b bg-zinc-900 border-zinc-800" />
+          </div>
+        )}
+        <div className={`w-9 h-9 flex items-center justify-center rounded-full border-2 relative z-10 shadow-lg transition-colors ${isSelected ? "bg-white border-white text-black" : "bg-zinc-900 border-zinc-700 text-white"}`}>
+          {isSelected ? <Mic2 size={16} strokeWidth={2} /> : <span className="text-xs font-bold">${studio.hourlyRate}</span>}
+        </div>
+        <div className="px-2 py-0.5 rounded-md mt-1 bg-zinc-900/90 backdrop-blur-sm border border-zinc-800 text-zinc-300 shadow-md">
+          <span className="text-[10px] font-medium leading-none whitespace-nowrap block truncate max-w-[80px]">
+            {studio.location.split(",")[0]}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+});
+MapMarker.displayName = "MapMarker";
+
+// 2. Interactive Map Component (Isolates drag state from list/sheet)
+const InteractiveMap = ({
+  filteredStudios,
+  selectedStudio,
+  setSelectedStudio,
+  hoveredStudio,
+  setHoveredStudio,
+  userLocation,
+  isLoadingLocation,
+  getUserLocation,
+  permissions,
+  isExpanded
+}: any) => {
+  const router = useRouter();
+  const [mapZoom, setMapZoom] = useState(1.2);
+  const [mapOffset, setMapOffset] = useState({ x: 0, y: 0 });
+  const [isMapDragging, setIsMapDragging] = useState(false);
+  const [tiltMode, setTiltMode] = useState(false);
+  const mapDragStart = useRef({ x: 0, y: 0 });
+
+  const handleMapPointerDown = useCallback((e: React.PointerEvent) => {
+    setIsMapDragging(true);
+    mapDragStart.current = { x: e.clientX - mapOffset.x, y: e.clientY - mapOffset.y };
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  }, [mapOffset]);
+
+  const handleMapPointerMove = useCallback((e: React.PointerEvent) => {
+    if (!isMapDragging) return;
+    e.preventDefault();
+    setMapOffset({ x: e.clientX - mapDragStart.current.x, y: e.clientY - mapDragStart.current.y });
+  }, [isMapDragging]);
+
+  const handleMapPointerUp = useCallback((e: React.PointerEvent) => {
+    setIsMapDragging(false);
+    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+  }, []);
+
+  const handleMapWheel = useCallback((e: React.WheelEvent) => {
+    e.stopPropagation();
+    setMapZoom((z) => Math.min(Math.max(z - e.deltaY * 0.001, 0.4), 4));
+  }, []);
+
+  return (
+    <div
+      className="absolute inset-0 transition-all duration-500 ease-out"
+      style={{ paddingBottom: isExpanded ? "75vh" : "42vh" }}
+    >
+      <style>{`
+        /* The flashing wanted area effect */
+        @keyframes gta-zone-pulse {
+          0%, 100% { 
+            background-color: rgba(56, 189, 248, 0.02); 
+            border-color: rgba(56, 189, 248, 0.1); 
+            box-shadow: inset 0 0 20px rgba(56, 189, 248, 0); 
+          }
+          50% { 
+            background-color: rgba(56, 189, 248, 0.08); 
+            border-color: rgba(56, 189, 248, 0.6); 
+            box-shadow: inset 0 0 60px rgba(56, 189, 248, 0.2); 
+          }
+        }
+        /* The harsh scanner beam inside the zone */
+        @keyframes gta-sweep {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        /* Helicopter Spotlight Roaming X & Y separately for organic movement */
+        @keyframes heli-roam-x {
+          0% { left: 20%; } 25% { left: 80%; } 50% { left: 60%; } 75% { left: 30%; } 100% { left: 20%; }
+        }
+        @keyframes heli-roam-y {
+          0% { top: 30%; } 33% { top: 70%; } 66% { top: 20%; } 100% { top: 30%; }
+        }
+        /* CRT Rolling Scanline */
+        @keyframes crt-scan {
+          0% { transform: translateY(-100vh); }
+          100% { transform: translateY(100vh); }
+        }
+        /* Low Altitude Parallax Fog Drift */
+        @keyframes fog-roll {
+          0% { transform: translate(0, 0); }
+          100% { transform: translate(-10%, -10%); }
+        }
+      `}</style>
+
+      <div
+        className="relative w-full h-full overflow-hidden select-none bg-[#0a0a0c]"
+        onWheel={handleMapWheel}
+        onPointerDown={handleMapPointerDown}
+        onPointerMove={handleMapPointerMove}
+        onPointerUp={handleMapPointerUp}
+        onPointerCancel={handleMapPointerUp}
+        style={{ 
+          cursor: isMapDragging ? "grabbing" : "grab", 
+          touchAction: "none" 
+        }}
+      >
+        <div
+          className="absolute inset-0 w-full h-full will-change-transform"
+          style={{
+            transformStyle: "preserve-3d", // Critical to allow 3D parallax layers
+            transformOrigin: "center 70%",
+            transform: `scale(${mapZoom}) translate(${mapOffset.x / mapZoom}px, ${mapOffset.y / mapZoom}px) ${
+              tiltMode ? "perspective(1200px) rotateX(45deg)" : ""
+            }`,
+            transition: isMapDragging ? "none" : "transform 0.5s cubic-bezier(0.32, 0.72, 0, 1)",
+          }}
+        >
+          {/* Water/Smoke Texture */}
+          <div
+            className="absolute inset-[-200%] w-[500%] h-[500%] opacity-[0.03] pointer-events-none mix-blend-screen"
+            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' fill='%23ffffff'/%3E%3C/svg%3E")` }}
+          />
+
+          {/* GTA WANTED ZONE */}
+          <div 
+            className="absolute top-[45%] left-[50%] w-[120%] h-[120%] rounded-full pointer-events-none z-0 border-[3px] border-dashed -translate-x-1/2 -translate-y-1/2 overflow-hidden"
+            style={{ animation: 'gta-zone-pulse 2.5s ease-in-out infinite' }}
+          >
+            {/* The sweeping radar beam inside the wanted zone */}
+            <div 
+              className="absolute top-0 bottom-0 left-1/2 w-1/2 origin-left mix-blend-screen opacity-60"
+              style={{
+                background: 'linear-gradient(90deg, rgba(56, 189, 248, 0.4) 0%, transparent 100%)',
+                animation: 'gta-sweep 4s linear infinite'
+              }}
+            />
+          </div>
+
+          {/* Land Mass & World Extension */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 100 100" overflow="visible">
+            {/* Outer World */}
+            <path d="M -150 -50 L -20 -50 Q -50 50 -10 150 L -150 150 Z" fill="#15161a" opacity="0.6" />
+            <path d="M 120 -50 L 300 -50 L 300 200 L 140 200 Q 100 100 120 -50 Z" fill="#15161a" opacity="0.6" />
+            <path d="M 140 -20 L 250 -20 L 250 150 Q 130 100 140 -20 Z" fill="#1c1d22" opacity="0.4" />
+            <path d="M -150 -150 L 300 -150 L 300 -30 Q 100 -80 -150 -30 Z" fill="#1e1e24" opacity="0.6" />
+
+            {/* Main Central Map */}
+            <path d="M 15 0 L 100 0 L 100 100 L 30 100 C 30 100 25 80 40 70 C 55 60 50 40 30 35 C 10 30 5 15 15 0 Z" fill="#15161a" />
+            <path d="M 60 0 L 100 0 L 100 40 Q 80 50 60 30 Q 50 15 60 0 Z" fill="#1c1d22" />
+            <path d="M 60 55 L 75 55 L 75 65 L 60 65 Z" fill="#22232a" />
+            <path d="M 70 80 L 100 80 L 100 100 L 70 100 Z" fill="#1e1e24" />
+            <path d="M 30 100 C 30 100 25 80 40 70 C 55 60 50 40 30 35 C 10 30 5 15 15 0 L 12 0 C 2 15 8 32 28 38 C 48 44 52 62 38 72 C 22 82 28 100 28 100 Z" fill="#0f1013" opacity="0.8" />
+          </svg>
+
+          {/* Roads & Infrastructure */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" viewBox="0 0 100 100" overflow="visible">
+            <g stroke="#27272a" strokeWidth="0.4" opacity="0.5">
+              {[-100, -80, -60, -40, -20, 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 120, 140, 160, 180, 200].map((y) => <line key={`h-${y}`} x1="-150" y1={y} x2="300" y2={y} />)}
+              {[-100, -80, -60, -40, -20, 0, 15, 25, 35, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 120, 140, 160, 180, 200].map((x) => <line key={`v-${x}`} x1={x} y1="-150" x2={x} y2="250" />)}
+            </g>
+            <path d="M -150 45 L 300 45 M 40 -150 L 40 250" stroke="#3f3f46" strokeWidth="1.5" strokeDasharray="5,5" />
+            <g fill="none">
+              <path d="M -50 0 Q 30 50 80 60 L 250 65" stroke="#18181b" strokeWidth="4" strokeLinecap="round" />
+              <path d="M -50 0 Q 30 50 80 60 L 250 65" stroke="#71717a" strokeWidth="1.5" strokeLinecap="round" />
+              <path d="M 60 200 L 60 40 Q 60 20 150 -50" stroke="#18181b" strokeWidth="4" strokeLinecap="round" />
+              <path d="M 60 200 L 60 40 Q 60 20 150 -50" stroke="#71717a" strokeWidth="1.5" strokeLinecap="round" />
+            </g>
+          </svg>
+
+          {/* Buildings */}
+          <div className="absolute inset-0 pointer-events-none opacity-80 z-10">
+            {[
+              { l: 42, t: 47, w: 4, h: 4 }, { l: 47, t: 47, w: 4, h: 6 }, { l: 42, t: 53, w: 9, h: 4 },
+              { l: 55, t: 48, w: 8, h: 8 }, { l: 65, t: 25, w: 5, h: 5 }, { l: 82, t: 75, w: 6, h: 10 },
+              { l: 35, t: 20, w: 4, h: 4 }, { l: 90, t: 15, w: 5, h: 5 },
+            ].map((b, i) => (
+              <div 
+                key={i} 
+                className="absolute bg-zinc-800 border border-zinc-700/50 rounded-sm shadow-[0_4px_12px_rgba(0,0,0,0.5)]" 
+                style={{ left: `${b.l}%`, top: `${b.t}%`, width: `${b.w}%`, height: `${b.h}%` }} 
+              />
+            ))}
+          </div>
+
+          {/* --- NEW: LOW-ALTITUDE PARALLAX FOG --- */}
+          {/* Floats 40px above the ground when in 3D tilt mode */}
+          <div 
+            className="absolute inset-0 pointer-events-none z-15"
+            style={{
+              transform: tiltMode ? 'translateZ(40px)' : 'translateZ(0px)',
+              transition: 'transform 0.5s cubic-bezier(0.32, 0.72, 0, 1)',
+              transformStyle: 'preserve-3d'
+            }}
+          >
+            <div 
+              className="absolute inset-[-100%] w-[300%] h-[300%] mix-blend-screen opacity-[0.12]"
+              style={{ 
+                // Generates larger, billowy clouds compared to the water static
+                backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='fog'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23fog)' fill='%23ffffff'/%3E%3C/svg%3E")`,
+                animation: 'fog-roll 40s linear infinite'
+              }}
+            />
+          </div>
+
+          {/* THE ROAMING HELICOPTER SPOTLIGHT */}
+          {/* Floats 60px above the ground, allowing it to highlight the fog below it */}
+          <div 
+            className="absolute inset-0 pointer-events-none z-20"
+            style={{
+              transform: tiltMode ? 'translateZ(60px)' : 'translateZ(0px)',
+              transition: 'transform 0.5s cubic-bezier(0.32, 0.72, 0, 1)',
+              transformStyle: 'preserve-3d'
+            }}
+          >
+            <div 
+              className="absolute w-[60%] h-[60%] rounded-full mix-blend-color-dodge -translate-x-1/2 -translate-y-1/2"
+              style={{
+                background: 'radial-gradient(circle, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.05) 30%, transparent 70%)',
+                animation: 'heli-roam-x 20s ease-in-out infinite alternate, heli-roam-y 27s ease-in-out infinite alternate'
+              }}
+            />
+          </div>
+
+          {/* MARKERS & USER LOCATION */}
+          {/* Hover 80px above the ground, making them look like floating holograms */}
+          <div 
+            className="absolute inset-0 pointer-events-none z-30"
+            style={{
+              transform: tiltMode ? 'translateZ(80px)' : 'translateZ(0px)',
+              transition: 'transform 0.5s cubic-bezier(0.32, 0.72, 0, 1)',
+              transformStyle: 'preserve-3d'
+            }}
+          >
+            {/* Memoized Studio Markers */}
+            {filteredStudios.map((studio: Studio) => (
+              <MapMarker
+                key={studio.id}
+                studio={studio}
+                isSelected={selectedStudio?.id === studio.id}
+                isHovered={hoveredStudio === studio.id}
+                onSelect={setSelectedStudio}
+                onHover={setHoveredStudio}
+              />
+            ))}
+
+            {/* User Location */}
+            {userLocation && (
+              <div className="absolute transform -translate-x-1/2 -translate-y-1/2 pointer-events-auto" style={{ left: "35%", top: "40%" }}>
+                <div className="relative">
+                  <div className="absolute inset-0 bg-blue-500/30 blur-md rounded-full animate-pulse" />
+                  <Navigation size={18} className="fill-blue-500 text-blue-500 transform rotate-45" />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* --- CRT HARDWARE OVERLAY --- */}
+        <div className="absolute inset-0 pointer-events-none z-25 overflow-hidden">
+          {/* Shadow Vignette */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_40%,rgba(0,0,0,0.6)_110%)]" />
+          
+          {/* Micro Grid / Horizontal Scanlines */}
+          <div 
+            className="absolute inset-0 opacity-[0.25]" 
+            style={{ 
+              backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, 0.4) 50%)', 
+              backgroundSize: '100% 4px' 
+            }} 
+          />
+          
+          {/* Rolling Faint Light Scanline */}
+          <div 
+            className="absolute top-0 left-0 right-0 h-[10vh] bg-gradient-to-b from-transparent via-blue-300/5 to-transparent"
+            style={{ animation: 'crt-scan 8s linear infinite' }} 
+          />
+        </div>
+
+        {/* Map HUD Controls */}
+        <div className="absolute top-4 right-4 z-30 flex flex-col gap-2 pointer-events-auto">
+          <button
+            onClick={() => setTiltMode(!tiltMode)}
+            className="w-10 h-10 flex items-center justify-center rounded-lg text-xs font-medium bg-zinc-900 border border-zinc-800 text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors shadow-lg"
+          >
+            {tiltMode ? "3D" : "2D"}
+          </button>
+        </div>
+
+        <div className="absolute bottom-4 right-4 flex flex-col z-30 shadow-lg rounded-lg overflow-hidden border border-zinc-800 pointer-events-auto">
+          <button
+            onClick={() => setMapZoom((z) => Math.min(z + 0.5, 4))}
+            className="w-10 h-10 flex items-center justify-center bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors border-b border-zinc-800"
+          >
+            <Plus size={18} strokeWidth={1.5} />
+          </button>
+          <button
+            onClick={() => setMapZoom((z) => Math.max(z - 0.5, 0.4))}
+            className="w-10 h-10 flex items-center justify-center bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors"
+          >
+            <Minimize2 size={18} strokeWidth={1.5} />
+          </button>
+        </div>
+
+        <div className="absolute top-4 left-4 z-30 flex flex-col gap-3 pointer-events-auto">
+          <button
+            onClick={getUserLocation}
+            disabled={isLoadingLocation}
+            className={`w-10 h-10 flex items-center justify-center rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors shadow-lg ${isLoadingLocation ? "opacity-50" : ""}`}
+          >
+            <Navigation size={18} strokeWidth={1.5} />
+          </button>
+
+          {permissions?.canCreateStudios && (
+            <button
+              onClick={() => router.push("/studios/list-studio")}
+              className="px-4 py-2.5 text-sm font-medium rounded-lg bg-white text-black hover:bg-zinc-200 transition-colors flex items-center gap-2 shadow-lg"
+            >
+              <Plus size={16} strokeWidth={2} />
+              List Studio
+            </button>
+          )}
+        </div>
+
+        {/* Selected Studio Floating Card */}
+        {selectedStudio && (
+          <div className="absolute top-4 left-16 z-40 w-64 animate-in slide-in-from-left-4 duration-300 pointer-events-auto">
+            <div className="bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden">
+              <div className="p-4">
+                <div className="flex justify-between items-start mb-3">
+                  <h3 className="text-sm font-medium text-white flex items-center gap-1.5 line-clamp-1">
+                    {selectedStudio.name}
+                    {selectedStudio.verificationStatus === "VERIFIED" && <BadgeCheck size={14} className="text-blue-400 shrink-0" />}
+                  </h3>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setSelectedStudio(null); }}
+                    className="text-zinc-500 hover:text-white transition-colors ml-2"
+                  >
+                    <X size={16} strokeWidth={1.5} />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-1.5 text-yellow-500">
+                    <Star size={12} className="fill-current" />
+                    <span className="text-sm font-medium">
+                      {selectedStudio.rating ? Number(selectedStudio.rating).toFixed(1) : "New"}
+                    </span>
+                  </div>
+                  <div className="text-sm font-semibold text-white">
+                    ${selectedStudio.hourlyRate}
+                    <span className="text-xs font-normal text-zinc-500">/hr</span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={(e) => { e.stopPropagation(); router.push(`/studios/${selectedStudio.id}`); }}
+                  className="w-full py-2.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-zinc-200 transition-colors"
+                >
+                  View Studio
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// --- MAIN PAGE COMPONENT ---
+
 export default function StudioList() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const { permissions } = usePermissions();
 
-  // URL State for Drawer
-  // const drawerStudioId = searchParams.get("id");
-
-  // // Drawer Handlers (Shallow Routing)
-  // const openDrawer = useCallback(
-  //   (id: string) => {
-  //     const params = new URLSearchParams(searchParams.toString());
-  //     params.set("id", id);
-  //     router.push(`${pathname}?${params.toString()}`, { scroll: false });
-  //   },
-  //   [pathname, router, searchParams]
-  // );
-
-const closeDrawer = useCallback(() => {
-    // 1. Get current params
+  const closeDrawer = useCallback(() => {
     const params = new URLSearchParams(searchParams.toString());
-    
-    // 2. Remove the specific id param
     params.delete("id");
-    
-    // 3. Create the new URL string
     const newQueryString = params.toString();
     const newUrl = newQueryString ? `${pathname}?${newQueryString}` : pathname;
-    
-    // 4. Push the clean URL without scrolling the page
     router.push(newUrl, { scroll: false });
   }, [pathname, router, searchParams]);
 
   // Location state
-  const [userLocation, setUserLocation] = useState<{
-    lat: number;
-    lon: number;
-  } | null>(null);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lon: number; } | null>(null);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
 
   // Search & filter state
   const [searchQuery, setSearchQuery] = useState("");
   const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
-  const [selectedFilterIndex, setSelectedFilterIndex] = useState<number | null>(
-    null
-  );
+  const [selectedFilterIndex, setSelectedFilterIndex] = useState<number | null>(null);
   const [sortOrder, setSortOrder] = useState<SortOrder>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
@@ -147,18 +558,13 @@ const closeDrawer = useCallback(() => {
 
   // Bottom sheet state
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
+  const [isDraggingSheet, setIsDraggingSheet] = useState(false);
   const dragStartY = useRef(0);
   const sheetRef = useRef<HTMLDivElement>(null);
 
-  // Map state
+  // Main shared map state
   const [selectedStudio, setSelectedStudio] = useState<Studio | null>(null);
   const [hoveredStudio, setHoveredStudio] = useState<string | null>(null);
-  const [mapZoom, setMapZoom] = useState(1.2);
-  const [mapOffset, setMapOffset] = useState({ x: 0, y: 0 });
-  const [isMapDragging, setIsMapDragging] = useState(false);
-  const mapDragStart = useRef({ x: 0, y: 0 });
-  const [tiltMode, setTiltMode] = useState(false);
 
   // Get user location
   const getUserLocation = useCallback(() => {
@@ -166,10 +572,7 @@ const closeDrawer = useCallback(() => {
     setIsLoadingLocation(true);
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setUserLocation({
-          lat: position.coords.latitude,
-          lon: position.coords.longitude,
-        });
+        setUserLocation({ lat: position.coords.latitude, lon: position.coords.longitude });
         setIsLoadingLocation(false);
       },
       () => setIsLoadingLocation(false)
@@ -240,256 +643,45 @@ const closeDrawer = useCallback(() => {
   }, [studios, sortOrder, userLocation]);
 
   const handleSheetPointerDown = useCallback((e: React.PointerEvent) => {
-    setIsDragging(true);
+    setIsDraggingSheet(true);
     dragStartY.current = e.clientY;
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
   }, []);
 
   const handleSheetPointerMove = useCallback((e: React.PointerEvent) => {
-    if (!isDragging) return;
+    if (!isDraggingSheet) return;
     const dy = e.clientY - dragStartY.current;
     if (Math.abs(dy) > 40) {
       if (dy < 0) setIsExpanded(true);
       else setIsExpanded(false);
-      setIsDragging(false);
+      setIsDraggingSheet(false);
     }
-  }, [isDragging]);
+  }, [isDraggingSheet]);
 
-  const handleSheetPointerUp = useCallback(() => setIsDragging(false), []);
-
-  const handleMapMouseDown = useCallback((e: React.MouseEvent) => {
-    setIsMapDragging(true);
-    mapDragStart.current = { x: e.clientX - mapOffset.x, y: e.clientY - mapOffset.y };
-  }, [mapOffset]);
-
-  const handleMapMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isMapDragging) return;
-    e.preventDefault();
-    setMapOffset({ x: e.clientX - mapDragStart.current.x, y: e.clientY - mapDragStart.current.y });
-  }, [isMapDragging]);
-
-  const handleMapMouseUp = useCallback(() => setIsMapDragging(false), []);
-
-  const handleMapWheel = useCallback((e: React.WheelEvent) => {
-    e.stopPropagation();
-    setMapZoom((z) => Math.min(Math.max(z - e.deltaY * 0.001, 0.8), 4));
-  }, []);
-
-  const getPosition = (lat: number, lon: number, index: number = 0) => {
-    const mapMinX = 25, mapMaxX = 85;
-    const mapMinY = 15, mapMaxY = 80;
-    const jitterX = (index * 1.5) % 3;
-    const jitterY = (index * 1.5) % 3;
-    const x = mapMinX + (Math.abs(lon * 100) % (mapMaxX - mapMinX)) + jitterX;
-    const y = mapMinY + (Math.abs(lat * 100) % (mapMaxY - mapMinY)) + jitterY;
-    return { x, y };
-  };
+  const handleSheetPointerUp = useCallback(() => setIsDraggingSheet(false), []);
 
   return (
     <div className="relative w-full overflow-hidden bg-[#030303] selection:bg-white selection:text-black" style={{ height: "100vh" }}>
       
-      {/* MAP BACKGROUND LAYER */}
-      <div
-        className="absolute inset-0 transition-all duration-500 ease-out"
-        style={{ paddingBottom: isExpanded ? "75vh" : "42vh" }}
-      >
-        <div
-          className="relative w-full h-full overflow-hidden select-none bg-[#0f172a]"
-          onWheel={handleMapWheel}
-          onMouseDown={handleMapMouseDown}
-          onMouseMove={handleMapMouseMove}
-          onMouseUp={handleMapMouseUp}
-          onMouseLeave={handleMapMouseUp}
-          style={{ cursor: isMapDragging ? "grabbing" : "grab" }}
-        >
-          <div
-            className="absolute inset-0 w-full h-full origin-center will-change-transform"
-            style={{
-              transform: `scale(${mapZoom}) translate(${mapOffset.x / mapZoom}px, ${mapOffset.y / mapZoom}px) ${tiltMode ? "perspective(1000px) rotateX(35deg)" : ""}`,
-              transition: isMapDragging ? "none" : "transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
-            }}
-          >
-            {/* Water Texture */}
-            <div
-              className="absolute inset-[-100%] w-[300%] h-[300%] opacity-[0.04] pointer-events-none"
-              style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}
-            />
+      {/* EXTRACTED MAP LAYER (Prevents List Re-renders) */}
+      <InteractiveMap 
+        filteredStudios={filteredStudios}
+        selectedStudio={selectedStudio}
+        setSelectedStudio={setSelectedStudio}
+        hoveredStudio={hoveredStudio}
+        setHoveredStudio={setHoveredStudio}
+        userLocation={userLocation}
+        isLoadingLocation={isLoadingLocation}
+        getUserLocation={getUserLocation}
+        permissions={permissions}
+        isExpanded={isExpanded}
+      />
 
-            {/* Land Mass */}
-            <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
-              <path d="M 15 0 L 100 0 L 100 100 L 30 100 C 30 100 25 80 40 70 C 55 60 50 40 30 35 C 10 30 5 15 15 0 Z" fill="#18181b" />
-              <path d="M 60 0 L 100 0 L 100 40 Q 80 50 60 30 Q 50 15 60 0 Z" fill="#14532d" opacity="0.8" />
-              <path d="M 60 55 L 75 55 L 75 65 L 60 65 Z" fill="#14532d" opacity="0.8" />
-              <path d="M 70 80 L 100 80 L 100 100 L 70 100 Z" fill="#27272a" />
-              <path d="M 30 100 C 30 100 25 80 40 70 C 55 60 50 40 30 35 C 10 30 5 15 15 0 L 12 0 C 2 15 8 32 28 38 C 48 44 52 62 38 72 C 22 82 28 100 28 100 Z" fill="#451a03" opacity="0.6" />
-            </svg>
-
-            {/* Roads */}
-            <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
-              <g stroke="#3f3f46" strokeWidth="0.8">
-                {[45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95].map((x) => <line key={`v-${x}`} x1={x} y1="0" x2={x} y2="100" />)}
-                {[10, 20, 30, 40, 50, 60, 70, 80, 90].map((y) => <line key={`h-${y}`} x1="20" y1={y} x2="100" y2={y} />)}
-              </g>
-              <path d="M 40 0 L 40 100 M 0 45 L 100 45" stroke="#52525b" strokeWidth="2" />
-              <g fill="none">
-                <path d="M 20 0 Q 30 50 80 60 L 100 65" stroke="#000000" strokeWidth="3.5" strokeLinecap="square" />
-                <path d="M 60 100 L 60 40 Q 60 20 100 10" stroke="#000000" strokeWidth="3.5" strokeLinecap="square" />
-                <path d="M 20 0 Q 30 50 80 60 L 100 65" stroke="#ca8a04" strokeWidth="2" strokeLinecap="square" />
-                <path d="M 60 100 L 60 40 Q 60 20 100 10" stroke="#ca8a04" strokeWidth="2" strokeLinecap="square" />
-              </g>
-            </svg>
-
-            {/* Buildings */}
-            <div className="absolute inset-0 pointer-events-none opacity-90">
-              {[
-                { l: 42, t: 47, w: 4, h: 4 }, { l: 47, t: 47, w: 4, h: 6 }, { l: 42, t: 53, w: 9, h: 4 },
-                { l: 55, t: 48, w: 8, h: 8 }, { l: 65, t: 25, w: 5, h: 5 }, { l: 82, t: 75, w: 6, h: 10 },
-                { l: 35, t: 20, w: 4, h: 4 }, { l: 90, t: 15, w: 5, h: 5 },
-              ].map((b, i) => (
-                <div key={i} className="absolute bg-zinc-800 rounded-sm" style={{ left: `${b.l}%`, top: `${b.t}%`, width: `${b.w}%`, height: `${b.h}%` }} />
-              ))}
-            </div>
-
-            {/* Studio Markers */}
-            {filteredStudios.map((studio, index) => {
-              const pos = studio.latitude && studio.longitude ? getPosition(studio.latitude, studio.longitude, index) : { x: 50, y: 50 };
-              const isSelected = selectedStudio?.id === studio.id;
-              const isHovered = String(hoveredStudio) === String(studio.id);
-
-              return (
-                <div
-                  key={studio.id}
-                  className="absolute transform -translate-x-1/2 -translate-y-1/2 z-20 cursor-pointer transition-all duration-200 will-change-transform"
-                  style={{ left: `${pos.x}%`, top: `${pos.y}%`, zIndex: isSelected || isHovered ? 50 : 10 + index }}
-                  onClick={(e) => { e.stopPropagation(); setSelectedStudio(studio); }}
-                  onMouseEnter={() => setHoveredStudio(studio.id)}
-                  onMouseLeave={() => setHoveredStudio(null)}
-                >
-                  <div className={`relative flex flex-col items-center justify-center transition-transform duration-200 ${isSelected || isHovered ? "scale-110" : "scale-100"}`}>
-                    {(isSelected || isHovered) && (
-                      <div className="absolute bottom-[140%] mb-1 px-3 py-1.5 text-xs font-medium whitespace-nowrap bg-zinc-900 text-white rounded-lg shadow-xl border border-zinc-800">
-                        {studio.name}
-                        <div className="absolute left-1/2 -bottom-1 -translate-x-1/2 w-2 h-2 rotate-45 border-r border-b bg-zinc-900 border-zinc-800" />
-                      </div>
-                    )}
-                    <div className={`w-9 h-9 flex items-center justify-center rounded-full border-2 relative z-10 shadow-lg transition-colors ${isSelected ? "bg-white border-white text-black" : "bg-zinc-900 border-zinc-700 text-white"}`}>
-                      {isSelected ? <Mic2 size={16} strokeWidth={2} /> : <span className="text-xs font-bold">${studio.hourlyRate}</span>}
-                    </div>
-                    <div className="px-2 py-0.5 rounded-md mt-1 bg-zinc-900/90 backdrop-blur-sm border border-zinc-800 text-zinc-300 shadow-md">
-                      <span className="text-[10px] font-medium leading-none whitespace-nowrap block truncate max-w-[80px]">
-                        {studio.location.split(",")[0]}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* User Location */}
-            {userLocation && (
-              <div className="absolute z-10 transform -translate-x-1/2 -translate-y-1/2" style={{ left: "35%", top: "40%" }}>
-                <div className="relative">
-                  <div className="absolute inset-0 bg-blue-500/30 blur-md rounded-full animate-pulse" />
-                  <Navigation size={18} className="fill-blue-500 text-blue-500 transform rotate-45" />
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Map HUD Controls */}
-          <div className="absolute top-4 right-4 z-30 flex flex-col gap-2">
-            <button
-              onClick={() => setTiltMode(!tiltMode)}
-              className="w-10 h-10 flex items-center justify-center rounded-lg text-xs font-medium bg-zinc-900 border border-zinc-800 text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors shadow-lg"
-            >
-              {tiltMode ? "3D" : "2D"}
-            </button>
-          </div>
-
-          <div className="absolute bottom-4 right-4 flex flex-col z-30 shadow-lg rounded-lg overflow-hidden border border-zinc-800">
-            <button
-              onClick={() => setMapZoom((z) => Math.min(z + 0.5, 4))}
-              className="w-10 h-10 flex items-center justify-center bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors border-b border-zinc-800"
-            >
-              <Plus size={18} strokeWidth={1.5} />
-            </button>
-            <button
-              onClick={() => setMapZoom((z) => Math.max(z - 0.5, 0.8))}
-              className="w-10 h-10 flex items-center justify-center bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors"
-            >
-              <Minimize2 size={18} strokeWidth={1.5} />
-            </button>
-          </div>
-
-          <div className="absolute top-4 left-4 z-30 flex flex-col gap-3">
-            <button
-              onClick={getUserLocation}
-              disabled={isLoadingLocation}
-              className={`w-10 h-10 flex items-center justify-center rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors shadow-lg ${isLoadingLocation ? "opacity-50" : ""}`}
-            >
-              <Navigation size={18} strokeWidth={1.5} />
-            </button>
-
-            {permissions.canCreateStudios && (
-              <button
-                onClick={() => router.push("/studios/list-studio")}
-                className="px-4 py-2.5 text-sm font-medium rounded-lg bg-white text-black hover:bg-zinc-200 transition-colors flex items-center gap-2 shadow-lg"
-              >
-                <Plus size={16} strokeWidth={2} />
-                List Studio
-              </button>
-            )}
-          </div>
-
-          {isLoadingStudios && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm z-50">
-              <div className="animate-spin h-8 w-8 border-2 border-t-transparent border-white rounded-full" />
-            </div>
-          )}
-
-          {/* Selected Studio Floating Card */}
-          {selectedStudio && (
-            <div className="absolute top-4 left-16 z-40 w-64 animate-in slide-in-from-left-4 duration-300">
-              <div className="bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden">
-                <div className="p-4">
-                  <div className="flex justify-between items-start mb-3">
-                    <h3 className="text-sm font-medium text-white flex items-center gap-1.5 line-clamp-1">
-                      {selectedStudio.name}
-                      {selectedStudio.verificationStatus === "VERIFIED" && <BadgeCheck size={14} className="text-blue-400 shrink-0" />}
-                    </h3>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setSelectedStudio(null); }}
-                      className="text-zinc-500 hover:text-white transition-colors ml-2"
-                    >
-                      <X size={16} strokeWidth={1.5} />
-                    </button>
-                  </div>
-
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-1.5 text-yellow-500">
-                      <Star size={12} className="fill-current" />
-                      <span className="text-sm font-medium">
-                        {selectedStudio.rating ? Number(selectedStudio.rating).toFixed(1) : "New"}
-                      </span>
-                    </div>
-                    <div className="text-sm font-semibold text-white">
-                      ${selectedStudio.hourlyRate}
-                      <span className="text-xs font-normal text-zinc-500">/hr</span>
-                    </div>
-                  </div>
-
-            <button
-  onClick={(e) => { e.stopPropagation(); router.push(`/studios/${selectedStudio.id}`); }}
-  className="w-full py-2.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-zinc-200 transition-colors"
->
-  View Studio
-</button>
-                </div>
-              </div>
-            </div>
-          )}
+      {isLoadingStudios && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm z-50 pointer-events-none">
+          <div className="animate-spin h-8 w-8 border-2 border-t-transparent border-white rounded-full" />
         </div>
-      </div>
+      )}
 
       {/* BOTTOM SHEET */}
       <div
@@ -506,6 +698,7 @@ const closeDrawer = useCallback(() => {
           onPointerDown={handleSheetPointerDown}
           onPointerMove={handleSheetPointerMove}
           onPointerUp={handleSheetPointerUp}
+          onPointerCancel={handleSheetPointerUp}
         >
           <button
             onClick={() => setIsExpanded(!isExpanded)}
@@ -638,13 +831,13 @@ const closeDrawer = useCallback(() => {
                     : null;
 
                   return (
-                 <div
-  key={studio.id}
-  className="group flex flex-col bg-zinc-900 border border-zinc-800 rounded-xl hover:border-zinc-700 hover:bg-zinc-800 transition-all duration-300 cursor-pointer overflow-hidden"
-  onClick={() => router.push(`/studios/${studio.id}`)}
-  onMouseEnter={() => setHoveredStudio(studio.id)}
-  onMouseLeave={() => setHoveredStudio(null)}
->
+                    <div
+                      key={studio.id}
+                      className="group flex flex-col bg-zinc-900 border border-zinc-800 rounded-xl hover:border-zinc-700 hover:bg-zinc-800 transition-all duration-300 cursor-pointer overflow-hidden"
+                      onClick={() => router.push(`/studios/${studio.id}`)}
+                      onMouseEnter={() => setHoveredStudio(studio.id)}
+                      onMouseLeave={() => setHoveredStudio(null)}
+                    >
                       {/* IMAGE CONTAINER */}
                       <div className="relative w-full aspect-square overflow-hidden bg-zinc-950">
                         <img
@@ -704,8 +897,6 @@ const closeDrawer = useCallback(() => {
           </div>
         </div>
       </div>
-
-      {/* {drawerStudioId && <StudioBookingDrawer studioId={drawerStudioId} onClose={closeDrawer} />} */}
 
       <style jsx>{`
         .scrollbar-hide::-webkit-scrollbar { display: none; }
