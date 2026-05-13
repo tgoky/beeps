@@ -6,7 +6,6 @@ import {
   Search, Music2, Play, Pause, Heart, ShoppingCart, TrendingUp, DollarSign,
   Plus, Upload as UploadIcon, Users, Edit3, BarChart3, MessageCircle, Briefcase, Loader2
 } from "lucide-react";
-import { useTheme } from "../../providers/ThemeProvider";
 import { usePermissions } from "@/hooks/usePermissions";
 import { getRoleDisplayName } from '@/lib/permissions';
 import { useBeats, type Beat as APIBeat } from "@/hooks/useBeats";
@@ -37,15 +36,13 @@ type Beat = {
   };
 };
 
-// Type guard to check if data has beats
 function hasBeatsData(data: unknown): data is { data?: { beats?: APIBeat[] }; beats?: APIBeat[] } {
   return typeof data === 'object' && data !== null;
 }
 
-// Helper to transform API beat to display format
 const transformBeat = (apiBeat: APIBeat): Beat => {
   return {
-    id: parseInt(apiBeat.id.slice(0, 8), 16), // Convert first 8 chars of UUID to number
+    id: parseInt(apiBeat.id.slice(0, 8), 16),
     title: apiBeat.title,
     producer: {
       name: apiBeat.producer?.username || apiBeat.producer?.email?.split('@')[0] || 'Unknown',
@@ -58,7 +55,7 @@ const transformBeat = (apiBeat: APIBeat): Beat => {
     mood: apiBeat.moods || [],
     plays: apiBeat.plays || Math.floor(Math.random() * 500000) + 10000,
     likes: apiBeat.likes || 0,
-    liked: false, // TODO: Track user likes
+    liked: false, 
     image: apiBeat.imageUrl || "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f",
     audio: apiBeat.audioUrl,
     type: apiBeat.type === 'EXCLUSIVE' ? 'exclusive' : 'lease',
@@ -75,7 +72,6 @@ const formatNumber = (num: number): string => {
 
 export default function BeatMarketplace() {
   const router = useRouter();
-  const { theme } = useTheme();
   const { permissions, isProducer, isArtist, isLyricist } = usePermissions();
 
   const [activeTab, setActiveTab] = useState("trending");
@@ -90,14 +86,12 @@ export default function BeatMarketplace() {
     return () => clearTimeout(t);
   }, [searchQuery]);
 
-  // All filtering (search, genre, mood) is handled server-side
   const { data, isLoading, error } = useBeats({
     search: debouncedSearch || undefined,
     genre: selectedGenre !== "all" ? selectedGenre : undefined,
     mood: selectedMood !== "all" ? selectedMood : undefined,
   });
 
-  // Handle nested API response structure with proper type checking
   let apiBeats: APIBeat[] = [];
   
   if (hasBeatsData(data)) {
@@ -114,7 +108,6 @@ export default function BeatMarketplace() {
 
   const toggleLike = (id: number, e: React.MouseEvent) => {
     e.stopPropagation();
-    // TODO: Implement like functionality with API
     console.log("Like beat:", id);
   };
 
@@ -123,15 +116,11 @@ export default function BeatMarketplace() {
     setCurrentlyPlaying(currentlyPlaying === id ? null : id);
   };
 
-  // API handles all filtering; beats is already the correct subset
   const filteredBeats = beats;
 
-  // Beat Card Actions Component - Role-based buttons
   const BeatCardActions = ({ beat }: { beat: Beat }) => {
-    // Check if this is the current user's beat (TODO: Replace with actual user ID check)
     const isOwnBeat = false; // Replace with: currentUser?.id === beat.producerId
 
-    // Producer viewing their own beat
     if (isOwnBeat && permissions.canUploadBeats) {
       return (
         <div className="flex gap-2">
@@ -140,13 +129,9 @@ export default function BeatMarketplace() {
               e.stopPropagation();
               router.push(`/beats/${beat.id}/edit`);
             }}
-            className={`flex items-center gap-2 px-3 py-2 text-xs font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
-              theme === "dark"
-                ? "bg-white border-white text-black hover:bg-zinc-100"
-                : "bg-black border-black text-white hover:bg-gray-800"
-            }`}
+            className="flex items-center gap-2 px-4 py-2 text-xs font-medium rounded-lg border transition-all duration-200 tracking-wide active:scale-95 bg-white border-white text-black hover:bg-zinc-200"
           >
-            <Edit3 className="w-3 h-3" strokeWidth={2} />
+            <Edit3 className="w-4 h-4" strokeWidth={2} />
             Edit
           </button>
 
@@ -156,35 +141,25 @@ export default function BeatMarketplace() {
                 e.stopPropagation();
                 router.push(`/beats/${beat.id}/analytics`);
               }}
-              className={`p-2 rounded-lg border transition-all duration-200 active:scale-95 ${
-                theme === "dark"
-                  ? "border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-600"
-                  : "border-gray-300 text-gray-500 hover:text-gray-900 hover:border-gray-400"
-              }`}
+              className="p-2.5 rounded-lg border transition-all duration-200 active:scale-95 border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500 hover:bg-zinc-800"
             >
-              <BarChart3 className="w-3 h-3" strokeWidth={2} />
+              <BarChart3 className="w-4 h-4" strokeWidth={2} />
             </button>
           )}
         </div>
       );
     }
 
-    // Other users viewing beats
     return (
       <div className="flex gap-2">
         {permissions.canPurchaseBeats && (
           <button
             onClick={(e) => {
               e.stopPropagation();
-              // TODO: Add to cart logic
             }}
-            className={`flex items-center gap-2 px-3 py-2 text-xs font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
-              theme === "dark"
-                ? "bg-white border-white text-black hover:bg-zinc-100"
-                : "bg-black border-black text-white hover:bg-gray-800"
-            }`}
+            className="flex items-center gap-2 px-4 py-2 text-xs font-medium rounded-lg border transition-all duration-200 tracking-wide active:scale-95 bg-white border-white text-black hover:bg-zinc-200"
           >
-            <ShoppingCart className="w-3 h-3" strokeWidth={2} />
+            <ShoppingCart className="w-4 h-4" strokeWidth={2} />
             Add to Cart
           </button>
         )}
@@ -193,16 +168,11 @@ export default function BeatMarketplace() {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              // TODO: Send offer logic
             }}
-            className={`p-2 rounded-lg border transition-all duration-200 active:scale-95 ${
-              theme === "dark"
-                ? "border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-600"
-                : "border-gray-300 text-gray-500 hover:text-gray-900 hover:border-gray-400"
-            }`}
+            className="p-2.5 rounded-lg border transition-all duration-200 active:scale-95 border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500 hover:bg-zinc-800"
             title="Make Offer"
           >
-            <DollarSign className="w-3 h-3" strokeWidth={2} />
+            <DollarSign className="w-4 h-4" strokeWidth={2} />
           </button>
         )}
 
@@ -212,14 +182,10 @@ export default function BeatMarketplace() {
               e.stopPropagation();
               router.push(`/messages/${beat.producer.name}`);
             }}
-            className={`p-2 rounded-lg border transition-all duration-200 active:scale-95 ${
-              theme === "dark"
-                ? "border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-600"
-                : "border-gray-300 text-gray-500 hover:text-gray-900 hover:border-gray-400"
-            }`}
+            className="p-2.5 rounded-lg border transition-all duration-200 active:scale-95 border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500 hover:bg-zinc-800"
             title="Message Producer"
           >
-            <MessageCircle className="w-3 h-3" strokeWidth={2} />
+            <MessageCircle className="w-4 h-4" strokeWidth={2} />
           </button>
         )}
       </div>
@@ -227,47 +193,30 @@ export default function BeatMarketplace() {
   };
 
   return (
-    <div className={`min-h-screen p-6 transition-colors duration-200 ${
-      theme === "dark" 
-        ? "bg-black text-white" 
-        : "bg-gray-50 text-gray-900"
-    }`}>
+    <div className="h-full overflow-y-auto p-6 bg-[#030303] text-white">
       <div className="max-w-[1600px] mx-auto">
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
           
-          {/* Main Content - 3 columns */}
           <div className="xl:col-span-3">
-            {/* Header */}
             <div className="flex items-center justify-between mb-8">
               <div className="space-y-1">
                 <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                    theme === "dark" ? "bg-white" : "bg-gray-900"
-                  }`}>
-                    <Music2 className={`w-4 h-4 ${
-                      theme === "dark" ? "text-black" : "text-white"
-                    }`} strokeWidth={2.5} />
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white">
+                    <Music2 className="w-4 h-4 text-black" strokeWidth={2.5} />
                   </div>
-                  <h1 className="text-2xl font-light tracking-tight">
+                  <h1 className="text-2xl font-semibold tracking-tight">
                     Beat Marketplace
                   </h1>
                 </div>
-                <p className={`text-sm font-light tracking-wide ${
-                  theme === "dark" ? "text-zinc-500" : "text-gray-600"
-                }`}>
+                <p className="text-sm font-medium tracking-wide text-zinc-400">
                   Discover and license premium beats from top producers
                 </p>
               </div>
 
-              {/* Upload Beat Button - Producers Only */}
               {permissions.canUploadBeats && (
                 <button
                   onClick={() => router.push('/beats/upload')}
-                  className={`flex items-center gap-2 px-4 py-2.5 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
-                    theme === "dark"
-                      ? "bg-white border-white text-black hover:bg-zinc-100"
-                      : "bg-black border-black text-white hover:bg-gray-800"
-                  }`}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide active:scale-95 bg-white border-white text-black hover:bg-zinc-200"
                 >
                   <Plus className="w-4 h-4" strokeWidth={2} />
                   Upload Beat
@@ -275,26 +224,15 @@ export default function BeatMarketplace() {
               )}
             </div>
 
-            {/* Permission Info Banner */}
             {isProducer && permissions.canUploadBeats && (
-              <div className={`mb-6 p-4 rounded-lg border ${
-                theme === "dark"
-                  ? "bg-blue-950/20 border-blue-900/30"
-                  : "bg-blue-50 border-blue-200/50"
-              }`}>
+              <div className="mb-6 p-4 rounded-lg border bg-blue-950/20 border-blue-900/30">
                 <div className="flex items-start gap-3">
-                  <Music2 className={`w-5 h-5 flex-shrink-0 ${
-                    theme === "dark" ? "text-blue-400" : "text-blue-600"
-                  }`} strokeWidth={2} />
+                  <Music2 className="w-5 h-5 flex-shrink-0 text-blue-400" strokeWidth={2} />
                   <div>
-                    <p className={`text-sm font-medium tracking-wide ${
-                      theme === "dark" ? "text-blue-300" : "text-blue-900"
-                    }`}>
+                    <p className="text-sm font-medium tracking-wide text-blue-300">
                       Producer Dashboard
                     </p>
-                    <p className={`text-xs font-light tracking-wide mt-1 ${
-                      theme === "dark" ? "text-blue-400/70" : "text-blue-700/70"
-                    }`}>
+                    <p className="text-xs font-medium tracking-wide mt-1 text-blue-400/70">
                       You can upload beats, view analytics, and manage pricing. Your beats will appear with edit options.
                     </p>
                   </div>
@@ -303,24 +241,14 @@ export default function BeatMarketplace() {
             )}
 
             {(isArtist || isLyricist) && permissions.canPurchaseBeats && (
-              <div className={`mb-6 p-4 rounded-lg border ${
-                theme === "dark"
-                  ? "bg-purple-950/20 border-purple-900/30"
-                  : "bg-purple-50 border-purple-200/50"
-              }`}>
+              <div className="mb-6 p-4 rounded-lg border bg-purple-950/20 border-purple-900/30">
                 <div className="flex items-start gap-3">
-                  <Briefcase className={`w-5 h-5 flex-shrink-0 ${
-                    theme === "dark" ? "text-purple-400" : "text-purple-600"
-                  }`} strokeWidth={2} />
+                  <Briefcase className="w-5 h-5 flex-shrink-0 text-purple-400" strokeWidth={2} />
                   <div>
-                    <p className={`text-sm font-medium tracking-wide ${
-                      theme === "dark" ? "text-purple-300" : "text-purple-900"
-                    }`}>
+                    <p className="text-sm font-medium tracking-wide text-purple-300">
                       {getRoleDisplayName(permissions.role as any)} Access
                     </p>
-                    <p className={`text-xs font-light tracking-wide mt-1 ${
-                      theme === "dark" ? "text-purple-400/70" : "text-purple-700/70"
-                    }`}>
+                    <p className="text-xs font-medium tracking-wide mt-1 text-purple-400/70">
                       Purchase beats, send licensing offers, comment on tracks, and request collaborations.
                     </p>
                   </div>
@@ -328,39 +256,22 @@ export default function BeatMarketplace() {
               </div>
             )}
 
-            {/* Filters */}
-            <div className={`flex flex-wrap gap-3 mb-8 p-4 rounded-xl border ${
-              theme === "dark"
-                ? "border-zinc-800 bg-zinc-950"
-                : "border-gray-300 bg-white"
-            }`}>
-              {/* Search */}
+            <div className="flex flex-wrap gap-3 mb-8 p-4 rounded-xl border border-zinc-800 bg-[#0A0A0A]">
               <div className="relative flex-1 min-w-[250px]">
-                <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${
-                  theme === "dark" ? "text-zinc-600" : "text-gray-500"
-                }`} strokeWidth={2} />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" strokeWidth={2} />
                 <input
                   type="text"
                   placeholder="Search beats, producers..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className={`w-full pl-10 pr-4 py-3 text-sm font-light rounded-lg border transition-all duration-200 tracking-wide focus:outline-none ${
-                    theme === "dark"
-                      ? "bg-zinc-900 border-zinc-800 text-white placeholder-zinc-600 focus:border-white focus:bg-black"
-                      : "bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-500 focus:border-gray-900 focus:bg-white"
-                  }`}
+                  className="w-full pl-10 pr-4 py-3 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide focus:outline-none bg-zinc-900 border-zinc-800 text-white placeholder-zinc-500 focus:border-zinc-600 focus:bg-zinc-800"
                 />
               </div>
 
-              {/* Genre Filter */}
               <select
                 value={selectedGenre}
                 onChange={(e) => setSelectedGenre(e.target.value)}
-                className={`px-4 py-3 text-sm font-light rounded-lg border transition-all duration-200 cursor-pointer tracking-wide focus:outline-none ${
-                  theme === "dark"
-                    ? "bg-zinc-900 border-zinc-800 text-white focus:border-white focus:bg-black"
-                    : "bg-gray-50 border-gray-300 text-gray-900 focus:border-gray-900 focus:bg-white"
-                }`}
+                className="px-4 py-3 text-sm font-medium rounded-lg border transition-all duration-200 cursor-pointer tracking-wide focus:outline-none bg-zinc-900 border-zinc-800 text-white focus:border-zinc-600 focus:bg-zinc-800"
               >
                 <option value="all">All Genres</option>
                 <option value="Hip Hop">Hip Hop</option>
@@ -373,15 +284,10 @@ export default function BeatMarketplace() {
                 <option value="Lo-fi">Lo-fi</option>
               </select>
 
-              {/* Mood Filter */}
               <select
                 value={selectedMood}
                 onChange={(e) => setSelectedMood(e.target.value)}
-                className={`px-4 py-3 text-sm font-light rounded-lg border transition-all duration-200 cursor-pointer tracking-wide focus:outline-none ${
-                  theme === "dark"
-                    ? "bg-zinc-900 border-zinc-800 text-white focus:border-white focus:bg-black"
-                    : "bg-gray-50 border-gray-300 text-gray-900 focus:border-gray-900 focus:bg-white"
-                }`}
+                className="px-4 py-3 text-sm font-medium rounded-lg border transition-all duration-200 cursor-pointer tracking-wide focus:outline-none bg-zinc-900 border-zinc-800 text-white focus:border-zinc-600 focus:bg-zinc-800"
               >
                 <option value="all">All Moods</option>
                 <option value="Dark">Dark</option>
@@ -392,10 +298,7 @@ export default function BeatMarketplace() {
                 <option value="Smooth">Smooth</option>
               </select>
 
-              {/* Tab Filters */}
-              <div className={`flex items-center gap-1 p-1 rounded-lg border ${
-                theme === "dark" ? "border-zinc-800 bg-zinc-900" : "border-gray-300 bg-gray-100"
-              }`}>
+              <div className="flex items-center gap-1 p-1 rounded-lg border border-zinc-800 bg-zinc-900 overflow-x-auto scrollbar-hide">
                 {[
                   { key: "trending", label: "Trending", icon: TrendingUp },
                   { key: "new", label: "New", icon: UploadIcon },
@@ -406,17 +309,11 @@ export default function BeatMarketplace() {
                     <button
                       key={tab.key}
                       onClick={() => setActiveTab(tab.key)}
-                      className={`
-                        flex items-center gap-2 px-4 py-2 text-sm font-light rounded transition-all duration-200 tracking-wide
+                      className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded transition-all duration-200 tracking-wide whitespace-nowrap
                         ${activeTab === tab.key
-                          ? theme === "dark"
-                            ? "bg-white text-black"
-                            : "bg-black text-white"
-                          : theme === "dark"
-                            ? "text-zinc-400 hover:text-white"
-                            : "text-gray-600 hover:text-black"
-                        }
-                      `}
+                          ? "bg-white text-black"
+                          : "text-zinc-400 hover:text-white"
+                        }`}
                     >
                       <IconComponent className="w-4 h-4" strokeWidth={2} />
                       {tab.label}
@@ -426,50 +323,33 @@ export default function BeatMarketplace() {
               </div>
             </div>
 
-            {/* Loading State */}
             {isLoading && (
               <div className="flex items-center justify-center py-16">
-                <Loader2 className={`w-8 h-8 animate-spin ${
-                  theme === "dark" ? "text-zinc-600" : "text-gray-400"
-                }`} />
+                <Loader2 className="w-8 h-8 animate-spin text-zinc-600" />
               </div>
             )}
 
-            {/* Error State */}
             {error && (
-              <div className={`p-4 rounded-lg border ${
-                theme === "dark"
-                  ? "bg-red-500/10 border-red-500/20 text-red-400"
-                  : "bg-red-50 border-red-200 text-red-600"
-              }`}>
+              <div className="p-4 rounded-lg border bg-red-500/10 border-red-500/20 text-red-400">
                 <p className="text-sm">Failed to load beats. Please try again.</p>
               </div>
             )}
 
-            {/* Results Count */}
             {!isLoading && !error && (
-              <div className={`text-sm font-light tracking-wide mb-6 ${
-                theme === "dark" ? "text-zinc-500" : "text-gray-600"
-              }`}>
+              <div className="text-sm font-medium tracking-wide mb-6 text-zinc-500">
                 {filteredBeats.length} {filteredBeats.length === 1 ? "beat" : "beats"} found
               </div>
             )}
 
-            {/* Compact Wide Cards */}
             {!isLoading && !error && (
               <div className="space-y-4">
               {filteredBeats.map((beat) => (
                 <div
                   key={beat.id}
-                  className={`group rounded-xl border overflow-hidden transition-all duration-200 cursor-pointer active:scale-[0.98] ${
-                    theme === "dark"
-                      ? "border-zinc-800 bg-zinc-950 hover:border-zinc-700 hover:bg-zinc-900"
-                      : "border-gray-300 bg-white hover:border-gray-400 hover:bg-gray-50"
-                  }`}
+                  className="group rounded-xl border overflow-hidden transition-all duration-200 cursor-pointer active:scale-[0.98] border-zinc-800 bg-[#0A0A0A] hover:border-zinc-700 hover:bg-zinc-900"
                   onClick={() => router.push(`/beats/${beat.id}`)}
                 >
                   <div className="flex">
-                    {/* Cover Image */}
                     <div className="relative w-32 h-32 flex-shrink-0 overflow-hidden">
                       <img
                         alt={beat.title}
@@ -477,60 +357,49 @@ export default function BeatMarketplace() {
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
                       
-                      {/* Play Button Overlay */}
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 flex items-center justify-center transition-all duration-300">
                         <button
                           onClick={(e) => togglePlay(beat.id, e)}
-                          className="p-2 rounded-full transition-all duration-300 backdrop-blur-sm
-                            bg-white/10 hover:bg-white/20 text-white
-                            opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100"
+                          className="p-2 rounded-full transition-all duration-300 backdrop-blur-sm bg-white/20 hover:bg-white/40 text-white opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100"
                         >
                           {currentlyPlaying === beat.id ? (
-                            <Pause className="w-4 h-4" />
+                            <Pause className="w-6 h-6" />
                           ) : (
-                            <Play className="w-4 h-4 ml-0.5" />
+                            <Play className="w-6 h-6 ml-0.5" />
                           )}
                         </button>
                       </div>
 
-                      {/* Type Badge */}
-                      <div className={`
-                        absolute top-2 left-2 px-2 py-1 rounded text-xs font-light tracking-wide backdrop-blur-sm
+                      <div className={`absolute top-2 left-2 px-2 py-1 rounded text-xs font-medium tracking-wide backdrop-blur-sm border
                         ${beat.type === 'exclusive'
-                          ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
-                          : "bg-blue-500/20 text-blue-400 border border-blue-500/30"
-                        }
-                      `}>
-                        {beat.type === 'exclusive' ? 'EXC' : 'LSE'}
+                          ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
+                          : "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                        }`}
+                      >
+                        {beat.type === 'exclusive' ? 'Exclusive' : 'Lease'}
                       </div>
                     </div>
 
-                    {/* Content */}
                     <div className="flex-1 p-4">
                       <div className="flex items-start justify-between h-full">
-                        {/* Left Section - Beat Info */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start gap-4 mb-2">
                             <div className="flex-1 min-w-0">
-                              <h3 className={`text-base font-light tracking-wide mb-1 truncate ${
-                                theme === "dark" ? "text-white" : "text-gray-900"
-                              }`}>
+                              <h3 className="text-base font-medium tracking-wide mb-1 truncate text-white">
                                 {beat.title}
                               </h3>
                               <div className="flex items-center gap-2 mb-2">
                                 <img
                                   src={beat.producer.avatar}
                                   alt={beat.producer.name}
-                                  className="w-4 h-4 rounded-full object-cover"
+                                  className="w-5 h-5 rounded-full object-cover"
                                 />
-                                <span className={`text-xs font-light tracking-wide truncate ${
-                                  theme === "dark" ? "text-zinc-500" : "text-gray-600"
-                                }`}>
+                                <span className="text-xs font-medium tracking-wide truncate text-zinc-400">
                                   {beat.producer.name}
                                 </span>
                                 {beat.producer.verified && (
-                                  <div className="w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center">
-                                    <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                  <div className="w-3.5 h-3.5 bg-blue-500 rounded-full flex items-center justify-center">
+                                    <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
                                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                     </svg>
                                   </div>
@@ -538,38 +407,30 @@ export default function BeatMarketplace() {
                               </div>
                             </div>
 
-                            {/* Stats */}
-                            <div className={`flex items-center gap-3 text-xs font-light flex-shrink-0 ${
-                              theme === "dark" ? "text-zinc-500" : "text-gray-600"
-                            }`}>
+                            <div className="flex items-center gap-3 text-xs font-medium flex-shrink-0 text-zinc-500">
                               <div className="flex items-center gap-1">
                                 <Play className="w-3 h-3" />
                                 <span>{formatNumber(beat.plays)}</span>
                               </div>
                               <button
                                 onClick={(e) => toggleLike(beat.id, e)}
-                                className="flex items-center gap-1"
+                                className="flex items-center gap-1 hover:text-white transition-colors"
                               >
-                                <Heart className={`w-3 h-3 ${beat.liked ? "fill-red-500 text-red-500" : theme === "dark" ? "text-zinc-500" : "text-gray-500"}`} />
+                                <Heart className={`w-3 h-3 ${beat.liked ? "fill-red-500 text-red-500" : ""}`} />
                                 <span className={beat.liked ? "text-red-500" : ""}>
                                   {formatNumber(beat.likes)}
                                 </span>
                               </button>
-                              <div className={theme === "dark" ? "text-zinc-600" : "text-gray-400"}>•</div>
+                              <div className="text-zinc-600">•</div>
                               <span>{beat.bpm} BPM</span>
                             </div>
                           </div>
 
-                          {/* Genres & Moods */}
                           <div className="flex items-center gap-2 mb-2">
                             {beat.genre.slice(0, 2).map((genre, index) => (
                               <span
                                 key={index}
-                                className={`px-2 py-1 text-xs font-light rounded-full tracking-wide ${
-                                  theme === "dark"
-                                    ? "bg-white text-black"
-                                    : "bg-black text-white"
-                                }`}
+                                className="px-2.5 py-1 text-xs font-medium rounded-full tracking-wide bg-zinc-800 text-zinc-300 border border-zinc-700"
                               >
                                 {genre}
                               </span>
@@ -577,43 +438,30 @@ export default function BeatMarketplace() {
                             {beat.mood.slice(0, 1).map((mood, index) => (
                               <span
                                 key={`mood-${index}`}
-                                className={`px-2 py-1 text-xs font-light rounded-full tracking-wide border ${
-                                  theme === "dark"
-                                    ? "bg-zinc-800 text-zinc-300 border-zinc-700"
-                                    : "bg-gray-100 text-gray-700 border-gray-300"
-                                }`}
+                                className="px-2.5 py-1 text-xs font-medium rounded-full tracking-wide border bg-zinc-900 text-zinc-400 border-zinc-800"
                               >
                                 {mood}
                               </span>
                             ))}
                           </div>
 
-                          {/* Description */}
-                          <p className={`text-xs font-light tracking-wide line-clamp-1 ${
-                            theme === "dark" ? "text-zinc-500" : "text-gray-600"
-                          }`}>
-                            {beat.description}
+                          <p className="text-xs font-medium tracking-wide line-clamp-1 text-zinc-500">
+                            {beat.description || "No description provided."}
                           </p>
                         </div>
 
-                        {/* Right Section - Price & Action */}
-                        <div className={`flex flex-col items-end gap-3 pl-4 border-l ${
-                          theme === "dark" ? "border-zinc-800" : "border-gray-300"
-                        }`}>
+                        <div className="flex flex-col items-end gap-3 pl-4 border-l border-zinc-800">
                           <div className="text-right">
-                            <div className={`text-lg font-light tracking-tight ${
-                              theme === "dark" ? "text-white" : "text-gray-900"
-                            }`}>
+                            <div className="text-lg font-medium tracking-tight text-white">
                               ${beat.price}
                             </div>
                             {beat.deal && (
-                              <div className="text-xs font-light text-red-400 tracking-wide line-through">
+                              <div className="text-xs font-medium text-red-400 tracking-wide line-through">
                                 ${(beat.price / (1 - beat.deal.discount / 100)).toFixed(2)}
                               </div>
                             )}
                           </div>
 
-                          {/* Role-based Action Buttons */}
                           <BeatCardActions beat={beat} />
                         </div>
                       </div>
@@ -622,24 +470,13 @@ export default function BeatMarketplace() {
                 </div>
               ))}
 
-              {/* Empty State */}
               {filteredBeats.length === 0 && (
-                <div className={`text-center py-16 rounded-xl border ${
-                  theme === "dark"
-                    ? "border-zinc-800 bg-zinc-950"
-                    : "border-gray-300 bg-white"
-                }`}>
-                  <Music2 className={`w-12 h-12 mx-auto mb-3 ${
-                    theme === "dark" ? "text-zinc-700" : "text-gray-400"
-                  }`} />
-                  <p className={`text-sm font-light tracking-wide mb-1 ${
-                    theme === "dark" ? "text-zinc-400" : "text-gray-600"
-                  }`}>
+                <div className="text-center py-16 rounded-xl border border-zinc-800 bg-[#0A0A0A]">
+                  <Music2 className="w-12 h-12 mx-auto mb-3 text-zinc-600" />
+                  <p className="text-sm font-medium tracking-wide mb-1 text-zinc-300">
                     No beats found
                   </p>
-                  <p className={`text-xs font-light tracking-wide ${
-                    theme === "dark" ? "text-zinc-600" : "text-gray-500"
-                  }`}>
+                  <p className="text-xs font-medium tracking-wide text-zinc-500">
                     Try adjusting your filters or search query
                   </p>
                 </div>
@@ -648,65 +485,34 @@ export default function BeatMarketplace() {
             )}
           </div>
 
-          {/* Sidebar - 1 column */}
+          {/* Sidebar */}
           <div className="xl:col-span-1 space-y-6">
+            
             {/* Marketplace Stats */}
-            <div className={`rounded-xl border p-4 ${
-              theme === "dark"
-                ? "border-zinc-800 bg-zinc-950"
-                : "border-gray-300 bg-white"
-            }`}>
-              <h3 className={`text-lg font-light tracking-wide mb-4 ${
-                theme === "dark" ? "text-white" : "text-gray-900"
-              }`}>
+            <div className="rounded-xl border p-5 border-zinc-800 bg-[#0A0A0A]">
+              <h3 className="text-sm font-semibold tracking-wide mb-4 text-white">
                 Marketplace Stats
               </h3>
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <span className={`text-sm font-light tracking-wide ${
-                    theme === "dark" ? "text-zinc-500" : "text-gray-600"
-                  }`}>
-                    Total Beats
-                  </span>
-                  <span className={`text-sm font-light tracking-wide ${
-                    theme === "dark" ? "text-white" : "text-gray-900"
-                  }`}>
-                    {beats.length}
-                  </span>
+                  <span className="text-sm font-medium tracking-wide text-zinc-400">Total Beats</span>
+                  <span className="text-sm font-semibold tracking-wide text-white">{beats.length}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className={`text-sm font-light tracking-wide ${
-                    theme === "dark" ? "text-zinc-500" : "text-gray-600"
-                  }`}>
-                    Active Producers
-                  </span>
-                  <span className={`text-sm font-light tracking-wide ${
-                    theme === "dark" ? "text-white" : "text-gray-900"
-                  }`}>
+                  <span className="text-sm font-medium tracking-wide text-zinc-400">Active Producers</span>
+                  <span className="text-sm font-semibold tracking-wide text-white">
                     {new Set(beats.map(b => b.producer.name)).size}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className={`text-sm font-light tracking-wide ${
-                    theme === "dark" ? "text-zinc-500" : "text-gray-600"
-                  }`}>
-                    Deals Available
-                  </span>
-                  <span className={`text-sm font-light tracking-wide ${
-                    theme === "dark" ? "text-white" : "text-gray-900"
-                  }`}>
+                  <span className="text-sm font-medium tracking-wide text-zinc-400">Deals Available</span>
+                  <span className="text-sm font-semibold tracking-wide text-white">
                     {beats.filter(b => b.deal).length}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className={`text-sm font-light tracking-wide ${
-                    theme === "dark" ? "text-zinc-500" : "text-gray-600"
-                  }`}>
-                    Total Plays
-                  </span>
-                  <span className={`text-sm font-light tracking-wide ${
-                    theme === "dark" ? "text-white" : "text-gray-900"
-                  }`}>
+                  <span className="text-sm font-medium tracking-wide text-zinc-400">Total Plays</span>
+                  <span className="text-sm font-semibold tracking-wide text-white">
                     {formatNumber(beats.reduce((sum, b) => sum + b.plays, 0))}
                   </span>
                 </div>
@@ -714,25 +520,15 @@ export default function BeatMarketplace() {
             </div>
 
             {/* Top Producers */}
-            <div className={`rounded-xl border p-4 ${
-              theme === "dark" 
-                ? "border-zinc-800 bg-zinc-950" 
-                : "border-gray-300 bg-white"
-            }`}>
-              <h3 className={`text-lg font-light tracking-wide mb-4 ${
-                theme === "dark" ? "text-white" : "text-gray-900"
-              }`}>
+            <div className="rounded-xl border p-5 border-zinc-800 bg-[#0A0A0A]">
+              <h3 className="text-sm font-semibold tracking-wide mb-4 text-white">
                 Top Producers
               </h3>
               <div className="space-y-3">
                 {beats.slice(0, 4).map((beat) => (
                   <div
                     key={beat.id}
-                    className={`flex items-center gap-3 p-3 rounded-lg border transition-all duration-200 cursor-pointer ${
-                      theme === "dark"
-                        ? "border-zinc-800 bg-zinc-900 hover:border-zinc-700 hover:bg-zinc-800"
-                        : "border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100"
-                    }`}
+                    className="flex items-center gap-3 p-3 rounded-lg border transition-all duration-200 cursor-pointer border-zinc-800 bg-zinc-900/50 hover:border-zinc-700 hover:bg-zinc-800"
                   >
                     <img
                       src={beat.producer.avatar}
@@ -740,23 +536,15 @@ export default function BeatMarketplace() {
                       className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                     />
                     <div className="flex-1 min-w-0">
-                      <div className={`text-sm font-light tracking-wide truncate mb-1 ${
-                        theme === "dark" ? "text-white" : "text-gray-900"
-                      }`}>
+                      <div className="text-sm font-medium tracking-wide truncate mb-0.5 text-white">
                         {beat.producer.name}
                       </div>
-                      <div className={`text-xs font-light tracking-wide ${
-                        theme === "dark" ? "text-zinc-500" : "text-gray-600"
-                      }`}>
+                      <div className="text-xs font-medium tracking-wide text-zinc-500">
                         {Math.floor(Math.random() * 20) + 5} beats
                       </div>
                     </div>
                     <button
-                      className={`px-3 py-1 text-xs font-light rounded-lg border transition-all duration-200 tracking-wide active:scale-95 ${
-                        theme === "dark"
-                          ? "bg-white border-white text-black hover:bg-zinc-100"
-                          : "bg-black border-black text-white hover:bg-gray-800"
-                      }`}
+                      className="px-3 py-1.5 text-xs font-medium rounded-lg border transition-all duration-200 tracking-wide active:scale-95 bg-white border-white text-black hover:bg-zinc-200"
                     >
                       Follow
                     </button>

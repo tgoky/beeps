@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, User, Settings, Zap } from "lucide-react";
+import { LogOut, User, Settings } from "lucide-react";
 import { useGetIdentity } from "@refinedev/core";
 
 interface UserSectionProps {
@@ -24,99 +24,101 @@ export const UserSection = ({ collapsed, handleLogout }: UserSectionProps) => {
     name: identity?.name || "User",
     email: identity?.email || "",
     avatar: identity?.imageUrl || null,
-    role: identity?.roles?.[0] || "MEMBER"
+    role: identity?.roles?.[0] || "Member"
   };
 
   return (
-    <div className="p-4 border-t border-white/10 bg-[#030303]">
+    <div className="p-4 border-t border-zinc-800 bg-[#030303]">
       {!collapsed ? (
-        <>
+        <div className="flex flex-col gap-4">
           {/* User Info Block */}
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-3">
             
-            {/* Sharp Avatar Box */}
-            <div className="relative flex-shrink-0 w-8 h-8 bg-black border border-white/20 flex items-center justify-center">
+            {/* Smooth Avatar */}
+            <div className="relative flex-shrink-0">
               {user.avatar ? (
                 <img 
                   src={user.avatar} 
                   alt={user.name}
-                  className="w-full h-full object-cover grayscale opacity-90 hover:grayscale-0 transition-all duration-300"
+                  className="w-10 h-10 rounded-full object-cover border border-zinc-800"
                 />
               ) : (
-                <User className="w-4 h-4 text-zinc-500" strokeWidth={1.5} />
+                <div className="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center">
+                  <User className="w-5 h-5 text-zinc-500" strokeWidth={1.5} />
+                </div>
               )}
-              {/* Brutalist Status Square (Instead of a green dot) */}
-              <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-white border border-black" title="Online"></div>
+              {/* Standard Online Indicator */}
+              <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-[#030303] rounded-full" title="Online"></div>
             </div>
 
             {/* User Details */}
             <div className="flex-1 min-w-0 flex flex-col justify-center">
-              <h3 className="font-black text-[10px] uppercase tracking-widest text-white truncate">
+              <h3 className="text-sm font-semibold text-white truncate">
                 {user.name}
               </h3>
-              <p className="font-bold text-[8px] uppercase tracking-[0.2em] text-zinc-500 truncate mt-0.5">
-                {user.role}
+              <p className="text-xs font-medium text-zinc-500 truncate capitalize mt-0.5">
+                {user.role.toLowerCase()}
               </p>
             </div>
           </div>
 
-          {/* Split Action Bar - Zero Borders outside, sharp divider inside */}
-          <div className="flex border border-white/10 bg-black">
+          {/* Action Bar - Soft Buttons */}
+          <div className="flex items-center gap-2">
             <button
-              className="flex-1 flex items-center justify-center gap-2 py-2.5 border-r border-white/10 text-zinc-500 hover:text-white hover:bg-white/5 transition-colors outline-none"
+              className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium text-zinc-400 hover:text-white hover:bg-zinc-900 border border-transparent hover:border-zinc-800 transition-all outline-none"
               aria-label="Settings"
               title="Settings"
             >
-              <Settings className="w-3.5 h-3.5" strokeWidth={1.5} />
-              <span className="text-[8px] font-black uppercase tracking-widest">Config</span>
+              <Settings className="w-4 h-4" strokeWidth={2} />
+              <span>Settings</span>
             </button>
 
             <button
               onClick={handleLogout}
-              className="flex-1 flex items-center justify-center gap-2 py-2.5 text-zinc-500 hover:text-red-500 hover:bg-red-500/10 transition-colors outline-none"
+              className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium text-zinc-400 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all outline-none"
               aria-label="Logout"
               title="Logout"
             >
-              <LogOut className="w-3.5 h-3.5" strokeWidth={1.5} />
-              <span className="text-[8px] font-black uppercase tracking-widest">Eject</span>
+              <LogOut className="w-4 h-4" strokeWidth={2} />
+              <span>Logout</span>
             </button>
           </div>
-        </>
+        </div>
       ) : (
-        /* Collapsed State - Ultra Minimal */
-        <div className="flex flex-col items-center gap-4">
+        /* Collapsed State */
+        <div className="flex flex-col items-center gap-5">
           
           {/* Avatar Only */}
-          <div className="relative w-8 h-8 bg-black border border-white/20 flex items-center justify-center cursor-pointer hover:border-white transition-colors" title={user.name}>
+          <div className="relative flex-shrink-0 cursor-pointer" title={user.name}>
             {user.avatar ? (
               <img 
                 src={user.avatar} 
                 alt={user.name}
-                className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-300"
+                className="w-10 h-10 rounded-full object-cover border border-zinc-800 hover:border-zinc-600 transition-colors"
               />
             ) : (
-              <User className="w-4 h-4 text-zinc-500" strokeWidth={1.5} />
+              <div className="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center hover:border-zinc-600 transition-colors">
+                <User className="w-5 h-5 text-zinc-500" strokeWidth={1.5} />
+              </div>
             )}
-            <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-white border border-black"></div>
+            <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-[#030303] rounded-full"></div>
           </div>
 
           {/* Stacked Actions */}
-          <div className="flex flex-col gap-2 w-full border border-white/10 bg-black">
+          <div className="flex flex-col gap-2 w-full">
             <button
-              className="w-full flex items-center justify-center py-2 border-b border-white/10 text-zinc-500 hover:text-white hover:bg-white/5 transition-colors outline-none"
-              aria-label="Settings"
-              title="Config"
+              className="w-full flex items-center justify-center p-2.5 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-900 transition-all outline-none"
+              title="Settings"
             >
-              <Settings className="w-4 h-4" strokeWidth={1.5} />
+              <Settings className="w-5 h-5" strokeWidth={2} />
             </button>
 
             <button
               onClick={handleLogout}
-              className="w-full flex items-center justify-center py-2 text-zinc-500 hover:text-red-500 hover:bg-red-500/10 transition-colors outline-none"
-              aria-label="Logout"
-              title="Eject"
+              className="w-full flex items-center justify-center p-2.5 rounded-xl text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-all outline-none"
+              title="Logout"
             >
-              <LogOut className="w-4 h-4" strokeWidth={1.5} />
+              <LogOut className="w-5 h-5" strokeWidth={2} />
             </button>
           </div>
         </div>

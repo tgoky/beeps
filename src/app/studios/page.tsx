@@ -78,17 +78,17 @@ export default function StudioList() {
   const { permissions } = usePermissions();
 
   // URL State for Drawer
-  const drawerStudioId = searchParams.get("id");
+  // const drawerStudioId = searchParams.get("id");
 
-  // Drawer Handlers (Shallow Routing)
-  const openDrawer = useCallback(
-    (id: string) => {
-      const params = new URLSearchParams(searchParams.toString());
-      params.set("id", id);
-      router.push(`${pathname}?${params.toString()}`, { scroll: false });
-    },
-    [pathname, router, searchParams]
-  );
+  // // Drawer Handlers (Shallow Routing)
+  // const openDrawer = useCallback(
+  //   (id: string) => {
+  //     const params = new URLSearchParams(searchParams.toString());
+  //     params.set("id", id);
+  //     router.push(`${pathname}?${params.toString()}`, { scroll: false });
+  //   },
+  //   [pathname, router, searchParams]
+  // );
 
 const closeDrawer = useCallback(() => {
     // 1. Get current params
@@ -478,12 +478,12 @@ const closeDrawer = useCallback(() => {
                     </div>
                   </div>
 
-                  <button
-                    onClick={(e) => { e.stopPropagation(); openDrawer(selectedStudio.id); }}
-                    className="w-full py-2.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-zinc-200 transition-colors"
-                  >
-                    Book Session
-                  </button>
+            <button
+  onClick={(e) => { e.stopPropagation(); router.push(`/studios/${selectedStudio.id}`); }}
+  className="w-full py-2.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-zinc-200 transition-colors"
+>
+  View Studio
+</button>
                 </div>
               </div>
             </div>
@@ -638,13 +638,13 @@ const closeDrawer = useCallback(() => {
                     : null;
 
                   return (
-                    <div
-                      key={studio.id}
-                      className="group flex flex-col bg-zinc-900 border border-zinc-800 rounded-xl hover:border-zinc-700 hover:bg-zinc-800 transition-all duration-300 cursor-pointer overflow-hidden"
-                      onClick={() => openDrawer(studio.id)}
-                      onMouseEnter={() => setHoveredStudio(studio.id)}
-                      onMouseLeave={() => setHoveredStudio(null)}
-                    >
+                 <div
+  key={studio.id}
+  className="group flex flex-col bg-zinc-900 border border-zinc-800 rounded-xl hover:border-zinc-700 hover:bg-zinc-800 transition-all duration-300 cursor-pointer overflow-hidden"
+  onClick={() => router.push(`/studios/${studio.id}`)}
+  onMouseEnter={() => setHoveredStudio(studio.id)}
+  onMouseLeave={() => setHoveredStudio(null)}
+>
                       {/* IMAGE CONTAINER */}
                       <div className="relative w-full aspect-square overflow-hidden bg-zinc-950">
                         <img
@@ -705,7 +705,7 @@ const closeDrawer = useCallback(() => {
         </div>
       </div>
 
-      {drawerStudioId && <StudioBookingDrawer studioId={drawerStudioId} onClose={closeDrawer} />}
+      {/* {drawerStudioId && <StudioBookingDrawer studioId={drawerStudioId} onClose={closeDrawer} />} */}
 
       <style jsx>{`
         .scrollbar-hide::-webkit-scrollbar { display: none; }

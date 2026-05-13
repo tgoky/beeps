@@ -236,9 +236,9 @@ export default function StudioBookingDrawer({
         </button>
 
         {/* ═══════════════════════════════════════════ */}
-        {/* TOP IMAGE HEADER                            */}
+        {/* TOP IMAGE HEADER (Shrunk)                   */}
         {/* ═══════════════════════════════════════════ */}
-        <div className="relative w-full h-[280px] shrink-0 bg-zinc-950 border-b border-zinc-800 group">
+        <div className="relative w-full h-[160px] sm:h-[200px] shrink-0 bg-zinc-950 border-b border-zinc-800 group">
           {images.length > 0 ? (
             <>
               <img
@@ -273,7 +273,7 @@ export default function StudioBookingDrawer({
           <div className="absolute inset-0 bg-gradient-to-t from-[#030303] via-[#030303]/60 to-transparent pointer-events-none" />
 
           <div className="absolute bottom-4 left-6 right-6 flex flex-col pointer-events-none">
-            <h2 className="text-3xl font-bold tracking-tight text-white flex items-center gap-2 line-clamp-1">
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-center gap-2 line-clamp-1">
               {studio.name}
               {studio.verificationStatus === "VERIFIED" && <BadgeCheck size={24} className="text-blue-500 shrink-0" />}
             </h2>
@@ -289,7 +289,7 @@ export default function StudioBookingDrawer({
         </div>
 
         {/* ═══════════════════════════════════════════ */}
-        {/* DRAWER CONTENT (Scrollable)                 */}
+        {/* DRAWER CONTENT (Scrollable, Reduced Padding)*/}
         {/* ═══════════════════════════════════════════ */}
         <div className="flex border-b border-zinc-800 shrink-0 px-6">
           {["booking", "details", "equipment"].map((tab) => (
@@ -305,50 +305,50 @@ export default function StudioBookingDrawer({
           ))}
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-8 scrollbar-hide">
           {activeTab === "booking" && (
-            <div className="space-y-8">
+            <div className="space-y-6">
               
-              {/* 1. Artistic, Large Calendar Grid */}
+              {/* 1. Artistic, Compact Calendar Grid */}
               <div>
                 <h3 className="text-sm font-medium text-zinc-200 mb-3 flex items-center gap-2">
                   <CalendarIcon className="w-4 h-4 text-zinc-500" /> Select Date
                 </h3>
                 
-                <div className="bg-[#0A0A0A] border border-zinc-800 p-5 rounded-2xl shadow-inner">
+                <div className="bg-[#0A0A0A] border border-zinc-800 p-3 sm:p-4 rounded-2xl shadow-inner">
                   {/* Calendar Header */}
-                  <div className="flex justify-between items-center mb-6">
+                  <div className="flex justify-between items-center mb-3">
                     <button 
                       onClick={() => setViewDate(viewDate.subtract(1, "month"))}
-                      className="w-10 h-10 flex items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-white hover:text-black hover:border-white transition-all text-zinc-400"
+                      className="w-8 h-8 flex items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900 hover:bg-white hover:text-black hover:border-white transition-all text-zinc-400"
                     >
-                      <ChevronLeft size={20} />
+                      <ChevronLeft size={16} />
                     </button>
                     <div className="flex flex-col items-center">
-                      <span className="text-lg font-semibold text-white tracking-wide">
+                      <span className="text-sm font-semibold text-white tracking-wide">
                         {viewDate.format("MMMM")}
                       </span>
-                      <span className="text-xs font-medium text-zinc-500">
+                      <span className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider mt-0.5">
                         {viewDate.format("YYYY")}
                       </span>
                     </div>
                     <button 
                       onClick={() => setViewDate(viewDate.add(1, "month"))}
-                      className="w-10 h-10 flex items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-white hover:text-black hover:border-white transition-all text-zinc-400"
+                      className="w-8 h-8 flex items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900 hover:bg-white hover:text-black hover:border-white transition-all text-zinc-400"
                     >
-                      <ChevronRight size={20} />
+                      <ChevronRight size={16} />
                     </button>
                   </div>
 
                   {/* Calendar Grid */}
-                  <div className="grid grid-cols-7 mb-3 gap-1">
+                  <div className="grid grid-cols-7 mb-1 gap-1">
                     {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-                      <div key={day} className="text-center text-xs font-semibold text-zinc-600 mb-2">
+                      <div key={day} className="text-center text-[10px] uppercase font-semibold text-zinc-600 mb-1.5">
                         {day}
                       </div>
                     ))}
                     {generateCalendar().map((day, i) => {
-                      if (!day) return <div key={i} className="h-10 sm:h-12" />;
+                      if (!day) return <div key={i} className="h-8" />;
 
                       const dateObj = viewDate.date(day);
                       const isPast = dateObj.isBefore(dayjs().startOf("day"));
@@ -363,11 +363,11 @@ export default function StudioBookingDrawer({
                             setSelectedDate(dateObj);
                             setSelectedTime(""); // Reset time on new date selection
                           }}
-                          className={`h-10 sm:h-12 w-full flex items-center justify-center rounded-xl text-sm font-medium transition-all ${
+                          className={`h-8 w-full flex items-center justify-center rounded-lg text-xs font-medium transition-all ${
                             isPast
                               ? "text-zinc-800 cursor-not-allowed"
                               : isSelected
-                              ? "bg-white text-black shadow-lg shadow-white/20 scale-105 z-10 font-bold"
+                              ? "bg-white text-black shadow-md shadow-white/20 scale-105 z-10 font-bold"
                               : isToday
                               ? "text-white border border-zinc-700 bg-zinc-800 hover:bg-zinc-700"
                               : "text-zinc-300 hover:bg-zinc-800 hover:text-white"
@@ -394,7 +394,7 @@ export default function StudioBookingDrawer({
                         setSessionLength(hours);
                         setSelectedTime(""); 
                       }}
-                      className={`py-3 text-sm font-medium rounded-xl border transition-all ${
+                      className={`py-2 sm:py-3 text-sm font-medium rounded-xl border transition-all ${
                         sessionLength === hours
                           ? "bg-white border-white text-black shadow-sm"
                           : "bg-[#0A0A0A] border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-zinc-200"
@@ -419,7 +419,7 @@ export default function StudioBookingDrawer({
                         key={time}
                         onClick={() => isAvailable && setSelectedTime(time)}
                         disabled={!isAvailable}
-                        className={`py-3 text-sm font-medium rounded-xl border transition-colors relative ${
+                        className={`py-2 sm:py-3 text-sm font-medium rounded-xl border transition-colors relative ${
                           !isAvailable
                             ? "bg-red-500/5 border-red-500/10 text-red-500/30 cursor-not-allowed line-through"
                             : selectedTime === time
@@ -435,7 +435,7 @@ export default function StudioBookingDrawer({
               </div>
 
               {bookingError && (
-                <div className="p-4 rounded-xl border border-red-500/20 bg-red-500/10 text-red-400 text-sm flex items-center gap-2">
+                <div className="p-3 rounded-xl border border-red-500/20 bg-red-500/10 text-red-400 text-sm flex items-center gap-2">
                   <X size={18} />
                   {bookingError}
                 </div>
@@ -498,19 +498,19 @@ export default function StudioBookingDrawer({
         </div>
 
         {/* ═══════════════════════════════════════════ */}
-        {/* STICKY FOOTER (Checkout Flow)               */}
+        {/* STICKY FOOTER (Compressed Flow)             */}
         {/* ═══════════════════════════════════════════ */}
-        <div className="bg-[#0A0A0A] border-t border-zinc-800 p-6 shrink-0 mt-auto sm:rounded-bl-2xl">
-          <div className="flex justify-between items-end mb-5">
+        <div className="bg-[#0A0A0A] border-t border-zinc-800 p-4 sm:p-5 shrink-0 mt-auto sm:rounded-bl-2xl">
+          <div className="flex justify-between items-end mb-3">
             <div className="flex flex-col">
-              <span className="text-xs text-zinc-500 mb-1">Total (Estimated)</span>
-              <span className="text-3xl font-bold text-white tracking-tight">
+              <span className="text-[11px] text-zinc-500 mb-0.5">Total (Estimated)</span>
+              <span className="text-2xl font-bold text-white tracking-tight">
                 ${estimatedTotal.toFixed(2)}
               </span>
             </div>
             <div className="flex flex-col items-end">
-              <span className="text-xs text-zinc-500 mb-1">Rate Breakdown</span>
-              <span className="text-sm font-medium text-zinc-300">
+              <span className="text-[11px] text-zinc-500 mb-0.5">Rate Breakdown</span>
+              <span className="text-xs font-medium text-zinc-300">
                 {sessionLength} hrs @ ${studio.hourlyRate}/hr
               </span>
             </div>
@@ -519,7 +519,7 @@ export default function StudioBookingDrawer({
           <button
             onClick={handleBooking}
             disabled={!selectedTime || bookingLoading || activeTab !== "booking"}
-            className={`w-full py-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
+            className={`w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
               !selectedTime || activeTab !== "booking"
                 ? "bg-zinc-800 text-zinc-500 cursor-not-allowed"
                 : "bg-white hover:bg-zinc-200 text-black shadow-lg shadow-white/10 active:scale-[0.98]"
@@ -527,19 +527,19 @@ export default function StudioBookingDrawer({
           >
             {bookingLoading ? (
               <div className="flex items-center gap-2">
-                <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
                 Processing...
               </div>
             ) : activeTab !== "booking" ? (
-              "Return to Booking Tab"
+              "Return to Booking"
             ) : (
               <>
-                <CheckCircle2 size={18} />
+                <CheckCircle2 size={16} />
                 Request to Book
               </>
             )}
           </button>
-          <p className="text-center text-xs mt-4 text-zinc-500">
+          <p className="text-center text-[10px] mt-2.5 text-zinc-500">
             You won't be charged until the studio confirms.
           </p>
         </div>
