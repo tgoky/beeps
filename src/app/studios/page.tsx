@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef, useCallback, memo } from "react";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   Search,
   MapPin,
@@ -16,11 +16,8 @@ import {
   ChevronDown,
   BadgeCheck,
 } from "lucide-react";
-import { useTheme } from "../../providers/ThemeProvider";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useStudios } from "@/hooks/useStudios";
-
-import StudioBookingDrawer from "../../components/StudioBookingDrawer";
 
 type Studio = {
   id: string;
@@ -36,10 +33,12 @@ type Studio = {
   country: string | null;
   state: string | null;
   city: string | null;
-  description?: string;
+  description?: string | null;
   capacity?: string;
   verificationStatus?: "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED";
 };
+
+const EMPTY_STUDIOS: Studio[] = [];
 
 // Haversine formula (miles)
 const calculateDistance = (
@@ -146,6 +145,19 @@ const MapMarker = memo(({
 MapMarker.displayName = "MapMarker";
 
 // 2. Interactive Map Component (Isolates drag state from list/sheet)
+type InteractiveMapProps = {
+  filteredStudios: Studio[];
+  selectedStudio: Studio | null;
+  setSelectedStudio: (studio: Studio | null) => void;
+  hoveredStudio: string | null;
+  setHoveredStudio: (id: string | null) => void;
+  userLocation: { lat: number; lon: number } | null;
+  isLoadingLocation: boolean;
+  getUserLocation: () => void;
+  permissions: { canCreateStudios?: boolean } | null | undefined;
+};
+
+// 2. Interactive Map Component (Isolates drag state from list/sheet)
 const InteractiveMap = ({
   filteredStudios,
   selectedStudio,
@@ -193,35 +205,10 @@ const InteractiveMap = ({
       style={{ paddingBottom: isExpanded ? "75vh" : "42vh" }}
     >
       <style>{`
-        /* The flashing wanted area effect */
-        @keyframes gta-zone-pulse {
-          0%, 100% { 
-            background-color: rgba(56, 189, 248, 0.02); 
-            border-color: rgba(56, 189, 248, 0.1); 
-            box-shadow: inset 0 0 20px rgba(56, 189, 248, 0); 
-          }
-          50% { 
-            background-color: rgba(56, 189, 248, 0.08); 
-            border-color: rgba(56, 189, 248, 0.6); 
-            box-shadow: inset 0 0 60px rgba(56, 189, 248, 0.2); 
-          }
-        }
-        /* The harsh scanner beam inside the zone */
-        @keyframes gta-sweep {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        /* Helicopter Spotlight Roaming X & Y separately for organic movement */
-        @keyframes heli-roam-x {
-          0% { left: 20%; } 25% { left: 80%; } 50% { left: 60%; } 75% { left: 30%; } 100% { left: 20%; }
-        }
-        @keyframes heli-roam-y {
-          0% { top: 30%; } 33% { top: 70%; } 66% { top: 20%; } 100% { top: 30%; }
-        }
-        /* CRT Rolling Scanline */
-        @keyframes crt-scan {
-          0% { transform: translateY(-100vh); }
-          100% { transform: translateY(100vh); }
+        /* Smooth, slow ambient background shift */
+        @keyframes subtle-drift {
+          0% { background-position: 0% 0%; }
+          100% { background-position: 100% 100%; }
         }
         /* Low Altitude Parallax Fog Drift */
         @keyframes fog-roll {
@@ -229,7 +216,6 @@ const InteractiveMap = ({
           100% { transform: translate(-10%, -10%); }
         }
       `}</style>
-
       <div
         className="relative w-full h-full overflow-hidden select-none bg-[#0a0a0c]"
         onWheel={handleMapWheel}
@@ -245,7 +231,7 @@ const InteractiveMap = ({
         <div
           className="absolute inset-0 w-full h-full will-change-transform"
           style={{
-            transformStyle: "preserve-3d", // Critical to allow 3D parallax layers
+            transformStyle: "preserve-3d",
             transformOrigin: "center 70%",
             transform: `scale(${mapZoom}) translate(${mapOffset.x / mapZoom}px, ${mapOffset.y / mapZoom}px) ${
               tiltMode ? "perspective(1200px) rotateX(45deg)" : ""
@@ -253,60 +239,45 @@ const InteractiveMap = ({
             transition: isMapDragging ? "none" : "transform 0.5s cubic-bezier(0.32, 0.72, 0, 1)",
           }}
         >
-          {/* Water/Smoke Texture */}
+          {/* Subtle noise texture base */}
           <div
-            className="absolute inset-[-200%] w-[500%] h-[500%] opacity-[0.03] pointer-events-none mix-blend-screen"
-            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' fill='%23ffffff'/%3E%3C/svg%3E")` }}
+            className="absolute inset-[-200%] w-[500%] h-[500%] opacity-[0.02] pointer-events-none mix-blend-screen"
+            style={{ 
+              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' fill='%23ffffff'/%3E%3C/svg%3E")` 
+            }}
           />
 
-          {/* GTA WANTED ZONE */}
-          <div 
-            className="absolute top-[45%] left-[50%] w-[120%] h-[120%] rounded-full pointer-events-none z-0 border-[3px] border-dashed -translate-x-1/2 -translate-y-1/2 overflow-hidden"
-            style={{ animation: 'gta-zone-pulse 2.5s ease-in-out infinite' }}
-          >
-            {/* The sweeping radar beam inside the wanted zone */}
-            <div 
-              className="absolute top-0 bottom-0 left-1/2 w-1/2 origin-left mix-blend-screen opacity-60"
-              style={{
-                background: 'linear-gradient(90deg, rgba(56, 189, 248, 0.4) 0%, transparent 100%)',
-                animation: 'gta-sweep 4s linear infinite'
-              }}
-            />
-          </div>
-
           {/* Land Mass & World Extension */}
-          <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 100 100" overflow="visible">
-            {/* Outer World */}
-            <path d="M -150 -50 L -20 -50 Q -50 50 -10 150 L -150 150 Z" fill="#15161a" opacity="0.6" />
-            <path d="M 120 -50 L 300 -50 L 300 200 L 140 200 Q 100 100 120 -50 Z" fill="#15161a" opacity="0.6" />
-            <path d="M 140 -20 L 250 -20 L 250 150 Q 130 100 140 -20 Z" fill="#1c1d22" opacity="0.4" />
-            <path d="M -150 -150 L 300 -150 L 300 -30 Q 100 -80 -150 -30 Z" fill="#1e1e24" opacity="0.6" />
-
+          <svg className="absolute inset-0 w-full h-full pointer-events-none z-0 transition-opacity duration-500 opacity-80" viewBox="0 0 100 100" overflow="visible">
+            <path d="M -150 -50 L -20 -50 Q -50 50 -10 150 L -150 150 Z" fill="#111215" />
+            <path d="M 120 -50 L 300 -50 L 300 200 L 140 200 Q 100 100 120 -50 Z" fill="#111215" />
+            <path d="M 140 -20 L 250 -20 L 250 150 Q 130 100 140 -20 Z" fill="#17181c" />
+            <path d="M -150 -150 L 300 -150 L 300 -30 Q 100 -80 -150 -30 Z" fill="#14151a" />
             {/* Main Central Map */}
-            <path d="M 15 0 L 100 0 L 100 100 L 30 100 C 30 100 25 80 40 70 C 55 60 50 40 30 35 C 10 30 5 15 15 0 Z" fill="#15161a" />
-            <path d="M 60 0 L 100 0 L 100 40 Q 80 50 60 30 Q 50 15 60 0 Z" fill="#1c1d22" />
-            <path d="M 60 55 L 75 55 L 75 65 L 60 65 Z" fill="#22232a" />
-            <path d="M 70 80 L 100 80 L 100 100 L 70 100 Z" fill="#1e1e24" />
-            <path d="M 30 100 C 30 100 25 80 40 70 C 55 60 50 40 30 35 C 10 30 5 15 15 0 L 12 0 C 2 15 8 32 28 38 C 48 44 52 62 38 72 C 22 82 28 100 28 100 Z" fill="#0f1013" opacity="0.8" />
+            <path d="M 15 0 L 100 0 L 100 100 L 30 100 C 30 100 25 80 40 70 C 55 60 50 40 30 35 C 10 30 5 15 15 0 Z" fill="#121317" />
+            <path d="M 60 0 L 100 0 L 100 40 Q 80 50 60 30 Q 50 15 60 0 Z" fill="#18191e" />
+            <path d="M 60 55 L 75 55 L 75 65 L 60 65 Z" fill="#1c1d22" />
+            <path d="M 70 80 L 100 80 L 100 100 L 70 100 Z" fill="#15161a" />
+            <path d="M 30 100 C 30 100 25 80 40 70 C 55 60 50 40 30 35 C 10 30 5 15 15 0 L 12 0 C 2 15 8 32 28 38 C 48 44 52 62 38 72 C 22 82 28 100 28 100 Z" fill="#0d0e11" />
           </svg>
 
           {/* Roads & Infrastructure */}
           <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" viewBox="0 0 100 100" overflow="visible">
-            <g stroke="#27272a" strokeWidth="0.4" opacity="0.5">
+            <g stroke="#1f1f24" strokeWidth="0.4" opacity="0.6">
               {[-100, -80, -60, -40, -20, 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 120, 140, 160, 180, 200].map((y) => <line key={`h-${y}`} x1="-150" y1={y} x2="300" y2={y} />)}
               {[-100, -80, -60, -40, -20, 0, 15, 25, 35, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 120, 140, 160, 180, 200].map((x) => <line key={`v-${x}`} x1={x} y1="-150" x2={x} y2="250" />)}
             </g>
-            <path d="M -150 45 L 300 45 M 40 -150 L 40 250" stroke="#3f3f46" strokeWidth="1.5" strokeDasharray="5,5" />
+            <path d="M -150 45 L 300 45 M 40 -150 L 40 250" stroke="#2e2e36" strokeWidth="1.2" strokeDasharray="5,5" opacity="0.6" />
             <g fill="none">
-              <path d="M -50 0 Q 30 50 80 60 L 250 65" stroke="#18181b" strokeWidth="4" strokeLinecap="round" />
-              <path d="M -50 0 Q 30 50 80 60 L 250 65" stroke="#71717a" strokeWidth="1.5" strokeLinecap="round" />
-              <path d="M 60 200 L 60 40 Q 60 20 150 -50" stroke="#18181b" strokeWidth="4" strokeLinecap="round" />
-              <path d="M 60 200 L 60 40 Q 60 20 150 -50" stroke="#71717a" strokeWidth="1.5" strokeLinecap="round" />
+              <path d="M -50 0 Q 30 50 80 60 L 250 65" stroke="#0a0a0c" strokeWidth="4" strokeLinecap="round" />
+              <path d="M -50 0 Q 30 50 80 60 L 250 65" stroke="#3f3f46" strokeWidth="1.2" strokeLinecap="round" />
+              <path d="M 60 200 L 60 40 Q 60 20 150 -50" stroke="#0a0a0c" strokeWidth="4" strokeLinecap="round" />
+              <path d="M 60 200 L 60 40 Q 60 20 150 -50" stroke="#3f3f46" strokeWidth="1.2" strokeLinecap="round" />
             </g>
           </svg>
 
-          {/* Buildings */}
-          <div className="absolute inset-0 pointer-events-none opacity-80 z-10">
+          {/* Minimalist Buildings */}
+          <div className="absolute inset-0 pointer-events-none opacity-60 z-10">
             {[
               { l: 42, t: 47, w: 4, h: 4 }, { l: 47, t: 47, w: 4, h: 6 }, { l: 42, t: 53, w: 9, h: 4 },
               { l: 55, t: 48, w: 8, h: 8 }, { l: 65, t: 25, w: 5, h: 5 }, { l: 82, t: 75, w: 6, h: 10 },
@@ -314,14 +285,13 @@ const InteractiveMap = ({
             ].map((b, i) => (
               <div 
                 key={i} 
-                className="absolute bg-zinc-800 border border-zinc-700/50 rounded-sm shadow-[0_4px_12px_rgba(0,0,0,0.5)]" 
+                className="absolute bg-[#18181b] border border-[#27272a] rounded-sm shadow-[0_4px_12px_rgba(0,0,0,0.4)]" 
                 style={{ left: `${b.l}%`, top: `${b.t}%`, width: `${b.w}%`, height: `${b.h}%` }} 
               />
             ))}
           </div>
 
-          {/* --- NEW: LOW-ALTITUDE PARALLAX FOG --- */}
-          {/* Floats 40px above the ground when in 3D tilt mode */}
+          {/* Clean Low-Altitude Fog */}
           <div 
             className="absolute inset-0 pointer-events-none z-15"
             style={{
@@ -331,45 +301,23 @@ const InteractiveMap = ({
             }}
           >
             <div 
-              className="absolute inset-[-100%] w-[300%] h-[300%] mix-blend-screen opacity-[0.12]"
+              className="absolute inset-[-100%] w-[300%] h-[300%] mix-blend-screen opacity-[0.06]"
               style={{ 
-                // Generates larger, billowy clouds compared to the water static
                 backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='fog'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23fog)' fill='%23ffffff'/%3E%3C/svg%3E")`,
-                animation: 'fog-roll 40s linear infinite'
+                animation: 'fog-roll 60s linear infinite'
               }}
             />
           </div>
 
-          {/* THE ROAMING HELICOPTER SPOTLIGHT */}
-          {/* Floats 60px above the ground, allowing it to highlight the fog below it */}
+          {/* MARKERS & USER LOCATION */}
           <div 
-            className="absolute inset-0 pointer-events-none z-20"
+            className="absolute inset-0 pointer-events-none z-30"
             style={{
               transform: tiltMode ? 'translateZ(60px)' : 'translateZ(0px)',
               transition: 'transform 0.5s cubic-bezier(0.32, 0.72, 0, 1)',
               transformStyle: 'preserve-3d'
             }}
           >
-            <div 
-              className="absolute w-[60%] h-[60%] rounded-full mix-blend-color-dodge -translate-x-1/2 -translate-y-1/2"
-              style={{
-                background: 'radial-gradient(circle, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.05) 30%, transparent 70%)',
-                animation: 'heli-roam-x 20s ease-in-out infinite alternate, heli-roam-y 27s ease-in-out infinite alternate'
-              }}
-            />
-          </div>
-
-          {/* MARKERS & USER LOCATION */}
-          {/* Hover 80px above the ground, making them look like floating holograms */}
-          <div 
-            className="absolute inset-0 pointer-events-none z-30"
-            style={{
-              transform: tiltMode ? 'translateZ(80px)' : 'translateZ(0px)',
-              transition: 'transform 0.5s cubic-bezier(0.32, 0.72, 0, 1)',
-              transformStyle: 'preserve-3d'
-            }}
-          >
-            {/* Memoized Studio Markers */}
             {filteredStudios.map((studio: Studio) => (
               <MapMarker
                 key={studio.id}
@@ -380,38 +328,22 @@ const InteractiveMap = ({
                 onHover={setHoveredStudio}
               />
             ))}
-
+            
             {/* User Location */}
             {userLocation && (
               <div className="absolute transform -translate-x-1/2 -translate-y-1/2 pointer-events-auto" style={{ left: "35%", top: "40%" }}>
                 <div className="relative">
-                  <div className="absolute inset-0 bg-blue-500/30 blur-md rounded-full animate-pulse" />
-                  <Navigation size={18} className="fill-blue-500 text-blue-500 transform rotate-45" />
+                  <div className="absolute inset-0 bg-blue-500/20 blur-md rounded-full animate-pulse" />
+                  <div className="w-3 h-3 bg-blue-500 rounded-full border-2 border-white shadow-[0_0_12px_rgba(59,130,246,0.6)]" />
                 </div>
               </div>
             )}
           </div>
         </div>
 
-        {/* --- CRT HARDWARE OVERLAY --- */}
+        {/* Clean Vignette & Depth Overlay */}
         <div className="absolute inset-0 pointer-events-none z-25 overflow-hidden">
-          {/* Shadow Vignette */}
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_40%,rgba(0,0,0,0.6)_110%)]" />
-          
-          {/* Micro Grid / Horizontal Scanlines */}
-          <div 
-            className="absolute inset-0 opacity-[0.25]" 
-            style={{ 
-              backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, 0.4) 50%)', 
-              backgroundSize: '100% 4px' 
-            }} 
-          />
-          
-          {/* Rolling Faint Light Scanline */}
-          <div 
-            className="absolute top-0 left-0 right-0 h-[10vh] bg-gradient-to-b from-transparent via-blue-300/5 to-transparent"
-            style={{ animation: 'crt-scan 8s linear infinite' }} 
-          />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_30%,rgba(5,5,5,0.75)_120%)]" />
         </div>
 
         {/* Map HUD Controls */}
@@ -447,7 +379,6 @@ const InteractiveMap = ({
           >
             <Navigation size={18} strokeWidth={1.5} />
           </button>
-
           {permissions?.canCreateStudios && (
             <button
               onClick={() => router.push("/studios/list-studio")}
@@ -476,7 +407,6 @@ const InteractiveMap = ({
                     <X size={16} strokeWidth={1.5} />
                   </button>
                 </div>
-
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-1.5 text-yellow-500">
                     <Star size={12} className="fill-current" />
@@ -489,7 +419,6 @@ const InteractiveMap = ({
                     <span className="text-xs font-normal text-zinc-500">/hr</span>
                   </div>
                 </div>
-
                 <button
                   onClick={(e) => { e.stopPropagation(); router.push(`/studios/${selectedStudio.id}`); }}
                   className="w-full py-2.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-zinc-200 transition-colors"
@@ -504,22 +433,13 @@ const InteractiveMap = ({
     </div>
   );
 };
+InteractiveMap.displayName = "InteractiveMap";
 
 // --- MAIN PAGE COMPONENT ---
 
 export default function StudioList() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const pathname = usePathname();
   const { permissions } = usePermissions();
-
-  const closeDrawer = useCallback(() => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete("id");
-    const newQueryString = params.toString();
-    const newUrl = newQueryString ? `${pathname}?${newQueryString}` : pathname;
-    router.push(newUrl, { scroll: false });
-  }, [pathname, router, searchParams]);
 
   // Location state
   const [userLocation, setUserLocation] = useState<{ lat: number; lon: number; } | null>(null);
@@ -531,7 +451,6 @@ export default function StudioList() {
   const [selectedFilterIndex, setSelectedFilterIndex] = useState<number | null>(null);
   const [sortOrder, setSortOrder] = useState<SortOrder>(null);
   const [showFilters, setShowFilters] = useState(false);
-  const [searchFocused, setSearchFocused] = useState(false);
 
   // Location filter state
   const [filterCountry, setFilterCountry] = useState("");
@@ -554,13 +473,12 @@ export default function StudioList() {
         ? FILTER_OPTIONS[selectedFilterIndex].max
         : undefined,
   });
-  const studios = studiosData?.studios ?? [];
+  const studios = studiosData?.studios ?? EMPTY_STUDIOS;
 
   // Bottom sheet state
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isDraggingSheet, setIsDraggingSheet] = useState(false);
+  const isDraggingSheet = useRef(false);
   const dragStartY = useRef(0);
-  const sheetRef = useRef<HTMLDivElement>(null);
 
   // Main shared map state
   const [selectedStudio, setSelectedStudio] = useState<Studio | null>(null);
@@ -643,22 +561,24 @@ export default function StudioList() {
   }, [studios, sortOrder, userLocation]);
 
   const handleSheetPointerDown = useCallback((e: React.PointerEvent) => {
-    setIsDraggingSheet(true);
+    isDraggingSheet.current = true;
     dragStartY.current = e.clientY;
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
   }, []);
 
   const handleSheetPointerMove = useCallback((e: React.PointerEvent) => {
-    if (!isDraggingSheet) return;
+    if (!isDraggingSheet.current) return;
     const dy = e.clientY - dragStartY.current;
     if (Math.abs(dy) > 40) {
       if (dy < 0) setIsExpanded(true);
       else setIsExpanded(false);
-      setIsDraggingSheet(false);
+      isDraggingSheet.current = false;
     }
-  }, [isDraggingSheet]);
+  }, []);
 
-  const handleSheetPointerUp = useCallback(() => setIsDraggingSheet(false), []);
+  const handleSheetPointerUp = useCallback(() => {
+    isDraggingSheet.current = false;
+  }, []);
 
   return (
     <div className="relative w-full overflow-hidden bg-[#030303] selection:bg-white selection:text-black" style={{ height: "100vh" }}>
@@ -674,7 +594,6 @@ export default function StudioList() {
         isLoadingLocation={isLoadingLocation}
         getUserLocation={getUserLocation}
         permissions={permissions}
-        isExpanded={isExpanded}
       />
 
       {isLoadingStudios && (
@@ -685,10 +604,10 @@ export default function StudioList() {
 
       {/* BOTTOM SHEET */}
       <div
-        ref={sheetRef}
-        className="absolute left-0 right-0 bottom-0 z-40 transition-all duration-500 flex flex-col bg-[#030303] border-t border-zinc-800 rounded-t-3xl shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.5)]"
+        className="absolute left-0 right-0 bottom-0 z-40 flex flex-col bg-[#030303] border-t border-zinc-800 rounded-t-3xl shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.5)] transition-transform duration-500 will-change-transform"
         style={{
-          height: isExpanded ? "90vh" : "58vh",
+          height: "90vh",
+          transform: isExpanded ? "translate3d(0, 0, 0)" : "translate3d(0, 32vh, 0)",
           transitionTimingFunction: "cubic-bezier(0.32, 0.72, 0, 1)",
         }}
       >
@@ -721,8 +640,7 @@ export default function StudioList() {
                   setSearchQuery(e.target.value);
                   updateSearchSuggestions(e.target.value);
                 }}
-                onFocus={() => { setSearchFocused(true); setIsExpanded(true); }}
-                onBlur={() => setSearchFocused(false)}
+                onFocus={() => setIsExpanded(true)}
                 className="flex-1 px-4 py-3.5 text-sm font-light bg-transparent outline-none ring-0 border-none text-white placeholder-zinc-500 focus:ring-0"
               />
               <button
@@ -822,7 +740,10 @@ export default function StudioList() {
           </div>
 
           {/* GRID FEED */}
-          <div className="flex-1 overflow-y-auto pb-6 scrollbar-hide">
+          <div
+            className="flex-1 overflow-y-auto scrollbar-hide"
+            style={{ paddingBottom: isExpanded ? "1.5rem" : "calc(32vh + 1.5rem)" }}
+          >
             {filteredStudios.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                 {filteredStudios.map((studio) => {
@@ -831,55 +752,56 @@ export default function StudioList() {
                     : null;
 
                   return (
-                    <div
-                      key={studio.id}
-                      className="group flex flex-col bg-zinc-900 border border-zinc-800 rounded-xl hover:border-zinc-700 hover:bg-zinc-800 transition-all duration-300 cursor-pointer overflow-hidden"
-                      onClick={() => router.push(`/studios/${studio.id}`)}
-                      onMouseEnter={() => setHoveredStudio(studio.id)}
-                      onMouseLeave={() => setHoveredStudio(null)}
-                    >
-                      {/* IMAGE CONTAINER */}
-                      <div className="relative w-full aspect-square overflow-hidden bg-zinc-950">
-                        <img
-                          src={studio.imageUrl || "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=400&q=80"}
-                          alt={studio.name}
-                          className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                        />
-                        {studio.verificationStatus === "VERIFIED" && (
-                          <div className="absolute top-2 right-2 rounded-full backdrop-blur-md bg-black/50 p-1.5">
-                            <BadgeCheck size={14} className="text-blue-400" />
-                          </div>
-                        )}
-                        <div className="absolute bottom-2 left-2 rounded-lg bg-black/60 backdrop-blur-md px-2 py-1 flex items-center gap-1">
-                          <Star size={10} className="fill-yellow-500 text-yellow-500" />
-                          <span className="text-xs font-medium text-white">
-                            {studio.rating ? Number(studio.rating).toFixed(1) : "New"}
-                          </span>
-                        </div>
-                      </div>
+                   
+                 <div
+  key={studio.id}
+  className="group flex flex-col bg-zinc-900 border border-zinc-800 rounded-xl hover:border-zinc-700 hover:bg-zinc-800 transition-all duration-300 cursor-pointer overflow-hidden"
+  onClick={() => router.push(`/studios/${studio.id}`)}
+  onMouseEnter={() => setHoveredStudio(studio.id)}
+  onMouseLeave={() => setHoveredStudio(null)}
+>
+  {/* IMAGE CONTAINER - Shorter height */}
+  <div className="relative w-full h-32 overflow-hidden bg-zinc-950">
+    <img
+      src={studio.imageUrl || "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=400&q=80"}
+      alt={studio.name}
+      className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+    />
+    {studio.verificationStatus === "VERIFIED" && (
+      <div className="absolute top-2 right-2 rounded-full backdrop-blur-md bg-black/50 p-1">
+        <BadgeCheck size={10} className="text-blue-400" />
+      </div>
+    )}
+    <div className="absolute bottom-2 left-2 rounded-md bg-black/60 backdrop-blur-md px-1.5 py-0.5 flex items-center gap-0.5">
+      <Star size={8} className="fill-yellow-500 text-yellow-500" />
+      <span className="text-[10px] font-medium text-white">
+        {studio.rating ? Number(studio.rating).toFixed(1) : "New"}
+      </span>
+    </div>
+  </div>
 
-                      {/* META DATA */}
-                      <div className="p-3 flex flex-col gap-1.5 flex-grow">
-                        <div className="flex justify-between items-start gap-2">
-                          <h4 className="text-sm font-medium text-white line-clamp-1">
-                            {studio.name}
-                          </h4>
-                          <span className="text-sm font-semibold text-white shrink-0">
-                            ${studio.hourlyRate}
-                          </span>
-                        </div>
+  {/* META DATA - Compact */}
+  <div className="p-2 flex flex-col gap-1 flex-grow">
+    <div className="flex justify-between items-start gap-1">
+      <h4 className="text-xs font-medium text-white line-clamp-1">
+        {studio.name}
+      </h4>
+      <span className="text-xs font-semibold text-white shrink-0">
+        ${studio.hourlyRate}
+      </span>
+    </div>
 
-                        <p className="text-xs font-light text-zinc-400 truncate">
-                          {studio.location.split(",")[0]}
-                        </p>
+    <p className="text-[11px] font-light text-zinc-400 truncate">
+      {studio.location.split(",")[0]}
+    </p>
 
-                        {distance !== null && (
-                          <p className="text-xs font-light text-zinc-500 mt-auto pt-3 border-t border-zinc-800/50">
-                            {Math.round(distance)} miles away
-                          </p>
-                        )}
-                      </div>
-                    </div>
+    {distance !== null && (
+      <p className="text-[10px] font-light text-zinc-500 mt-0.5 pt-0.5 border-t border-zinc-800/50">
+        {Math.round(distance)} miles away
+      </p>
+    )}
+  </div>
+</div>
                   );
                 })}
               </div>
