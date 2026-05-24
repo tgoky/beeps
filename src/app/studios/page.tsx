@@ -487,6 +487,9 @@ export default function StudioList() {
       selectedFilterIndex !== null && FILTER_OPTIONS[selectedFilterIndex].max < 9999
         ? FILTER_OPTIONS[selectedFilterIndex].max
         : undefined,
+    latitude: sortOrder === "nearest" && userLocation ? userLocation.lat : undefined,
+    longitude: sortOrder === "nearest" && userLocation ? userLocation.lon : undefined,
+    radius: sortOrder === "nearest" && userLocation ? 50 : undefined,
   });
   const studios = studiosData?.studios ?? EMPTY_STUDIOS;
 

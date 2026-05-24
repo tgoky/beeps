@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
 
     // Use a free reverse geocoding service
     const response = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10&addressdetails=1`,
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`,
       {
         headers: {
           "User-Agent": "Beeps-Music-App/1.0",
@@ -40,6 +40,12 @@ export async function GET(req: NextRequest) {
       address.village ||
       address.municipality ||
       address.county;
+    const streetAddress = [
+      address.house_number,
+      address.road || address.pedestrian || address.neighbourhood || address.suburb,
+    ]
+      .filter(Boolean)
+      .join(" ");
 
     // Find country code
     const country = Country.getAllCountries().find(
@@ -61,6 +67,7 @@ export async function GET(req: NextRequest) {
       state: stateName || "",
       stateCode: stateCode,
       city: cityName || "",
+      streetAddress: streetAddress || data.display_name || "",
       fullAddress: data.display_name || "",
       latitude: lat,
       longitude: lon,

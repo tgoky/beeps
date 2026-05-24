@@ -2,6 +2,25 @@ import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 
+const calculateDistance = (
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+) => {
+  const radiusInMiles = 3958.8;
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) *
+      Math.cos(lat2 * (Math.PI / 180)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return radiusInMiles * c;
+};
+
 // GET /api/studios - Fetch all studios (with filters)
 export async function GET(req: NextRequest) {
   try {
@@ -14,8 +33,20 @@ export async function GET(req: NextRequest) {
     const minRate = searchParams.get("minRate");
     const maxRate = searchParams.get("maxRate");
     const ownerId = searchParams.get("ownerId");
+    const latitude = searchParams.get("latitude");
+    const longitude = searchParams.get("longitude");
+    const radius = searchParams.get("radius");
     const limit = parseInt(searchParams.get("limit") || "20");
     const offset = parseInt(searchParams.get("offset") || "0");
+    const userLatitude = latitude !== null ? parseFloat(latitude) : null;
+    const userLongitude = longitude !== null ? parseFloat(longitude) : null;
+    const radiusMiles = radius !== null ? parseFloat(radius) : 50;
+    const hasNearbyFilter =
+      userLatitude !== null &&
+      userLongitude !== null &&
+      Number.isFinite(userLatitude) &&
+      Number.isFinite(userLongitude) &&
+      Number.isFinite(radiusMiles);
 
     const where: any = {
       isActive: true,
@@ -54,7 +85,12 @@ export async function GET(req: NextRequest) {
       where.ownerId = ownerId;
     }
 
-    const [studios, total] = await Promise.all([
+    if (hasNearbyFilter) {
+      where.latitude = { not: null };
+      where.longitude = { not: null };
+    }
+
+    const [studiosResult, totalResult] = await Promise.all([
       prisma.studio.findMany({
         where,
         select: {
@@ -101,11 +137,31 @@ export async function GET(req: NextRequest) {
           },
         },
         orderBy: { createdAt: "desc" },
-        take: limit,
-        skip: offset,
+        take: hasNearbyFilter ? undefined : limit,
+        skip: hasNearbyFilter ? undefined : offset,
       }),
       prisma.studio.count({ where }),
     ]);
+
+    const studiosWithDistance = hasNearbyFilter
+      ? studiosResult
+          .map((studio) => ({
+            ...studio,
+            distanceMiles:
+              studio.latitude !== null && studio.longitude !== null
+                ? calculateDistance(userLatitude!, userLongitude!, studio.latitude, studio.longitude)
+                : null,
+          }))
+          .filter(
+            (studio) => studio.distanceMiles !== null && studio.distanceMiles <= radiusMiles
+          )
+          .sort((a, b) => (a.distanceMiles ?? Infinity) - (b.distanceMiles ?? Infinity))
+      : studiosResult;
+
+    const studios = hasNearbyFilter
+      ? studiosWithDistance.slice(offset, offset + limit)
+      : studiosWithDistance;
+    const total = hasNearbyFilter ? studiosWithDistance.length : totalResult;
 
     return NextResponse.json({
       studios,
@@ -192,8 +248,8 @@ export async function POST(request: NextRequest) {
           country: country || null,
           state: state || null,
           city: city || null,
-          latitude: latitude ? parseFloat(latitude) : null,
-          longitude: longitude ? parseFloat(longitude) : null,
+          latitude: latitude !== undefined && latitude !== null && latitude !== "" ? parseFloat(latitude) : null,
+          longitude: longitude !== undefined && longitude !== null && longitude !== "" ? parseFloat(longitude) : null,
           hourlyRate: parseFloat(hourlyRate),
           equipment: equipment || [],
           capacity: capacity || "1-5 people",

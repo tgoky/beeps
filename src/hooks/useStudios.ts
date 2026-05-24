@@ -89,6 +89,9 @@ export function useStudios(filters?: {
   city?: string;
   minRate?: number;
   maxRate?: number;
+  latitude?: number;
+  longitude?: number;
+  radius?: number;
   limit?: number;
   offset?: number;
 }) {
@@ -102,6 +105,9 @@ export function useStudios(filters?: {
       if (filters?.city) params.append("city", filters.city);
       if (filters?.minRate) params.append("minRate", filters.minRate.toString());
       if (filters?.maxRate) params.append("maxRate", filters.maxRate.toString());
+      if (filters?.latitude !== undefined) params.append("latitude", filters.latitude.toString());
+      if (filters?.longitude !== undefined) params.append("longitude", filters.longitude.toString());
+      if (filters?.radius !== undefined) params.append("radius", filters.radius.toString());
       params.append("limit", (filters?.limit ?? 20).toString());
       params.append("offset", (filters?.offset ?? 0).toString());
 

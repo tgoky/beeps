@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { MapPin, Navigation, Loader2 } from "lucide-react";
 import { useTheme } from "@/providers/ThemeProvider";
 
@@ -98,6 +98,11 @@ export function LocationSelector({
   const [isLoadingGeo, setIsLoadingGeo] = useState(false);
   const [isGeocodingCity, setIsGeocodingCity] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
+  const onLocationChangeRef = useRef(onLocationChange);
+
+  useEffect(() => {
+    onLocationChangeRef.current = onLocationChange;
+  }, [onLocationChange]);
 
   // Combine all countries with West Africa first
   const allCountries = [
@@ -140,7 +145,7 @@ export function LocationSelector({
       setCities([]);
       setSelectedCity("");
     }
-  }, [selectedState]);
+  }, [selectedCountry, selectedState]);
 
   // Update parent when location changes - including forward geocoding
   useEffect(() => {
@@ -151,22 +156,26 @@ export function LocationSelector({
       const streetPart = streetAddress ? streetAddress + ", " : "";
       const fullAddr = `${streetPart}${selectedCity}${stateObj?.name ? ', ' + stateObj.name : ''}, ${countryObj?.name}`;
 
-      // Forward geocode to get coordinates for manual selection
-      forwardGeocode(selectedCity, stateObj?.name || "", countryObj?.name || "").then((coords) => {
-        onLocationChange({
-          country: countryObj?.name || "",
-          countryCode: selectedCountry,
-          state: stateObj?.name || "",
-          stateCode: selectedState,
-          city: selectedCity,
-          streetAddress: streetAddress || undefined,
-          latitude: coords?.lat,
-          longitude: coords?.lon,
-          fullAddress: fullAddr,
+      const timer = window.setTimeout(() => {
+        // Forward geocode the full address, not just the city, so nearby search has precise coordinates.
+        forwardGeocode(fullAddr).then((coords) => {
+          onLocationChangeRef.current({
+            country: countryObj?.name || "",
+            countryCode: selectedCountry,
+            state: stateObj?.name || "",
+            stateCode: selectedState,
+            city: selectedCity,
+            streetAddress: streetAddress || undefined,
+            latitude: coords?.lat,
+            longitude: coords?.lon,
+            fullAddress: fullAddr,
+          });
         });
-      });
+      }, streetAddress ? 650 : 0);
+
+      return () => window.clearTimeout(timer);
     }
-  }, [selectedCountry, selectedState, selectedCity, streetAddress]);
+  }, [selectedCountry, selectedState, selectedCity, streetAddress, states]);
 
   const fetchStates = async (countryCode: string) => {
     try {
@@ -190,19 +199,14 @@ export function LocationSelector({
     }
   };
 
-  const forwardGeocode = async (
-    city: string,
-    state: string,
-    country: string
-  ): Promise<{ lat: number; lon: number } | null> => {
+  const forwardGeocode = async (query: string): Promise<{ lat: number; lon: number } | null> => {
     try {
       setIsGeocodingCity(true);
-      const query = [city, state, country].filter(Boolean).join(", ");
       const response = await fetch(
         `/api/locations/forward-geocode?q=${encodeURIComponent(query)}`
       );
       const data = await response.json();
-      if (data.success && data.latitude && data.longitude) {
+      if (data.success && data.latitude !== undefined && data.longitude !== undefined) {
         return { lat: data.latitude, lon: data.longitude };
       }
       return null;
@@ -237,8 +241,9 @@ export function LocationSelector({
               setSelectedCountry(data.countryCode);
               setSelectedState(data.stateCode);
               setSelectedCity(data.city);
+              setStreetAddress(data.streetAddress || data.fullAddress || "");
 
-              onLocationChange({
+              onLocationChangeRef.current({
                 ...data,
                 latitude,
                 longitude,
