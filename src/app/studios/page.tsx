@@ -158,6 +158,7 @@ type InteractiveMapProps = {
 };
 
 // 2. Interactive Map Component (Isolates drag state from list/sheet)
+// 2. Interactive Map Component (Isolates drag state from list/sheet)
 const InteractiveMap = ({
   filteredStudios,
   selectedStudio,
@@ -249,11 +250,16 @@ const InteractiveMap = ({
 
           {/* Land Mass & World Extension */}
           <svg className="absolute inset-0 w-full h-full pointer-events-none z-0 transition-opacity duration-500 opacity-80" viewBox="0 0 100 100" overflow="visible">
-            <path d="M -150 -50 L -20 -50 Q -50 50 -10 150 L -150 150 Z" fill="#111215" />
-            <path d="M 120 -50 L 300 -50 L 300 200 L 140 200 Q 100 100 120 -50 Z" fill="#111215" />
-            <path d="M 140 -20 L 250 -20 L 250 150 Q 130 100 140 -20 Z" fill="#17181c" />
-            <path d="M -150 -150 L 300 -150 L 300 -30 Q 100 -80 -150 -30 Z" fill="#14151a" />
-            {/* Main Central Map */}
+            {/* Massive Base Continent (Prevents empty background voids) */}
+            <rect x="-500" y="-500" width="1100" height="1100" fill="#111215" />
+            
+            {/* Extended Outer Geography */}
+            <path d="M -500 -500 L -20 -500 Q -50 50 -10 500 L -500 500 Z" fill="#0d0e11" />
+            <path d="M 120 -500 L 600 -500 L 600 600 L 140 600 Q 100 100 120 -500 Z" fill="#0d0e11" />
+            <path d="M 140 -200 L 600 -200 L 600 600 Q 130 100 140 -200 Z" fill="#17181c" />
+            <path d="M -500 -500 L 600 -500 L 600 -30 Q 100 -80 -500 -30 Z" fill="#14151a" />
+            
+            {/* Main Central Map (Left untouched so markers spawn correctly) */}
             <path d="M 15 0 L 100 0 L 100 100 L 30 100 C 30 100 25 80 40 70 C 55 60 50 40 30 35 C 10 30 5 15 15 0 Z" fill="#121317" />
             <path d="M 60 0 L 100 0 L 100 40 Q 80 50 60 30 Q 50 15 60 0 Z" fill="#18191e" />
             <path d="M 60 55 L 75 55 L 75 65 L 60 65 Z" fill="#1c1d22" />
@@ -264,15 +270,23 @@ const InteractiveMap = ({
           {/* Roads & Infrastructure */}
           <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" viewBox="0 0 100 100" overflow="visible">
             <g stroke="#1f1f24" strokeWidth="0.4" opacity="0.6">
-              {[-100, -80, -60, -40, -20, 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 120, 140, 160, 180, 200].map((y) => <line key={`h-${y}`} x1="-150" y1={y} x2="300" y2={y} />)}
-              {[-100, -80, -60, -40, -20, 0, 15, 25, 35, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 120, 140, 160, 180, 200].map((x) => <line key={`v-${x}`} x1={x} y1="-150" x2={x} y2="250" />)}
+              {/* Extended Grid Lines */}
+              {[-400, -300, -200, -100, -80, -60, -40, -20, 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 120, 140, 160, 180, 200, 300, 400, 500].map((y) => <line key={`h-${y}`} x1="-500" y1={y} x2="600" y2={y} />)}
+              {[-400, -300, -200, -100, -80, -60, -40, -20, 0, 15, 25, 35, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 120, 140, 160, 180, 200, 300, 400, 500].map((x) => <line key={`v-${x}`} x1={x} y1="-500" x2={x} y2="600" />)}
             </g>
-            <path d="M -150 45 L 300 45 M 40 -150 L 40 250" stroke="#2e2e36" strokeWidth="1.2" strokeDasharray="5,5" opacity="0.6" />
+            
+            {/* Extended Center Coordinates Guide */}
+            <path d="M -500 45 L 600 45 M 40 -500 L 40 600" stroke="#2e2e36" strokeWidth="1.2" strokeDasharray="5,5" opacity="0.6" />
+            
+            {/* Extended Roads */}
             <g fill="none">
-              <path d="M -50 0 Q 30 50 80 60 L 250 65" stroke="#0a0a0c" strokeWidth="4" strokeLinecap="round" />
-              <path d="M -50 0 Q 30 50 80 60 L 250 65" stroke="#3f3f46" strokeWidth="1.2" strokeLinecap="round" />
-              <path d="M 60 200 L 60 40 Q 60 20 150 -50" stroke="#0a0a0c" strokeWidth="4" strokeLinecap="round" />
-              <path d="M 60 200 L 60 40 Q 60 20 150 -50" stroke="#3f3f46" strokeWidth="1.2" strokeLinecap="round" />
+              {/* East-West road - linearly extended to bounds */}
+              <path d="M -500 -280 L -50 0 Q 30 50 80 60 L 250 65 L 600 80" stroke="#0a0a0c" strokeWidth="4" strokeLinecap="round" />
+              <path d="M -500 -280 L -50 0 Q 30 50 80 60 L 250 65 L 600 80" stroke="#3f3f46" strokeWidth="1.2" strokeLinecap="round" />
+              
+              {/* North-South road - linearly extended to bounds */}
+              <path d="M 60 600 L 60 40 Q 60 20 150 -50 L 500 -322" stroke="#0a0a0c" strokeWidth="4" strokeLinecap="round" />
+              <path d="M 60 600 L 60 40 Q 60 20 150 -50 L 500 -322" stroke="#3f3f46" strokeWidth="1.2" strokeLinecap="round" />
             </g>
           </svg>
 
@@ -434,6 +448,7 @@ const InteractiveMap = ({
   );
 };
 InteractiveMap.displayName = "InteractiveMap";
+
 
 // --- MAIN PAGE COMPONENT ---
 
