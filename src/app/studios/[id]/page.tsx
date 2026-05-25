@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useStudio } from "@/hooks/useStudios";
 import StudioBookingDrawer from "@/components/StudioBookingDrawer";
+import { formatAmount } from "@/lib/currency";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -141,6 +142,7 @@ export default function StudioProfilePage() {
   const bookingCount = studio._count?.bookings ?? 0;
   const capacity = studio.capacity || "Private session";
   const totalPreview = studio.hourlyRate * 2;
+  const studioCurrency = studio.currency || "USD";
   const canCalculateDistance = studio.latitude !== null && studio.longitude !== null;
   const distance =
     userLocation && studio.latitude !== null && studio.longitude !== null
@@ -291,7 +293,7 @@ export default function StudioProfilePage() {
                     <div className="mb-1 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-zinc-400">
                       <Clock size={14} className="text-zinc-500" /> Hourly
                     </div>
-                    <div className="truncate text-lg font-bold text-white">${studio.hourlyRate}</div>
+                    <div className="truncate text-lg font-bold text-white">{formatAmount(studio.hourlyRate, studioCurrency)}</div>
                   </div>
 
                   {/* Availability Status Card */}
@@ -382,7 +384,7 @@ export default function StudioProfilePage() {
                 <div>
                   <p className="text-xs font-medium uppercase text-zinc-500">Session rate</p>
                   <div className="mt-1 flex items-end gap-1">
-                    <span className="text-4xl font-semibold tracking-tight text-white">${studio.hourlyRate}</span>
+                    <span className="text-4xl font-semibold tracking-tight text-white">{formatAmount(studio.hourlyRate, studioCurrency)}</span>
                     <span className="mb-1.5 text-sm text-zinc-500">/hr</span>
                   </div>
                 </div>
@@ -403,7 +405,7 @@ export default function StudioProfilePage() {
                 Check availability
               </button>
 
-              <p className="mt-3 text-center text-xs text-zinc-500">Estimated two-hour session: ${totalPreview}</p>
+              <p className="mt-3 text-center text-xs text-zinc-500">Estimated two-hour session: {formatAmount(totalPreview, studioCurrency)}</p>
             </div>
 
             {/* Distance-aware Location Card */}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
+import { formatAmount, getProviderFromCurrency } from "@/lib/currency";
 
 // GET /api/bookings - Fetch user bookings
 export async function GET(req: NextRequest) {
@@ -189,6 +190,8 @@ export async function POST(req: NextRequest) {
       const end = new Date(endTime);
       const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
       const totalAmount = parseFloat(studio.hourlyRate.toString()) * hours;
+      const currency = (studio as any).currency || "USD";
+      const paymentProvider = getProviderFromCurrency(currency);
 
       // Create booking
       const booking = await prisma.booking.create({
@@ -198,6 +201,8 @@ export async function POST(req: NextRequest) {
           startTime: new Date(startTime),
           endTime: new Date(endTime),
           totalAmount,
+          currency,
+          paymentProvider,
           notes: notes || "", // ✅ Fixed: moved notes here
           status: "PENDING",
         },
@@ -250,7 +255,7 @@ export async function POST(req: NextRequest) {
           userId: user.id,
           type: "COMPLETE",
           title: `Booked studio "${studio.name}"`,
-          description: `Booking request for ${hours} hours at $${studio.hourlyRate}/hour`,
+          description: `Booking request for ${hours} hours at ${formatAmount(parseFloat(studio.hourlyRate.toString()), currency)}/hour`,
           referenceId: booking.id,
           referenceType: "booking",
         },

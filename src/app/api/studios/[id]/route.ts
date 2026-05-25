@@ -116,6 +116,7 @@ export async function PATCH(req: NextRequest, { params }: { params: any }) {
           ...(body.latitude !== undefined && { latitude: parseFloat(body.latitude) }),
           ...(body.longitude !== undefined && { longitude: parseFloat(body.longitude) }),
           ...(body.hourlyRate && { hourlyRate: parseFloat(body.hourlyRate) }),
+          ...(body.currency && { currency: body.currency }),
           ...(body.equipment && { equipment: body.equipment }),
           ...(body.capacity && { capacity: body.capacity }),
           ...(body.imageUrl !== undefined && { imageUrl: body.imageUrl }),

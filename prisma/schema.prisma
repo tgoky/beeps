@@ -421,6 +421,7 @@ model Studio {
   longitude     Decimal? @db.Decimal(11, 8)
 
   hourlyRate    Decimal  @map("hourly_rate") @db.Decimal(10, 2)
+  currency      String   @default("USD") @map("currency")
 
   equipment     String[]
   capacity      String?

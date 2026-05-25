@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/providers/ToastProvider";
 import { useStudio } from "@/hooks/useStudios";
+import { formatAmount } from "@/lib/currency";
 import dayjs from "dayjs";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import {
@@ -209,6 +210,7 @@ export default function StudioBookingDrawer({
     );
   }
 
+  const studioCurrency = studio.currency || "USD";
   const estimatedTotal = studio.hourlyRate * sessionLength;
 
   return (
@@ -505,13 +507,13 @@ export default function StudioBookingDrawer({
             <div className="flex flex-col">
               <span className="text-[11px] text-zinc-500 mb-0.5">Total (Estimated)</span>
               <span className="text-2xl font-bold text-white tracking-tight">
-                ${estimatedTotal.toFixed(2)}
+                {formatAmount(estimatedTotal, studioCurrency)}
               </span>
             </div>
             <div className="flex flex-col items-end">
               <span className="text-[11px] text-zinc-500 mb-0.5">Rate Breakdown</span>
               <span className="text-xs font-medium text-zinc-300">
-                {sessionLength} hrs @ ${studio.hourlyRate}/hr
+                {sessionLength} hrs @ {formatAmount(studio.hourlyRate, studioCurrency)}/hr
               </span>
             </div>
           </div>

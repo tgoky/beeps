@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "@/providers/ThemeProvider";
 import { usePermissions } from "@/hooks/usePermissions";
 import { LocationSelector, type LocationData } from "@/components/LocationSelector";
+import { formatAmount, getCurrencyConfig } from "@/lib/currency";
 import { X, Plus, ArrowRight, ArrowLeft } from "lucide-react";
 
 
@@ -31,11 +32,13 @@ export default function ListStudio() {
     location: "",
     streetAddress: "",
     country: "",
+    countryCode: "",
     state: "",
     city: "",
     latitude: "",
     longitude: "",
     hourlyRate: "",
+    currency: "USD",
     capacity: "1-5",
     imageUrl: "",
   });
@@ -96,15 +99,18 @@ export default function ListStudio() {
   };
 
   const handleLocationChange = (locationData: LocationData) => {
+    const currencyConfig = getCurrencyConfig(locationData.countryCode || locationData.country);
     setFormData({
       ...formData,
       location: locationData.fullAddress || `${locationData.city}, ${locationData.state}, ${locationData.country}`,
       streetAddress: locationData.streetAddress || "",
       country: locationData.country,
+      countryCode: locationData.countryCode,
       state: locationData.state,
       city: locationData.city,
       latitude: locationData.latitude?.toString() || "",
       longitude: locationData.longitude?.toString() || "",
+      currency: currencyConfig.currency,
     });
   };
 
@@ -194,6 +200,8 @@ export default function ListStudio() {
           ...formData,
           imageUrl: finalImageUrl,
           equipment,
+          countryCode: formData.countryCode,
+          currency: formData.currency,
           hourlyRate: parseFloat(formData.hourlyRate),
           latitude: formData.latitude ? parseFloat(formData.latitude) : null,
           longitude: formData.longitude ? parseFloat(formData.longitude) : null,
@@ -318,8 +326,14 @@ export default function ListStudio() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-16 md:gap-12">
                     <div>
-                      <label className={labelClass}>Hourly Rate ($) *</label>
+                      <label className={labelClass}>Hourly Rate ({formData.currency}) *</label>
                       <input type="number" step="0.01" name="hourlyRate" value={formData.hourlyRate} onChange={handleInputChange} placeholder="150.00" required className={inputClass} />
+                      <p className="mt-3 text-xs font-light tracking-wide opacity-50">
+                        {formData.country
+                          ? `Listings in ${formData.country} are priced in ${formData.currency}.`
+                          : "Select the studio country below to set the listing currency."}
+                        {formData.hourlyRate && ` Preview: ${formatAmount(Number(formData.hourlyRate), formData.currency)}/hr`}
+                      </p>
                     </div>
                     <div>
                       <label className={labelClass}>Capacity (People)</label>

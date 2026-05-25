@@ -14,6 +14,7 @@ export interface Studio {
   latitude: number | null;
   longitude: number | null;
   hourlyRate: number;
+  currency: string;
   imageUrl: string | null;
   equipment: string[];
   capacity: string;
@@ -69,6 +70,7 @@ export interface CreateStudioInput {
   latitude?: number;
   longitude?: number;
   hourlyRate: number;
+  currency?: string;
   imageUrl?: string;
   equipment?: string[];
   capacity?: string;

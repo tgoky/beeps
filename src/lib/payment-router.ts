@@ -10,61 +10,18 @@
 
 // ─── Country → Currency/Provider Mapping ─────────────────────────────────────
 
-export interface PaymentConfig {
-  provider: "STRIPE" | "PAYSTACK";
-  currency: string;        // ISO 4217
-  currencySymbol: string;
-  countryName: string;
-}
+import {
+  formatAmount,
+  getCurrencyConfig,
+  getProviderFromCurrency,
+  type CurrencyConfig as PaymentConfig,
+} from "./currency";
 
-const COUNTRY_PAYMENT_CONFIG: Record<string, PaymentConfig> = {
-  NG: { provider: "PAYSTACK", currency: "NGN", currencySymbol: "₦", countryName: "Nigeria" },
-  GH: { provider: "PAYSTACK", currency: "GHS", currencySymbol: "₵", countryName: "Ghana" },
-  // All other countries default to Stripe/USD below
-  US: { provider: "STRIPE", currency: "USD", currencySymbol: "$", countryName: "United States" },
-  GB: { provider: "STRIPE", currency: "GBP", currencySymbol: "£", countryName: "United Kingdom" },
-  EU: { provider: "STRIPE", currency: "EUR", currencySymbol: "€", countryName: "Europe" },
-  CA: { provider: "STRIPE", currency: "CAD", currencySymbol: "CA$", countryName: "Canada" },
-  AU: { provider: "STRIPE", currency: "AUD", currencySymbol: "A$", countryName: "Australia" },
-  ZA: { provider: "STRIPE", currency: "ZAR", currencySymbol: "R", countryName: "South Africa" },
-  KE: { provider: "STRIPE", currency: "KES", currencySymbol: "KSh", countryName: "Kenya" },
-  IN: { provider: "STRIPE", currency: "INR", currencySymbol: "₹", countryName: "India" },
-};
-
-const DEFAULT_CONFIG: PaymentConfig = {
-  provider: "STRIPE",
-  currency: "USD",
-  currencySymbol: "$",
-  countryName: "International",
-};
+export { formatAmount, getCurrencyConfig as getPaymentConfig, getProviderFromCurrency };
 
 /**
  * Get payment configuration for a given country code
  */
-export function getPaymentConfig(countryCode: string | null | undefined): PaymentConfig {
-  if (!countryCode) return DEFAULT_CONFIG;
-  return COUNTRY_PAYMENT_CONFIG[countryCode.toUpperCase()] ?? DEFAULT_CONFIG;
-}
-
-/**
- * Determine provider from currency code
- */
-export function getProviderFromCurrency(currency: string): "STRIPE" | "PAYSTACK" {
-  const paystackCurrencies = ["NGN", "GHS"];
-  return paystackCurrencies.includes(currency.toUpperCase()) ? "PAYSTACK" : "STRIPE";
-}
-
-/**
- * Format an amount with its currency symbol
- */
-export function formatAmount(amount: number, currency: string): string {
-  const config = Object.values(COUNTRY_PAYMENT_CONFIG).find(
-    (c) => c.currency === currency
-  );
-  const symbol = config?.currencySymbol ?? "$";
-  return `${symbol}${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
 // ─── Payment Operations ───────────────────────────────────────────────────────
 
 import * as paystack from "./paystack";

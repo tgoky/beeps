@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
+import { getCurrencyConfig } from "@/lib/currency";
 
 const calculateDistance = (
   lat1: number,
@@ -105,6 +106,7 @@ export async function GET(req: NextRequest) {
           latitude: true,
           longitude: true,
           hourlyRate: true,
+          currency: true,
           imageUrl: true,
           equipment: true,
           capacity: true,
@@ -190,6 +192,7 @@ export async function POST(request: NextRequest) {
         latitude,
         longitude,
         hourlyRate,
+        currency,
         equipment,
         capacity,
         imageUrl,
@@ -238,6 +241,7 @@ export async function POST(request: NextRequest) {
 
       // Extract location fields from request
       const { country, state, city } = body;
+      const studioCurrency = currency || getCurrencyConfig(body.countryCode || country).currency;
 
       const studio = await prisma.studio.create({
         data: {
@@ -251,6 +255,7 @@ export async function POST(request: NextRequest) {
           latitude: latitude !== undefined && latitude !== null && latitude !== "" ? parseFloat(latitude) : null,
           longitude: longitude !== undefined && longitude !== null && longitude !== "" ? parseFloat(longitude) : null,
           hourlyRate: parseFloat(hourlyRate),
+          currency: studioCurrency,
           equipment: equipment || [],
           capacity: capacity || "1-5 people",
           imageUrl,

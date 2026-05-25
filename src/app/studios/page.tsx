@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useStudios } from "@/hooks/useStudios";
+import { formatAmount } from "@/lib/currency";
 
 type Studio = {
   id: string;
@@ -25,6 +26,7 @@ type Studio = {
   location: string;
   streetAddress: string | null;
   hourlyRate: number;
+  currency?: string;
   rating: number;
   equipment: string[];
   imageUrl: string | null;
@@ -131,7 +133,7 @@ const MapMarker = memo(({
           </div>
         )}
         <div className={`w-9 h-9 flex items-center justify-center rounded-full border-2 relative z-10 shadow-lg transition-colors ${isSelected ? "bg-white border-white text-black" : "bg-zinc-900 border-zinc-700 text-white"}`}>
-          {isSelected ? <Mic2 size={16} strokeWidth={2} /> : <span className="text-xs font-bold">${studio.hourlyRate}</span>}
+          {isSelected ? <Mic2 size={16} strokeWidth={2} /> : <span className="text-xs font-bold">{formatAmount(studio.hourlyRate, studio.currency || "USD")}</span>}
         </div>
         <div className="px-2 py-0.5 rounded-md mt-1 bg-zinc-900/90 backdrop-blur-sm border border-zinc-800 text-zinc-300 shadow-md">
           <span className="text-[10px] font-medium leading-none whitespace-nowrap block truncate max-w-[80px]">
@@ -429,7 +431,7 @@ const InteractiveMap = ({
                     </span>
                   </div>
                   <div className="text-sm font-semibold text-white">
-                    ${selectedStudio.hourlyRate}
+                    {formatAmount(selectedStudio.hourlyRate, selectedStudio.currency || "USD")}
                     <span className="text-xs font-normal text-zinc-500">/hr</span>
                   </div>
                 </div>
@@ -805,7 +807,7 @@ export default function StudioList() {
         {studio.name}
       </h4>
       <span className="text-xs font-semibold text-white shrink-0">
-        ${studio.hourlyRate}
+        {formatAmount(studio.hourlyRate, studio.currency || "USD")}
       </span>
     </div>
 
