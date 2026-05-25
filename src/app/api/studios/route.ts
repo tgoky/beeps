@@ -241,7 +241,8 @@ export async function POST(request: NextRequest) {
 
       // Extract location fields from request
       const { country, state, city } = body;
-      const studioCurrency = currency || getCurrencyConfig(body.countryCode || country).currency;
+      const resolvedCurrency = getCurrencyConfig(body.countryCode || country).currency;
+      const studioCurrency = (currency && currency !== "USD") ? currency : resolvedCurrency;
 
       const studio = await prisma.studio.create({
         data: {

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
-import { initializePayment, getPaymentConfig } from "@/lib/payment-router";
+import { initializePayment } from "@/lib/payment-router";
+import { getCurrencySymbol } from "@/lib/currency";
 import type { ApiResponse } from "@/types";
 
 /**
@@ -74,14 +75,15 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Determine payment config from user's country
-      const paymentConfig = getPaymentConfig(booking.user.countryCode);
+      // Determine payment config from the booking itself (derived from studio)
+      const currency = booking.currency || "USD";
+      const provider = booking.paymentProvider || "STRIPE";
       const totalAmount = parseFloat(booking.totalAmount.toString());
 
       const result = await initializePayment({
-        provider: paymentConfig.provider,
+        provider: provider as "STRIPE" | "PAYSTACK",
         amount: totalAmount,
-        currency: paymentConfig.currency,
+        currency: currency,
         email: user.email,
         bookingId,
         callbackUrl:
@@ -100,8 +102,6 @@ export async function POST(req: NextRequest) {
       await prisma.booking.update({
         where: { id: bookingId },
         data: {
-          currency: paymentConfig.currency,
-          paymentProvider: paymentConfig.provider,
           ...(result.paystackReference && { paystackReference: result.paystackReference }),
           ...(result.paystackReference && { paystackAccessCode: result.accessCode }),
           ...(result.paymentIntentId && { paymentIntentId: result.paymentIntentId }),
@@ -112,8 +112,8 @@ export async function POST(req: NextRequest) {
         success: true,
         data: {
           provider: result.provider,
-          currency: paymentConfig.currency,
-          currencySymbol: paymentConfig.currencySymbol,
+          currency: currency,
+          currencySymbol: getCurrencySymbol(currency),
           amount: totalAmount,
           // Paystack
           authorizationUrl: result.authorizationUrl,

@@ -8,8 +8,6 @@ import { LocationSelector, type LocationData } from "@/components/LocationSelect
 import { formatAmount, getCurrencyConfig } from "@/lib/currency";
 import { X, Plus, ArrowRight, ArrowLeft } from "lucide-react";
 
-
-
 // NOTE: If you are using Supabase Storage, you would import your client here
 import { supabaseBrowserClient } from "@/utils/supabase/client";
 
@@ -100,8 +98,8 @@ export default function ListStudio() {
 
   const handleLocationChange = (locationData: LocationData) => {
     const currencyConfig = getCurrencyConfig(locationData.countryCode || locationData.country);
-    setFormData({
-      ...formData,
+    setFormData(prev => ({
+      ...prev,
       location: locationData.fullAddress || `${locationData.city}, ${locationData.state}, ${locationData.country}`,
       streetAddress: locationData.streetAddress || "",
       country: locationData.country,
@@ -111,7 +109,7 @@ export default function ListStudio() {
       latitude: locationData.latitude?.toString() || "",
       longitude: locationData.longitude?.toString() || "",
       currency: currencyConfig.currency,
-    });
+    }));
   };
 
   const addEquipment = () => {

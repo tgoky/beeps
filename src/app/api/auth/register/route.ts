@@ -82,7 +82,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Derive payment config from user's country
-    const countryCode = body.countryCode ?? null;
+    let countryCode = body.countryCode ?? null;
+    if (!countryCode && location) {
+      const parts = location.split(',');
+      countryCode = parts[parts.length - 1]?.trim() ?? null;
+    }
     const paymentConfig = getPaymentConfig(countryCode);
 
     // Create user in database with transaction for atomicity
