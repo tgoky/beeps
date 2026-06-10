@@ -46,6 +46,8 @@ export async function GET(req: NextRequest) {
               avatar: true,
               bio: true,
               location: true,
+              latitude: true,  // ADDED: Fetch latitude
+              longitude: true, // ADDED: Fetch longitude
               verified: true,
               email: true,
               followersCount: true,
@@ -113,6 +115,8 @@ export async function GET(req: NextRequest) {
       imageUrl: profile.user.avatar,
       bio: profile.user.bio,
       location: profile.user.location,
+      lat: profile.user.latitude,   // ADDED: Map to lat for frontend
+      lng: profile.user.longitude,  // ADDED: Map to lng for frontend
       verified: profile.user.verified,
       followersCount: profile.user.followersCount || 0,
       followingCount: profile.user.followingCount || 0,

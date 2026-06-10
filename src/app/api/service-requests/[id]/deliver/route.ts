@@ -3,10 +3,8 @@ import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 
 // POST /api/service-requests/[id]/deliver
-// Producer marks work as delivered and the delivery code is sent to the client.
-// This mirrors the studio check-in: studio owner scans QR → confirmation code sent to artist.
-// Here: producer clicks "Mark Delivered" → delivery code sent to client via notification.
-// Client must enter that code to confirm receipt and release the escrowed payment.
+// Producer marks work as delivered, providing the URL to the files.
+// The delivery code is then sent to the client to confirm receipt.
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -16,12 +14,18 @@ export async function POST(
       const user = req.user!;
       const { id } = params;
       const body = await req.json().catch(() => ({}));
-      const { deliveryNotes } = body;
+      
+      // Extract the new URL and notes fields
+      const { deliveryUrl, deliveryNotes } = body;
+
+      if (!deliveryUrl) {
+        return NextResponse.json({ error: "A delivery URL (e.g., WeTransfer or Google Drive link) is required." }, { status: 400 });
+      }
 
       const serviceRequest = await prisma.serviceRequest.findUnique({
         where: { id },
         include: {
-          client: { select: { id: true, username: true, fullName: true } },
+          client: { select: { id: true, username: true, fullName: true, email: true } },
           producer: { select: { id: true, username: true, fullName: true } },
         },
       });
@@ -38,7 +42,7 @@ export async function POST(
       // Payment must be held in escrow before delivery can be confirmed
       if (serviceRequest.paymentStatus !== "PAYMENT_HELD") {
         return NextResponse.json(
-          { error: "Cannot mark as delivered — client payment has not been secured yet" },
+          { error: "Cannot deliver — client payment has not been secured in escrow yet" },
           { status: 400 }
         );
       }
@@ -52,7 +56,7 @@ export async function POST(
 
       if (!serviceRequest.deliveryCode) {
         return NextResponse.json(
-          { error: "No delivery code found — this is a system error, please contact support" },
+          { error: "No delivery code found — system error, please contact support" },
           { status: 500 }
         );
       }
@@ -66,31 +70,32 @@ export async function POST(
           status: "DELIVERED",
           deliveredAt: new Date(),
           autoReleaseAt,
-          ...(deliveryNotes && { producerResponse: deliveryNotes }),
+          deliveryUrl, // Save the new explicit URL field
+          deliveryNotes, 
+          producerResponse: deliveryNotes, // Maintain backward compatibility
         },
       });
 
       // Send the delivery code to the CLIENT via notification
-      // This is the equivalent of the confirmation code sent to the artist at studio check-in
       await prisma.notification.create({
         data: {
           userId: serviceRequest.clientId,
           type: "WORK_DELIVERED",
-          title: "Work Delivered — Confirm to Release Payment",
-          message: `${serviceRequest.producer.fullName || serviceRequest.producer.username} has delivered "${serviceRequest.projectTitle}". Your delivery confirmation code is: ${serviceRequest.deliveryCode}. Enter this code to confirm receipt and release payment. If you don't confirm within 48 hours, payment will auto-release.`,
+          title: "Work Delivered — Action Required",
+          message: `${serviceRequest.producer.fullName || serviceRequest.producer.username} has delivered the files for "${serviceRequest.projectTitle}". Check your active jobs to download the files. Your delivery confirmation code is: ${serviceRequest.deliveryCode}. Please confirm receipt to release the payment.`,
           referenceId: id,
           referenceType: "SERVICE_REQUEST",
           isRead: false,
         },
       });
 
-      // Notify producer that the delivery has been logged
+      // Notify PRODUCER that it was logged successfully
       await prisma.notification.create({
         data: {
           userId: serviceRequest.producerId,
           type: "WORK_DELIVERED",
-          title: "Delivery Logged",
-          message: `Your delivery for "${serviceRequest.projectTitle}" has been logged. The client has been sent the confirmation code. Payment will release once they confirm, or automatically after 48 hours.`,
+          title: "Delivery Successfully Logged",
+          message: `Your files for "${serviceRequest.projectTitle}" have been sent. The client has 48 hours to confirm receipt and release funds, otherwise they will auto-release.`,
           referenceId: id,
           referenceType: "SERVICE_REQUEST",
           isRead: false,
@@ -101,7 +106,7 @@ export async function POST(
         success: true,
         serviceRequest: updated,
         autoReleaseAt,
-        message: "Delivery logged. Client has received the confirmation code.",
+        message: "Delivery logged. The client has been notified to download the files and confirm.",
       });
     } catch (error: any) {
       console.error("Error marking delivery:", error);

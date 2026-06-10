@@ -76,9 +76,6 @@ export interface CreateStudioInput {
   capacity?: string;
 }
 
-/**
- * Fetch all studios with optional filters
- */
 export interface StudiosResponse {
   studios: Studio[];
   pagination: { total: number; limit: number; offset: number };
@@ -96,6 +93,7 @@ export function useStudios(filters?: {
   radius?: number;
   limit?: number;
   offset?: number;
+  enabled?: boolean; // ✅ Added enabled flag
 }) {
   return useQuery<StudiosResponse>({
     queryKey: ["studios", filters],
@@ -122,13 +120,14 @@ export function useStudios(filters?: {
         pagination: data.pagination ?? { total: 0, limit: filters?.limit ?? 20, offset: filters?.offset ?? 0 },
       };
     },
+    enabled: filters?.enabled !== false, // ✅ Tells React Query to wait if enabled is explicitly false
+    staleTime: 1000 * 60 * 5, 
   });
 }
 
-/**
- * Fetch a single studio by ID
- */
 export function useStudio(id: string) {
+  const queryClient = useQueryClient();
+
   return useQuery<Studio>({
     queryKey: ["studios", id],
     queryFn: async () => {
@@ -136,16 +135,23 @@ export function useStudio(id: string) {
       if (!response.ok) throw new Error("Failed to fetch studio");
       
       const data = await response.json();
-      // FIXED: Extract studio from the response object
       return data.studio;
     },
     enabled: !!id,
+    staleTime: 1000 * 60 * 5,
+    placeholderData: () => {
+      const allQueries = queryClient.getQueriesData<StudiosResponse>({ queryKey: ["studios"] });
+      for (const [_, data] of allQueries) {
+        if (data?.studios) {
+          const found = data.studios.find(s => s.id === id);
+          if (found) return found;
+        }
+      }
+      return undefined;
+    }
   });
 }
 
-/**
- * Create a new studio listing
- */
 export function useCreateStudio() {
   const queryClient = useQueryClient();
 
@@ -168,9 +174,6 @@ export function useCreateStudio() {
   });
 }
 
-/**
- * Update an existing studio
- */
 export function useUpdateStudio(id: string) {
   const queryClient = useQueryClient();
 
@@ -194,9 +197,6 @@ export function useUpdateStudio(id: string) {
   });
 }
 
-/**
- * Delete a studio listing
- */
 export function useDeleteStudio() {
   const queryClient = useQueryClient();
 

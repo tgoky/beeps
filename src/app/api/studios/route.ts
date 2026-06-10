@@ -37,11 +37,13 @@ export async function GET(req: NextRequest) {
     const latitude = searchParams.get("latitude");
     const longitude = searchParams.get("longitude");
     const radius = searchParams.get("radius");
+    
     const limit = parseInt(searchParams.get("limit") || "20");
     const offset = parseInt(searchParams.get("offset") || "0");
     const userLatitude = latitude !== null ? parseFloat(latitude) : null;
     const userLongitude = longitude !== null ? parseFloat(longitude) : null;
     const radiusMiles = radius !== null ? parseFloat(radius) : 50;
+    
     const hasNearbyFilter =
       userLatitude !== null &&
       userLongitude !== null &&
@@ -49,46 +51,76 @@ export async function GET(req: NextRequest) {
       Number.isFinite(userLongitude) &&
       Number.isFinite(radiusMiles);
 
+    // ==========================================
+    // BULLETPROOF PRISMA FILTERING LOGIC
+    // ==========================================
     const where: any = {
       isActive: true,
+      AND: [] // We use a clean AND array to securely stack multiple filters
     };
 
     if (search) {
-      where.OR = [
-        { name: { contains: search, mode: "insensitive" } },
-        { description: { contains: search, mode: "insensitive" } },
-        { location: { contains: search, mode: "insensitive" } },
-      ];
+      where.AND.push({
+        OR: [
+          { name: { contains: search, mode: "insensitive" } },
+          { description: { contains: search, mode: "insensitive" } },
+          { location: { contains: search, mode: "insensitive" } },
+        ]
+      });
     }
 
     if (location) {
-      where.location = { contains: location, mode: "insensitive" };
+      where.AND.push({ location: { contains: location, mode: "insensitive" } });
     }
 
-    // Enhanced location filtering
+    // ✅ SELF-HEALING COUNTRY FILTER: Matches Country String OR the expected Currency!
     if (country) {
-      where.country = { contains: country, mode: "insensitive" };
+      const currencyMap: Record<string, string> = {
+        "Nigeria": "NGN",
+        "Ghana": "GHS",
+        "United States": "USD",
+        "United Kingdom": "GBP"
+      };
+      const mappedCurrency = currencyMap[country];
+      
+      if (mappedCurrency) {
+        where.AND.push({
+          OR: [
+            { country: { contains: country, mode: "insensitive" } },
+            { currency: mappedCurrency } // Bypasses broken DB data securely!
+          ]
+        });
+      } else {
+        where.AND.push({ country: { contains: country, mode: "insensitive" } });
+      }
     }
+
     if (state) {
-      where.state = { contains: state, mode: "insensitive" };
+      where.AND.push({ state: { contains: state, mode: "insensitive" } });
     }
     if (city) {
-      where.city = { contains: city, mode: "insensitive" };
+      where.AND.push({ city: { contains: city, mode: "insensitive" } });
     }
 
     if (minRate || maxRate) {
-      where.hourlyRate = {};
-      if (minRate) where.hourlyRate.gte = parseFloat(minRate);
-      if (maxRate) where.hourlyRate.lte = parseFloat(maxRate);
+      const rateFilter: any = {};
+      if (minRate) rateFilter.gte = parseFloat(minRate);
+      if (maxRate) rateFilter.lte = parseFloat(maxRate);
+      where.AND.push({ hourlyRate: rateFilter });
     }
 
     if (ownerId) {
-      where.ownerId = ownerId;
+      where.AND.push({ ownerId });
     }
 
     if (hasNearbyFilter) {
-      where.latitude = { not: null };
-      where.longitude = { not: null };
+      where.AND.push({ latitude: { not: null } });
+      where.AND.push({ longitude: { not: null } });
+    }
+
+    // Cleanup empty AND array so Prisma doesn't complain
+    if (where.AND.length === 0) {
+      delete where.AND;
     }
 
     const [studiosResult, totalResult] = await Promise.all([
@@ -179,7 +211,6 @@ export async function GET(req: NextRequest) {
 }
 
 // POST /api/studios - Create a studio
-// FIXED: Changed to match withAuth(request, handler) signature
 export async function POST(request: NextRequest) {
   return withAuth(request, async (req) => {
     try {
@@ -215,7 +246,6 @@ export async function POST(request: NextRequest) {
 
       // If no studio owner profile exists, create one (for producers creating studios)
       if (!studioOwnerProfile) {
-        // Check if user has producer profile
         const producerProfile = await prisma.producerProfile.findUnique({
           where: { userId: user.id },
         });
@@ -227,7 +257,6 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        // Create studio owner profile for producer
         studioOwnerProfile = await prisma.studioOwnerProfile.create({
           data: {
             userId: user.id,

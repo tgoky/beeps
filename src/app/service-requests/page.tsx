@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useTheme } from "@/providers/ThemeProvider";
 import { useGetIdentity } from "@refinedev/core";
 import {
   Briefcase,
@@ -12,14 +11,14 @@ import {
   AlertCircle,
   Loader2,
   ArrowLeft,
-  Filter,
   Calendar,
-  DollarSign,
   User,
-  MessageCircle,
   Check,
   X as XIcon,
-  Play,
+  Lock,
+  Unlock,
+  ShieldCheck,
+  TriangleAlert
 } from "lucide-react";
 
 interface ServiceRequest {
@@ -29,6 +28,8 @@ interface ServiceRequest {
   budget: string | null;
   deadline: string | null;
   status: string;
+  paymentStatus: string;
+  disputeStatus: string | null;
   producerResponse: string | null;
   respondedAt: string | null;
   createdAt: string;
@@ -45,13 +46,40 @@ interface ServiceRequest {
     fullName: string | null;
     avatar: string | null;
     primaryRole: string;
+    currency?: string;
   };
 }
+
+const formatAmount = (amount: number, currency: string = "USD") => {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: currency,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(amount);
+};
+
+// ─── Status helpers ───────────────────────────────────────────────────────────
+const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
+  PENDING:     { color: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20", label: "Pending" },
+  ACCEPTED:    { color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20", label: "Accepted" },
+  REJECTED:    { color: "bg-red-500/10 text-red-400 border-red-500/20", label: "Rejected" },
+  IN_PROGRESS: { color: "bg-blue-500/10 text-blue-400 border-blue-500/20", label: "In Progress" },
+  DELIVERED:   { color: "bg-purple-500/10 text-purple-400 border-purple-500/20", label: "Delivered" },
+  COMPLETED:   { color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20", label: "Completed" },
+  CANCELLED:   { color: "bg-red-500/10 text-red-400 border-red-500/20", label: "Cancelled" },
+};
+
+const PAYMENT_CONFIG: Record<string, { color: string; label: string }> = {
+  UNPAID:           { color: "bg-[#08080a] text-zinc-400 border-zinc-800", label: "Unpaid" },
+  PAYMENT_HELD:     { color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20", label: "In Escrow" },
+  PAYMENT_RELEASED: { color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20", label: "Released" },
+  REFUNDED:         { color: "bg-blue-500/10 text-blue-400 border-blue-500/20", label: "Refunded" },
+};
 
 export default function ServiceRequestsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { theme } = useTheme();
   const { data: user, isLoading: userLoading } = useGetIdentity<any>();
 
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
@@ -122,7 +150,6 @@ export default function ServiceRequestsPage() {
         throw new Error(errorData.error || "Failed to update request");
       }
 
-      // Refresh the list
       await fetchRequests();
     } catch (error: any) {
       alert(error.message || "Failed to update service request");
@@ -155,36 +182,6 @@ export default function ServiceRequestsPage() {
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "ACCEPTED":
-        return <CheckCircle2 className="w-4 h-4 text-green-500" />;
-      case "REJECTED":
-        return <XCircle className="w-4 h-4 text-red-500" />;
-      case "COMPLETED":
-        return <CheckCircle2 className="w-4 h-4 text-blue-500" />;
-      case "IN_PROGRESS":
-        return <Clock className="w-4 h-4 text-yellow-500" />;
-      default:
-        return <AlertCircle className="w-4 h-4 text-gray-500" />;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "ACCEPTED":
-        return "bg-green-500/10 text-green-600 border-green-500/20";
-      case "REJECTED":
-        return "bg-red-500/10 text-red-600 border-red-500/20";
-      case "COMPLETED":
-        return "bg-blue-500/10 text-blue-600 border-blue-500/20";
-      case "IN_PROGRESS":
-        return "bg-yellow-500/10 text-yellow-600 border-yellow-500/20";
-      default:
-        return "bg-gray-500/10 text-gray-600 border-gray-500/20";
-    }
-  };
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       month: "short",
@@ -193,361 +190,260 @@ export default function ServiceRequestsPage() {
     });
   };
 
-  // Show loading spinner while user data is loading
   if (userLoading) {
     return (
-      <div className={`min-h-screen flex items-center justify-center ${theme === "dark" ? "bg-black" : "bg-gray-50"}`}>
-        <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+      <div className="min-h-screen flex items-center justify-center bg-black">
+        <Loader2 className="w-8 h-8 animate-spin text-zinc-500" />
       </div>
     );
   }
 
   return (
-    <div className={`min-h-screen ${theme === "dark" ? "bg-black" : "bg-gray-50"}`}>
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <button
-            onClick={() => router.back()}
-            className={`inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 mb-6 ${
-              theme === "dark"
-                ? "bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-white hover:bg-black"
-                : "bg-gray-50 border-gray-300 text-gray-600 hover:border-gray-400 hover:text-black hover:bg-white"
-            } tracking-wide active:scale-[0.98]`}
-          >
-            <ArrowLeft className="w-4 h-4" strokeWidth={2} />
-            <span>Back</span>
-          </button>
+    <div className="h-full overflow-y-auto bg-black text-zinc-200 selection:bg-white selection:text-black">
+      <main className="relative mx-auto max-w-7xl px-4 pb-24 pt-8 sm:px-6 lg:px-8">
+        
+        {/* Header & Filters Aligned */}
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-8">
+          <div>
+            <button
+              onClick={() => router.back()}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-zinc-800 bg-zinc-950 text-zinc-300 shadow-lg transition-colors hover:border-zinc-700 hover:bg-zinc-900 hover:text-white mb-6"
+              aria-label="Go back"
+            >
+              <ArrowLeft size={18} strokeWidth={1.5} />
+            </button>
 
-          <h1 className={`text-3xl font-bold mb-2 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-            Service Requests
-          </h1>
-          <p className={`text-sm ${theme === "dark" ? "text-zinc-400" : "text-gray-600"}`}>
-            Manage your producer service requests
-          </p>
+            <h1 className="text-3xl font-light tracking-tight text-white sm:text-4xl mb-2">
+              Service Requests
+            </h1>
+            <p className="text-sm font-light tracking-wide text-zinc-500">
+              Manage your incoming and outgoing producer requests.
+            </p>
+          </div>
+
+          {/* Filters & Toggles Moved to Extreme Right */}
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            {/* View Mode Toggle */}
+            <div className="inline-flex w-full sm:w-auto p-1 rounded-xl border border-zinc-800 bg-zinc-950 shadow-inner">
+              <button
+                onClick={() => setViewMode("sent")}
+                className={`flex-1 sm:flex-none px-5 py-2.5 text-xs font-semibold uppercase tracking-wider rounded-lg transition-all ${
+                  viewMode === "sent"
+                    ? "bg-[#08080a] text-white shadow-sm border border-zinc-700"
+                    : "text-zinc-500 hover:text-zinc-300 border border-transparent"
+                }`}
+              >
+                Sent
+              </button>
+              <button
+                onClick={() => setViewMode("received")}
+                className={`flex-1 sm:flex-none px-5 py-2.5 text-xs font-semibold uppercase tracking-wider rounded-lg transition-all ${
+                  viewMode === "received"
+                    ? "bg-[#08080a] text-white shadow-sm border border-zinc-700"
+                    : "text-zinc-500 hover:text-zinc-300 border border-transparent"
+                }`}
+              >
+                Received
+              </button>
+            </div>
+
+            {/* Status Filter */}
+            <div className="inline-flex w-full sm:w-auto p-1 rounded-xl border border-zinc-800 bg-zinc-950 shadow-inner overflow-x-auto scrollbar-hide">
+              {(["all", "pending", "accepted", "completed"] as const).map((status) => (
+                <button
+                  key={status}
+                  onClick={() => setFilter(status)}
+                  className={`px-5 py-2.5 text-xs font-semibold uppercase tracking-wider rounded-lg transition-all whitespace-nowrap ${
+                    filter === status
+                      ? "bg-white text-black shadow-sm border border-white"
+                      : "text-zinc-500 hover:text-zinc-300 border border-transparent"
+                  }`}
+                >
+                  {status}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Error Display */}
         {error && (
-          <div
-            className={`p-4 rounded-lg border mb-6 flex items-start gap-3 ${
-              theme === "dark"
-                ? "bg-red-500/10 border-red-500/20 text-red-400"
-                : "bg-red-50 border-red-200 text-red-600"
-            }`}
-          >
-            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+          <div className="mb-6 p-4 rounded-xl border border-red-500/20 bg-red-500/10 text-red-400 text-sm font-light tracking-wide flex items-start gap-3">
+            <AlertCircle size={18} className="shrink-0 mt-0.5" />
             <div className="flex-1">
-              <h4 className="font-medium mb-1">Error loading service requests</h4>
-              <p className="text-sm">{error}</p>
+              <h4 className="font-semibold text-red-300 mb-1">Error loading service requests</h4>
+              <p>{error}</p>
             </div>
             <button
               onClick={() => fetchRequests()}
-              className={`text-sm font-medium px-3 py-1 rounded-lg transition-all ${
-                theme === "dark"
-                  ? "hover:bg-red-500/20"
-                  : "hover:bg-red-100"
-              }`}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500/20 hover:bg-red-500/30 transition-colors"
             >
               Retry
             </button>
           </div>
         )}
 
-        {/* Filters */}
-        <div className="flex flex-wrap gap-4 mb-6">
-          {/* View Mode Toggle */}
-          <div
-            className={`inline-flex p-1 rounded-lg border ${
-              theme === "dark" ? "bg-zinc-950 border-zinc-800" : "bg-white border-gray-300"
-            }`}
-          >
-            <button
-              onClick={() => setViewMode("sent")}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
-                viewMode === "sent"
-                  ? theme === "dark"
-                    ? "bg-white text-black"
-                    : "bg-black text-white"
-                  : theme === "dark"
-                  ? "text-zinc-400 hover:text-white"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              Sent Requests
-            </button>
-            <button
-              onClick={() => setViewMode("received")}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
-                viewMode === "received"
-                  ? theme === "dark"
-                    ? "bg-white text-black"
-                    : "bg-black text-white"
-                  : theme === "dark"
-                  ? "text-zinc-400 hover:text-white"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              Received Requests
-            </button>
-          </div>
-
-          {/* Status Filter */}
-          <div
-            className={`inline-flex p-1 rounded-lg border ${
-              theme === "dark" ? "bg-zinc-950 border-zinc-800" : "bg-white border-gray-300"
-            }`}
-          >
-            {(["all", "pending", "accepted", "completed"] as const).map((status) => (
-              <button
-                key={status}
-                onClick={() => setFilter(status)}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all capitalize ${
-                  filter === status
-                    ? theme === "dark"
-                      ? "bg-purple-500 text-white"
-                      : "bg-purple-600 text-white"
-                    : theme === "dark"
-                    ? "text-zinc-400 hover:text-white"
-                    : "text-gray-600 hover:text-gray-900"
-                }`}
-              >
-                {status}
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* Requests List */}
         {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+          <div className="flex items-center justify-center py-24">
+            <Loader2 className="w-8 h-8 animate-spin text-zinc-500" />
           </div>
         ) : requests.length === 0 ? (
-          <div
-            className={`text-center py-16 rounded-xl border ${
-              theme === "dark" ? "bg-zinc-950 border-zinc-800" : "bg-white border-gray-300"
-            }`}
-          >
-            <Briefcase className={`w-16 h-16 mx-auto mb-4 ${theme === "dark" ? "text-zinc-700" : "text-gray-400"}`} />
-            <h3 className={`text-lg font-medium mb-2 ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
-              No service requests
+          <div className="py-24 text-center rounded-2xl border border-dashed border-zinc-800 bg-zinc-950/50">
+            <Briefcase className="w-12 h-12 text-zinc-700 mx-auto mb-4" strokeWidth={1.5} />
+            <h3 className="text-lg font-light tracking-tight text-white mb-2">
+              No service requests found
             </h3>
-            <p className={`text-sm ${theme === "dark" ? "text-zinc-500" : "text-gray-600"}`}>
+            <p className="text-sm font-light tracking-wide text-zinc-500">
               {viewMode === "sent"
-                ? "You haven't sent any service requests yet"
-                : "You haven't received any service requests yet"}
+                ? "You haven't requested any services from producers yet."
+                : "You don't have any incoming requests right now."}
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 gap-4">
             {requests.map((request) => {
               const isHighlighted = highlightId === request.id;
               const otherUser = viewMode === "sent" ? request.producer : request.client;
+              const reqCurrency = request.producer.currency || "USD";
+              
+              const statusCfg = STATUS_CONFIG[request.status] ?? STATUS_CONFIG["PENDING"];
+              const paymentCfg = PAYMENT_CONFIG[request.paymentStatus] ?? PAYMENT_CONFIG["UNPAID"];
+              const hasOpenDispute = request.disputeStatus === "OPEN" || request.disputeStatus === "UNDER_REVIEW";
 
               return (
                 <div
                   key={request.id}
                   id={`request-${request.id}`}
-                  className={`p-6 rounded-xl border transition-all ${
+                  className={`rounded-2xl border bg-zinc-950 p-6 transition-all ${
                     isHighlighted
-                      ? theme === "dark"
-                        ? "bg-purple-500/10 border-purple-500/50 ring-2 ring-purple-500/20"
-                        : "bg-purple-50 border-purple-500/50 ring-2 ring-purple-500/20"
-                      : theme === "dark"
-                      ? "bg-zinc-950 border-zinc-800 hover:border-zinc-700"
-                      : "bg-white border-gray-300 hover:border-gray-400"
+                      ? "border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.15)]"
+                      : "border-zinc-800 hover:border-zinc-700 hover:bg-[#08080a]"
                   }`}
                 >
-                  <div className="flex items-start justify-between gap-4 mb-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className={`text-lg font-semibold ${theme === "dark" ? "text-white" : "text-gray-900"}`}>
+                  <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
+                    
+                    {/* Left: Core Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-3 mb-3">
+                        <h3 className="text-xl font-light tracking-tight text-white truncate">
                           {request.projectTitle}
                         </h3>
-                        <span
-                          className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1 rounded-full border ${getStatusColor(
-                            request.status
-                          )}`}
-                        >
-                          {getStatusIcon(request.status)}
-                          {request.status}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] ${statusCfg.color}`}>
+                            {statusCfg.label}
+                          </span>
+                          <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] ${paymentCfg.color}`}>
+                            {request.paymentStatus === "PAYMENT_HELD" && <Lock size={10} />}
+                            {request.paymentStatus === "PAYMENT_RELEASED" && <Unlock size={10} />}
+                            {paymentCfg.label}
+                          </span>
+                          {hasOpenDispute && (
+                            <span className="inline-flex items-center gap-1.5 rounded-full border border-red-500/20 bg-red-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-red-400">
+                              <TriangleAlert size={10} /> Disputed
+                            </span>
+                          )}
+                        </div>
                       </div>
 
-                      <p className={`text-sm mb-4 ${theme === "dark" ? "text-zinc-400" : "text-gray-600"}`}>
+                      <p className="text-sm font-light tracking-wide leading-relaxed text-zinc-400 mb-6 line-clamp-2">
                         {request.projectDescription}
                       </p>
 
-                      <div className="flex flex-wrap items-center gap-4 text-sm">
+                      <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
                         <div className="flex items-center gap-2">
-                          <User className={`w-4 h-4 ${theme === "dark" ? "text-zinc-500" : "text-gray-500"}`} />
-                          <span className={theme === "dark" ? "text-zinc-400" : "text-gray-600"}>
-                            {viewMode === "sent" ? "Producer:" : "Client:"} {otherUser.fullName || otherUser.username}
-                          </span>
+                          <User size={16} className="text-zinc-600" />
+                          <div className="flex flex-col">
+                            <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-600">
+                              {viewMode === "sent" ? "Producer" : "Client"}
+                            </span>
+                            <span className="text-xs font-light text-zinc-300">
+                              {otherUser.fullName || otherUser.username}
+                            </span>
+                          </div>
                         </div>
 
                         {request.budget && (
                           <div className="flex items-center gap-2">
-                            <DollarSign className={`w-4 h-4 ${theme === "dark" ? "text-zinc-500" : "text-gray-500"}`} />
-                            <span className={theme === "dark" ? "text-zinc-400" : "text-gray-600"}>
-                              ${request.budget}
-                            </span>
+                            <ShieldCheck size={16} className="text-zinc-600" />
+                            <div className="flex flex-col">
+                              <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-600">
+                                Escrow Budget
+                              </span>
+                              <span className="text-xs font-light text-zinc-300">
+                                {formatAmount(parseFloat(request.budget), reqCurrency)}
+                              </span>
+                            </div>
                           </div>
                         )}
 
                         {request.deadline && (
                           <div className="flex items-center gap-2">
-                            <Calendar className={`w-4 h-4 ${theme === "dark" ? "text-zinc-500" : "text-gray-500"}`} />
-                            <span className={theme === "dark" ? "text-zinc-400" : "text-gray-600"}>
-                              Due: {formatDate(request.deadline)}
-                            </span>
+                            <Calendar size={16} className="text-zinc-600" />
+                            <div className="flex flex-col">
+                              <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-600">
+                                Deadline
+                              </span>
+                              <span className="text-xs font-light text-zinc-300">
+                                {formatDate(request.deadline)}
+                              </span>
+                            </div>
                           </div>
                         )}
-
-                        <div className="flex items-center gap-2">
-                          <Clock className={`w-4 h-4 ${theme === "dark" ? "text-zinc-500" : "text-gray-500"}`} />
-                          <span className={theme === "dark" ? "text-zinc-400" : "text-gray-600"}>
-                            {formatDate(request.createdAt)}
-                          </span>
-                        </div>
                       </div>
+                    </div>
 
-                      {request.producerResponse && (
-                        <div
-                          className={`mt-4 p-4 rounded-lg border ${
-                            theme === "dark" ? "bg-zinc-900 border-zinc-800" : "bg-gray-50 border-gray-200"
-                          }`}
-                        >
-                          <div className="flex items-center gap-2 mb-2">
-                            <MessageCircle className={`w-4 h-4 ${theme === "dark" ? "text-zinc-500" : "text-gray-500"}`} />
-                            <span className={`text-sm font-medium ${theme === "dark" ? "text-zinc-300" : "text-gray-700"}`}>
-                              Producer Response:
-                            </span>
-                          </div>
-                          <p className={`text-sm ${theme === "dark" ? "text-zinc-400" : "text-gray-600"}`}>
-                            {request.producerResponse}
-                          </p>
+                    {/* Right: Actions */}
+                    <div className="flex flex-row lg:flex-col items-center lg:items-end gap-3 shrink-0 pt-2 border-t border-zinc-800 lg:border-none lg:pt-0">
+                      
+                      {/* Stealth Open Workspace Button */}
+                      <button
+                        onClick={() => router.push(`/service-requests/${request.id}`)}
+                        className="flex-1 lg:flex-none inline-flex items-center justify-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900 px-5 py-2.5 text-xs font-medium tracking-wide text-zinc-300 transition-all hover:bg-zinc-800 hover:text-white active:scale-[0.98]"
+                      >
+                        <Briefcase size={14} /> Open Workspace
+                      </button>
+
+                      {/* Quick Actions based on status */}
+                      {viewMode === "received" && request.status === "PENDING" && (
+                        <div className="flex gap-2 w-full lg:w-auto">
+                          <button
+                            onClick={() => handleUpdateStatus(request.id, "ACCEPTED")}
+                            disabled={updatingId === request.id}
+                            className="flex-1 lg:flex-none inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-2.5 text-xs font-medium tracking-wide text-emerald-400 transition-all hover:bg-emerald-500/20 disabled:opacity-50"
+                          >
+                            {updatingId === request.id ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                            Accept
+                          </button>
+                          <button
+                            onClick={() => handleUpdateStatus(request.id, "REJECTED")}
+                            disabled={updatingId === request.id}
+                            className="flex-1 lg:flex-none inline-flex items-center justify-center gap-2 rounded-xl border border-zinc-700 bg-[#08080a] px-4 py-2.5 text-xs font-medium tracking-wide text-zinc-400 transition-all hover:bg-zinc-800 hover:text-white disabled:opacity-50"
+                          >
+                            <XIcon size={14} /> Decline
+                          </button>
                         </div>
                       )}
 
-                      {/* Action Buttons */}
-                      <div className="mt-4 pt-4 border-t border-zinc-800 flex flex-wrap gap-2">
-                        {viewMode === "received" && request.status === "PENDING" && (
-                          <>
-                            <button
-                              onClick={() => handleUpdateStatus(request.id, "ACCEPTED")}
-                              disabled={updatingId === request.id}
-                              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-all ${
-                                theme === "dark"
-                                  ? "bg-green-500/10 border-green-500/20 text-green-400 hover:bg-green-500/20"
-                                  : "bg-green-500/10 border-green-500/20 text-green-600 hover:bg-green-500/20"
-                              } disabled:opacity-50 disabled:cursor-not-allowed`}
-                            >
-                              {updatingId === request.id ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                <Check className="w-4 h-4" />
-                              )}
-                              Accept
-                            </button>
-                            <button
-                              onClick={() => handleUpdateStatus(request.id, "REJECTED")}
-                              disabled={updatingId === request.id}
-                              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-all ${
-                                theme === "dark"
-                                  ? "bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20"
-                                  : "bg-red-500/10 border-red-500/20 text-red-600 hover:bg-red-500/20"
-                              } disabled:opacity-50 disabled:cursor-not-allowed`}
-                            >
-                              {updatingId === request.id ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                <XIcon className="w-4 h-4" />
-                              )}
-                              Reject
-                            </button>
-                          </>
-                        )}
-
-                        {viewMode === "received" && request.status === "ACCEPTED" && (
-                          <button
-                            onClick={() => handleUpdateStatus(request.id, "IN_PROGRESS")}
-                            disabled={updatingId === request.id}
-                            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-all ${
-                              theme === "dark"
-                                ? "bg-blue-500/10 border-blue-500/20 text-blue-400 hover:bg-blue-500/20"
-                                : "bg-blue-500/10 border-blue-500/20 text-blue-600 hover:bg-blue-500/20"
-                            } disabled:opacity-50 disabled:cursor-not-allowed`}
-                          >
-                            {updatingId === request.id ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <Play className="w-4 h-4" />
-                            )}
-                            Start Work
-                          </button>
-                        )}
-
-                        {viewMode === "received" && request.status === "IN_PROGRESS" && (
-                          <button
-                            onClick={() => handleUpdateStatus(request.id, "COMPLETED")}
-                            disabled={updatingId === request.id}
-                            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-all ${
-                              theme === "dark"
-                                ? "bg-purple-500/10 border-purple-500/20 text-purple-400 hover:bg-purple-500/20"
-                                : "bg-purple-500/10 border-purple-500/20 text-purple-600 hover:bg-purple-500/20"
-                            } disabled:opacity-50 disabled:cursor-not-allowed`}
-                          >
-                            {updatingId === request.id ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <CheckCircle2 className="w-4 h-4" />
-                            )}
-                            Mark Complete
-                          </button>
-                        )}
-
-                        {viewMode === "sent" && (request.status === "PENDING" || request.status === "ACCEPTED") && (
-                          <button
-                            onClick={() => handleCancelRequest(request.id)}
-                            disabled={updatingId === request.id}
-                            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-all ${
-                              theme === "dark"
-                                ? "bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20"
-                                : "bg-red-500/10 border-red-500/20 text-red-600 hover:bg-red-500/20"
-                            } disabled:opacity-50 disabled:cursor-not-allowed`}
-                          >
-                            {updatingId === request.id ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <XIcon className="w-4 h-4" />
-                            )}
-                            Cancel Request
-                          </button>
-                        )}
-
-                        {/* View Details */}
+                      {viewMode === "sent" && request.status === "PENDING" && (
                         <button
-                          onClick={() => router.push(`/service-requests/${request.id}`)}
-                          className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-all ${
-                            theme === "dark"
-                              ? "bg-purple-500/10 border-purple-500/20 text-purple-400 hover:bg-purple-500/20"
-                              : "bg-purple-500/10 border-purple-500/20 text-purple-600 hover:bg-purple-500/20"
-                          }`}
+                          onClick={() => handleCancelRequest(request.id)}
+                          disabled={updatingId === request.id}
+                          className="flex-1 lg:flex-none inline-flex items-center justify-center gap-2 rounded-xl border border-red-500/20 bg-transparent px-4 py-2.5 text-xs font-medium tracking-wide text-red-400 transition-all hover:bg-red-500/10 disabled:opacity-50"
                         >
-                          <Briefcase className="w-4 h-4" />
-                          View Details
+                          {updatingId === request.id ? <Loader2 size={14} className="animate-spin" /> : <XIcon size={14} />}
+                          Cancel Request
                         </button>
-                      </div>
+                      )}
                     </div>
                   </div>
+
                 </div>
               );
             })}
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }

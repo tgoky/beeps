@@ -22,6 +22,8 @@ export async function GET(
             avatar: true,
             bio: true,
             location: true,
+            latitude: true,  // ADDED
+            longitude: true, // ADDED
             verified: true,
             email: true,
             uploadedBeats: {
@@ -91,6 +93,8 @@ export async function GET(
       imageUrl: producerProfile.user.avatar,
       bio: producerProfile.user.bio,
       location: producerProfile.user.location,
+      lat: producerProfile.user.latitude,  // ADDED
+      lng: producerProfile.user.longitude, // ADDED
       studios: studios.map((studio) => ({
         id: studio.id,
         name: studio.name,

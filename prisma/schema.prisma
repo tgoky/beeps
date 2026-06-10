@@ -45,6 +45,8 @@ model User {
   location      String?
   website       String?
   socialLinks   Json?            @map("social_links")  // { instagram, youtube, soundcloud, spotify }
+  latitude      Decimal?         @db.Decimal(10, 8)
+  longitude     Decimal?         @db.Decimal(11, 8)
 
   // User Role & Status
   primaryRole   UserRole         @map("primary_role")
@@ -245,6 +247,9 @@ model ServiceRequest {
   
   status              ServiceRequestStatus @default(PENDING)
   producerResponse    String?              @map("producer_response")
+
+  deliveryUrl         String?              @map("delivery_url")
+  deliveryNotes       String?              @map("delivery_notes")
 
   // Escrow payment fields (mirrors Booking payment flow)
   paymentStatus       PaymentStatus        @default(UNPAID) @map("payment_status")

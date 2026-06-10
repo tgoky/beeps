@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { useTheme } from "@/providers/ThemeProvider";
 import { createBrowserClient } from "@supabase/ssr";
 import { useUserBySupabaseId } from "@/hooks/api/useUserData";
 import {
@@ -86,11 +85,55 @@ interface BookingDetails {
   };
 }
 
+// ─── Booking Timeline ──────────────────────────────────────────────────────────
+function BookingTimeline({ booking }: { booking: BookingDetails }) {
+  const steps = [
+    { key: "requested", label: "Requested",  done: true },
+    { key: "confirmed", label: "Confirmed",  done: ["CONFIRMED", "ACTIVE", "COMPLETED"].includes(booking.status) },
+    { key: "funded",    label: "In Escrow",  done: ["PAYMENT_HELD", "PAYMENT_CAPTURED", "PAYMENT_RELEASED"].includes(booking.paymentStatus) },
+    { key: "active",    label: "In Session", done: ["ACTIVE", "COMPLETED"].includes(booking.status) },
+    { key: "completed", label: "Completed",  done: booking.status === "COMPLETED" },
+    { key: "released",  label: "Paid Out",   done: booking.paymentStatus === "PAYMENT_RELEASED" },
+  ];
+
+  return (
+    <div className="p-6 rounded-2xl border border-zinc-800 bg-[#08080a]">
+      <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-500 mb-6">Booking Progress</h3>
+      <div className="flex items-center gap-0 overflow-x-auto pb-2 scrollbar-hide">
+        {steps.map((step, i) => (
+          <div key={step.key} className="flex items-center flex-1 min-w-[80px]">
+            <div className="flex flex-col items-center gap-2 flex-1">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all shrink-0 ${
+                step.done
+                  ? "bg-emerald-500 border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.4)]"
+                  : "bg-zinc-900 border-zinc-800"
+              }`}>
+                {step.done
+                  ? <Check className="w-4 h-4 text-black" strokeWidth={3} />
+                  : <span className="w-2 h-2 rounded-full bg-zinc-700" />
+                }
+              </div>
+              <span className={`text-[9px] font-medium text-center uppercase tracking-wide leading-tight w-16 ${
+                step.done ? "text-emerald-400" : "text-zinc-600"
+              }`}>{step.label}</span>
+            </div>
+            {i < steps.length - 1 && (
+              <div className={`h-[2px] w-full mb-6 transition-all shrink-0 min-w-[20px] ${
+                step.done && steps[i + 1].done ? "bg-emerald-500" : "bg-zinc-800"
+              }`} />
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function BookingShowPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const bookingId = params?.id;
-  const { theme } = useTheme();
+  
   const [booking, setBooking] = useState<BookingDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -286,23 +329,23 @@ export default function BookingShowPage() {
 
   const getStatusIcon = (status: string) => {
     switch (status?.toUpperCase()) {
-      case "CONFIRMED": return <CheckCircle2 className="w-5 h-5 text-green-400" strokeWidth={2.5} />;
+      case "CONFIRMED": return <CheckCircle2 className="w-5 h-5 text-emerald-400" strokeWidth={2.5} />;
       case "COMPLETED": return <CheckCircle2 className="w-5 h-5 text-blue-400" strokeWidth={2.5} />;
-      case "PENDING": return <AlertCircle className="w-5 h-5 text-yellow-400" strokeWidth={2.5} />;
-      case "ACTIVE": return <Play className="w-5 h-5 text-emerald-400" strokeWidth={2.5} />;
+      case "PENDING":   return <AlertCircle className="w-5 h-5 text-yellow-400" strokeWidth={2.5} />;
+      case "ACTIVE":    return <Play className="w-5 h-5 text-emerald-400" strokeWidth={2.5} />;
       case "CANCELLED": return <XCircle className="w-5 h-5 text-red-400" strokeWidth={2.5} />;
-      default: return <AlertCircle className={`w-5 h-5 ${theme === "dark" ? "text-zinc-400" : "text-gray-400"}`} strokeWidth={2.5} />;
+      default:          return <AlertCircle className="w-5 h-5 text-zinc-400" strokeWidth={2.5} />;
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status?.toUpperCase()) {
-      case "CONFIRMED": return theme === "dark" ? "bg-green-500/10 text-green-400 border-green-500/20" : "bg-green-500/10 text-green-600 border-green-500/20";
-      case "COMPLETED": return theme === "dark" ? "bg-blue-500/10 text-blue-400 border-blue-500/20" : "bg-blue-500/10 text-blue-600 border-blue-500/20";
-      case "PENDING": return theme === "dark" ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20" : "bg-yellow-500/10 text-yellow-600 border-yellow-500/20";
-      case "ACTIVE": return theme === "dark" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20";
-      case "CANCELLED": return theme === "dark" ? "bg-red-500/10 text-red-400 border-red-500/20" : "bg-red-500/10 text-red-600 border-red-500/20";
-      default: return theme === "dark" ? "bg-zinc-500/10 text-zinc-400 border-zinc-500/20" : "bg-gray-500/10 text-gray-600 border-gray-500/20";
+      case "CONFIRMED": return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+      case "COMPLETED": return "bg-blue-500/10 text-blue-400 border-blue-500/20";
+      case "PENDING":   return "bg-yellow-500/10 text-yellow-400 border-yellow-500/20";
+      case "ACTIVE":    return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+      case "CANCELLED": return "bg-red-500/10 text-red-400 border-red-500/20";
+      default:          return "bg-zinc-500/10 text-zinc-400 border-zinc-500/20";
     }
   };
 
@@ -319,10 +362,11 @@ export default function BookingShowPage() {
 
   const getPaymentStatusColor = (status: string) => {
     switch (status) {
-      case "PAYMENT_RELEASED": return "bg-green-500/10 text-green-400 border-green-500/20";
-      case "PAYMENT_HELD": case "PAYMENT_CAPTURED": return "bg-purple-500/10 text-purple-400 border-purple-500/20";
-      case "REFUNDED": return "bg-red-500/10 text-red-400 border-red-500/20";
-      default: return theme === "dark" ? "bg-zinc-500/10 text-zinc-400 border-zinc-500/20" : "bg-gray-500/10 text-gray-500 border-gray-500/20";
+      case "PAYMENT_RELEASED": return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+      case "PAYMENT_HELD": 
+      case "PAYMENT_CAPTURED": return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+      case "REFUNDED":         return "bg-blue-500/10 text-blue-400 border-blue-500/20";
+      default:                 return "bg-[#08080a] text-zinc-400 border-zinc-800";
     }
   };
 
@@ -339,26 +383,14 @@ export default function BookingShowPage() {
     return `${h.toString().padStart(2, "0")}h ${m.toString().padStart(2, "0")}m`;
   };
 
-  const textPrimary = theme === "dark" ? "text-white" : "text-gray-900";
-  const textTertiary = theme === "dark" ? "text-zinc-500" : "text-gray-500";
-  const bgPrimary = theme === "dark" ? "bg-black" : "bg-gray-50";
-  const bgCard = theme === "dark" ? "bg-zinc-900/40" : "bg-white";
-  const borderPrimary = theme === "dark" ? "border-zinc-800" : "border-gray-300";
-  const buttonPrimary = theme === "dark"
-    ? "bg-white border-white text-black hover:bg-zinc-100 active:scale-[0.98]"
-    : "bg-black border-black text-white hover:bg-gray-800 active:scale-[0.98]";
-  const buttonSecondary = theme === "dark"
-    ? "bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-white hover:bg-black"
-    : "bg-gray-50 border-gray-300 text-gray-600 hover:border-gray-400 hover:text-black hover:bg-white";
-
   if (isLoading) {
     return (
-      <div className={`min-h-screen p-6 transition-colors duration-200 ${bgPrimary} ${textPrimary}`}>
+      <div className="h-full overflow-y-auto bg-black text-zinc-200 p-4 md:p-6">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-center py-24">
             <div className="space-y-4 text-center">
-              <Loader2 className={`w-8 h-8 animate-spin ${theme === "dark" ? "text-white" : "text-gray-900"} mx-auto`} strokeWidth={2.5} />
-              <p className="text-sm font-light tracking-wide">Loading booking details...</p>
+              <Loader2 className="w-8 h-8 animate-spin text-white mx-auto" strokeWidth={2.5} />
+              <p className="text-sm font-light tracking-wide text-zinc-400">Loading booking details...</p>
             </div>
           </div>
         </div>
@@ -369,25 +401,23 @@ export default function BookingShowPage() {
   if (error || !booking) {
     const isAuthError = error?.toLowerCase().includes("unauthorized") || error?.toLowerCase().includes("forbidden");
     return (
-      <div className={`min-h-screen p-6 transition-colors duration-200 ${bgPrimary} ${textPrimary}`}>
-        <div className="max-w-4xl mx-auto">
-          <div className={`p-12 rounded-xl text-center border ${borderPrimary} ${bgCard}`}>
-            <XCircle className={`w-16 h-16 ${theme === "dark" ? "text-zinc-700" : "text-gray-300"} mx-auto mb-4`} strokeWidth={1.5} />
-            <h3 className="text-lg font-light tracking-tight mb-2">
-              {isAuthError ? "Access denied" : "Booking not found"}
-            </h3>
-            <p className="text-sm font-light tracking-wide mb-6">
-              {error || "The booking you're looking for doesn't exist"}
-            </p>
-            <div className="flex items-center justify-center gap-3">
-              <button onClick={() => router.push('/bookings')} className={`inline-flex items-center gap-2.5 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 ${buttonPrimary} tracking-wide`}>
-                <ArrowLeft className="w-4 h-4" strokeWidth={2} />
-                <span>Back to Bookings</span>
-              </button>
-              <button onClick={() => fetchBooking()} className={`inline-flex items-center gap-2.5 px-6 py-3 text-sm font-medium rounded-lg border transition-all duration-200 ${buttonSecondary} tracking-wide`}>
-                <span>Try Again</span>
-              </button>
-            </div>
+      <div className="h-full overflow-y-auto bg-black text-zinc-200 p-4 md:p-6 flex items-center justify-center">
+        <div className="w-full max-w-md p-12 rounded-2xl text-center border border-zinc-800 bg-[#08080a] shadow-2xl">
+          <XCircle className="w-12 h-12 text-zinc-600 mx-auto mb-4" strokeWidth={1.5} />
+          <h3 className="text-xl font-light tracking-tight text-white mb-2">
+            {isAuthError ? "Access denied" : "Booking not found"}
+          </h3>
+          <p className="text-sm font-light tracking-wide mb-8 text-zinc-500">
+            {error || "The booking you're looking for doesn't exist"}
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button onClick={() => router.push('/bookings')} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-medium rounded-xl bg-white text-black hover:bg-zinc-200 transition-colors tracking-wide">
+              <ArrowLeft className="w-4 h-4" strokeWidth={2} />
+              Back to Bookings
+            </button>
+            <button onClick={() => fetchBooking()} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-medium rounded-xl border border-zinc-700 bg-[#08080a] text-zinc-300 hover:text-white hover:bg-zinc-900 transition-colors tracking-wide">
+              Try Again
+            </button>
           </div>
         </div>
       </div>
@@ -399,22 +429,21 @@ export default function BookingShowPage() {
   const isStudioOwner = currentUser?.id === booking.studio.owner.userId;
 
   return (
-    <div className={`min-h-screen p-4 md:p-6 transition-colors duration-200 ${bgPrimary} ${textPrimary}`}>
-      <div className="max-w-6xl mx-auto">
+    <div className="h-full overflow-y-auto bg-black text-zinc-200 p-4 md:p-6 selection:bg-white selection:text-black">
+      <div className="max-w-7xl mx-auto pb-24">
 
         {/* Top bar: back + status badges */}
-        <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
-          <button onClick={() => router.push('/bookings')} className={`inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border transition-all duration-200 ${buttonSecondary} tracking-wide active:scale-[0.98]`}>
-            <ArrowLeft className="w-4 h-4" strokeWidth={2} />
-            <span>Bookings</span>
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+          <button onClick={() => router.push('/bookings')} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-zinc-800 bg-zinc-950 text-zinc-300 shadow-lg transition-colors hover:border-zinc-700 hover:bg-zinc-900 hover:text-white">
+            <ArrowLeft size={18} strokeWidth={1.5} />
           </button>
           <div className="flex items-center gap-2 flex-wrap">
-            <span className={`text-xs font-medium tracking-wide px-3 py-1.5 rounded-full border flex items-center gap-1.5 ${getStatusColor(booking.status)}`}>
+            <span className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-xs font-medium tracking-wide ${getStatusColor(booking.status)}`}>
               {getStatusIcon(booking.status)}
               {booking.status === "ACTIVE" ? "In Session" : booking.status}
             </span>
             {booking.paymentStatus && booking.paymentStatus !== "UNPAID" && (
-              <span className={`text-xs font-medium tracking-wide px-3 py-1.5 rounded-full border flex items-center gap-1.5 ${getPaymentStatusColor(booking.paymentStatus)}`}>
+              <span className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-xs font-medium tracking-wide ${getPaymentStatusColor(booking.paymentStatus)}`}>
                 <DollarSign className="w-3.5 h-3.5" strokeWidth={2} />
                 {getPaymentStatusLabel(booking.paymentStatus)}
               </span>
@@ -423,53 +452,58 @@ export default function BookingShowPage() {
         </div>
 
         {/* Page title */}
-        <div className="mb-6">
-          <h1 className="text-2xl md:text-3xl font-light tracking-tight">{booking.studio.name}</h1>
-          <p className={`text-sm font-light tracking-wide mt-1 ${textTertiary}`}>
+        <div className="mb-8">
+          <h1 className="text-3xl font-light tracking-tight text-white sm:text-4xl mb-2">{booking.studio.name}</h1>
+          <p className="text-sm font-light tracking-wide text-zinc-500">
             {formatDate(booking.startTime)} · {formatTime(booking.startTime, booking.endTime)}
           </p>
         </div>
 
         {/* Two-column grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
 
           {/* ─── LEFT COLUMN (main content) ─── */}
-          <div className="lg:col-span-2 space-y-4">
+          <div className="lg:col-span-2 space-y-6">
 
           {/* Session stats — compact 4-up grid */}
-          <div className={`p-5 rounded-xl border ${borderPrimary} ${bgCard}`}>
+          <div className="p-6 rounded-2xl border border-zinc-800 bg-[#08080a] shadow-xl">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-5 divide-x divide-transparent">
               <div>
-                <p className={`text-xs font-medium tracking-wider uppercase mb-1.5 ${textTertiary}`}>Date</p>
-                <p className="text-sm font-light">{formatDate(booking.startTime)}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-500 mb-1.5">Date</p>
+                <p className="text-sm font-light text-zinc-200">{formatDate(booking.startTime)}</p>
               </div>
-              <div className={`md:pl-5 md:border-l ${borderPrimary}`}>
-                <p className={`text-xs font-medium tracking-wider uppercase mb-1.5 ${textTertiary}`}>Time</p>
-                <p className="text-sm font-light">{formatTime(booking.startTime, booking.endTime)}</p>
+              <div className="md:pl-5 md:border-l border-zinc-800">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-500 mb-1.5">Time</p>
+                <p className="text-sm font-light text-zinc-200">{formatTime(booking.startTime, booking.endTime)}</p>
               </div>
-              <div className={`md:pl-5 md:border-l ${borderPrimary}`}>
-                <p className={`text-xs font-medium tracking-wider uppercase mb-1.5 ${textTertiary}`}>Duration</p>
-                <p className="text-sm font-light">{duration} {duration === 1 ? 'hr' : 'hrs'}</p>
+              <div className="md:pl-5 md:border-l border-zinc-800">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-500 mb-1.5">Duration</p>
+                <p className="text-sm font-light text-zinc-200">{duration} {duration === 1 ? 'hr' : 'hrs'}</p>
               </div>
-              <div className={`md:pl-5 md:border-l ${borderPrimary}`}>
-                <p className={`text-xs font-medium tracking-wider uppercase mb-1.5 ${textTertiary}`}>Amount</p>
-                <p className="text-xl font-light tracking-tight">{formatCurrency(booking.totalAmount)}</p>
+              <div className="md:pl-5 md:border-l border-zinc-800">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-500 mb-1.5">Amount</p>
+                <p className="text-xl font-light tracking-tight text-white">{formatCurrency(booking.totalAmount)}</p>
               </div>
             </div>
           </div>
 
+          {/* ESCROW / BOOKING TIMELINE */}
+          {booking.status !== "CANCELLED" && (
+            <BookingTimeline booking={booking} />
+          )}
+
           {/* QR Code Card - Show to customer only (never to studio owner) */}
           {booking.qrCode && isCustomer && !isStudioOwner && (booking.status === "CONFIRMED" || booking.status === "ACTIVE") && (
-            <div className={`p-6 rounded-xl border ${theme === "dark" ? "border-purple-500/20 bg-purple-500/5" : "border-purple-500/20 bg-purple-50"}`}>
+            <div className="p-6 rounded-2xl border border-zinc-800 bg-zinc-950 shadow-xl">
               <div className="flex items-center gap-3 mb-4">
-                <QrCode className="w-5 h-5 text-purple-400" strokeWidth={2} />
-                <h3 className="text-lg font-light tracking-tight">Your Check-In QR Code</h3>
+                <QrCode className="w-5 h-5 text-zinc-400" strokeWidth={2} />
+                <h3 className="text-lg font-light tracking-tight text-white">Your Check-In QR Code</h3>
               </div>
-              <p className="text-sm font-light tracking-wide mb-4 text-purple-400">
+              <p className="text-sm font-light tracking-wide mb-6 text-zinc-400">
                 Show this code to the studio owner when you arrive to start your session.
               </p>
-              <div className={`p-4 rounded-lg border ${theme === "dark" ? "bg-black border-purple-500/20" : "bg-white border-purple-200"} text-center`}>
-                <p className="text-2xl font-mono font-medium tracking-widest">{booking.qrCode}</p>
+              <div className="p-6 rounded-xl border border-zinc-800 bg-[#08080a] text-center">
+                <p className="text-3xl font-mono font-medium tracking-widest text-white">{booking.qrCode}</p>
               </div>
             </div>
           )}
@@ -486,23 +520,22 @@ export default function BookingShowPage() {
             if (minutesUntilSession <= 0) return null;
 
             return (
-              <div className={`p-4 rounded-xl border ${theme === "dark" ? "border-blue-500/20 bg-blue-500/5" : "border-blue-200 bg-blue-50"}`}>
-                <div className="flex items-center gap-3">
-                  <Clock className={`w-5 h-5 flex-shrink-0 ${theme === "dark" ? "text-blue-400" : "text-blue-600"}`} strokeWidth={2} />
-                  <div>
-                    <p className={`text-sm font-medium tracking-wide ${theme === "dark" ? "text-blue-400" : "text-blue-700"}`}>
-                      Session {minutesUntilSession > 60
-                        ? `in ${Math.floor(minutesUntilSession / 60)}h ${minutesUntilSession % 60}m`
-                        : `in ${minutesUntilSession}m`
-                      } — {dayjs(scheduledStart).format("h:mm A")}
-                    </p>
-                    <p className={`text-xs font-light tracking-wide mt-0.5 ${theme === "dark" ? "text-blue-400/70" : "text-blue-600/70"}`}>
-                      {isTooEarly
-                        ? `Check-in opens at ${dayjs(earliestCheckIn).format("h:mm A")} (30 min before session)`
-                        : "Check-in window is open"
-                      }
-                    </p>
-                  </div>
+              <div className="p-5 rounded-2xl border border-blue-500/20 bg-blue-500/5 shadow-xl flex items-center gap-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/10 text-blue-400 shrink-0">
+                  <Clock className="w-5 h-5" strokeWidth={2} />
+                </div>
+                <div>
+                  <p className="text-sm font-medium tracking-wide text-blue-400 mb-0.5">
+                    Session {minutesUntilSession > 60
+                      ? `in ${Math.floor(minutesUntilSession / 60)}h ${minutesUntilSession % 60}m`
+                      : `in ${minutesUntilSession}m`
+                    } — {dayjs(scheduledStart).format("h:mm A")}
+                  </p>
+                  <p className="text-xs font-light tracking-wide text-blue-400/70">
+                    {isTooEarly
+                      ? `Check-in opens at ${dayjs(earliestCheckIn).format("h:mm A")} (30 min before session)`
+                      : "Check-in window is open"}
+                  </p>
                 </div>
               </div>
             );
@@ -531,80 +564,78 @@ export default function BookingShowPage() {
             const elapsed = `${eH.toString().padStart(2, "0")}:${eM.toString().padStart(2, "0")}:${eS.toString().padStart(2, "0")}`;
 
             return (
-              <div className={`p-6 rounded-xl border ${
-                isOvertime
-                  ? theme === "dark" ? "border-orange-500/20 bg-orange-500/5" : "border-orange-500/20 bg-orange-50"
-                  : theme === "dark" ? "border-emerald-500/20 bg-emerald-500/5" : "border-emerald-500/20 bg-emerald-50"
+              <div className={`p-6 rounded-2xl border shadow-xl ${
+                isOvertime ? "border-orange-500/20 bg-orange-500/5" : "border-emerald-500/20 bg-emerald-500/5"
               }`}>
-                <div className="flex items-center justify-between mb-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
                   <div className="flex items-center gap-3">
-                    <div className={`w-3 h-3 rounded-full animate-pulse ${isOvertime ? "bg-orange-400" : "bg-emerald-400"}`} />
-                    <h3 className="text-lg font-light tracking-tight">
+                    <div className={`w-3 h-3 rounded-full animate-pulse ${isOvertime ? "bg-orange-400 shadow-[0_0_10px_rgba(251,146,60,0.5)]" : "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.5)]"}`} />
+                    <h3 className="text-xl font-light tracking-tight text-white">
                       {isOvertime ? "Session Overtime" : "Session In Progress"}
                     </h3>
                   </div>
-                  <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border ${
-                    isOvertime ? "bg-orange-500/10 border-orange-500/20" : "bg-green-500/10 border-green-500/20"
+                  <div className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border ${
+                    isOvertime ? "bg-orange-500/10 border-orange-500/20" : "bg-emerald-500/10 border-emerald-500/20"
                   }`}>
-                    <p className={`text-2xl font-mono font-medium tabular-nums tracking-tight ${isOvertime ? "text-orange-400" : "text-green-400"}`}>
+                    <p className={`text-2xl font-mono font-medium tabular-nums tracking-tight ${isOvertime ? "text-orange-400" : "text-emerald-400"}`}>
                       {isOvertime ? "+" : ""}{countdown}
                     </p>
                   </div>
                 </div>
 
                 {/* Progress bar */}
-                <div className="mb-4">
-                  <div className={`relative h-2 rounded-full ${theme === "dark" ? "bg-zinc-800" : "bg-gray-200"} overflow-hidden`}>
+                <div className="mb-6">
+                  <div className="relative h-2.5 rounded-full bg-zinc-900 overflow-hidden border border-zinc-800">
                     <div
                       className={`h-full rounded-full transition-all duration-1000 ease-linear ${
                         isOvertime
                           ? "bg-gradient-to-r from-orange-500 to-red-500"
                           : progressPct > 80
-                          ? "bg-gradient-to-r from-green-500 to-yellow-500"
-                          : "bg-gradient-to-r from-green-500 to-emerald-400"
+                          ? "bg-gradient-to-r from-emerald-500 to-yellow-500"
+                          : "bg-gradient-to-r from-emerald-600 to-emerald-400"
                       }`}
                       style={{ width: `${Math.min(progressPct, 100)}%` }}
                     />
                     {progressPct <= 100 && (
                       <div
-                        className={`absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full border-2 shadow-lg transition-all duration-1000 ease-linear ${
-                          isOvertime ? "bg-orange-400 border-orange-300" : "bg-green-400 border-green-300"
+                        className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 shadow-lg transition-all duration-1000 ease-linear ${
+                          isOvertime ? "bg-orange-400 border-orange-300" : "bg-emerald-400 border-emerald-300"
                         }`}
-                        style={{ left: `calc(${Math.min(progressPct, 100)}% - 7px)` }}
+                        style={{ left: `calc(${Math.min(progressPct, 100)}% - 8px)` }}
                       />
                     )}
                   </div>
-                  <div className="flex justify-between mt-1.5">
-                    <span className={`text-xs font-light ${textTertiary}`}>
+                  <div className="flex justify-between mt-2">
+                    <span className="text-xs font-light text-zinc-500">
                       {dayjs(booking.checkedInAt).format("h:mm A")}
                     </span>
-                    <span className={`text-xs font-medium ${isOvertime ? "text-orange-400" : progressPct > 80 ? "text-yellow-400" : "text-green-400"}`}>
+                    <span className={`text-xs font-medium ${isOvertime ? "text-orange-400" : progressPct > 80 ? "text-yellow-400" : "text-emerald-400"}`}>
                       {Math.round(progressPct)}%
                     </span>
-                    <span className={`text-xs font-light ${textTertiary}`}>
+                    <span className="text-xs font-light text-zinc-500">
                       {dayjs(booking.endTime).format("h:mm A")}
                     </span>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div>
-                    <p className={`text-xs ${textTertiary} mb-1`}>Elapsed</p>
-                    <p className="text-sm font-mono tabular-nums font-light">{elapsed}</p>
+                  <div className="p-3 rounded-lg bg-black/40 border border-zinc-800/50">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-500 mb-1">Elapsed</p>
+                    <p className="text-sm font-mono tabular-nums font-light text-zinc-200">{elapsed}</p>
                   </div>
-                  <div>
-                    <p className={`text-xs ${textTertiary} mb-1`}>Scheduled End</p>
-                    <p className="text-sm font-light">{dayjs(booking.endTime).format("h:mm A")}</p>
+                  <div className="p-3 rounded-lg bg-black/40 border border-zinc-800/50">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-500 mb-1">Scheduled End</p>
+                    <p className="text-sm font-light text-zinc-200">{dayjs(booking.endTime).format("h:mm A")}</p>
                   </div>
-                  <div>
-                    <p className={`text-xs ${textTertiary} mb-1`}>Presence Confirmed</p>
-                    <p className={`text-sm font-light ${booking.bookerConfirmedCheckIn ? "text-green-400" : "text-yellow-400"}`}>
-                      {booking.bookerConfirmedCheckIn ? "Yes" : "Pending"}
+                  <div className="p-3 rounded-lg bg-black/40 border border-zinc-800/50">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-500 mb-1">Presence</p>
+                    <p className={`text-sm font-light ${booking.bookerConfirmedCheckIn ? "text-emerald-400" : "text-yellow-400"}`}>
+                      {booking.bookerConfirmedCheckIn ? "Confirmed" : "Pending"}
                     </p>
                   </div>
                   {isOvertime && (
-                    <div>
-                      <p className={`text-xs ${textTertiary} mb-1`}>Overtime</p>
+                    <div className="p-3 rounded-lg bg-black/40 border border-orange-500/20">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-orange-500/70 mb-1">Overtime</p>
                       <p className="text-sm font-mono tabular-nums font-light text-orange-400">+{countdown}</p>
                     </div>
                   )}
@@ -615,90 +646,90 @@ export default function BookingShowPage() {
 
           {/* Session Complete Summary */}
           {booking.status === "COMPLETED" && booking.checkedInAt && (
-            <div className={`p-6 rounded-xl border ${theme === "dark" ? "border-blue-500/20 bg-blue-500/5" : "border-blue-500/20 bg-blue-50"}`}>
-              <div className="flex items-center gap-3 mb-4">
-                <CheckCircle2 className="w-5 h-5 text-blue-400" strokeWidth={2} />
-                <h3 className="text-lg font-light tracking-tight">Session Completed</h3>
+            <div className="p-6 rounded-2xl border border-zinc-800 bg-zinc-950 shadow-xl">
+              <div className="flex items-center gap-3 mb-6">
+                <CheckCircle2 className="w-5 h-5 text-emerald-400" strokeWidth={2} />
+                <h3 className="text-lg font-light tracking-tight text-white">Session Completed</h3>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
-                  <p className={`text-xs ${textTertiary} mb-1`}>Checked In</p>
-                  <p className="text-sm font-light">{dayjs(booking.checkedInAt).format("h:mm A")}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-500 mb-1">Checked In</p>
+                  <p className="text-sm font-light text-zinc-200">{dayjs(booking.checkedInAt).format("h:mm A")}</p>
                 </div>
                 {booking.checkedOutAt && (
                   <div>
-                    <p className={`text-xs ${textTertiary} mb-1`}>Checked Out</p>
-                    <p className="text-sm font-light">{dayjs(booking.checkedOutAt).format("h:mm A")}</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-500 mb-1">Checked Out</p>
+                    <p className="text-sm font-light text-zinc-200">{dayjs(booking.checkedOutAt).format("h:mm A")}</p>
                   </div>
                 )}
                 {booking.actualSessionMinutes != null && (
                   <div>
-                    <p className={`text-xs ${textTertiary} mb-1`}>Actual Duration</p>
-                    <p className="text-sm font-light">{formatDurationHMS(booking.actualSessionMinutes)}</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-500 mb-1">Actual Duration</p>
+                    <p className="text-sm font-light text-zinc-200">{formatDurationHMS(booking.actualSessionMinutes)}</p>
                   </div>
                 )}
                 {booking.proRataAmount != null && (
                   <div>
-                    <p className={`text-xs ${textTertiary} mb-1`}>Final Amount</p>
-                    <p className="text-sm font-light">{formatCurrency(booking.proRataAmount)}</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-500 mb-1">Final Amount</p>
+                    <p className="text-sm font-light text-emerald-400">{formatCurrency(booking.proRataAmount)}</p>
                   </div>
                 )}
                 {booking.overtimeMinutes && booking.overtimeMinutes > 0 ? (
                   <div>
-                    <p className={`text-xs ${textTertiary} mb-1`}>Overtime</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-500 mb-1">Overtime</p>
                     <p className="text-sm font-light text-orange-400">+{formatDurationHMS(booking.overtimeMinutes)} ({formatCurrency(booking.overtimeAmount || 0)})</p>
                   </div>
                 ) : null}
                 {booking.endedBy && (
                   <div>
-                    <p className={`text-xs ${textTertiary} mb-1`}>Ended By</p>
-                    <p className="text-sm font-light">{booking.endedBy === "STUDIO_OWNER" ? "Studio Owner" : "Artist"}</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-500 mb-1">Ended By</p>
+                    <p className="text-sm font-light text-zinc-200">{booking.endedBy === "STUDIO_OWNER" ? "Studio Owner" : "Artist"}</p>
                   </div>
                 )}
               </div>
               {booking.earlyEndReason && (
-                <div className="mt-4 pt-4 border-t border-blue-500/20">
-                  <p className={`text-xs ${textTertiary} mb-1`}>Early End Reason</p>
-                  <p className="text-sm font-light">{booking.earlyEndReason}</p>
+                <div className="mt-6 pt-5 border-t border-zinc-800">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-500 mb-2">Early End Reason</p>
+                  <p className="text-sm font-light text-zinc-300">{booking.earlyEndReason}</p>
                 </div>
               )}
             </div>
           )}
 
           {/* Studio Information Card */}
-          <div className={`p-6 rounded-xl border ${borderPrimary} ${bgCard}`}>
-            <div className="flex items-start justify-between mb-6">
+          <div className="p-6 rounded-2xl border border-zinc-800 bg-zinc-950 shadow-xl">
+            <div className="flex items-start justify-between mb-8">
               <div className="flex items-center gap-4">
-                <div className={`p-3 rounded-lg border ${borderPrimary} ${theme === "dark" ? "bg-black" : "bg-gray-100"} flex items-center justify-center`}>
-                  <Building2 className={`w-5 h-5 ${theme === "dark" ? "text-white" : "text-gray-900"}`} strokeWidth={2} />
+                <div className="p-3.5 rounded-xl border border-zinc-800 bg-[#08080a] flex items-center justify-center shadow-inner">
+                  <Building2 className="w-6 h-6 text-zinc-300" strokeWidth={1.5} />
                 </div>
                 <div className="space-y-1">
-                  <h3 className="text-xl font-light tracking-tight">{booking.studio.name}</h3>
+                  <h3 className="text-2xl font-light tracking-tight text-white">{booking.studio.name}</h3>
                   <div className="flex items-center gap-2">
-                    <MapPin className={`w-4 h-4 ${textTertiary}`} strokeWidth={2} />
-                    <p className="text-sm font-light tracking-wide">{booking.studio.location}</p>
+                    <MapPin className="w-4 h-4 text-zinc-500" strokeWidth={1.5} />
+                    <p className="text-sm font-light tracking-wide text-zinc-400">{booking.studio.location}</p>
                   </div>
                 </div>
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-3">
-                <p className="text-xs font-medium tracking-wider uppercase">Hourly Rate</p>
-                <p className="text-lg font-light tracking-wide">{formatCurrency(booking.studio.hourlyRate)}/hr</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-5 rounded-xl border border-zinc-800/60 bg-[#08080a]">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-500 mb-1">Hourly Rate</p>
+                <p className="text-lg font-light tracking-wide text-white">{formatCurrency(booking.studio.hourlyRate)}<span className="text-sm text-zinc-500">/hr</span></p>
               </div>
               {booking.studio.capacity && (
-                <div className="space-y-3">
-                  <p className="text-xs font-medium tracking-wider uppercase">Capacity</p>
-                  <p className="text-sm font-light tracking-wide">{booking.studio.capacity}</p>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-500 mb-1">Capacity</p>
+                  <p className="text-sm font-light tracking-wide text-zinc-200 mt-1">{booking.studio.capacity}</p>
                 </div>
               )}
             </div>
             {booking.studio.equipment && booking.studio.equipment.length > 0 && (
-              <div className={`mt-6 pt-6 border-t ${borderPrimary}`}>
-                <p className="text-xs font-medium tracking-wider uppercase mb-3">Equipment Available</p>
+              <div className="mt-8">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-500 mb-4">Equipment Available</p>
                 <div className="flex flex-wrap gap-2">
                   {booking.studio.equipment.map((item, index) => (
-                    <span key={index} className={`text-xs font-light tracking-wide px-3 py-1.5 rounded-full border ${theme === "dark" ? "bg-zinc-900 text-zinc-400 border-zinc-800" : "bg-gray-100 text-gray-600 border-gray-300"}`}>
+                    <span key={index} className="text-xs font-light tracking-wide px-3 py-1.5 rounded-full border border-zinc-800 bg-[#08080a] text-zinc-300">
                       {item}
                     </span>
                   ))}
@@ -709,83 +740,65 @@ export default function BookingShowPage() {
 
           {/* Notes */}
           {booking.notes && (
-            <div className={`p-5 rounded-xl border ${borderPrimary} ${bgCard}`}>
-              <div className="flex items-center gap-2 mb-3">
-                <FileText className={`w-4 h-4 ${textTertiary}`} strokeWidth={2} />
-                <p className={`text-xs font-medium tracking-wider uppercase ${textTertiary}`}>Notes</p>
+            <div className="p-6 rounded-2xl border border-zinc-800 bg-zinc-950 shadow-xl">
+              <div className="flex items-center gap-2 mb-4">
+                <FileText className="w-4 h-4 text-zinc-500" strokeWidth={1.5} />
+                <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-500">Booking Notes</p>
               </div>
-              <p className="text-sm font-light tracking-wide leading-relaxed">{booking.notes}</p>
+              <div className="p-5 rounded-xl border border-zinc-800/60 bg-[#08080a]">
+                <p className="text-sm font-light tracking-wide leading-relaxed text-zinc-300">{booking.notes}</p>
+              </div>
             </div>
           )}
 
           </div>{/* ─── END LEFT COLUMN ─── */}
 
           {/* ─── RIGHT COLUMN (sticky sidebar) ─── */}
-          <div className="space-y-4 lg:sticky lg:top-6">
+          <aside className="space-y-6 lg:sticky lg:top-6 lg:self-start">
 
             {/* Error Banner */}
             {actionError && (
-              <div className={`p-3 rounded-xl border ${theme === "dark" ? "border-red-500/30 bg-red-500/10" : "border-red-500/20 bg-red-50"}`}>
-                <div className="flex items-start gap-2.5">
-                  <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" strokeWidth={2} />
-                  <p className="text-xs font-light tracking-wide text-red-400 flex-1">{actionError}</p>
+              <div className="p-4 rounded-xl border border-red-500/20 bg-red-500/10 shadow-lg">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" strokeWidth={1.5} />
+                  <p className="text-sm font-light tracking-wide text-red-400 flex-1">{actionError}</p>
                   <button onClick={() => setActionError(null)} className="text-red-400 hover:text-red-300 flex-shrink-0">
-                    <XCircle className="w-3.5 h-3.5" strokeWidth={2} />
+                    <XCircle className="w-4 h-4" strokeWidth={1.5} />
                   </button>
                 </div>
               </div>
             )}
 
             {/* Actions */}
-            <div className={`p-4 rounded-xl border ${borderPrimary} ${bgCard}`}>
-              <p className={`text-xs font-medium tracking-wider uppercase mb-3 ${textTertiary}`}>Actions</p>
-              <div className="flex flex-col gap-2">
-
-                {/* View Studio */}
-                <button
-                  onClick={() => router.push(`/studios/${booking.studioId}`)}
-                  className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 ${buttonPrimary} tracking-wide`}
-                >
-                  <Building2 className="w-4 h-4" strokeWidth={2} />
-                  <span>View Studio</span>
-                </button>
-
-                {/* Message */}
-                {(booking.status === "CONFIRMED" || booking.status === "ACTIVE") && (
-                  <button
-                    onClick={() => router.push(`/bookings/${booking.id}/chat`)}
-                    className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 ${theme === "dark" ? "bg-blue-500/10 border-blue-500/20 text-blue-400" : "bg-blue-500/10 border-blue-500/20 text-blue-600"} hover:bg-blue-500/20 hover:border-blue-500/30 active:scale-[0.98] tracking-wide`}
-                  >
-                    <MessageSquare className="w-4 h-4" strokeWidth={2} />
-                    <span>Message</span>
-                  </button>
-                )}
+            <div className="p-6 rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-500 mb-5">Actions</p>
+              <div className="flex flex-col gap-3">
 
                 {/* === PENDING === */}
                 {booking.status === "PENDING" && (
                   <>
                     {isCustomer && (
                       <button onClick={handlePayBooking} disabled={isUpdating}
-                        className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide ${theme === "dark" ? "bg-purple-500/10 border-purple-500/20 text-purple-400" : "bg-purple-500/10 border-purple-500/20 text-purple-600"} hover:bg-purple-500/20 hover:border-purple-500/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
+                        className="w-full inline-flex items-center justify-center gap-2 px-4 py-3.5 text-sm font-semibold rounded-xl bg-white text-black hover:bg-zinc-200 transition-all active:scale-[0.98] shadow-lg shadow-white/10 disabled:opacity-50 disabled:cursor-not-allowed tracking-wide"
                       >
                         {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} /> : <DollarSign className="w-4 h-4" strokeWidth={2} />}
-                        <span>Pay & Confirm</span>
+                        Pay & Confirm ({formatCurrency(booking.totalAmount)})
                       </button>
                     )}
                     {isStudioOwner && (
                       <button onClick={handleAcceptBooking} disabled={isUpdating}
-                        className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide ${theme === "dark" ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-green-500/10 border-green-500/20 text-green-600"} hover:bg-green-500/20 hover:border-green-500/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
+                        className="w-full inline-flex items-center justify-center gap-2 px-4 py-3.5 text-sm font-semibold rounded-xl bg-white text-black hover:bg-zinc-200 transition-all active:scale-[0.98] shadow-lg shadow-white/10 disabled:opacity-50 disabled:cursor-not-allowed tracking-wide"
                       >
                         {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} /> : <CheckCircle2 className="w-4 h-4" strokeWidth={2} />}
-                        <span>Accept Booking</span>
+                        Accept Booking
                       </button>
                     )}
                     {(isCustomer || isStudioOwner) && (
                       <button onClick={handleCancelBooking} disabled={isUpdating}
-                        className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide ${theme === "dark" ? "bg-red-500/10 border-red-500/20 text-red-400" : "bg-red-500/10 border-red-500/20 text-red-600"} hover:bg-red-500/20 hover:border-red-500/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
+                        className="w-full inline-flex items-center justify-center gap-2 px-4 py-3.5 text-sm font-medium rounded-xl border border-red-500/20 bg-[#08080a] text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed tracking-wide"
                       >
                         {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} /> : <Ban className="w-4 h-4" strokeWidth={2} />}
-                        <span>{isStudioOwner ? 'Reject Booking' : 'Cancel Booking'}</span>
+                        {isStudioOwner ? 'Reject Booking' : 'Cancel Booking'}
                       </button>
                     )}
                   </>
@@ -796,10 +809,10 @@ export default function BookingShowPage() {
                   <>
                     {isCustomer && booking.paymentStatus === "UNPAID" && (
                       <button onClick={handlePayBooking} disabled={isUpdating}
-                        className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide ${theme === "dark" ? "bg-purple-500/10 border-purple-500/20 text-purple-400" : "bg-purple-500/10 border-purple-500/20 text-purple-600"} hover:bg-purple-500/20 hover:border-purple-500/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
+                        className="w-full inline-flex items-center justify-center gap-2 px-4 py-3.5 text-sm font-semibold rounded-xl bg-white text-black hover:bg-zinc-200 transition-all active:scale-[0.98] shadow-lg shadow-white/10 disabled:opacity-50 disabled:cursor-not-allowed tracking-wide"
                       >
                         {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} /> : <DollarSign className="w-4 h-4" strokeWidth={2} />}
-                        <span>Pay Now</span>
+                        Pay Now ({formatCurrency(booking.totalAmount)})
                       </button>
                     )}
                     {isStudioOwner && booking.paymentStatus === "PAYMENT_HELD" && (
@@ -815,14 +828,14 @@ export default function BookingShowPage() {
                           return (
                             <>
                               {isTooEarly && (
-                                <div className={`flex items-center gap-2 px-3 py-2.5 text-xs rounded-lg border ${theme === "dark" ? "bg-yellow-500/5 border-yellow-500/20 text-yellow-400" : "bg-yellow-50 border-yellow-200 text-yellow-700"}`}>
-                                  <Clock className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} />
+                                <div className="flex items-center gap-2 px-4 py-3 text-xs rounded-xl border border-yellow-500/20 bg-yellow-500/5 text-yellow-500">
+                                  <Clock className="w-4 h-4 flex-shrink-0" strokeWidth={2} />
                                   <span className="font-light">Check-in opens {minutesUntilOpen > 60 ? `${Math.floor(minutesUntilOpen / 60)}h ${minutesUntilOpen % 60}m` : `${minutesUntilOpen}m`} before session</span>
                                 </div>
                               )}
                               {isTooLate && (
-                                <div className={`flex items-center gap-2 px-3 py-2.5 text-xs rounded-lg border ${theme === "dark" ? "bg-red-500/5 border-red-500/20 text-red-400" : "bg-red-50 border-red-200 text-red-700"}`}>
-                                  <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={2} />
+                                <div className="flex items-center gap-2 px-4 py-3 text-xs rounded-xl border border-red-500/20 bg-red-500/5 text-red-400">
+                                  <AlertCircle className="w-4 h-4 flex-shrink-0" strokeWidth={2} />
                                   <span className="font-light">Check-in window expired. Contact support.</span>
                                 </div>
                               )}
@@ -830,26 +843,26 @@ export default function BookingShowPage() {
                                 <div className="flex items-center gap-2 w-full">
                                   <input type="text" placeholder="Enter artist's QR code" value={qrCodeInput}
                                     onChange={(e) => setQrCodeInput(e.target.value)}
-                                    className={`flex-1 px-3 py-2.5 text-sm font-light rounded-lg border transition-all duration-200 ${theme === "dark" ? "bg-zinc-950 border-zinc-800 text-white placeholder:text-zinc-600" : "bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"} tracking-wide focus:outline-none focus:ring-1 ${theme === "dark" ? "focus:ring-white" : "focus:ring-black"}`}
+                                    className="flex-1 px-4 py-3.5 text-sm font-light rounded-xl border border-zinc-800 bg-[#08080a] text-white placeholder:text-zinc-600 tracking-wide focus:outline-none focus:border-emerald-500 transition-colors"
                                     onKeyDown={(e) => { if (e.key === "Enter" && qrCodeInput.trim() && !isUpdating) handleCheckIn(qrCodeInput.trim()); }}
                                   />
                                   <button onClick={() => { if (qrCodeInput.trim()) handleCheckIn(qrCodeInput.trim()); }} disabled={isUpdating || !qrCodeInput.trim()}
-                                    className={`flex items-center px-3 py-2.5 rounded-lg border transition-all duration-200 ${theme === "dark" ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-green-500/10 border-green-500/20 text-green-600"} hover:bg-green-500/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
+                                    className="flex items-center px-4 py-3.5 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
                                     {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} /> : <Check className="w-4 h-4" strokeWidth={2} />}
                                   </button>
                                   <button onClick={() => { setShowQrPrompt(false); setQrCodeInput(""); setActionError(null); }}
-                                    className={`px-2.5 py-2.5 rounded-lg border transition-all duration-200 ${theme === "dark" ? "border-zinc-800 text-zinc-400 hover:text-white" : "border-gray-300 text-gray-600 hover:text-black"}`}
+                                    className="px-3 py-3.5 rounded-xl border border-zinc-800 bg-[#08080a] text-zinc-400 hover:text-white transition-colors"
                                   >
                                     <XCircle className="w-4 h-4" strokeWidth={2} />
                                   </button>
                                 </div>
                               ) : (
                                 <button onClick={() => { setShowQrPrompt(true); setActionError(null); }} disabled={isUpdating || isTooLate}
-                                  className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide ${theme === "dark" ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-green-500/10 border-green-500/20 text-green-600"} hover:bg-green-500/20 hover:border-green-500/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
+                                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-3.5 text-sm font-semibold rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed tracking-wide shadow-lg shadow-emerald-900/20"
                                 >
                                   <Play className="w-4 h-4" strokeWidth={2} />
-                                  <span>Start Session</span>
+                                  Start Session
                                 </button>
                               )}
                             </>
@@ -859,10 +872,10 @@ export default function BookingShowPage() {
                     )}
                     {booking.paymentStatus === "UNPAID" && (isCustomer || isStudioOwner) && (
                       <button onClick={handleCancelBooking} disabled={isUpdating}
-                        className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide ${theme === "dark" ? "bg-red-500/10 border-red-500/20 text-red-400" : "bg-red-500/10 border-red-500/20 text-red-600"} hover:bg-red-500/20 hover:border-red-500/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
+                        className="w-full inline-flex items-center justify-center gap-2 px-4 py-3.5 text-sm font-medium rounded-xl border border-red-500/20 bg-[#08080a] text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed tracking-wide"
                       >
                         {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} /> : <Ban className="w-4 h-4" strokeWidth={2} />}
-                        <span>Cancel</span>
+                        Cancel
                       </button>
                     )}
                   </>
@@ -877,42 +890,42 @@ export default function BookingShowPage() {
                           <div className="flex items-center gap-2 w-full">
                             <input type="text" placeholder="6-digit code" value={confirmCodeInput}
                               onChange={(e) => setConfirmCodeInput(e.target.value.toUpperCase())} maxLength={6}
-                              className={`flex-1 px-3 py-2.5 text-sm font-mono font-light rounded-lg border transition-all duration-200 ${theme === "dark" ? "bg-zinc-950 border-zinc-800 text-white placeholder:text-zinc-600" : "bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"} tracking-widest text-center focus:outline-none focus:ring-1 ${theme === "dark" ? "focus:ring-white" : "focus:ring-black"}`}
+                              className="flex-1 px-4 py-3.5 text-sm font-mono font-light rounded-xl border border-zinc-800 bg-[#08080a] text-white placeholder:text-zinc-600 tracking-widest text-center focus:outline-none focus:border-emerald-500 transition-colors"
                               onKeyDown={(e) => { if (e.key === "Enter" && confirmCodeInput.trim() && !isUpdating) handleConfirmCheckIn(confirmCodeInput.trim()); }}
                             />
                             <button onClick={() => { if (confirmCodeInput.trim()) handleConfirmCheckIn(confirmCodeInput.trim()); }} disabled={isUpdating || !confirmCodeInput.trim()}
-                              className={`flex items-center px-3 py-2.5 rounded-lg border transition-all duration-200 ${theme === "dark" ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-green-500/10 border-green-500/20 text-green-600"} hover:bg-green-500/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
+                              className="flex items-center px-4 py-3.5 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} /> : <Check className="w-4 h-4" strokeWidth={2} />}
                             </button>
                             <button onClick={() => { setShowConfirmPrompt(false); setConfirmCodeInput(""); setActionError(null); }}
-                              className={`px-2.5 py-2.5 rounded-lg border transition-all duration-200 ${theme === "dark" ? "border-zinc-800 text-zinc-400 hover:text-white" : "border-gray-300 text-gray-600 hover:text-black"}`}
+                              className="px-3 py-3.5 rounded-xl border border-zinc-800 bg-[#08080a] text-zinc-400 hover:text-white transition-colors"
                             >
                               <XCircle className="w-4 h-4" strokeWidth={2} />
                             </button>
                           </div>
                         ) : (
                           <button onClick={() => { setShowConfirmPrompt(true); setActionError(null); }}
-                            className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide ${theme === "dark" ? "bg-yellow-500/10 border-yellow-500/20 text-yellow-400" : "bg-yellow-500/10 border-yellow-500/20 text-yellow-600"} hover:bg-yellow-500/20 hover:border-yellow-500/30 active:scale-[0.98]`}
+                            className="w-full inline-flex items-center justify-center gap-2 px-4 py-3.5 text-sm font-semibold rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 hover:bg-yellow-500/20 transition-all active:scale-[0.98] tracking-wide"
                           >
                             <Shield className="w-4 h-4" strokeWidth={2} />
-                            <span>Confirm Presence</span>
+                            Confirm Presence
                           </button>
                         )}
                       </>
                     )}
                     {isCustomer && booking.bookerConfirmedCheckIn && (
-                      <div className="flex items-center gap-2 px-4 py-2.5 text-sm rounded-lg border bg-green-500/10 border-green-500/20 text-green-400">
+                      <div className="flex items-center justify-center gap-2 px-4 py-3.5 text-sm font-medium rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-400">
                         <CheckCircle2 className="w-4 h-4" strokeWidth={2} />
-                        <span>Presence Confirmed</span>
+                        Presence Confirmed
                       </div>
                     )}
                     {(isStudioOwner || isCustomer) && (
                       <button onClick={handleCheckOut} disabled={isUpdating}
-                        className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide ${theme === "dark" ? "bg-red-500/10 border-red-500/20 text-red-400" : "bg-red-500/10 border-red-500/20 text-red-600"} hover:bg-red-500/20 hover:border-red-500/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
+                        className="w-full inline-flex items-center justify-center gap-2 px-4 py-3.5 text-sm font-medium rounded-xl border border-red-500/20 bg-[#08080a] text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed tracking-wide"
                       >
                         {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} /> : <Square className="w-4 h-4" strokeWidth={2} />}
-                        <span>End Session</span>
+                        End Session
                       </button>
                     )}
                   </>
@@ -923,87 +936,97 @@ export default function BookingShowPage() {
                   <>
                     {isCustomer && booking.paymentStatus === "PAYMENT_HELD" && (
                       <button onClick={handleReleasePayment} disabled={isUpdating}
-                        className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 tracking-wide ${theme === "dark" ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-green-500/10 border-green-500/20 text-green-600"} hover:bg-green-500/20 hover:border-green-500/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed`}
+                        className="w-full inline-flex items-center justify-center gap-2 px-4 py-3.5 text-sm font-semibold rounded-xl bg-white text-black hover:bg-zinc-200 transition-all active:scale-[0.98] shadow-lg shadow-white/10 disabled:opacity-50 disabled:cursor-not-allowed tracking-wide"
                       >
                         {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} /> : <DollarSign className="w-4 h-4" strokeWidth={2} />}
-                        <span>Approve Payment</span>
+                        Approve Payment Release
                       </button>
                     )}
                     {isStudioOwner && booking.paymentStatus === "PAYMENT_HELD" && (
-                      <div className="flex items-center gap-2 px-4 py-2.5 text-sm rounded-lg border bg-yellow-500/10 border-yellow-500/20 text-yellow-400">
+                      <div className="flex items-center justify-center gap-2 px-4 py-3.5 text-sm font-medium rounded-xl border border-yellow-500/20 bg-yellow-500/10 text-yellow-500">
                         <Clock className="w-4 h-4" strokeWidth={2} />
-                        <span>Awaiting artist payment approval</span>
+                        Awaiting payment approval
                       </div>
                     )}
                   </>
                 )}
+
+                {/* Shared Actions */}
+                {(booking.status === "CONFIRMED" || booking.status === "ACTIVE") && (
+                  <button
+                    onClick={() => router.push(`/bookings/${booking.id}/chat`)}
+                    className="w-full inline-flex items-center justify-center gap-2 px-4 py-3.5 text-sm font-medium rounded-xl border border-zinc-700 bg-[#08080a] text-zinc-300 hover:text-white hover:bg-zinc-900 transition-all active:scale-[0.98] tracking-wide"
+                  >
+                    <MessageSquare className="w-4 h-4" strokeWidth={2} />
+                    Message
+                  </button>
+                )}
+
+                <button
+                  onClick={() => router.push(`/studios/${booking.studioId}`)}
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-3.5 text-sm font-medium rounded-xl border border-zinc-700 bg-[#08080a] text-zinc-300 hover:text-white hover:bg-zinc-900 transition-all active:scale-[0.98] tracking-wide"
+                >
+                  <Building2 className="w-4 h-4" strokeWidth={2} />
+                  View Studio
+                </button>
 
               </div>
             </div>{/* END Actions */}
 
             {/* Confirmed: directions, calendar, contact, notifications */}
             {booking.status === "CONFIRMED" && booking.paymentStatus === "PAYMENT_HELD" && isCustomer && (
-              <div className={`rounded-xl border overflow-hidden ${theme === "dark" ? "border-emerald-500/20 bg-emerald-500/5" : "border-emerald-200 bg-emerald-50"}`}>
-                <div className="px-4 pt-4 pb-3 flex items-center gap-2.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" strokeWidth={2} />
+              <div className="rounded-2xl border border-zinc-800 bg-zinc-950 shadow-xl overflow-hidden">
+                <div className="px-5 pt-5 pb-4 flex items-center gap-3">
+                  <Shield className="w-5 h-5 text-zinc-400 flex-shrink-0" strokeWidth={1.5} />
                   <div>
-                    <p className={`text-xs font-medium tracking-wide ${theme === "dark" ? "text-emerald-400" : "text-emerald-700"}`}>Funds in escrow</p>
-                    <p className={`text-xs font-light mt-0.5 ${theme === "dark" ? "text-emerald-400/60" : "text-emerald-600/70"}`}>Held until session completes</p>
+                    <p className="text-sm font-light tracking-wide text-zinc-200">Funds in escrow</p>
+                    <p className="text-[11px] font-light mt-0.5 text-zinc-500">Held securely until session completes</p>
                   </div>
                 </div>
-                <div className="px-4 pb-4 flex flex-col gap-2">
+                <div className="px-5 pb-5 flex flex-col gap-2">
                   <a
                     href={(() => {
                       const { latitude, longitude, streetAddress, location } = booking.studio;
                       if (latitude && longitude) {
-                        // Use coordinates for turn-by-turn directions to exact doorstep
                         return `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}&travelmode=driving`;
                       }
-                      // Fall back to full street address or location string
                       const dest = streetAddress ? `${streetAddress}, ${location}` : location;
                       return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dest)}&travelmode=driving`;
                     })()}
                     target="_blank" rel="noopener noreferrer"
-                    className={`w-full inline-flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 active:scale-[0.98] tracking-wide ${theme === "dark" ? "bg-zinc-900 border-zinc-700 text-zinc-200 hover:border-zinc-500 hover:text-white" : "bg-white border-gray-200 text-gray-800 hover:border-gray-400"}`}
+                    className="w-full inline-flex items-center gap-2.5 px-4 py-3 text-sm font-medium rounded-xl border border-zinc-800 bg-[#08080a] text-zinc-300 hover:border-zinc-700 hover:text-white transition-all active:scale-[0.98] tracking-wide"
                   >
-                    <Navigation className="w-4 h-4" strokeWidth={2} />
-                    <span>Get Directions</span>
+                    <Navigation className="w-4 h-4" strokeWidth={1.5} />
+                    Get Directions
                     <ExternalLink className="w-3 h-3 opacity-50 ml-auto" strokeWidth={2} />
                   </a>
                   <button
-                    onClick={() => router.push(`/bookings/${booking.id}/chat`)}
-                    className={`w-full inline-flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 active:scale-[0.98] tracking-wide ${theme === "dark" ? "bg-zinc-900 border-zinc-700 text-zinc-200 hover:border-zinc-500 hover:text-white" : "bg-white border-gray-200 text-gray-800 hover:border-gray-400"}`}
-                  >
-                    <MessageSquare className="w-4 h-4" strokeWidth={2} />
-                    <span>Contact Studio Owner</span>
-                  </button>
-                  <button
                     onClick={() => setShowCalendarOptions((v) => !v)}
-                    className={`w-full inline-flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium rounded-lg border transition-all duration-200 active:scale-[0.98] tracking-wide ${theme === "dark" ? "bg-zinc-900 border-zinc-700 text-zinc-200 hover:border-zinc-500 hover:text-white" : "bg-white border-gray-200 text-gray-800 hover:border-gray-400"}`}
+                    className="w-full inline-flex items-center gap-2.5 px-4 py-3 text-sm font-medium rounded-xl border border-zinc-800 bg-[#08080a] text-zinc-300 hover:border-zinc-700 hover:text-white transition-all active:scale-[0.98] tracking-wide"
                   >
-                    <CalendarPlus className="w-4 h-4" strokeWidth={2} />
-                    <span>Add to Calendar</span>
+                    <CalendarPlus className="w-4 h-4" strokeWidth={1.5} />
+                    Add to Calendar
                     {showCalendarOptions ? <ChevronUp className="w-3 h-3 opacity-50 ml-auto" strokeWidth={2} /> : <ChevronDown className="w-3 h-3 opacity-50 ml-auto" strokeWidth={2} />}
                   </button>
                   {showCalendarOptions && (
-                    <div className={`p-3 rounded-lg border flex flex-col gap-2 ${theme === "dark" ? "bg-zinc-900/60 border-zinc-800" : "bg-white border-gray-200"}`}>
+                    <div className="p-3 rounded-xl border border-zinc-800/60 bg-[#08080a] flex flex-col gap-2 mt-1">
                       <button onClick={handleAddToGoogleCalendar}
-                        className={`w-full inline-flex items-center gap-2 px-3 py-2 text-xs font-light rounded-lg border transition-all duration-200 active:scale-[0.98] ${theme === "dark" ? "bg-blue-500/10 border-blue-500/20 text-blue-400 hover:bg-blue-500/20" : "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"}`}
+                        className="w-full inline-flex items-center gap-2 px-3 py-2 text-xs font-light rounded-lg bg-zinc-900 text-zinc-300 hover:text-white hover:bg-zinc-800 transition-all active:scale-[0.98]"
                       >
-                        <ExternalLink className="w-3 h-3" strokeWidth={2} />
+                        <ExternalLink className="w-3 h-3" strokeWidth={1.5} />
                         Google Calendar
                       </button>
                       <button onClick={handleDownloadICS}
-                        className={`w-full inline-flex items-center gap-2 px-3 py-2 text-xs font-light rounded-lg border transition-all duration-200 active:scale-[0.98] ${theme === "dark" ? "bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700" : "bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100"}`}
+                        className="w-full inline-flex items-center gap-2 px-3 py-2 text-xs font-light rounded-lg bg-zinc-900 text-zinc-300 hover:text-white hover:bg-zinc-800 transition-all active:scale-[0.98]"
                       >
-                        <CalendarPlus className="w-3 h-3" strokeWidth={2} />
+                        <CalendarPlus className="w-3 h-3" strokeWidth={1.5} />
                         Apple / Outlook (.ics)
                       </button>
                     </div>
                   )}
-                  <div className={`flex items-start gap-2.5 p-3 rounded-lg border mt-1 ${theme === "dark" ? "bg-zinc-900/50 border-zinc-800" : "bg-white/70 border-gray-200"}`}>
-                    <Bell className={`w-3.5 h-3.5 mt-0.5 flex-shrink-0 ${textTertiary}`} strokeWidth={2} />
-                    <p className={`text-xs font-light leading-relaxed ${textTertiary}`}>
+                  <div className="flex items-start gap-3 p-4 rounded-xl border border-zinc-800/60 bg-[#08080a] mt-2">
+                    <Bell className="w-4 h-4 flex-shrink-0 text-zinc-500 mt-0.5" strokeWidth={1.5} />
+                    <p className="text-xs font-light leading-relaxed text-zinc-500">
                       Enable notifications to get reminded 30 min before check-in opens and when your session starts.
                     </p>
                   </div>
@@ -1012,59 +1035,59 @@ export default function BookingShowPage() {
             )}
 
             {/* Participants */}
-            <div className={`p-4 rounded-xl border ${borderPrimary} ${bgCard}`}>
-              <p className={`text-xs font-medium tracking-wider uppercase mb-3 ${textTertiary}`}>Participants</p>
-              <div className="space-y-3">
+            <div className="p-5 rounded-2xl border border-zinc-800 bg-zinc-950 shadow-xl">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-500 mb-5">Participants</p>
+              <div className="space-y-4">
                 <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${theme === "dark" ? "bg-zinc-800" : "bg-gray-100"}`}>
-                    <User className="w-4 h-4" strokeWidth={2} />
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center border border-zinc-800 bg-[#08080a] flex-shrink-0">
+                    <User className="w-4 h-4 text-zinc-400" strokeWidth={1.5} />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-light truncate">{booking.user.fullName || booking.user.username}</p>
-                    <p className={`text-xs font-light ${textTertiary}`}>@{booking.user.username} · Artist</p>
+                    <p className="text-sm font-light text-white truncate">{booking.user.fullName || booking.user.username}</p>
+                    <p className="text-xs font-light text-zinc-500">@{booking.user.username} · Artist</p>
                   </div>
                 </div>
-                <div className={`border-t ${borderPrimary}`} />
+                <div className="h-[1px] w-full bg-zinc-800" />
                 <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${theme === "dark" ? "bg-zinc-800" : "bg-gray-100"}`}>
-                    <Building2 className="w-4 h-4" strokeWidth={2} />
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center border border-zinc-800 bg-[#08080a] flex-shrink-0">
+                    <Building2 className="w-4 h-4 text-zinc-400" strokeWidth={1.5} />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-light truncate">{booking.studio.owner.user.fullName || booking.studio.owner.user.username}</p>
-                    <p className={`text-xs font-light ${textTertiary}`}>@{booking.studio.owner.user.username} · Owner</p>
+                    <p className="text-sm font-light text-white truncate">{booking.studio.owner.user.fullName || booking.studio.owner.user.username}</p>
+                    <p className="text-xs font-light text-zinc-500">@{booking.studio.owner.user.username} · Owner</p>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Booking info */}
-            <div className={`p-4 rounded-xl border ${borderPrimary} ${bgCard}`}>
-              <div className="space-y-3">
+            <div className="p-5 rounded-2xl border border-zinc-800 bg-zinc-950 shadow-xl">
+              <div className="space-y-4">
                 <div>
-                  <p className={`text-xs font-medium tracking-wider uppercase mb-1 ${textTertiary}`}>Booking ID</p>
-                  <p className={`text-xs font-mono ${textTertiary} truncate`}>{booking.id}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-500 mb-1">Booking ID</p>
+                  <p className="text-xs font-mono text-zinc-400 truncate">{booking.id}</p>
                 </div>
-                <div className={`border-t ${borderPrimary}`} />
+                <div className="h-[1px] w-full bg-zinc-800" />
                 <div>
-                  <p className={`text-xs font-medium tracking-wider uppercase mb-1 ${textTertiary}`}>Created</p>
-                  <p className="text-xs font-light">{dayjs(booking.createdAt).format("MMM D, YYYY [at] h:mm A")}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-500 mb-1">Created</p>
+                  <p className="text-xs font-light text-zinc-300">{dayjs(booking.createdAt).format("MMM D, YYYY [at] h:mm A")}</p>
                 </div>
                 {booking.updatedAt && (
                   <>
-                    <div className={`border-t ${borderPrimary}`} />
+                    <div className="h-[1px] w-full bg-zinc-800" />
                     <div>
-                      <p className={`text-xs font-medium tracking-wider uppercase mb-1 ${textTertiary}`}>Updated</p>
-                      <p className="text-xs font-light">{dayjs(booking.updatedAt).format("MMM D, YYYY [at] h:mm A")}</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-500 mb-1">Updated</p>
+                      <p className="text-xs font-light text-zinc-300">{dayjs(booking.updatedAt).format("MMM D, YYYY [at] h:mm A")}</p>
                     </div>
                   </>
                 )}
               </div>
             </div>
 
-          </div>{/* ─── END RIGHT COLUMN ─── */}
+          </aside>{/* ─── END RIGHT COLUMN ─── */}
 
         </div>{/* END grid */}
-      </div>{/* END max-w-6xl */}
+      </div>{/* END max-w-7xl */}
     </div>
   );
 }

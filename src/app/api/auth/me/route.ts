@@ -28,6 +28,12 @@ export async function GET(request: NextRequest) {
           socialLinks: user.socialLinks,
           createdAt: user.createdAt,
           updatedAt: user.updatedAt,
+          
+          // ✅ ADDED THESE MISSING FIELDS
+          countryCode: user.countryCode,
+          currency: user.currency,
+          paymentProvider: user.paymentProvider,
+
           // ✅ Complete permissions object
           permissions: {
             canCreateStudios: permissions.canCreateStudios,

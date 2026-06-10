@@ -12,15 +12,14 @@ import {
   Calendar, Clock, CheckCircle2, XCircle,
   Music2, Briefcase, Building2, Guitar,
   Zap, Check, Play, Square, MessageCircle, Loader2,
-  SlidersHorizontal, CheckCheck, X, Trash2, Lock, Wallet, CreditCard, MapPin, DollarSign
+  CheckCheck, X, Lock, Wallet, CreditCard, MapPin, Download
 } from "lucide-react";
 import dayjs from "dayjs";
 
-type BookingType = "all" | "studio" | "equipment" | "service" | "beat";
+type BookingType = "studio" | "service" | "equipment" | "beat";
 type ViewMode = "customer" | "provider";
 type StatusFilter = "all" | "pending" | "confirmed" | "active" | "cancelled" | "completed";
 
-// Custom Tooltip Component
 const Tooltip = ({ text }: { text: string }) => (
   <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-zinc-800 text-zinc-200 text-xs rounded shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 whitespace-nowrap">
     {text}
@@ -33,17 +32,24 @@ const Tooltip = ({ text }: { text: string }) => (
 export default function BookingsPage() {
   const router = useRouter();
   const [viewMode, setViewMode] = useState<ViewMode>("customer");
-  const [bookingType, setBookingType] = useState<BookingType>("all");
+  const [bookingType, setBookingType] = useState<BookingType>("studio");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [supabaseUser, setSupabaseUser] = useState<any>(null);
   const [updatingServiceRequest, setUpdatingServiceRequest] = useState(false);
+  
+  // Generic Action Loading State
+  const [processingAction, setProcessingAction] = useState<string | null>(null);
+
+  // Studio Specific State
   const [qrCodeInput, setQrCodeInput] = useState<string>("");
   const [showQrPrompt, setShowQrPrompt] = useState<string | null>(null);
   const [confirmCodeInput, setConfirmCodeInput] = useState<string>("");
   const [showConfirmPrompt, setShowConfirmPrompt] = useState<string | null>(null);
 
-  const { data: customerBookingsData } = useAllBookings("customer");
-  const { data: providerBookingsData } = useAllBookings("provider");
+  // Service Request Specific State
+  const [deliveryCodeInput, setDeliveryCodeInput] = useState<string>("");
+  const [showDeliveryPrompt, setShowDeliveryPrompt] = useState<string | null>(null);
+
   const { data: bookingsData, isLoading, error } = useAllBookings(viewMode);
   
   const updateStatus = useUpdateBookingStatus();
@@ -70,21 +76,6 @@ export default function BookingsPage() {
     loadUser();
   }, []);
 
-  const allCombinedBookings = [
-    ...(customerBookingsData?.studioBookings || []),
-    ...(customerBookingsData?.equipmentRentals || []),
-    ...(customerBookingsData?.serviceRequests || []),
-    ...(customerBookingsData?.beatPurchases || []),
-    ...(providerBookingsData?.studioBookings || []),
-    ...(providerBookingsData?.equipmentRentals || []),
-    ...(providerBookingsData?.serviceRequests || []),
-    ...(providerBookingsData?.beatPurchases || []),
-  ];
-
-  const uniqueCombinedBookings = Array.from(
-    new Map(allCombinedBookings.map(b => [b.id, b])).values()
-  );
-
   const allBookings = bookingsData
     ? [
         ...bookingsData.studioBookings,
@@ -94,11 +85,15 @@ export default function BookingsPage() {
       ]
     : [];
 
+  const typeMap = { 
+    studio: "STUDIO_BOOKING", 
+    equipment: "EQUIPMENT_RENTAL", 
+    service: "SERVICE_REQUEST", 
+    beat: "BEAT_PURCHASE" 
+  };
+
   const filteredBookings = allBookings.filter((booking) => {
-    if (bookingType !== "all") {
-      const typeMap = { studio: "STUDIO_BOOKING", equipment: "EQUIPMENT_RENTAL", service: "SERVICE_REQUEST", beat: "BEAT_PURCHASE" };
-      if (booking.type !== typeMap[bookingType]) return false;
-    }
+    if (booking.type !== typeMap[bookingType]) return false;
     if (statusFilter !== "all") {
       const bookingStatus = (booking as any).status?.toLowerCase();
       if (bookingStatus !== statusFilter) return false;
@@ -106,13 +101,13 @@ export default function BookingsPage() {
     return true;
   });
 
+  const currentCategoryBookings = allBookings.filter(b => b.type === typeMap[bookingType]);
   const stats = {
-    total: uniqueCombinedBookings.length,
-    pending: uniqueCombinedBookings.filter((b: any) => b.status === "PENDING").length,
-    confirmed: uniqueCombinedBookings.filter((b: any) => b.status === "CONFIRMED" || b.status === "ACCEPTED").length,
-    active: uniqueCombinedBookings.filter((b: any) => b.status === "ACTIVE").length,
-    completed: uniqueCombinedBookings.filter((b: any) => b.status === "COMPLETED").length,
-    cancelled: uniqueCombinedBookings.filter((b: any) => b.status === "CANCELLED" || b.status === "REJECTED").length,
+    total: currentCategoryBookings.length,
+    pending: currentCategoryBookings.filter((b: any) => b.status === "PENDING").length,
+    confirmed: currentCategoryBookings.filter((b: any) => b.status === "CONFIRMED" || b.status === "ACCEPTED").length,
+    active: currentCategoryBookings.filter((b: any) => b.status === "ACTIVE" || b.status === "IN_PROGRESS").length,
+    completed: currentCategoryBookings.filter((b: any) => b.status === "COMPLETED" || b.status === "DELIVERED").length,
   };
 
   const getStatusBadge = (status: string) => {
@@ -127,26 +122,33 @@ export default function BookingsPage() {
       case "ACCEPTED": 
         return (
           <div className="group relative flex items-center gap-2 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 text-xs font-medium w-max cursor-help">
-            <CheckCircle2 className="w-3.5 h-3.5" /> Confirmed <Tooltip text="Accepted and ready for session" />
+            <CheckCircle2 className="w-3.5 h-3.5" /> {status === "ACCEPTED" ? "Accepted" : "Confirmed"} <Tooltip text="Ready to proceed" />
           </div>
         );
       case "ACTIVE": 
+      case "IN_PROGRESS":
         return (
           <div className="group relative flex items-center gap-2 px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-400 text-xs font-medium w-max cursor-help">
-            <Zap className="w-3.5 h-3.5 fill-purple-400" /> In Session <Tooltip text="Session is currently ongoing" />
+            <Zap className="w-3.5 h-3.5 fill-purple-400" /> In Progress <Tooltip text="Currently ongoing" />
+          </div>
+        );
+      case "DELIVERED":
+        return (
+          <div className="group relative flex items-center gap-2 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-medium w-max cursor-help">
+            <Download className="w-3.5 h-3.5" /> Delivered <Tooltip text="Awaiting client approval to release funds" />
           </div>
         );
       case "COMPLETED": 
         return (
           <div className="group relative flex items-center gap-2 px-2.5 py-1 rounded-full bg-green-500/10 text-green-400 text-xs font-medium w-max cursor-help">
-            <CheckCheck className="w-3.5 h-3.5" /> Completed <Tooltip text="Session ended successfully" />
+            <CheckCheck className="w-3.5 h-3.5" /> Completed <Tooltip text="Finished successfully" />
           </div>
         );
       case "CANCELLED":
       case "REJECTED": 
         return (
           <div className="group relative flex items-center gap-2 px-2.5 py-1 rounded-full bg-zinc-800/50 text-zinc-400 text-xs font-medium w-max cursor-help border border-zinc-700">
-            <XCircle className="w-3.5 h-3.5" /> Cancelled <Tooltip text="Booking was cancelled or rejected" />
+            <XCircle className="w-3.5 h-3.5" /> {status === "REJECTED" ? "Rejected" : "Cancelled"} <Tooltip text="Cancelled or rejected" />
           </div>
         );
       default: 
@@ -165,7 +167,7 @@ export default function BookingsPage() {
     if (status === "PAYMENT_RELEASED") {
       return (
         <div className="group relative flex items-center gap-2 px-2.5 py-1 rounded-full bg-zinc-800/50 text-zinc-400 text-xs font-medium w-max cursor-help border border-zinc-700/50">
-          <Wallet className="w-3.5 h-3.5" /> Paid Out <Tooltip text="Funds successfully released to provider" />
+          <Wallet className="w-3.5 h-3.5" /> Paid Out <Tooltip text="Funds successfully released" />
         </div>
       );
     }
@@ -176,16 +178,6 @@ export default function BookingsPage() {
     );
   };
 
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case "STUDIO_BOOKING": return <Building2 className="w-5 h-5 text-blue-400" />;
-      case "EQUIPMENT_RENTAL": return <Guitar className="w-5 h-5 text-orange-400" />;
-      case "SERVICE_REQUEST": return <Briefcase className="w-5 h-5 text-purple-400" />;
-      case "BEAT_PURCHASE": return <Music2 className="w-5 h-5 text-green-400" />;
-      default: return <Calendar className="w-5 h-5 text-zinc-400" />;
-    }
-  };
-
   const formatDate = (dateString: string) => dayjs(dateString).format("MMM D, YYYY");
   const formatTime = (startTime: string, endTime?: string) => {
     if (!endTime) return dayjs(startTime).format("h:mm A");
@@ -193,6 +185,7 @@ export default function BookingsPage() {
   };
   const formatCurrency = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 
+  // Basic Status Patching
   const handleUpdateServiceRequest = async (requestId: string, status: string) => {
     try {
       setUpdatingServiceRequest(true);
@@ -209,8 +202,34 @@ export default function BookingsPage() {
     }
   };
 
+  // Escrow Lifecycle Handlers
+  const handleServiceLifecycleAction = async (requestId: string, action: "pay" | "deliver" | "confirm-delivery", payload?: any) => {
+    try {
+      setProcessingAction(requestId + action);
+      const res = await fetch(`/api/service-requests/${requestId}/${action}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: payload ? JSON.stringify(payload) : undefined,
+      });
+      
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `Failed to ${action}`);
+      
+      if (action === "pay" && data.url) {
+        window.location.href = data.url; // Redirect to Stripe/Paystack checkout if applicable
+      } else {
+        window.location.reload();
+      }
+    } catch (error: any) {
+      alert(error.message || `Failed to ${action}`);
+    } finally {
+      setProcessingAction(null);
+    }
+  };
+
   const actionBtnClass = "p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors shrink-0 outline-none disabled:opacity-50";
-  const payBtnClass = "flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-black font-medium text-sm hover:bg-zinc-200 transition-colors shrink-0 outline-none disabled:opacity-50";
+  const payBtnClass = "flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-black font-medium text-sm hover:bg-zinc-200 transition-colors shrink-0 outline-none disabled:opacity-50 border border-transparent";
+  const outlineBtnClass = "flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-900 text-white font-medium text-sm hover:bg-zinc-800 transition-colors shrink-0 outline-none disabled:opacity-50 border border-zinc-700";
   const cancelBtnClass = "flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 text-red-500 font-medium text-sm hover:bg-red-500/20 transition-colors shrink-0 outline-none disabled:opacity-50";
 
   return (
@@ -220,8 +239,8 @@ export default function BookingsPage() {
         {/* Header Section */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-white mb-1">Your Bookings</h1>
-            <p className="text-sm text-zinc-400">Manage your studio sessions, rentals, and services</p>
+            <h1 className="text-3xl font-semibold tracking-tight text-white mb-2">Orders & Bookings</h1>
+            <p className="text-sm text-zinc-400">Manage your distinct marketplace interactions.</p>
           </div>
           
           <div className="flex bg-zinc-900 border border-zinc-800 rounded-lg p-1">
@@ -231,7 +250,7 @@ export default function BookingsPage() {
                 viewMode === "customer" ? "bg-zinc-800 text-white shadow-sm" : "text-zinc-400 hover:text-zinc-200"
               }`}
             >
-              Customer
+              Buying
             </button>
             <button
               onClick={() => setViewMode("provider")}
@@ -239,51 +258,65 @@ export default function BookingsPage() {
                 viewMode === "provider" ? "bg-zinc-800 text-white shadow-sm" : "text-zinc-400 hover:text-zinc-200"
               }`}
             >
-              Provider
+              Selling
             </button>
           </div>
         </div>
 
-        {/* Filter Bar */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 w-full sm:w-auto scrollbar-hide">
-            <button onClick={() => setStatusFilter("all")} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${statusFilter === "all" ? "bg-white text-black" : "bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-zinc-200"}`}>
-              All <span className={`px-1.5 py-0.5 rounded-full text-xs ${statusFilter === "all" ? "bg-black/10" : "bg-zinc-800"}`}>{stats.total}</span>
-            </button>
-            {stats.active > 0 && (
-              <button onClick={() => setStatusFilter("active")} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${statusFilter === "active" ? "bg-purple-500 text-white" : "bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-zinc-200"}`}>
-                <Zap className="w-4 h-4" /> Active <span className={`px-1.5 py-0.5 rounded-full text-xs ${statusFilter === "active" ? "bg-black/20" : "bg-zinc-800"}`}>{stats.active}</span>
-              </button>
-            )}
-            <button onClick={() => setStatusFilter("pending")} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${statusFilter === "pending" ? "bg-yellow-500 text-black" : "bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-zinc-200"}`}>
-              Pending <span className={`px-1.5 py-0.5 rounded-full text-xs ${statusFilter === "pending" ? "bg-black/10" : "bg-zinc-800"}`}>{stats.pending}</span>
-            </button>
-            <button onClick={() => setStatusFilter("confirmed")} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${statusFilter === "confirmed" ? "bg-blue-500 text-white" : "bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-zinc-200"}`}>
-              Confirmed <span className={`px-1.5 py-0.5 rounded-full text-xs ${statusFilter === "confirmed" ? "bg-black/20" : "bg-zinc-800"}`}>{stats.confirmed}</span>
-            </button>
-            <button onClick={() => setStatusFilter("completed")} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${statusFilter === "completed" ? "bg-green-500 text-black" : "bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-zinc-200"}`}>
-              Completed <span className={`px-1.5 py-0.5 rounded-full text-xs ${statusFilter === "completed" ? "bg-black/10" : "bg-zinc-800"}`}>{stats.completed}</span>
-            </button>
-          </div>
-
-          <select
-            value={bookingType}
-            onChange={(e) => setBookingType(e.target.value as BookingType)}
-            className="w-full sm:w-48 bg-zinc-900 border border-zinc-800 text-zinc-300 text-sm rounded-lg focus:ring-1 focus:ring-zinc-600 focus:border-zinc-600 block px-3 py-2 outline-none cursor-pointer"
+        {/* Categories Tab Navigation */}
+        <div className="flex overflow-x-auto border-b border-zinc-800 mb-8 scrollbar-hide">
+          <button 
+            onClick={() => { setBookingType("studio"); setStatusFilter("all"); }}
+            className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${bookingType === "studio" ? "border-white text-white" : "border-transparent text-zinc-500 hover:text-zinc-300"}`}
           >
-            <option value="all">All Types</option>
-            <option value="studio">Studios</option>
-            <option value="equipment">Equipment</option>
-            <option value="service">Services</option>
-            <option value="beat">Beats</option>
-          </select>
+            <Building2 className="w-4 h-4" /> Studio Sessions
+          </button>
+          <button 
+            onClick={() => { setBookingType("service"); setStatusFilter("all"); }}
+            className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${bookingType === "service" ? "border-purple-400 text-purple-400" : "border-transparent text-zinc-500 hover:text-zinc-300"}`}
+          >
+            <Briefcase className="w-4 h-4" /> Producer Services
+          </button>
+          <button 
+            onClick={() => { setBookingType("equipment"); setStatusFilter("all"); }}
+            className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${bookingType === "equipment" ? "border-orange-400 text-orange-400" : "border-transparent text-zinc-500 hover:text-zinc-300"}`}
+          >
+            <Guitar className="w-4 h-4" /> Equipment Rentals
+          </button>
+          <button 
+            onClick={() => { setBookingType("beat"); setStatusFilter("all"); }}
+            className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${bookingType === "beat" ? "border-green-400 text-green-400" : "border-transparent text-zinc-500 hover:text-zinc-300"}`}
+          >
+            <Music2 className="w-4 h-4" /> Beat Purchases
+          </button>
+        </div>
+
+        {/* Status Filters */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-4 scrollbar-hide">
+          <button onClick={() => setStatusFilter("all")} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${statusFilter === "all" ? "bg-white text-black" : "bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-zinc-200"}`}>
+            All <span className={`px-1.5 py-0.5 rounded-full text-xs ${statusFilter === "all" ? "bg-black/10" : "bg-zinc-800"}`}>{stats.total}</span>
+          </button>
+          {stats.active > 0 && (
+            <button onClick={() => setStatusFilter("active")} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${statusFilter === "active" ? "bg-purple-500 text-white" : "bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-zinc-200"}`}>
+              <Zap className="w-4 h-4" /> In Progress <span className={`px-1.5 py-0.5 rounded-full text-xs ${statusFilter === "active" ? "bg-black/20" : "bg-zinc-800"}`}>{stats.active}</span>
+            </button>
+          )}
+          <button onClick={() => setStatusFilter("pending")} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${statusFilter === "pending" ? "bg-yellow-500 text-black" : "bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-zinc-200"}`}>
+            Pending <span className={`px-1.5 py-0.5 rounded-full text-xs ${statusFilter === "pending" ? "bg-black/10" : "bg-zinc-800"}`}>{stats.pending}</span>
+          </button>
+          <button onClick={() => setStatusFilter("confirmed")} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${statusFilter === "confirmed" ? "bg-blue-500 text-white" : "bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-zinc-200"}`}>
+            Accepted/Confirmed <span className={`px-1.5 py-0.5 rounded-full text-xs ${statusFilter === "confirmed" ? "bg-black/20" : "bg-zinc-800"}`}>{stats.confirmed}</span>
+          </button>
+          <button onClick={() => setStatusFilter("completed")} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${statusFilter === "completed" ? "bg-green-500 text-black" : "bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-zinc-200"}`}>
+            Completed <span className={`px-1.5 py-0.5 rounded-full text-xs ${statusFilter === "completed" ? "bg-black/10" : "bg-zinc-800"}`}>{stats.completed}</span>
+          </button>
         </div>
 
         {/* Bookings List */}
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-32 bg-zinc-950 border border-zinc-800 rounded-2xl">
             <Loader2 className="w-8 h-8 animate-spin text-zinc-500 mb-4" strokeWidth={2} />
-            <p className="text-zinc-400 text-sm">Loading your bookings...</p>
+            <p className="text-zinc-400 text-sm">Loading data...</p>
           </div>
         ) : error ? (
           <div className="py-16 text-center bg-red-500/10 border border-red-500/20 rounded-2xl">
@@ -292,18 +325,25 @@ export default function BookingsPage() {
         ) : filteredBookings.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-32 bg-zinc-950 border border-zinc-800 rounded-2xl border-dashed">
             <div className="w-16 h-16 bg-zinc-900 rounded-2xl flex items-center justify-center mb-4 border border-zinc-800">
-              <Calendar className="w-8 h-8 text-zinc-500" strokeWidth={1.5} />
+              {bookingType === "studio" && <Building2 className="w-8 h-8 text-zinc-500" strokeWidth={1.5} />}
+              {bookingType === "service" && <Briefcase className="w-8 h-8 text-purple-900/50" strokeWidth={1.5} />}
+              {bookingType === "equipment" && <Guitar className="w-8 h-8 text-orange-900/50" strokeWidth={1.5} />}
+              {bookingType === "beat" && <Music2 className="w-8 h-8 text-green-900/50" strokeWidth={1.5} />}
             </div>
-            <h3 className="text-lg font-medium text-zinc-200 mb-1">No Bookings Found</h3>
-            <p className="text-sm text-zinc-500">You don't have any bookings matching this filter.</p>
+            <h3 className="text-lg font-medium text-zinc-200 mb-1">No {bookingType} records found</h3>
+            <p className="text-sm text-zinc-500">You don't have any matching items in this category.</p>
           </div>
         ) : (
           <div className="bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden shadow-xl">
             
-            {/* Table Header */}
+            {/* Dynamic Table Header based on Category */}
             <div className="hidden md:flex items-center gap-4 px-6 py-4 border-b border-zinc-800 bg-zinc-900/50 text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-              <div className="w-[35%]">Details</div>
-              <div className="w-[20%]">Schedule</div>
+              <div className="w-[35%]">
+                {bookingType === "service" ? "Project Details" : bookingType === "equipment" ? "Gear Details" : "Details"}
+              </div>
+              <div className="w-[20%]">
+                {bookingType === "studio" ? "Schedule" : bookingType === "service" ? "Timeline" : "Date"}
+              </div>
               <div className="w-[20%]">Status</div>
               <div className="w-[25%] text-right pr-4">Amount & Actions</div>
             </div>
@@ -312,16 +352,22 @@ export default function BookingsPage() {
             <div className="flex flex-col divide-y divide-zinc-800">
               {filteredBookings.map((booking: any) => {
                 const sessionInfo = (booking as any).sessionInfo;
-                const routeMap: any = { STUDIO_BOOKING: `/bookings/show/${booking.id}`, EQUIPMENT_RENTAL: `/equipment/show/${booking.equipmentId}`, SERVICE_REQUEST: `/service-requests/${booking.id}`, BEAT_PURCHASE: `/beats/show/${booking.beatId}` };
+                const routeMap: any = { 
+                  STUDIO_BOOKING: `/bookings/show/${booking.id}`, 
+                  EQUIPMENT_RENTAL: `/equipment/show/${booking.equipmentId}`, 
+                  SERVICE_REQUEST: `/service-requests/${booking.id}`, 
+                  BEAT_PURCHASE: `/beats/show/${booking.beatId}` 
+                };
                 const detailRoute = routeMap[booking.type] || "/bookings";
                 const counterpart = viewMode === "customer" ? booking.providerName : booking.customerName;
-                const isStudio = booking.type === "STUDIO_BOOKING";
                 const amount = formatCurrency(booking.totalAmount || booking.amount || booking.budget || 0);
+                
+                // Unify Payment Status tracking (Studio keeps it in sessionInfo, Services at root)
+                const unifiedPaymentStatus = sessionInfo?.paymentStatus || booking.paymentStatus || "UNPAID";
 
                 const isStudioOwner = currentUser?.id === (booking as any).studio?.owner?.userId;
-                const isCustomer = currentUser?.id === (booking as any).userId;
+                const isCustomer = currentUser?.id === (booking as any).userId || currentUser?.id === (booking as any).clientId;
                 const isProducer = currentUser?.id === (booking as any).producerId;
-                const isClient = currentUser?.id === (booking as any).userId;
 
                 return (
                   <div 
@@ -330,10 +376,18 @@ export default function BookingsPage() {
                     className="flex flex-col md:flex-row md:items-center px-6 py-5 hover:bg-zinc-900/50 transition-colors cursor-pointer group"
                   >
                     
-                    {/* Col 1: Icon + Details */}
+                    {/* Col 1: Details */}
                     <div className="w-full md:w-[35%] flex items-center gap-4 pr-4">
-                      <div className="w-12 h-12 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center flex-shrink-0 group-hover:border-zinc-700 transition-colors">
-                        {getTypeIcon(booking.type)}
+                      <div className={`w-12 h-12 rounded-xl border flex items-center justify-center flex-shrink-0 transition-colors ${
+                        bookingType === "studio" ? "bg-zinc-900 border-zinc-800" :
+                        bookingType === "service" ? "bg-purple-500/10 border-purple-500/20" :
+                        bookingType === "equipment" ? "bg-orange-500/10 border-orange-500/20" :
+                        "bg-green-500/10 border-green-500/20"
+                      }`}>
+                        {bookingType === "studio" && <Building2 className="w-5 h-5 text-white" />}
+                        {bookingType === "service" && <Briefcase className="w-5 h-5 text-purple-400" />}
+                        {bookingType === "equipment" && <Guitar className="w-5 h-5 text-orange-400" />}
+                        {bookingType === "beat" && <Music2 className="w-5 h-5 text-green-400" />}
                       </div>
                       <div className="flex flex-col min-w-0">
                         <span className="text-sm font-semibold text-white truncate mb-1">
@@ -347,74 +401,129 @@ export default function BookingsPage() {
                       </div>
                     </div>
 
-                    {/* Col 2: Schedule */}
+                    {/* Col 2: Dynamic Schedule / Timeline */}
                     <div className="w-full md:w-[20%] flex flex-col mt-4 md:mt-0 gap-1 text-sm">
                       <div className="flex items-center gap-2 text-zinc-200">
                         <Calendar className="w-4 h-4 text-zinc-500" />
-                        <span>{isStudio ? formatDate(booking.startTime) : formatDate(booking.createdAt)}</span>
+                        <span>
+                          {bookingType === "studio" ? formatDate(booking.startTime) : 
+                           bookingType === "service" && booking.deadline ? `Due: ${formatDate(booking.deadline)}` : 
+                           formatDate(booking.createdAt)}
+                        </span>
                       </div>
-                      <div className="flex items-center gap-2 text-zinc-400">
-                        <Clock className="w-4 h-4 text-zinc-500" />
-                        <span>{isStudio ? formatTime(booking.startTime, booking.endTime) : "Logged"}</span>
-                      </div>
+                      {bookingType === "studio" && (
+                        <div className="flex items-center gap-2 text-zinc-400">
+                          <Clock className="w-4 h-4 text-zinc-500" />
+                          <span>{formatTime(booking.startTime, booking.endTime)}</span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Col 3: Status Text + Tooltips */}
                     <div className="w-full md:w-[20%] flex flex-col items-start gap-2 mt-4 md:mt-0">
                       {getStatusBadge(booking.status)}
-                      {sessionInfo?.paymentStatus && sessionInfo.paymentStatus !== "UNPAID" && getPaymentBadge(sessionInfo.paymentStatus)}
+                      {unifiedPaymentStatus !== "UNPAID" && getPaymentBadge(unifiedPaymentStatus)}
                     </div>
 
                     {/* Col 4: Inline Actions & Amount */}
                     <div className="w-full md:w-[25%] flex items-center justify-between md:justify-end gap-6 mt-6 md:mt-0" onClick={(e) => e.stopPropagation()}>
                       
-                      {/* Inline Actions Array */}
                       <div className="flex items-center gap-2">
                         {(() => {
                           const actions: any[] = [];
 
-                          if (booking.type === "SERVICE_REQUEST") {
-                            if (isProducer && booking.status === "PENDING") {
-                              actions.push(
-                                <button key="acc" onClick={(e) => { e.stopPropagation(); handleUpdateServiceRequest(booking.id, "ACCEPTED"); }} disabled={updatingServiceRequest} className={payBtnClass}>
-                                  {updatingServiceRequest ? <Loader2 className="w-4 h-4 animate-spin" /> : "Accept"}
-                                </button>,
-                                <button key="rej" onClick={(e) => { e.stopPropagation(); handleUpdateServiceRequest(booking.id, "REJECTED"); }} disabled={updatingServiceRequest} className={cancelBtnClass}>
-                                  Reject
-                                </button>
-                              );
+                          // ----------------------------------------------------
+                          // SERVICE REQUEST LIFECYCLE ACTIONS
+                          // ----------------------------------------------------
+                          if (bookingType === "service") {
+                            
+                            // --- Producer View ---
+                            if (isProducer) {
+                              if (booking.status === "PENDING") {
+                                actions.push(
+                                  <button key="acc" onClick={(e) => { e.stopPropagation(); handleUpdateServiceRequest(booking.id, "ACCEPTED"); }} disabled={updatingServiceRequest} className={payBtnClass}>
+                                    Accept Request
+                                  </button>,
+                                  <button key="rej" onClick={(e) => { e.stopPropagation(); handleUpdateServiceRequest(booking.id, "REJECTED"); }} disabled={updatingServiceRequest} className={cancelBtnClass}>
+                                    Reject
+                                  </button>
+                                );
+                              }
+                              // After accepted, waiting for client to fund escrow
+                              if (booking.status === "ACCEPTED" && unifiedPaymentStatus === "UNPAID") {
+                                actions.push(<span key="wait-fund" className="text-xs text-zinc-500">Awaiting Escrow Funding</span>);
+                              }
+                              // Client funded escrow -> Producer starts project
+                              if (booking.status === "ACCEPTED" && unifiedPaymentStatus === "PAYMENT_HELD") {
+                                actions.push(
+                                  <button key="start" onClick={(e) => { e.stopPropagation(); handleUpdateServiceRequest(booking.id, "IN_PROGRESS"); }} disabled={updatingServiceRequest} className={outlineBtnClass} title="Start Project">
+                                    <Play className="w-4 h-4" /> Start Project
+                                  </button>
+                                );
+                              }
+                              // Project is ongoing -> Producer delivers work
+                              if (booking.status === "IN_PROGRESS") {
+                                actions.push(
+                                  <button key="deliv" onClick={(e) => { e.stopPropagation(); handleServiceLifecycleAction(booking.id, "deliver"); }} disabled={processingAction === booking.id + "deliver"} className={payBtnClass}>
+                                    {processingAction === booking.id + "deliver" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Deliver Files"}
+                                  </button>
+                                );
+                              }
                             }
-                            if (isProducer && booking.status === "ACCEPTED") {
-                              actions.push(
-                                <button key="start" onClick={(e) => { e.stopPropagation(); handleUpdateServiceRequest(booking.id, "IN_PROGRESS"); }} disabled={updatingServiceRequest} className={actionBtnClass} title="Start Session">
-                                  <Play className="w-5 h-5 fill-current" />
-                                </button>
-                              );
+
+                            // --- Client View ---
+                            if (isCustomer) {
+                              if (booking.status === "PENDING") {
+                                actions.push(
+                                  <button key="cnc" onClick={(e) => { e.stopPropagation(); handleUpdateServiceRequest(booking.id, "CANCELLED"); }} disabled={updatingServiceRequest} className={cancelBtnClass}>
+                                    Cancel
+                                  </button>
+                                );
+                              }
+                              // Producer accepted -> Client must fund the escrow
+                              if (booking.status === "ACCEPTED" && unifiedPaymentStatus === "UNPAID") {
+                                actions.push(
+                                  <button key="pay" onClick={(e) => { e.stopPropagation(); handleServiceLifecycleAction(booking.id, "pay"); }} disabled={processingAction === booking.id + "pay"} className={payBtnClass}>
+                                    {processingAction === booking.id + "pay" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Fund Escrow"}
+                                  </button>
+                                );
+                              }
+                              // Work Delivered -> Client verifies with code and releases funds
+                              if (booking.status === "DELIVERED") {
+                                if (showDeliveryPrompt === booking.id) {
+                                  actions.push(
+                                    <div key="code" className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-lg p-1" onClick={(e) => e.stopPropagation()}>
+                                      <input type="text" placeholder="Auth Code" maxLength={6} value={deliveryCodeInput} onChange={(e) => setDeliveryCodeInput(e.target.value.toUpperCase())} className="w-20 bg-transparent text-sm text-white outline-none text-center placeholder:text-zinc-600" />
+                                      <button onClick={() => handleServiceLifecycleAction(booking.id, "confirm-delivery", { deliveryCode: deliveryCodeInput.trim() })} disabled={processingAction === booking.id + "confirm-delivery" || !deliveryCodeInput.trim()} className="p-1 rounded bg-green-500/20 text-green-500 hover:bg-green-500/30">
+                                        <Check className="w-4 h-4" />
+                                      </button>
+                                      <button onClick={() => setShowDeliveryPrompt(null)} className="p-1 rounded bg-zinc-800 text-zinc-400 hover:text-white"><X className="w-4 h-4" /></button>
+                                    </div>
+                                  );
+                                } else {
+                                  actions.push(
+                                    <button key="conf" onClick={(e) => { e.stopPropagation(); setShowDeliveryPrompt(booking.id); }} className={payBtnClass}>
+                                      Release Funds
+                                    </button>
+                                  );
+                                }
+                              }
                             }
-                            if (isProducer && booking.status === "IN_PROGRESS") {
+
+                            // --- General Messaging ---
+                            if (["CONFIRMED", "ACTIVE", "ACCEPTED", "IN_PROGRESS", "DELIVERED"].includes(booking.status)) {
                               actions.push(
-                                <button key="done" onClick={(e) => { e.stopPropagation(); handleUpdateServiceRequest(booking.id, "COMPLETED"); }} disabled={updatingServiceRequest} className={actionBtnClass} title="Mark Completed">
-                                  <CheckCheck className="w-5 h-5" />
-                                </button>
-                              );
-                            }
-                            if (isClient && (booking.status === "PENDING" || booking.status === "ACCEPTED")) {
-                              actions.push(
-                                <button key="cnc" onClick={(e) => { e.stopPropagation(); handleUpdateServiceRequest(booking.id, "CANCELLED"); }} disabled={updatingServiceRequest} className={cancelBtnClass}>
-                                  Cancel
-                                </button>
-                              );
-                            }
-                            if (booking.status === "CONFIRMED" || booking.status === "ACTIVE" || booking.status === "ACCEPTED" || booking.status === "IN_PROGRESS") {
-                              actions.push(
-                                <button key="msg" onClick={(e) => { e.stopPropagation(); router.push(`/messages/${isProducer ? (booking as any).userId : (booking as any).producerId}`); }} className={actionBtnClass} title="Message">
+                                <button key="msg" onClick={(e) => { e.stopPropagation(); router.push(`/messages/${isProducer ? (booking as any).clientId : (booking as any).producerId}`); }} className={actionBtnClass} title="Message">
                                   <MessageCircle className="w-5 h-5" />
                                 </button>
                               );
                             }
                           }
 
-                          if (booking.type === "STUDIO_BOOKING") {
+                          // ----------------------------------------------------
+                          // STUDIO BOOKING ACTIONS
+                          // ----------------------------------------------------
+                          if (bookingType === "studio") {
                             if (booking.status === "PENDING" && isCustomer) {
                               actions.push(
                                 <button key="pay1" onClick={(e) => { e.stopPropagation(); payBooking.mutate({ bookingId: booking.id }); }} disabled={payBooking.isPending} className={payBtnClass}>
@@ -425,7 +534,7 @@ export default function BookingsPage() {
                             if (booking.status === "PENDING" && isStudioOwner) {
                               actions.push(
                                 <button key="acc1" onClick={(e) => { e.stopPropagation(); updateStatus.mutate({ bookingId: booking.id, status: "CONFIRMED" }); }} disabled={updateStatus.isPending} className={payBtnClass}>
-                                  {updateStatus.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Accept"}
+                                  {updateStatus.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirm Session"}
                                 </button>
                               );
                             }
@@ -436,7 +545,7 @@ export default function BookingsPage() {
                                 </button>
                               );
                             }
-                            if (booking.status === "CONFIRMED" && isCustomer && (!sessionInfo?.paymentStatus || sessionInfo?.paymentStatus === "UNPAID")) {
+                            if (booking.status === "CONFIRMED" && isCustomer && unifiedPaymentStatus === "UNPAID") {
                               actions.push(
                                 <button key="pay2" onClick={(e) => { e.stopPropagation(); payBooking.mutate({ bookingId: booking.id }); }} disabled={payBooking.isPending} className={payBtnClass}>
                                   {payBooking.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Pay Full Amount"}
@@ -445,7 +554,7 @@ export default function BookingsPage() {
                             }
                             
                             // QR Flow
-                            if (booking.status === "CONFIRMED" && isStudioOwner && sessionInfo?.paymentStatus === "PAYMENT_HELD") {
+                            if (booking.status === "CONFIRMED" && isStudioOwner && unifiedPaymentStatus === "PAYMENT_HELD") {
                               if (showQrPrompt === booking.id) {
                                 actions.push(
                                   <div key="qr" className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-lg p-1" onClick={(e) => e.stopPropagation()}>
@@ -458,7 +567,7 @@ export default function BookingsPage() {
                                 );
                               } else {
                                 actions.push(
-                                  <button key="strt" onClick={(e) => { e.stopPropagation(); setShowQrPrompt(booking.id); }} disabled={checkIn.isPending} className={actionBtnClass} title="Start Session">
+                                  <button key="strt" onClick={(e) => { e.stopPropagation(); setShowQrPrompt(booking.id); }} disabled={checkIn.isPending} className={actionBtnClass} title="Start Studio Session">
                                     <Play className="w-5 h-5 fill-current" />
                                   </button>
                                 );
@@ -494,7 +603,7 @@ export default function BookingsPage() {
                               );
                             }
 
-                            if (booking.status === "COMPLETED" && isCustomer && sessionInfo?.paymentStatus === "PAYMENT_HELD") {
+                            if (booking.status === "COMPLETED" && isCustomer && unifiedPaymentStatus === "PAYMENT_HELD") {
                               actions.push(
                                 <button key="rel" onClick={(e) => { e.stopPropagation(); if (confirm("Approve payment release?")) releasePayment.mutate(booking.id); }} disabled={releasePayment.isPending} className={payBtnClass}>
                                   {releasePayment.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Release Funds"}
@@ -504,7 +613,7 @@ export default function BookingsPage() {
 
                             if ((booking.status === "CONFIRMED" || booking.status === "ACTIVE") && isCustomer) {
                               actions.push(
-                                <button key="msg" onClick={(e) => { e.stopPropagation(); router.push(`/bookings/${booking.id}/chat`); }} className={actionBtnClass} title="Message">
+                                <button key="msg" onClick={(e) => { e.stopPropagation(); router.push(`/bookings/${booking.id}/chat`); }} className={actionBtnClass} title="Message Studio">
                                   <MessageCircle className="w-5 h-5" />
                                 </button>
                               );

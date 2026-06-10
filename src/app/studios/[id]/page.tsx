@@ -64,15 +64,14 @@ const calculateDistance = (
 function StudioLoadingState() {
   return (
     <div className="h-full overflow-y-auto bg-black text-white">
-      <main className="mx-auto flex min-h-full max-w-7xl flex-col px-4 py-5 sm:px-6 lg:px-8">
-        <div className="mb-5 flex items-center justify-between">
-          <div className="h-10 w-10 rounded-full border border-zinc-800 bg-zinc-900" />
-          <div className="h-9 w-28 rounded-lg border border-zinc-800 bg-zinc-900" />
-        </div>
-
+      <main className="mx-auto flex min-h-full max-w-7xl flex-col px-4 pt-5 pb-24 sm:px-6 lg:px-8">
         <div className="grid flex-1 grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
           <div className="rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl">
-            <div className="h-[48vh] min-h-[340px] animate-pulse rounded-t-2xl bg-zinc-900" />
+            <div className="relative h-[48vh] min-h-[340px] animate-pulse rounded-t-2xl bg-zinc-900">
+               {/* Skeleton for floating nav */}
+               <div className="absolute left-4 top-4 h-10 w-10 rounded-full bg-zinc-800" />
+               <div className="absolute left-16 top-4 hidden h-10 w-32 rounded-full bg-zinc-800 sm:block" />
+            </div>
             <div className="grid gap-4 p-5 sm:grid-cols-3">
               {[0, 1, 2].map((item) => (
                 <div key={item} className="h-24 animate-pulse rounded-xl border border-zinc-800 bg-zinc-900" />
@@ -123,11 +122,11 @@ export default function StudioProfilePage() {
       <div className="flex h-full overflow-y-auto items-center justify-center bg-black px-4 text-white">
         <div className="w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-950 p-8 text-center shadow-2xl">
           <Mic2 className="mx-auto mb-4 h-10 w-10 text-zinc-600" />
-          <h1 className="text-xl font-semibold">Studio not found</h1>
-          <p className="mt-2 text-sm text-zinc-500">This studio may have moved, expired, or been taken offline.</p>
+          <h1 className="text-2xl font-light tracking-tight">Studio not found</h1>
+          <p className="mt-2 text-sm font-light tracking-wide text-zinc-500">This studio may have moved, expired, or been taken offline.</p>
           <button
             onClick={() => router.push("/studios")}
-            className="mt-6 inline-flex items-center gap-2 rounded-lg bg-white px-5 py-2.5 text-sm font-medium text-black transition-colors hover:bg-zinc-200"
+            className="mt-6 inline-flex items-center gap-2 rounded-lg bg-white px-5 py-2.5 text-sm font-medium tracking-wide text-black transition-colors hover:bg-zinc-200"
           >
             <ArrowLeft size={16} />
             Back to studios
@@ -204,21 +203,6 @@ export default function StudioProfilePage() {
       `}</style>
 
       <main className="relative mx-auto max-w-7xl px-4 pb-24 pt-5 sm:px-6 lg:px-8">
-        <div className="mb-5 flex items-center justify-between">
-          <button
-            onClick={() => router.back()}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-zinc-800 bg-zinc-950 text-zinc-300 shadow-lg transition-colors hover:border-zinc-700 hover:bg-zinc-900 hover:text-white"
-            aria-label="Go back"
-          >
-            <ArrowLeft size={18} />
-          </button>
-
-          <div className="hidden items-center gap-2 rounded-full border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs font-medium text-zinc-400 shadow-lg sm:flex">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_14px_rgba(52,211,153,0.8)]" />
-            Live availability
-          </div>
-        </div>
-
         <section
           className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_370px]"
           style={{ animation: "studio-arrive 520ms cubic-bezier(0.32, 0.72, 0, 1) both" }}
@@ -233,11 +217,29 @@ export default function StudioProfilePage() {
                   alt={studio.name}
                   className="h-full w-full object-cover"
                 />
+
+                {/* Floating Navigation (Left) */}
+                <div className="absolute left-4 top-4 z-20 flex items-center gap-3">
+                  <button
+                    onClick={() => router.back()}
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/45 text-white shadow-lg backdrop-blur-md transition-colors hover:bg-black/65"
+                    aria-label="Go back"
+                  >
+                    <ArrowLeft size={18} strokeWidth={1.5} />
+                  </button>
+
+                  <div className="hidden h-10 items-center gap-2 rounded-full border border-white/15 bg-black/45 px-4 text-xs font-light tracking-wide text-white shadow-lg backdrop-blur-md sm:flex">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_14px_rgba(52,211,153,0.8)]" />
+                    Live availability
+                  </div>
+                </div>
+
+                {/* Floating Gallery Button (Right) */}
                 <button
                   onClick={() => setShowGallery(true)}
-                  className="absolute right-4 top-4 inline-flex items-center gap-2 rounded-lg border border-white/15 bg-black/45 px-3 py-2 text-xs font-medium text-white shadow-lg backdrop-blur-md transition-colors hover:bg-black/65"
+                  className="absolute right-4 top-4 z-20 inline-flex h-10 items-center gap-2 rounded-lg border border-white/15 bg-black/45 px-4 text-xs font-light tracking-wide text-white shadow-lg backdrop-blur-md transition-colors hover:bg-black/65"
                 >
-                  <Camera size={15} />
+                  <Camera size={15} strokeWidth={1.5} />
                   {images.length} photo{images.length === 1 ? "" : "s"}
                 </button>
               </div>
@@ -245,24 +247,24 @@ export default function StudioProfilePage() {
               <div className="p-5 sm:p-7 lg:p-9">
                 {studio.verificationStatus === "VERIFIED" && (
                   <div className="mb-4 flex items-center gap-2">
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-300/25 bg-sky-300/10 px-3 py-1.5 text-xs font-medium text-sky-200">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-300/25 bg-sky-300/10 px-3 py-1.5 text-xs font-medium tracking-wide text-sky-200">
                       <BadgeCheck size={14} />
                       Verified room
                     </span>
                   </div>
                 )}
 
-                <h1 className="max-w-4xl text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-6xl">
+                <h1 className="max-w-4xl text-4xl font-light tracking-tighter text-white sm:text-5xl lg:text-6xl">
                   {studio.name}
                 </h1>
 
                 {/* Studio Description UI Area */}
-                <div className="mt-6 rounded-xl border border-zinc-800/60 bg-[#08080a] p-5">
-                  <h2 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500">
+                <div className="mt-8 rounded-xl border border-zinc-800/60 bg-[#08080a] p-5">
+                  <h2 className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-zinc-500">
                     <Mic2 size={14} className="text-zinc-400" />
                     Studio Description
                   </h2>
-                  <p className="max-w-3xl text-sm leading-relaxed text-zinc-300 sm:text-base">
+                  <p className="max-w-3xl text-sm font-light tracking-wide leading-relaxed text-zinc-300 sm:text-base">
                     {studio.description || "A focused recording environment for writing, tracking, mixing, and session work. Perfectly equipped to handle professional audio production."}
                   </p>
                 </div>
@@ -272,54 +274,54 @@ export default function StudioProfilePage() {
                   {/* Rating Card */}
                   <div className="group relative overflow-hidden rounded-xl border border-zinc-800 bg-[#08080a] p-4 transition-colors hover:border-zinc-700 hover:bg-zinc-900">
                     <Star className="absolute -right-3 -top-3 h-16 w-16 text-zinc-800/40 transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110" />
-                    <div className="mb-1 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-zinc-400">
-                      <Star size={14} className="text-zinc-500" /> Rating
+                    <div className="mb-1 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-400">
+                      <Star size={14} className="text-zinc-500" strokeWidth={1.5} /> Rating
                     </div>
-                    <div className="truncate text-lg font-bold text-white">{ratingLabel}</div>
+                    <div className="truncate text-xl font-light tracking-tight text-white">{ratingLabel}</div>
                   </div>
 
                   {/* Capacity Card */}
                   <div className="group relative overflow-hidden rounded-xl border border-zinc-800 bg-[#08080a] p-4 transition-colors hover:border-zinc-700 hover:bg-zinc-900">
                     <Users className="absolute -right-3 -top-3 h-16 w-16 text-zinc-800/40 transition-transform duration-500 group-hover:-translate-x-1 group-hover:translate-y-1 group-hover:scale-110" />
-                    <div className="mb-1 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-zinc-400">
-                      <Users size={14} className="text-zinc-500" /> Capacity
+                    <div className="mb-1 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-400">
+                      <Users size={14} className="text-zinc-500" strokeWidth={1.5} /> Capacity
                     </div>
-                    <div className="truncate text-lg font-bold text-white">{capacity}</div>
+                    <div className="truncate text-xl font-light tracking-tight text-white">{capacity}</div>
                   </div>
 
                   {/* Rate Card */}
                   <div className="group relative overflow-hidden rounded-xl border border-zinc-800 bg-[#08080a] p-4 transition-colors hover:border-zinc-700 hover:bg-zinc-900">
                     <Clock className="absolute -right-3 -top-3 h-16 w-16 text-zinc-800/40 transition-transform duration-500 group-hover:-rotate-12 group-hover:scale-110" />
-                    <div className="mb-1 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-zinc-400">
-                      <Clock size={14} className="text-zinc-500" /> Hourly
+                    <div className="mb-1 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-400">
+                      <Clock size={14} className="text-zinc-500" strokeWidth={1.5} /> Hourly
                     </div>
-                    <div className="truncate text-lg font-bold text-white">{formatAmount(studio.hourlyRate, studioCurrency)}</div>
+                    <div className="truncate text-xl font-light tracking-tight text-white">{formatAmount(studio.hourlyRate, studioCurrency)}</div>
                   </div>
 
                   {/* Availability Status Card */}
-                  <div className="group relative overflow-hidden rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] p-4 transition-colors hover:border-emerald-400/30 sm:col-span-3">
+                  <div className="group relative overflow-hidden rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] p-5 transition-colors hover:border-emerald-400/30 sm:col-span-3">
                     <ShieldCheck className="absolute -right-4 -top-6 h-24 w-24 text-emerald-500/10 transition-transform duration-500 group-hover:rotate-6 group-hover:scale-110" />
                     <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                       <div className="min-w-0">
-                        <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-emerald-300/80">
+                        <div className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-emerald-300/80">
                           <span className="relative flex h-2.5 w-2.5">
                             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500/80 opacity-75" />
                             <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" />
                           </span>
                           Availability Status
                         </div>
-                        <div className="text-xl font-semibold text-white">
+                        <div className="text-2xl font-light tracking-tight text-white">
                           {bookingCount ? `${bookingCount}+ sessions requested` : "Ready to be booked"}
                         </div>
-                        <p className="mt-1 text-sm leading-5 text-zinc-400">
+                        <p className="mt-1 text-sm font-light tracking-wide leading-5 text-zinc-400">
                           Send a request now. You will not be charged until the studio confirms.
                         </p>
                       </div>
                       <button
                         onClick={() => setIsDrawerOpen(true)}
-                        className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-4 py-2.5 text-sm font-medium text-emerald-100 transition-colors hover:bg-emerald-400/15"
+                        className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-5 py-3 text-sm font-medium tracking-wide text-emerald-100 transition-colors hover:bg-emerald-400/15"
                       >
-                        <CalendarDays size={16} />
+                        <CalendarDays size={16} strokeWidth={1.5} />
                         View times
                       </button>
                     </div>
@@ -330,21 +332,21 @@ export default function StudioProfilePage() {
 
             {/* Room Profile Card */}
             <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5 shadow-xl sm:p-6">
-              <div className="mb-5 flex items-center justify-between gap-4">
+              <div className="mb-6 flex items-center justify-between gap-4">
                 <div>
-                  <h2 className="text-xl font-semibold text-white">Room Profile</h2>
-                  <p className="mt-1 text-sm text-zinc-500">Core details for planning the session.</p>
+                  <h2 className="text-2xl font-light tracking-tight text-white">Room Profile</h2>
+                  <p className="mt-1 text-sm font-light tracking-wide text-zinc-500">Core details for planning the session.</p>
                 </div>
-                <Mic2 className="h-6 w-6 text-zinc-600" />
+                <Mic2 className="h-6 w-6 text-zinc-600" strokeWidth={1.5} />
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
                 {amenityItems.map((item) => (
                   <div key={item.label} className="flex items-center gap-3 rounded-xl border border-zinc-800 bg-[#08080a] p-4">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-zinc-900 text-zinc-400">
-                      <item.icon size={18} />
+                      <item.icon size={18} strokeWidth={1.5} />
                     </div>
-                    <span className="text-sm font-medium text-zinc-300">{item.label}</span>
+                    <span className="text-sm font-light tracking-wide text-zinc-300">{item.label}</span>
                   </div>
                 ))}
               </div>
@@ -352,12 +354,12 @@ export default function StudioProfilePage() {
 
             {/* Available Gear Card */}
             <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5 shadow-xl sm:p-6">
-              <div className="mb-5 flex items-center justify-between gap-4">
+              <div className="mb-6 flex items-center justify-between gap-4">
                 <div>
-                  <h2 className="text-xl font-semibold text-white">Available Gear</h2>
-                  <p className="mt-1 text-sm text-zinc-500">Equipment listed by the studio.</p>
+                  <h2 className="text-2xl font-light tracking-tight text-white">Available Gear</h2>
+                  <p className="mt-1 text-sm font-light tracking-wide text-zinc-500">Equipment listed by the studio.</p>
                 </div>
-                <Headphones className="h-6 w-6 text-zinc-600" />
+                <Headphones className="h-6 w-6 text-zinc-600" strokeWidth={1.5} />
               </div>
 
               {studio.equipment && studio.equipment.length > 0 ? (
@@ -365,12 +367,12 @@ export default function StudioProfilePage() {
                   {studio.equipment.map((item, index) => (
                     <div key={`${item}-${index}`} className="flex items-start gap-3 rounded-xl border border-zinc-800 bg-[#08080a] p-4">
                       <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-zinc-400" />
-                      <span className="text-sm leading-5 text-zinc-300">{item}</span>
+                      <span className="text-sm font-light tracking-wide leading-5 text-zinc-300">{item}</span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="rounded-xl border border-dashed border-zinc-800 bg-[#08080a] p-8 text-center text-sm text-zinc-500">
+                <div className="rounded-xl border border-dashed border-zinc-800 bg-[#08080a] p-8 text-center text-sm font-light tracking-wide text-zinc-500">
                   No specific equipment has been listed yet.
                 </div>
               )}
@@ -379,54 +381,55 @@ export default function StudioProfilePage() {
 
           {/* Right Column: Sticky Rate & Independent Location Card */}
           <aside className="space-y-6 lg:sticky lg:top-5 lg:self-start">
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5 shadow-2xl">
+            <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6 shadow-2xl">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-xs font-medium uppercase text-zinc-500">Session rate</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-500">Session rate</p>
                   <div className="mt-1 flex items-end gap-1">
-                    <span className="text-4xl font-semibold tracking-tight text-white">{formatAmount(studio.hourlyRate, studioCurrency)}</span>
-                    <span className="mb-1.5 text-sm text-zinc-500">/hr</span>
+                    <span className="text-4xl font-light tracking-tighter text-white">{formatAmount(studio.hourlyRate, studioCurrency)}</span>
+                    <span className="mb-1.5 text-sm font-light tracking-wide text-zinc-500">/hr</span>
                   </div>
                 </div>
                 <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2 text-right">
                   <div className="flex items-center justify-end gap-1 text-zinc-400">
                     <Star size={14} className="fill-current text-zinc-400" />
-                    <span className="text-sm font-semibold">{ratingLabel}</span>
+                    <span className="text-sm font-medium tracking-wide">{ratingLabel}</span>
                   </div>
-                  <p className="mt-0.5 text-[11px] text-zinc-500">{reviewCount} review{reviewCount === 1 ? "" : "s"}</p>
+                  <p className="mt-0.5 text-[11px] font-light tracking-wide text-zinc-500">{reviewCount} review{reviewCount === 1 ? "" : "s"}</p>
                 </div>
               </div>
 
               <button
                 onClick={() => setIsDrawerOpen(true)}
-                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-3.5 text-sm font-semibold text-black transition-all hover:bg-zinc-200 active:scale-[0.98]"
+                className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-3.5 text-sm font-semibold tracking-wide text-black transition-all hover:bg-zinc-200 active:scale-[0.98]"
               >
-                <CalendarDays size={17} />
+                <CalendarDays size={17} strokeWidth={1.5} />
                 Check availability
               </button>
 
-              <p className="mt-3 text-center text-xs text-zinc-500">Estimated two-hour session: {formatAmount(totalPreview, studioCurrency)}</p>
+              <p className="mt-3 text-center text-xs font-light tracking-wide text-zinc-500">Estimated two-hour session: {formatAmount(totalPreview, studioCurrency)}</p>
             </div>
 
             {/* Distance-aware Location Card */}
             <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5 shadow-xl">
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start justify-between gap-4 mb-4">
                 <div>
-                  <h2 className="text-lg font-semibold text-white">Distance & Location</h2>
-                  <p className="mt-1 text-sm text-zinc-500">Uses your current position only to estimate travel distance.</p>
+                  <h2 className="text-xl font-light tracking-tight text-white">Distance & Location</h2>
+                  <p className="mt-1 text-xs font-light tracking-wide text-zinc-500">Uses your current position only to estimate travel distance.</p>
                 </div>
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-zinc-800 bg-[#08080a] text-zinc-400">
-                  <Navigation size={18} />
+                  <Navigation size={18} strokeWidth={1.5} />
                 </div>
               </div>
-              <div className="mt-4 overflow-hidden rounded-xl border border-zinc-800 bg-[#08080a]">
+              
+              <div className="overflow-hidden rounded-xl border border-zinc-800 bg-[#08080a]">
                 <div className="relative h-52">
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_45%,rgba(59,130,246,0.14),transparent_22%),radial-gradient(circle_at_72%_52%,rgba(16,185,129,0.12),transparent_22%),linear-gradient(135deg,#101014,#050506)]" />
                   <div className="absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] [background-size:24px_24px]" />
                   <div className="absolute left-[30%] top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center">
                     <div className="absolute h-20 w-20 rounded-full border border-blue-300/15 bg-blue-300/5" />
                     <Navigation className="relative h-6 w-6 fill-blue-300 text-blue-300 drop-shadow-xl" />
-                    <span className="relative mt-2 rounded-full border border-blue-300/15 bg-black/40 px-2 py-1 text-[10px] font-medium text-blue-100 backdrop-blur-sm">
+                    <span className="relative mt-2 rounded-full border border-blue-300/15 bg-black/40 px-2 py-1 text-[10px] font-medium tracking-wide text-blue-100 backdrop-blur-sm">
                       Your position
                     </span>
                   </div>
@@ -437,7 +440,7 @@ export default function StudioProfilePage() {
                   <div className="absolute right-[22%] top-1/2 flex -translate-y-1/2 flex-col items-center">
                     <div className="absolute h-24 w-24 rounded-full border border-emerald-300/15 bg-emerald-300/5" />
                     <MapPin className="relative h-8 w-8 fill-emerald-300 text-black drop-shadow-xl" />
-                    <span className="relative mt-2 rounded-full border border-emerald-300/15 bg-black/40 px-2 py-1 text-[10px] font-medium text-emerald-100 backdrop-blur-sm">
+                    <span className="relative mt-2 rounded-full border border-emerald-300/15 bg-black/40 px-2 py-1 text-[10px] font-medium tracking-wide text-emerald-100 backdrop-blur-sm">
                       Studio
                     </span>
                   </div>
@@ -445,12 +448,12 @@ export default function StudioProfilePage() {
                   <div className="absolute bottom-4 left-4 right-4 rounded-xl border border-white/10 bg-black/45 p-3 backdrop-blur-md">
                     <div className="flex items-end justify-between gap-3">
                       <div>
-                        <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">You to studio</p>
-                        <div className="mt-1 text-2xl font-semibold text-white">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-500">You to studio</p>
+                        <div className="mt-1 text-2xl font-light tracking-tight text-white">
                           {distanceLabel || "--"}
                         </div>
                       </div>
-                      <span className="rounded-full border border-zinc-700 bg-zinc-950/80 px-3 py-1.5 text-xs font-medium text-zinc-300">
+                      <span className="rounded-full border border-zinc-700 bg-zinc-950/80 px-3 py-1.5 text-[11px] font-medium tracking-wide text-zinc-300">
                         {distanceTone}
                       </span>
                     </div>
@@ -459,23 +462,23 @@ export default function StudioProfilePage() {
                 <div className="border-t border-zinc-800 p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">Studio address</p>
-                      <p className="mt-1 text-sm font-medium text-zinc-200">{studio.location}</p>
-                      {studio.streetAddress && <p className="mt-1 text-xs text-zinc-500">{studio.streetAddress}</p>}
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-500">Studio address</p>
+                      <p className="mt-2 text-sm font-light tracking-wide text-zinc-200">{studio.location}</p>
+                      {studio.streetAddress && <p className="mt-1 text-xs font-light tracking-wide text-zinc-500">{studio.streetAddress}</p>}
                       {distanceLabel && (
-                        <p className="mt-2 text-xs text-zinc-500">
+                        <p className="mt-2 text-[11px] font-light tracking-wide text-zinc-500">
                           Your exact address is not shown here or saved from this check.
                         </p>
                       )}
-                      {locationError && <p className="mt-2 text-xs text-amber-300/80">{locationError}</p>}
+                      {locationError && <p className="mt-2 text-[11px] font-light tracking-wide text-amber-300/80">{locationError}</p>}
                       {!canCalculateDistance && (
-                        <p className="mt-2 text-xs text-zinc-500">This studio has not added precise map coordinates yet.</p>
+                        <p className="mt-2 text-[11px] font-light tracking-wide text-zinc-500">This studio has not added precise map coordinates yet.</p>
                       )}
                     </div>
                     <button
                       onClick={getUserLocation}
                       disabled={isLoadingLocation || !canCalculateDistance}
-                      className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs font-medium text-zinc-200 transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs font-medium tracking-wide text-zinc-200 transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {isLoadingLocation ? <Loader2 size={14} className="animate-spin" /> : <Navigation size={14} />}
                       {distanceLabel ? "Refresh" : "Use my location"}
@@ -493,7 +496,7 @@ export default function StudioProfilePage() {
       {showGallery && images.length > 0 && (
         <div className="fixed inset-0 z-[100] flex flex-col bg-black/95 text-white backdrop-blur-xl">
           <div className="flex shrink-0 items-center justify-between p-5">
-            <span className="text-sm font-medium text-zinc-400">
+            <span className="text-sm font-light tracking-wide text-zinc-400">
               {currentImageIdx + 1} / {images.length}
             </span>
             <button
@@ -501,7 +504,7 @@ export default function StudioProfilePage() {
               className="flex h-10 w-10 items-center justify-center rounded-full border border-zinc-800 bg-zinc-950 text-zinc-300 transition-colors hover:bg-zinc-900 hover:text-white"
               aria-label="Close gallery"
             >
-              <X size={18} />
+              <X size={18} strokeWidth={1.5} />
             </button>
           </div>
 
@@ -514,14 +517,14 @@ export default function StudioProfilePage() {
                   className="absolute left-5 flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/50 text-white backdrop-blur-md transition-colors hover:bg-white hover:text-black"
                   aria-label="Previous image"
                 >
-                  <ChevronLeft size={22} />
+                  <ChevronLeft size={22} strokeWidth={1.5} />
                 </button>
                 <button
                   onClick={nextImage}
                   className="absolute right-5 flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/50 text-white backdrop-blur-md transition-colors hover:bg-white hover:text-black"
                   aria-label="Next image"
                 >
-                  <ChevronRight size={22} />
+                  <ChevronRight size={22} strokeWidth={1.5} />
                 </button>
               </>
             )}
