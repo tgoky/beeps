@@ -34,19 +34,19 @@ export default function BookingsPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("customer");
   const [bookingType, setBookingType] = useState<BookingType>("studio");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  
   const [supabaseUser, setSupabaseUser] = useState<any>(null);
   const [updatingServiceRequest, setUpdatingServiceRequest] = useState(false);
-  
-  // Generic Action Loading State
   const [processingAction, setProcessingAction] = useState<string | null>(null);
 
-  // Studio Specific State
+  // Smart Role Routing State
+  const [hasSetDefaults, setHasSetDefaults] = useState(false);
+
+  // Specific States
   const [qrCodeInput, setQrCodeInput] = useState<string>("");
   const [showQrPrompt, setShowQrPrompt] = useState<string | null>(null);
   const [confirmCodeInput, setConfirmCodeInput] = useState<string>("");
   const [showConfirmPrompt, setShowConfirmPrompt] = useState<string | null>(null);
-
-  // Service Request Specific State
   const [deliveryCodeInput, setDeliveryCodeInput] = useState<string>("");
   const [showDeliveryPrompt, setShowDeliveryPrompt] = useState<string | null>(null);
 
@@ -75,6 +75,20 @@ export default function BookingsPage() {
     };
     loadUser();
   }, []);
+
+  // SMART UI ROUTING: Automatically select the right tab based on what the user does
+  useEffect(() => {
+    if (currentUser && !hasSetDefaults) {
+      if (currentUser.primaryRole === "PRODUCER") {
+        setViewMode("provider");
+        setBookingType("service");
+      } else if (currentUser.primaryRole === "STUDIO_OWNER") {
+        setViewMode("provider");
+        setBookingType("studio");
+      }
+      setHasSetDefaults(true);
+    }
+  }, [currentUser, hasSetDefaults]);
 
   const allBookings = bookingsData
     ? [
@@ -185,7 +199,6 @@ export default function BookingsPage() {
   };
   const formatCurrency = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 
-  // Basic Status Patching
   const handleUpdateServiceRequest = async (requestId: string, status: string) => {
     try {
       setUpdatingServiceRequest(true);
@@ -202,7 +215,6 @@ export default function BookingsPage() {
     }
   };
 
-  // Escrow Lifecycle Handlers
   const handleServiceLifecycleAction = async (requestId: string, action: "pay" | "deliver" | "confirm-delivery", payload?: any) => {
     try {
       setProcessingAction(requestId + action);
@@ -216,7 +228,7 @@ export default function BookingsPage() {
       if (!res.ok) throw new Error(data.error || `Failed to ${action}`);
       
       if (action === "pay" && data.url) {
-        window.location.href = data.url; // Redirect to Stripe/Paystack checkout if applicable
+        window.location.href = data.url; 
       } else {
         window.location.reload();
       }
@@ -236,7 +248,6 @@ export default function BookingsPage() {
     <div className="h-full overflow-y-auto bg-[#030303] text-white">
       <div className="max-w-[1600px] mx-auto p-6 md:p-8">
         
-        {/* Header Section */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-semibold tracking-tight text-white mb-2">Orders & Bookings</h1>
@@ -263,7 +274,6 @@ export default function BookingsPage() {
           </div>
         </div>
 
-        {/* Categories Tab Navigation */}
         <div className="flex overflow-x-auto border-b border-zinc-800 mb-8 scrollbar-hide">
           <button 
             onClick={() => { setBookingType("studio"); setStatusFilter("all"); }}
@@ -291,7 +301,6 @@ export default function BookingsPage() {
           </button>
         </div>
 
-        {/* Status Filters */}
         <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-4 scrollbar-hide">
           <button onClick={() => setStatusFilter("all")} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${statusFilter === "all" ? "bg-white text-black" : "bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-zinc-200"}`}>
             All <span className={`px-1.5 py-0.5 rounded-full text-xs ${statusFilter === "all" ? "bg-black/10" : "bg-zinc-800"}`}>{stats.total}</span>
@@ -312,7 +321,6 @@ export default function BookingsPage() {
           </button>
         </div>
 
-        {/* Bookings List */}
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-32 bg-zinc-950 border border-zinc-800 rounded-2xl">
             <Loader2 className="w-8 h-8 animate-spin text-zinc-500 mb-4" strokeWidth={2} />
@@ -331,24 +339,18 @@ export default function BookingsPage() {
               {bookingType === "beat" && <Music2 className="w-8 h-8 text-green-900/50" strokeWidth={1.5} />}
             </div>
             <h3 className="text-lg font-medium text-zinc-200 mb-1">No {bookingType} records found</h3>
-            <p className="text-sm text-zinc-500">You don't have any matching items in this category.</p>
+            <p className="text-sm text-zinc-500">You don't have any matching items in this view.</p>
           </div>
         ) : (
           <div className="bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden shadow-xl">
             
-            {/* Dynamic Table Header based on Category */}
             <div className="hidden md:flex items-center gap-4 px-6 py-4 border-b border-zinc-800 bg-zinc-900/50 text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-              <div className="w-[35%]">
-                {bookingType === "service" ? "Project Details" : bookingType === "equipment" ? "Gear Details" : "Details"}
-              </div>
-              <div className="w-[20%]">
-                {bookingType === "studio" ? "Schedule" : bookingType === "service" ? "Timeline" : "Date"}
-              </div>
+              <div className="w-[35%]">Details</div>
+              <div className="w-[20%]">Schedule</div>
               <div className="w-[20%]">Status</div>
               <div className="w-[25%] text-right pr-4">Amount & Actions</div>
             </div>
 
-            {/* Rows */}
             <div className="flex flex-col divide-y divide-zinc-800">
               {filteredBookings.map((booking: any) => {
                 const sessionInfo = (booking as any).sessionInfo;
@@ -362,7 +364,6 @@ export default function BookingsPage() {
                 const counterpart = viewMode === "customer" ? booking.providerName : booking.customerName;
                 const amount = formatCurrency(booking.totalAmount || booking.amount || booking.budget || 0);
                 
-                // Unify Payment Status tracking (Studio keeps it in sessionInfo, Services at root)
                 const unifiedPaymentStatus = sessionInfo?.paymentStatus || booking.paymentStatus || "UNPAID";
 
                 const isStudioOwner = currentUser?.id === (booking as any).studio?.owner?.userId;
@@ -376,18 +377,17 @@ export default function BookingsPage() {
                     className="flex flex-col md:flex-row md:items-center px-6 py-5 hover:bg-zinc-900/50 transition-colors cursor-pointer group"
                   >
                     
-                    {/* Col 1: Details */}
                     <div className="w-full md:w-[35%] flex items-center gap-4 pr-4">
                       <div className={`w-12 h-12 rounded-xl border flex items-center justify-center flex-shrink-0 transition-colors ${
-                        bookingType === "studio" ? "bg-zinc-900 border-zinc-800" :
-                        bookingType === "service" ? "bg-purple-500/10 border-purple-500/20" :
-                        bookingType === "equipment" ? "bg-orange-500/10 border-orange-500/20" :
+                        booking.type === "STUDIO_BOOKING" ? "bg-zinc-900 border-zinc-800" :
+                        booking.type === "SERVICE_REQUEST" ? "bg-purple-500/10 border-purple-500/20" :
+                        booking.type === "EQUIPMENT_RENTAL" ? "bg-orange-500/10 border-orange-500/20" :
                         "bg-green-500/10 border-green-500/20"
                       }`}>
-                        {bookingType === "studio" && <Building2 className="w-5 h-5 text-white" />}
-                        {bookingType === "service" && <Briefcase className="w-5 h-5 text-purple-400" />}
-                        {bookingType === "equipment" && <Guitar className="w-5 h-5 text-orange-400" />}
-                        {bookingType === "beat" && <Music2 className="w-5 h-5 text-green-400" />}
+                        {booking.type === "STUDIO_BOOKING" && <Building2 className="w-5 h-5 text-white" />}
+                        {booking.type === "SERVICE_REQUEST" && <Briefcase className="w-5 h-5 text-purple-400" />}
+                        {booking.type === "EQUIPMENT_RENTAL" && <Guitar className="w-5 h-5 text-orange-400" />}
+                        {booking.type === "BEAT_PURCHASE" && <Music2 className="w-5 h-5 text-green-400" />}
                       </div>
                       <div className="flex flex-col min-w-0">
                         <span className="text-sm font-semibold text-white truncate mb-1">
@@ -401,17 +401,16 @@ export default function BookingsPage() {
                       </div>
                     </div>
 
-                    {/* Col 2: Dynamic Schedule / Timeline */}
                     <div className="w-full md:w-[20%] flex flex-col mt-4 md:mt-0 gap-1 text-sm">
                       <div className="flex items-center gap-2 text-zinc-200">
                         <Calendar className="w-4 h-4 text-zinc-500" />
                         <span>
-                          {bookingType === "studio" ? formatDate(booking.startTime) : 
-                           bookingType === "service" && booking.deadline ? `Due: ${formatDate(booking.deadline)}` : 
+                          {booking.type === "STUDIO_BOOKING" ? formatDate(booking.startTime) : 
+                           booking.type === "SERVICE_REQUEST" && booking.deadline ? `Due: ${formatDate(booking.deadline)}` : 
                            formatDate(booking.createdAt)}
                         </span>
                       </div>
-                      {bookingType === "studio" && (
+                      {booking.type === "STUDIO_BOOKING" && (
                         <div className="flex items-center gap-2 text-zinc-400">
                           <Clock className="w-4 h-4 text-zinc-500" />
                           <span>{formatTime(booking.startTime, booking.endTime)}</span>
@@ -419,25 +418,18 @@ export default function BookingsPage() {
                       )}
                     </div>
 
-                    {/* Col 3: Status Text + Tooltips */}
                     <div className="w-full md:w-[20%] flex flex-col items-start gap-2 mt-4 md:mt-0">
                       {getStatusBadge(booking.status)}
                       {unifiedPaymentStatus !== "UNPAID" && getPaymentBadge(unifiedPaymentStatus)}
                     </div>
 
-                    {/* Col 4: Inline Actions & Amount */}
                     <div className="w-full md:w-[25%] flex items-center justify-between md:justify-end gap-6 mt-6 md:mt-0" onClick={(e) => e.stopPropagation()}>
                       
                       <div className="flex items-center gap-2">
                         {(() => {
                           const actions: any[] = [];
 
-                          // ----------------------------------------------------
-                          // SERVICE REQUEST LIFECYCLE ACTIONS
-                          // ----------------------------------------------------
-                          if (bookingType === "service") {
-                            
-                            // --- Producer View ---
+                          if (booking.type === "SERVICE_REQUEST") {
                             if (isProducer) {
                               if (booking.status === "PENDING") {
                                 actions.push(
@@ -449,11 +441,9 @@ export default function BookingsPage() {
                                   </button>
                                 );
                               }
-                              // After accepted, waiting for client to fund escrow
                               if (booking.status === "ACCEPTED" && unifiedPaymentStatus === "UNPAID") {
                                 actions.push(<span key="wait-fund" className="text-xs text-zinc-500">Awaiting Escrow Funding</span>);
                               }
-                              // Client funded escrow -> Producer starts project
                               if (booking.status === "ACCEPTED" && unifiedPaymentStatus === "PAYMENT_HELD") {
                                 actions.push(
                                   <button key="start" onClick={(e) => { e.stopPropagation(); handleUpdateServiceRequest(booking.id, "IN_PROGRESS"); }} disabled={updatingServiceRequest} className={outlineBtnClass} title="Start Project">
@@ -461,7 +451,6 @@ export default function BookingsPage() {
                                   </button>
                                 );
                               }
-                              // Project is ongoing -> Producer delivers work
                               if (booking.status === "IN_PROGRESS") {
                                 actions.push(
                                   <button key="deliv" onClick={(e) => { e.stopPropagation(); handleServiceLifecycleAction(booking.id, "deliver"); }} disabled={processingAction === booking.id + "deliver"} className={payBtnClass}>
@@ -471,7 +460,6 @@ export default function BookingsPage() {
                               }
                             }
 
-                            // --- Client View ---
                             if (isCustomer) {
                               if (booking.status === "PENDING") {
                                 actions.push(
@@ -480,7 +468,6 @@ export default function BookingsPage() {
                                   </button>
                                 );
                               }
-                              // Producer accepted -> Client must fund the escrow
                               if (booking.status === "ACCEPTED" && unifiedPaymentStatus === "UNPAID") {
                                 actions.push(
                                   <button key="pay" onClick={(e) => { e.stopPropagation(); handleServiceLifecycleAction(booking.id, "pay"); }} disabled={processingAction === booking.id + "pay"} className={payBtnClass}>
@@ -488,7 +475,6 @@ export default function BookingsPage() {
                                   </button>
                                 );
                               }
-                              // Work Delivered -> Client verifies with code and releases funds
                               if (booking.status === "DELIVERED") {
                                 if (showDeliveryPrompt === booking.id) {
                                   actions.push(
@@ -510,7 +496,6 @@ export default function BookingsPage() {
                               }
                             }
 
-                            // --- General Messaging ---
                             if (["CONFIRMED", "ACTIVE", "ACCEPTED", "IN_PROGRESS", "DELIVERED"].includes(booking.status)) {
                               actions.push(
                                 <button key="msg" onClick={(e) => { e.stopPropagation(); router.push(`/messages/${isProducer ? (booking as any).clientId : (booking as any).producerId}`); }} className={actionBtnClass} title="Message">
@@ -520,10 +505,7 @@ export default function BookingsPage() {
                             }
                           }
 
-                          // ----------------------------------------------------
-                          // STUDIO BOOKING ACTIONS
-                          // ----------------------------------------------------
-                          if (bookingType === "studio") {
+                          if (booking.type === "STUDIO_BOOKING") {
                             if (booking.status === "PENDING" && isCustomer) {
                               actions.push(
                                 <button key="pay1" onClick={(e) => { e.stopPropagation(); payBooking.mutate({ bookingId: booking.id }); }} disabled={payBooking.isPending} className={payBtnClass}>
@@ -553,7 +535,6 @@ export default function BookingsPage() {
                               );
                             }
                             
-                            // QR Flow
                             if (booking.status === "CONFIRMED" && isStudioOwner && unifiedPaymentStatus === "PAYMENT_HELD") {
                               if (showQrPrompt === booking.id) {
                                 actions.push(
@@ -574,7 +555,6 @@ export default function BookingsPage() {
                               }
                             }
 
-                            // Code Flow
                             if (booking.status === "ACTIVE" && isCustomer && sessionInfo && !sessionInfo.bookerConfirmedCheckIn) {
                               if (showConfirmPrompt === booking.id) {
                                 actions.push(

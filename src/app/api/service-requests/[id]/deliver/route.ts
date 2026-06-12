@@ -1,10 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
+import { identifyAudio } from "@/lib/acrcloud";
+import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+
+const r2 = new S3Client({
+  region: "auto",
+  endpoint: process.env.CLOUDFLARE_R2_ENDPOINT!,
+  credentials: {
+    accessKeyId: process.env.CLOUDFLARE_R2_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY!,
+  },
+});
 
 // POST /api/service-requests/[id]/deliver
-// Producer marks work as delivered, providing the URL to the files.
-// The delivery code is then sent to the client to confirm receipt.
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -13,15 +23,16 @@ export async function POST(
     try {
       const user = req.user!;
       const { id } = params;
-      const body = await req.json().catch(() => ({}));
+      const body = await request.json().catch(() => ({}));
       
-      // Extract the new URL and notes fields
-      const { deliveryUrl, deliveryNotes } = body;
+      // Extract the new R2 key, file hash, and notes
+      const { deliveryFileKey, fileHash, deliveryNotes } = body;
 
-      if (!deliveryUrl) {
-        return NextResponse.json({ error: "A delivery URL (e.g., WeTransfer or Google Drive link) is required." }, { status: 400 });
+      if (!deliveryFileKey) {
+        return NextResponse.json({ error: "A delivery file is required." }, { status: 400 });
       }
 
+      // Fetch WITH the relations needed for notifications
       const serviceRequest = await prisma.serviceRequest.findUnique({
         where: { id },
         include: {
@@ -39,7 +50,7 @@ export async function POST(
         return NextResponse.json({ error: "Only the producer can mark work as delivered" }, { status: 403 });
       }
 
-      // Payment must be held in escrow before delivery can be confirmed
+      // ESCROW CHECKS (Restored!)
       if (serviceRequest.paymentStatus !== "PAYMENT_HELD") {
         return NextResponse.json(
           { error: "Cannot deliver — client payment has not been secured in escrow yet" },
@@ -61,7 +72,30 @@ export async function POST(
         );
       }
 
-      // 48-hour auto-release window: if client doesn't confirm, payment auto-releases
+      // ==========================================
+      // GATE 2: INTERNAL EXCLUSIVITY CHECK
+      // ==========================================
+      const existingExclusive = await prisma.licenseAgreement.findFirst({
+        where: { licensedFileHash: fileHash, licenseType: "EXCLUSIVE" }
+      });
+      if (existingExclusive) {
+        return NextResponse.json({ error: "GATE 2 BLOCKED: You cannot deliver an audio file that was already sold as an Exclusive License on Beeps." }, { status: 403 });
+      }
+
+      // ==========================================
+      // GATE 1: ACRCLOUD COPYRIGHT CHECK
+      // ==========================================
+      const command = new GetObjectCommand({ Bucket: process.env.R2_BUCKET_NAME!, Key: deliveryFileKey });
+      const tempAudioUrl = await getSignedUrl(r2, command, { expiresIn: 300 });
+      
+      const acrResult = await identifyAudio(tempAudioUrl);
+      if (acrResult.isMatch) {
+        return NextResponse.json({ error: `GATE 1 BLOCKED: Beeps Shield detected uncleared copyrighted material ("${acrResult.matchData}").` }, { status: 403 });
+      }
+
+      // All checks passed! Execute the Escrow Updates (Restored!)
+      
+      // 48-hour auto-release window
       const autoReleaseAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
 
       const updated = await prisma.serviceRequest.update({
@@ -70,13 +104,14 @@ export async function POST(
           status: "DELIVERED",
           deliveredAt: new Date(),
           autoReleaseAt,
-          deliveryUrl, // Save the new explicit URL field
+          deliveryUrl: deliveryFileKey, // Store the R2 Key
           deliveryNotes, 
           producerResponse: deliveryNotes, // Maintain backward compatibility
         },
       });
 
-      // Send the delivery code to the CLIENT via notification
+      // NOTIFICATIONS (Restored!)
+      // Send the delivery code to the CLIENT
       await prisma.notification.create({
         data: {
           userId: serviceRequest.clientId,
@@ -89,13 +124,13 @@ export async function POST(
         },
       });
 
-      // Notify PRODUCER that it was logged successfully
+      // Notify PRODUCER
       await prisma.notification.create({
         data: {
           userId: serviceRequest.producerId,
           type: "WORK_DELIVERED",
           title: "Delivery Successfully Logged",
-          message: `Your files for "${serviceRequest.projectTitle}" have been sent. The client has 48 hours to confirm receipt and release funds, otherwise they will auto-release.`,
+          message: `Your files for "${serviceRequest.projectTitle}" have been securely uploaded to the Beeps Vault. The client has 48 hours to confirm receipt and release funds.`,
           referenceId: id,
           referenceType: "SERVICE_REQUEST",
           isRead: false,
@@ -106,8 +141,9 @@ export async function POST(
         success: true,
         serviceRequest: updated,
         autoReleaseAt,
-        message: "Delivery logged. The client has been notified to download the files and confirm.",
+        message: "Delivery logged and protected by Beeps Shield. The client has been notified.",
       });
+
     } catch (error: any) {
       console.error("Error marking delivery:", error);
       return NextResponse.json({ error: "Failed to mark as delivered" }, { status: 500 });

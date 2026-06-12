@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"; // MUST HAVE: Prevents Next.js from caching the 403 error for the wrong user
+
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
@@ -17,58 +19,32 @@ export async function PATCH(
       // Validate status
       const validStatuses = ["ACCEPTED", "REJECTED", "IN_PROGRESS", "COMPLETED", "CANCELLED"];
       if (status && !validStatuses.includes(status)) {
-        return NextResponse.json(
-          { error: "Invalid status" },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: "Invalid status" }, { status: 400 });
       }
 
       // Fetch the service request
       const serviceRequest = await prisma.serviceRequest.findUnique({
         where: { id },
         include: {
-          client: {
-            select: {
-              id: true,
-              username: true,
-              fullName: true,
-              avatar: true,
-            },
-          },
-          producer: {
-            select: {
-              id: true,
-              username: true,
-              fullName: true,
-              avatar: true,
-            },
-          },
+          client: { select: { id: true, username: true, fullName: true, avatar: true } },
+          producer: { select: { id: true, username: true, fullName: true, avatar: true } },
         },
       });
 
       if (!serviceRequest) {
-        return NextResponse.json(
-          { error: "Service request not found" },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: "Service request not found" }, { status: 404 });
       }
 
       // Authorization: only producer can accept/reject, only client can cancel
       if (status === "CANCELLED" && serviceRequest.clientId !== user.id) {
-        return NextResponse.json(
-          { error: "Only the client can cancel the service request" },
-          { status: 403 }
-        );
+        return NextResponse.json({ error: "Only the client can cancel the service request" }, { status: 403 });
       }
 
       if (
         (status === "ACCEPTED" || status === "REJECTED" || status === "IN_PROGRESS" || status === "COMPLETED") &&
         serviceRequest.producerId !== user.id
       ) {
-        return NextResponse.json(
-          { error: "Only the producer can update this service request" },
-          { status: 403 }
-        );
+        return NextResponse.json({ error: "Only the producer can update this service request" }, { status: 403 });
       }
 
       // Update the service request
@@ -83,20 +59,10 @@ export async function PATCH(
         },
         include: {
           client: {
-            select: {
-              id: true,
-              username: true,
-              fullName: true,
-              avatar: true,
-            },
+            select: { id: true, username: true, fullName: true, avatar: true, primaryRole: true, email: true }, // ADDED EMAIL
           },
           producer: {
-            select: {
-              id: true,
-              username: true,
-              fullName: true,
-              avatar: true,
-            },
+            select: { id: true, username: true, fullName: true, avatar: true, primaryRole: true, currency: true }, // ADDED CURRENCY
           },
         },
       });
@@ -120,7 +86,6 @@ export async function PATCH(
       }
 
       if (notificationMessage) {
-        // Notify the appropriate party
         const notifyUserId = status === "CANCELLED" ? serviceRequest.producerId : serviceRequest.clientId;
 
         await prisma.notification.create({
@@ -158,10 +123,7 @@ export async function PATCH(
       });
     } catch (error: any) {
       console.error("Error updating service request:", error);
-      return NextResponse.json(
-        { error: "Failed to update service request" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Failed to update service request" }, { status: 500 });
     }
   });
 }
@@ -180,35 +142,21 @@ export async function GET(
         where: { id },
         include: {
           client: {
-            select: {
-              id: true,
-              username: true,
-              fullName: true,
-              avatar: true,
-              primaryRole: true,
-            },
+            select: { id: true, username: true, fullName: true, avatar: true, primaryRole: true, email: true }, // ADDED EMAIL
           },
           producer: {
-            select: {
-              id: true,
-              username: true,
-              fullName: true,
-              avatar: true,
-              primaryRole: true,
-            },
+            select: { id: true, username: true, fullName: true, avatar: true, primaryRole: true, currency: true }, // ADDED CURRENCY
           },
         },
       });
 
       if (!serviceRequest) {
-        return NextResponse.json(
-          { error: "Service request not found" },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: "Service request not found" }, { status: 404 });
       }
 
       // Only client and producer can view the request
       if (serviceRequest.clientId !== user.id && serviceRequest.producerId !== user.id) {
+        console.warn(`Auth Mismatch. Attempted by User: ${user.id} on Job for Client: ${serviceRequest.clientId} & Producer: ${serviceRequest.producerId}`);
         return NextResponse.json(
           { error: "You do not have permission to view this service request" },
           { status: 403 }
@@ -218,10 +166,7 @@ export async function GET(
       return NextResponse.json({ serviceRequest });
     } catch (error: any) {
       console.error("Error fetching service request:", error);
-      return NextResponse.json(
-        { error: "Failed to fetch service request" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Failed to fetch service request" }, { status: 500 });
     }
   });
 }
@@ -241,33 +186,22 @@ export async function DELETE(
       });
 
       if (!serviceRequest) {
-        return NextResponse.json(
-          { error: "Service request not found" },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: "Service request not found" }, { status: 404 });
       }
 
       // Only the producer or client can delete the request
       if (serviceRequest.producerId !== user.id && serviceRequest.clientId !== user.id) {
-        return NextResponse.json(
-          { error: "You do not have permission to delete this service request" },
-          { status: 403 }
-        );
+        return NextResponse.json({ error: "You do not have permission to delete this service request" }, { status: 403 });
       }
 
       await prisma.serviceRequest.delete({
         where: { id },
       });
 
-      return NextResponse.json({
-        message: "Service request deleted successfully"
-      });
+      return NextResponse.json({ message: "Service request deleted successfully" });
     } catch (error: any) {
       console.error("Error deleting service request:", error);
-      return NextResponse.json(
-        { error: "Failed to delete service request" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Failed to delete service request" }, { status: 500 });
     }
   });
 }

@@ -1,6 +1,6 @@
 // Prisma Schema for Beeps Music Platform
 // Production-ready with comprehensive models for artists, clubs, and marketplace features
-// ✅ UPDATED: Added ServiceRequest model, producer service functionality, socialLinks on User, and BeatLike model
+// ✅ UPDATED: Integrated God Tier Beat Licensing (ACRCloud + R2 Vault + Cryptographic Hashes)
 
 generator client {
   provider = "prisma-client-js"
@@ -54,9 +54,9 @@ model User {
   membershipTier MembershipTier  @default(FREE) @map("membership_tier")
 
   // Payment & Currency Settings
-  countryCode       String?  @map("country_code")        // ISO 3166-1 alpha-2 e.g. "NG", "GH", "US"
-  currency          String   @default("USD") @map("currency")  // ISO 4217 e.g. "NGN", "GHS", "USD"
-  paymentProvider   String   @default("STRIPE") @map("payment_provider")  // "STRIPE" | "PAYSTACK"
+  countryCode       String?      @map("country_code")        // ISO 3166-1 alpha-2 e.g. "NG", "GH", "US"
+  currency          String       @default("USD") @map("currency")  // ISO 4217 e.g. "NGN", "GHS", "USD"
+  paymentProvider   String       @default("STRIPE") @map("payment_provider")  // "STRIPE" | "PAYSTACK"
 
   // Stats
   followersCount Int             @default(0) @map("followers_count")
@@ -73,7 +73,7 @@ model User {
   studioProfile     StudioOwnerProfile?
   gearProfile       GearSalesProfile?
   lyricistProfile   LyricistProfile?
-
+  
   clubMemberships   ClubMember[]
   ownedClubs        Club[]           @relation("ClubOwner")
 
@@ -95,6 +95,9 @@ model User {
   sentServiceRequests     ServiceRequest[] @relation("ServiceRequestClient")
   receivedServiceRequests ServiceRequest[] @relation("ServiceRequestProducer")
 
+  // Market Purchases (Beat Licensing)
+  purchasedLicenses       LicenseAgreement[] @relation("BuyerLicenses")
+
   // Community Relations
   roleGrants        UserRoleGrant[]  @relation("UserRoleGrants")
   communityPosts    CommunityPost[]  @relation("CommunityPosts")
@@ -110,7 +113,7 @@ model User {
 
   // Wallet
   wallet            Wallet?
-
+  
   @@map("users")
 }
 
@@ -126,7 +129,7 @@ model ArtistProfile {
   genres        String[] // Array of music genres
   skills        String[] // e.g., ["Vocalist", "Songwriter"]
   
-  createdAt     DateTime @default(now()) @map("created_at")
+  createdAt      DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
   @@map("artist_profiles")
@@ -143,9 +146,9 @@ model ProducerProfile {
   experience    String?  // Years of experience
   
   // Service Rates
-  productionRate  String? @map("production_rate")   // e.g., "$500-$1000"
-  songwritingRate String? @map("songwriting_rate")
-  mixingRate      String? @map("mixing_rate")
+  productionRate  String?  @map("production_rate")   // e.g., "$500-$1000"
+  songwritingRate String?  @map("songwriting_rate")
+  mixingRate      String?  @map("mixing_rate")
   
   availability  String?  // e.g., "Available for projects"
   
@@ -192,7 +195,6 @@ model GearSalesProfile {
   businessName  String   @map("business_name")
   specialties   String[]
   inventory     String?
-  
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
   
@@ -244,20 +246,18 @@ model ServiceRequest {
   projectDescription  String               @map("project_description")
   budget              Decimal?             @db.Decimal(10, 2)
   deadline            DateTime?
-  
   status              ServiceRequestStatus @default(PENDING)
   producerResponse    String?              @map("producer_response")
 
   deliveryUrl         String?              @map("delivery_url")
   deliveryNotes       String?              @map("delivery_notes")
 
-  // Escrow payment fields (mirrors Booking payment flow)
+  // Escrow payment fields
   paymentStatus       PaymentStatus        @default(UNPAID) @map("payment_status")
   paymentIntentId     String?              @map("payment_intent_id")
   platformFee         Decimal?             @db.Decimal(10, 2) @map("platform_fee")
 
-  // Delivery verification (mirrors studio QR/confirmation code flow)
-  // deliveryCode is generated at payment time and revealed to client only when producer delivers
+  // Delivery verification
   deliveryCode        String?              @unique @map("delivery_code")
   deliveredAt         DateTime?            @map("delivered_at")
   clientConfirmedDelivery Boolean          @default(false) @map("client_confirmed_delivery")
@@ -341,7 +341,7 @@ model ClubMember {
 }
 
 // ============================================================================
-// MARKETPLACE MODELS
+// MARKETPLACE MODELS (BEATS & LICENSING)
 // ============================================================================
 
 enum BeatType {
@@ -349,11 +349,17 @@ enum BeatType {
   EXCLUSIVE
 }
 
+enum LicenseType {
+  BASIC_LEASE
+  PREMIUM_LEASE
+  TRACKOUT_LEASE
+  EXCLUSIVE
+}
+
 model Beat {
   id            String     @id @default(uuid())
   title         String
   description   String?
-  
   producerId    String     @map("producer_id")
   producer      User       @relation(fields: [producerId], references: [id], onDelete: Cascade)
   
@@ -362,15 +368,35 @@ model Beat {
   
   bpm           Int
   key           String?
-  price         Decimal    @db.Decimal(10, 2)
-  type          BeatType
+  
+  // Licensing Pricing Tiers
+  basicPrice      Decimal?   @db.Decimal(10, 2) @map("basic_price")
+  premiumPrice    Decimal?   @db.Decimal(10, 2) @map("premium_price")
+  trackoutPrice   Decimal?   @db.Decimal(10, 2) @map("trackout_price")
+  exclusivePrice  Decimal?   @db.Decimal(10, 2) @map("exclusive_price")
+
+  // Cloudflare R2 Secure File Keys (Private)
+  taggedMp3Key    String?    @map("tagged_mp3_key")
+  untaggedWavKey  String?    @map("untagged_wav_key")
+  stemsKey        String?    @map("stems_key")
+
+  // Audio Integrity (For the Legal Certificate & Shield)
+  fileHash        String?    @map("file_hash") 
+  fingerprintId   String?    @map("fingerprint_id") 
+
+  // Status
+  isExclusiveSold Boolean    @default(false) @map("is_exclusive_sold")
+
+  // Legacy fields (kept for backward compatibility during migration)
+  price         Decimal?   @db.Decimal(10, 2)
+  type          BeatType?
+  audioUrl      String?    @map("audio_url") // Make optional to support R2 transition
   
   genres        String[]
   moods         String[]
   tags          String[]
   
   imageUrl      String?    @map("image_url")
-  audioUrl      String     @map("audio_url")
   
   plays         Int        @default(0)
   likes         Int        @default(0)
@@ -380,15 +406,42 @@ model Beat {
   createdAt     DateTime   @default(now()) @map("created_at")
   updatedAt     DateTime   @updatedAt @map("updated_at")
 
-  // ✅ NEW: Beat Likes Relation
   beatLikes     BeatLike[] @relation("BeatLikes")
+  licenses      LicenseAgreement[]
 
   @@index([producerId])
   @@index([clubId])
   @@map("beats")
 }
 
-// ✅ NEW: Beat Like Model
+// ✅ NEW: The Legal Contract Engine
+model LicenseAgreement {
+  id                String      @id @default(uuid())
+  
+  beatId            String      @map("beat_id")
+  beat              Beat        @relation(fields: [beatId], references: [id])
+  
+  buyerId           String      @map("buyer_id")
+  buyer             User        @relation("BuyerLicenses", fields: [buyerId], references: [id])
+  
+  licenseType       LicenseType @map("license_type")
+  amountPaid        Decimal     @db.Decimal(10, 2) @map("amount_paid")
+  
+  // The Legal "Lock-In" Cryptographic Anchor
+  transactionHash   String      @unique @map("transaction_hash") 
+  licensedFileHash  String      @map("licensed_file_hash")       
+  
+  // Rights
+  publishingSplit   Decimal     @default(50.00) @db.Decimal(5, 2) @map("publishing_split")
+  masterSplit       Decimal     @default(0.00) @db.Decimal(5, 2) @map("master_split") 
+  
+  pdfUrl            String?     @map("pdf_url") 
+  
+  createdAt         DateTime    @default(now()) @map("created_at")
+  
+  @@map("license_agreements")
+}
+
 model BeatLike {
   id        String   @id @default(uuid())
 
@@ -410,7 +463,6 @@ model Studio {
   id            String   @id @default(uuid())
   name          String
   description   String?
-
   ownerId       String   @map("owner_id")
   owner         StudioOwnerProfile @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
@@ -430,7 +482,6 @@ model Studio {
 
   equipment     String[]
   capacity      String?
-
   imageUrl      String?  @map("image_url")
 
   rating        Decimal  @default(0) @db.Decimal(3, 2)
@@ -572,18 +623,18 @@ model Booking {
   totalAmount   Decimal        @map("total_amount") @db.Decimal(10, 2)
 
   notes         String?
-
+  
   // Session lifecycle fields
-  checkedInAt       DateTime?      @map("checked_in_at")
-  checkedOutAt      DateTime?      @map("checked_out_at")
-  qrCode            String?        @unique @map("qr_code")         // Unique QR code for check-in
-  overtimeMinutes   Int            @default(0) @map("overtime_minutes")
-  overtimeAmount    Decimal        @default(0) @map("overtime_amount") @db.Decimal(10, 2)
+  checkedInAt       DateTime?  @map("checked_in_at")
+  checkedOutAt      DateTime?  @map("checked_out_at")
+  qrCode            String?    @unique @map("qr_code")         // Unique QR code for check-in
+  overtimeMinutes   Int        @default(0) @map("overtime_minutes")
+  overtimeAmount    Decimal    @default(0) @map("overtime_amount") @db.Decimal(10, 2)
 
   // Payment/escrow fields
   paymentStatus     PaymentStatus  @default(UNPAID) @map("payment_status")
-  paymentIntentId   String?        @map("payment_intent_id")       // Stripe PaymentIntent ID
-  platformFee       Decimal        @default(0) @map("platform_fee") @db.Decimal(10, 2)
+  paymentIntentId   String?    @map("payment_intent_id")       // Stripe PaymentIntent ID
+  platformFee       Decimal    @default(0) @map("platform_fee") @db.Decimal(10, 2)
 
   // Session security fields
   bookerConfirmedCheckIn  Boolean    @default(false) @map("booker_confirmed_check_in")   // Artist confirmed they are present
@@ -685,7 +736,7 @@ model Collaboration {
 
   title         String
   description   String?
-
+  
   // Creator (producer/studio owner creating the deal/collab/bid)
   creatorId     String              @map("creator_id")
   creator       User                @relation("CollaborationCreator", fields: [creatorId], references: [id], onDelete: Cascade)
@@ -737,7 +788,7 @@ model CollaborationBid {
 
   amount          Decimal       @db.Decimal(10, 2)
   message         String?
-
+  
   status          String        @default("pending")  // pending, accepted, rejected
 
   createdAt       DateTime      @default(now()) @map("created_at")
@@ -817,7 +868,6 @@ model Activity {
   type        ActivityType
   title       String
   description String?
-  
   referenceId   String?    @map("reference_id")
   referenceType String?    @map("reference_type")
   
@@ -946,7 +996,7 @@ model CommunityPost {
 
 // Comments on community posts
 model CommunityComment {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
 
   postId    String   @map("post_id")
   post      CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
@@ -1005,7 +1055,7 @@ enum WithdrawalStatus {
 }
 
 model Wallet {
-  id               String   @id @default(uuid())
+  id                String   @id @default(uuid())
   userId           String   @unique @map("user_id")
   user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -1027,12 +1077,12 @@ model Wallet {
 }
 
 model WalletTransaction {
-  id            String               @id @default(uuid())
+  id             String               @id @default(uuid())
   walletId      String               @map("wallet_id")
   wallet        Wallet               @relation(fields: [walletId], references: [id], onDelete: Cascade)
 
   type          WalletTransactionType
-  amount        Decimal              @db.Decimal(12, 2)
+  amount        Decimal               @db.Decimal(12, 2)
   currency      String               @default("USD")
   description   String
 

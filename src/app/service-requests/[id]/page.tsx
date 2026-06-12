@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import { useUserBySupabaseId } from "@/hooks/api/useUserData";
+import { generateLicenseCertificate } from "@/lib/generateCertificate";
 import {
   ArrowLeft,
   Check,
@@ -20,7 +21,9 @@ import {
   User,
   XCircle,
   AlertCircle,
-  DownloadCloud
+  DownloadCloud,
+  UploadCloud,
+  ShieldCheck
 } from "lucide-react";
 
 interface ServiceRequestDetails {
@@ -31,8 +34,9 @@ interface ServiceRequestDetails {
   deadline: string | null;
   status: string;
   producerResponse: string | null;
-  deliveryUrl: string | null; // NEW: The URL where files are hosted
-  deliveryNotes: string | null; // NEW: Dedicated field for instructions
+  deliveryUrl: string | null;
+  deliveryNotes: string | null;
+  deliveryCode: string | null;
   respondedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -50,7 +54,7 @@ interface ServiceRequestDetails {
     fullName: string | null;
     avatar: string | null;
     primaryRole: string;
-    email?: string; // NEW: Added so producer knows who to grant Drive access to
+    email?: string;
   };
   producer: {
     id: string;
@@ -71,7 +75,6 @@ const formatAmount = (amount: number, currency: string = "USD") => {
   }).format(amount);
 };
 
-// ─── Status helpers ───────────────────────────────────────────────────────────
 const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
   PENDING:     { color: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20", label: "Pending" },
   ACCEPTED:    { color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20", label: "Accepted" },
@@ -89,7 +92,6 @@ const PAYMENT_CONFIG: Record<string, { color: string; label: string }> = {
   REFUNDED:         { color: "bg-blue-500/10 text-blue-400 border-blue-500/20", label: "Refunded" },
 };
 
-// ─── Escrow Timeline ──────────────────────────────────────────────────────────
 function EscrowTimeline({ request }: { request: ServiceRequestDetails }) {
   const steps = [
     { key: "sent",     label: "Request Sent",        done: true },
@@ -133,7 +135,6 @@ function EscrowTimeline({ request }: { request: ServiceRequestDetails }) {
   );
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
 export default function ServiceRequestDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
 
@@ -147,17 +148,18 @@ export default function ServiceRequestDetailPage({ params }: { params: { id: str
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState("");
+  const [statusText, setStatusText] = useState("");
 
   const [responseText, setResponseText] = useState("");
-  // NEW: Delivery URL State
-  const [deliveryUrl, setDeliveryUrl] = useState(""); 
+  const [deliveryFile, setDeliveryFile] = useState<File | null>(null);
   const [deliveryNotes, setDeliveryNotes] = useState("");
   
-  // Client Revision & Dispute States
   const [showRevisionForm, setShowRevisionForm] = useState(false);
   const [revisionNotes, setRevisionNotes] = useState("");
   const [disputeReason, setDisputeReason] = useState("");
   const [showDisputeForm, setShowDisputeForm] = useState(false);
+  const [deliveryCode, setDeliveryCode] = useState("");
+  const [agreementData, setAgreementData] = useState<any>(null);
 
   useEffect(() => {
     const loadUser = async () => {
@@ -181,7 +183,17 @@ export default function ServiceRequestDetailPage({ params }: { params: { id: str
       setError(null);
       const res = await fetch(`/api/service-requests/${params.id}`);
       if (!res.ok) throw new Error((await res.json()).error || "Failed to fetch");
-      setRequest((await res.json()).serviceRequest);
+      const data = await res.json();
+      setRequest(data.serviceRequest);
+      
+      if (data.serviceRequest.status === "COMPLETED") {
+        fetch(`/api/users/me/licenses`)
+          .then(r => r.json())
+          .then(d => {
+            const match = d.licenses?.find((l: any) => l.beatId === "custom" && l.amountPaid == data.serviceRequest.budget);
+            if (match) setAgreementData(match);
+          }).catch(e => console.error("Could not fetch agreement details"));
+      }
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -237,6 +249,81 @@ export default function ServiceRequestDetailPage({ params }: { params: { id: str
     }
   };
 
+  const computeFileHash = async (file: File): Promise<string> => {
+    const arrayBuffer = await file.arrayBuffer();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  };
+
+  const handleDeliverWork = async () => {
+    if (!deliveryFile) return setActionError("Please select a file to deliver.");
+    setActionLoading(true);
+    setActionError("");
+
+    try {
+      setStatusText("Computing cryptographic hash...");
+      const fileHash = await computeFileHash(deliveryFile);
+
+      setStatusText("Connecting to Beeps Vault...");
+      const presignRes = await fetch("/api/upload/presigned", {
+        method: "POST",
+        body: JSON.stringify({ fileName: deliveryFile.name, fileType: deliveryFile.type, fileCategory: "delivery" })
+      });
+      if (!presignRes.ok) throw new Error("Failed to secure upload link.");
+      const { uploadUrl, fileKey } = await presignRes.json();
+
+      setStatusText("Uploading High-Quality Files...");
+      const uploadRes = await fetch(uploadUrl, { method: "PUT", body: deliveryFile, headers: { "Content-Type": deliveryFile.type } });
+      if (!uploadRes.ok) throw new Error("File upload failed.");
+
+      setStatusText("Running Beeps Shield Scans...");
+      const submitRes = await fetch(`/api/service-requests/${request!.id}/deliver`, {
+        method: "POST",
+        body: JSON.stringify({ deliveryFileKey: fileKey, fileHash, deliveryNotes })
+      });
+      const submitData = await submitRes.json();
+
+      if (!submitRes.ok) throw new Error(submitData.error || "Delivery blocked.");
+
+      setStatusText("Delivery Successful!");
+      await fetchRequest();
+    } catch (err: any) {
+      setActionError(err.message);
+    } finally {
+      setActionLoading(false);
+      setStatusText("");
+    }
+  };
+
+  const handleConfirmDelivery = async () => {
+    if (!deliveryCode) return setActionError("Please enter your delivery code.");
+    setActionLoading(true);
+    setActionError("");
+    setStatusText("Securing License & Releasing Funds...");
+
+    try {
+      const res = await callAction(`/api/service-requests/${request!.id}/confirm-delivery`, { 
+        deliveryCode 
+      });
+      if (res) {
+        await fetchRequest();
+      }
+    } catch (err: any) {
+      setActionError(err.message);
+    } finally {
+      setActionLoading(false);
+      setStatusText("");
+    }
+  };
+
+  const handleDownloadCertificate = () => {
+    if (!agreementData || !request) return;
+    
+    const mockBeat = { title: request.projectTitle };
+    generateLicenseCertificate(agreementData, mockBeat, request.client.fullName, request.producer.fullName);
+  };
+
   const fmt = (d: string) => new Date(d).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
   const fmtShort = (d: string) => new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
@@ -274,7 +361,6 @@ export default function ServiceRequestDetailPage({ params }: { params: { id: str
     </div>
   );
 
-  // STRICT RBAC IDENTIFIERS
   const isProducer = currentUser?.id === request.producer.id;
   const isClient   = currentUser?.id === request.client.id;
   const other = isProducer ? request.client : request.producer;
@@ -293,7 +379,6 @@ export default function ServiceRequestDetailPage({ params }: { params: { id: str
     <div className="h-full overflow-y-auto bg-black text-zinc-200 selection:bg-white selection:text-black">
       <main className="relative mx-auto max-w-7xl px-4 pb-24 pt-5 sm:px-6 lg:px-8">
         
-        {/* Navigation */}
         <div className="mb-6 flex items-center justify-between">
           <button
             onClick={() => router.push("/bookings")}
@@ -313,7 +398,6 @@ export default function ServiceRequestDetailPage({ params }: { params: { id: str
           </div>
         </div>
 
-        {/* Global Error Banner */}
         {actionError && (
           <div className="mb-6 p-4 rounded-xl border border-red-500/20 bg-red-500/10 text-red-400 text-sm font-light tracking-wide flex items-start gap-3">
             <AlertCircle size={18} className="shrink-0 mt-0.5" />
@@ -323,12 +407,8 @@ export default function ServiceRequestDetailPage({ params }: { params: { id: str
 
         <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_370px]">
           
-          {/* ──────────────────────────────────────────────────────── */}
-          {/* LEFT COLUMN: Project Details, Timeline, Actions          */}
-          {/* ──────────────────────────────────────────────────────── */}
           <div className="min-w-0 space-y-6">
             
-            {/* Header & Details */}
             <div className="rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl p-6 sm:p-8">
               <h1 className="text-3xl font-light tracking-tight text-white sm:text-4xl mb-6">
                 {request.projectTitle}
@@ -346,55 +426,60 @@ export default function ServiceRequestDetailPage({ params }: { params: { id: str
               <EscrowTimeline request={request} />
             </div>
 
-            {/* ── PRODUCER ACTIONS: Mark as Delivered ───────────────────── */}
+            {/* Producer Delivery with R2 Upload */}
             {isProducer && request.status === "IN_PROGRESS" && request.paymentStatus === "PAYMENT_HELD" && (
               <div className="rounded-2xl border border-blue-500/20 bg-blue-500/5 p-6 shadow-xl">
                 <h2 className="text-lg font-light tracking-tight text-white mb-2">Deliver Final Work</h2>
-                <p className="text-sm font-light tracking-wide text-zinc-400 mb-6">
-                  Upload your files (WAV, Stems, ZIP) to Google Drive, Dropbox, or WeTransfer, and paste the shareable link below.
+                <p className="text-sm font-light tracking-wide text-zinc-400 mb-4">
+                  Upload your final WAV or ZIP file directly to the secure Beeps Vault. 
                 </p>
                 
-                {/* Helper explicitly showing Client Email */}
-                <div className="bg-blue-500/10 border border-blue-500/20 text-blue-200/80 p-3 rounded-xl text-xs font-light tracking-wide flex items-start gap-2 mb-6">
-                  <AlertCircle size={16} className="shrink-0 mt-0.5 text-blue-400" />
-                  <span>If using a private Google Drive link, ensure you grant access to the client's email: <strong className="text-white select-all">{request.client?.email || "Unknown"}</strong></span>
+                <div className="bg-blue-500/10 border border-blue-500/20 text-blue-200/80 p-3 rounded-xl text-xs flex items-center gap-2 mb-6">
+                  <ShieldCheck size={16} className="text-emerald-400" />
+                  <span>Files are scanned by Beeps Shield for exclusivity and copyrighted materials upon upload.</span>
                 </div>
+
+                {request.client?.email && (
+                  <div className="bg-blue-500/10 border border-blue-500/20 text-blue-200/80 p-3 rounded-xl text-xs font-light tracking-wide flex items-start gap-2 mb-6">
+                    <AlertCircle size={16} className="shrink-0 mt-0.5 text-blue-400" />
+                    <span>If using a private Google Drive link, ensure you grant access to the client's email: <strong className="text-white select-all">{request.client.email}</strong></span>
+                  </div>
+                )}
 
                 <div className="space-y-4 mb-6">
                   <div>
-                    <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-500 block mb-2">File Download URL *</label>
+                    <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-500 block mb-2">Final Deliverable (WAV / ZIP)</label>
                     <input
-                      type="url"
-                      placeholder="https://we.tl/... or https://drive.google.com/..."
-                      value={deliveryUrl}
-                      onChange={(e) => setDeliveryUrl(e.target.value)}
-                      className="w-full px-4 py-3.5 rounded-xl border border-zinc-800 bg-[#08080a] text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-blue-500 transition-colors font-light tracking-wide"
+                      type="file"
+                      accept=".wav,.zip"
+                      onChange={(e) => setDeliveryFile(e.target.files?.[0] || null)}
+                      className="w-full bg-zinc-950 border border-zinc-800 p-4 rounded-xl text-zinc-400 file:bg-white file:text-black file:border-0 file:px-4 file:py-2 file:rounded-full file:font-bold file:mr-4 file:cursor-pointer hover:border-zinc-700 transition-colors"
                     />
                   </div>
                   <div>
                     <label className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-500 block mb-2">Delivery Notes (BPM, Key, etc.)</label>
                     <textarea
                       rows={3}
-                      placeholder="e.g. Here are the stems. The BPM is 140 and the Key is C Minor..."
                       value={deliveryNotes}
                       onChange={(e) => setDeliveryNotes(e.target.value)}
+                      placeholder="e.g. Here are the stems. The BPM is 140 and the Key is C Minor..."
                       className="w-full px-4 py-3.5 rounded-xl border border-zinc-800 bg-[#08080a] text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-blue-500 transition-colors font-light tracking-wide resize-none"
                     />
                   </div>
                 </div>
 
                 <button
-                  onClick={() => callAction(`/api/service-requests/${request.id}/deliver`, { deliveryUrl, deliveryNotes })}
-                  disabled={actionLoading || !deliveryUrl}
+                  onClick={handleDeliverWork}
+                  disabled={actionLoading || !deliveryFile}
                   className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3.5 text-sm font-semibold tracking-wide text-white transition-all hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <PackageCheck className="w-4 h-4" />}
-                  Submit Final Delivery
+                  {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
+                  {actionLoading ? statusText : "Upload to Beeps Vault & Deliver"}
                 </button>
               </div>
             )}
 
-            {/* ── CLIENT ACTIONS: Review Delivery & Request Revision ─────── */}
+            {/* Client Review with Download and Code Entry */}
             {isClient && request.status === "DELIVERED" && request.paymentStatus === "PAYMENT_HELD" && !hasOpenDispute && (
               <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-6 shadow-xl">
                 <div className="flex items-start gap-4 mb-6">
@@ -404,7 +489,7 @@ export default function ServiceRequestDetailPage({ params }: { params: { id: str
                   <div>
                     <h2 className="text-lg font-light tracking-tight text-white mb-1">Work Delivered!</h2>
                     <p className="text-sm font-light tracking-wide text-zinc-400 mb-2">
-                      Please review the delivery notes and files provided by the producer. 
+                      Review your files. If approved, enter your confirmation code to legally execute the agreement and release funds.
                     </p>
                     {request.autoReleaseAt && (
                       <p className="text-xs text-emerald-400/80 bg-emerald-500/10 px-3 py-1.5 rounded-lg inline-block font-medium">
@@ -414,37 +499,45 @@ export default function ServiceRequestDetailPage({ params }: { params: { id: str
                   </div>
                 </div>
 
-                {/* PRODUCER FILES / DOWNLOAD LINK */}
                 {request.deliveryUrl && (
                   <div className="mb-6 p-5 rounded-xl border border-emerald-500/20 bg-[#08080a]">
-                    <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-emerald-500 mb-3">Project Files</h3>
+                    <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-emerald-500 mb-3">Beeps Vault - Protected Files</h3>
                     <a
-                      href={request.deliveryUrl}
+                      href={`/api/service-requests/${request.id}/download`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 px-4 py-3.5 text-sm font-medium text-emerald-400 transition-all border border-emerald-500/20"
                     >
                       <DownloadCloud size={18} />
-                      Download / View Files
+                      Download Files for Review
                     </a>
                   </div>
                 )}
                 
                 {!showRevisionForm ? (
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <button
-                      onClick={() => callAction(`/api/service-requests/${request.id}/confirm-delivery`)}
-                      disabled={actionLoading}
-                      className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-3.5 text-sm font-semibold tracking-wide text-white transition-all hover:bg-emerald-700 disabled:opacity-50"
-                    >
-                      {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                      Approve & Release Funds
-                    </button>
+                  <div className="space-y-3">
+                    <div className="flex gap-3">
+                      <input
+                        type="text"
+                        placeholder="Enter Code (e.g., 123456)"
+                        value={deliveryCode}
+                        onChange={(e) => setDeliveryCode(e.target.value)}
+                        className="flex-1 px-4 py-3.5 rounded-xl border border-zinc-800 bg-black font-mono uppercase tracking-widest text-center text-white outline-none focus:border-emerald-500"
+                      />
+                      <button
+                        onClick={handleConfirmDelivery}
+                        disabled={actionLoading || !deliveryCode}
+                        className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-3.5 text-sm font-semibold tracking-wide text-white transition-all hover:bg-emerald-700 disabled:opacity-50"
+                      >
+                        {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                        {actionLoading ? statusText : "Approve & Certify"}
+                      </button>
+                    </div>
 
                     <button
                       onClick={() => setShowRevisionForm(true)}
                       disabled={actionLoading}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-zinc-700 bg-[#08080a] px-6 py-3.5 text-sm font-medium tracking-wide text-zinc-300 transition-all hover:bg-zinc-900 hover:text-white disabled:opacity-50"
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-700 bg-[#08080a] px-6 py-3.5 text-sm font-medium tracking-wide text-zinc-300 transition-all hover:bg-zinc-900 hover:text-white disabled:opacity-50"
                     >
                       Request Revision
                     </button>
@@ -461,7 +554,6 @@ export default function ServiceRequestDetailPage({ params }: { params: { id: str
                     />
                     <div className="flex gap-2">
                       <button
-                        // This hits a specific POST endpoint rather than generic PATCH for strict RBAC security
                         onClick={() => callAction(`/api/service-requests/${request.id}/request-revision`, { notes: revisionNotes })}
                         disabled={actionLoading || revisionNotes.trim().length < 5}
                         className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-black hover:bg-zinc-200 transition-all disabled:opacity-50"
@@ -480,7 +572,40 @@ export default function ServiceRequestDetailPage({ params }: { params: { id: str
               </div>
             )}
 
-            {/* ── Producer Response / Delivery Notes ───────────────────── */}
+            {/* Completed Certificate Section */}
+            {isClient && request.status === "COMPLETED" && (
+              <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-6 shadow-xl">
+                 <div className="flex items-start gap-4 mb-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500/10 text-amber-400">
+                    <ShieldCheck size={24} />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-white mb-1">Deal Certified & Executed</h2>
+                    <p className="text-sm text-zinc-400">Your Exclusive Work-for-Hire license has been generated and cryptographically signed. Funds have been released.</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mt-6">
+                  <a
+                    href={`/api/service-requests/${request.id}/download`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-white text-black px-4 py-3.5 text-sm font-bold transition-all hover:bg-zinc-200"
+                  >
+                    <DownloadCloud size={18} /> Download Files
+                  </a>
+
+                  <button
+                    onClick={handleDownloadCertificate}
+                    disabled={!agreementData}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-600 text-white px-4 py-3.5 text-sm font-bold transition-all hover:bg-amber-700 disabled:opacity-50"
+                  >
+                    <FileText size={18} /> {agreementData ? "Print Certificate" : "Loading Cert..."}
+                  </button>
+                </div>
+              </div>
+            )}
+
             {(request.producerResponse || request.deliveryNotes) && (
               <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6 shadow-xl">
                 <h2 className="mb-4 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-zinc-500">
@@ -495,7 +620,6 @@ export default function ServiceRequestDetailPage({ params }: { params: { id: str
               </div>
             )}
 
-            {/* ── PRODUCER ACTIONS: Accept / Reject (PENDING) ───────────── */}
             {isProducer && request.status === "PENDING" && (
               <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6 shadow-xl">
                 <h2 className="text-lg font-light tracking-tight text-white mb-4">Respond to Request</h2>
@@ -526,7 +650,6 @@ export default function ServiceRequestDetailPage({ params }: { params: { id: str
               </div>
             )}
 
-            {/* ── CLIENT ACTIONS: Cancel (PENDING) ───────────── */}
             {isClient && request.status === "PENDING" && (
               <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6 shadow-xl">
                 <h2 className="text-lg font-light tracking-tight text-white mb-2">Awaiting Producer Response</h2>
@@ -544,12 +667,8 @@ export default function ServiceRequestDetailPage({ params }: { params: { id: str
             )}
           </div>
 
-          {/* ──────────────────────────────────────────────────────── */}
-          {/* RIGHT COLUMN: Sticky Escrow & Meta Sidebar               */}
-          {/* ──────────────────────────────────────────────────────── */}
           <aside className="space-y-6 lg:sticky lg:top-5 lg:self-start">
             
-            {/* ESCROW FINANCIALS */}
             {budgetNum > 0 && (
               <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6 shadow-2xl">
                 <div className="flex items-center justify-between mb-6">
@@ -573,7 +692,6 @@ export default function ServiceRequestDetailPage({ params }: { params: { id: str
                   </div>
                 </div>
 
-                {/* CLIENT PAY ACTION */}
                 {isClient && request.status === "ACCEPTED" && request.paymentStatus === "UNPAID" && (
                   <button
                     onClick={() => callAction(`/api/service-requests/${request.id}/pay`)}
@@ -585,7 +703,6 @@ export default function ServiceRequestDetailPage({ params }: { params: { id: str
                   </button>
                 )}
 
-                {/* ESCROW STATUS NOTE */}
                 {request.paymentStatus === "PAYMENT_HELD" && !request.clientConfirmedDelivery && !hasOpenDispute && (
                   <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 flex items-start gap-3">
                     <Lock className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
@@ -595,7 +712,6 @@ export default function ServiceRequestDetailPage({ params }: { params: { id: str
                   </div>
                 )}
 
-                {/* COMPLETED / RELEASED STATUS NOTE */}
                 {request.status === "COMPLETED" && (
                   <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 flex items-start gap-3 mt-4">
                     <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
@@ -607,7 +723,6 @@ export default function ServiceRequestDetailPage({ params }: { params: { id: str
               </div>
             )}
 
-            {/* DATES & META */}
             <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5 shadow-xl">
               <div className="space-y-4">
                 {request.deadline && (
@@ -629,7 +744,6 @@ export default function ServiceRequestDetailPage({ params }: { params: { id: str
               </div>
             </div>
 
-            {/* PARTIES INVOLVED */}
             <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5 shadow-xl">
               <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-500 mb-4">
                 {isProducer ? "Client Details" : "Producer Details"}
@@ -664,7 +778,6 @@ export default function ServiceRequestDetailPage({ params }: { params: { id: str
               </div>
             </div>
 
-            {/* DISPUTE SYSTEM */}
             {hasOpenDispute ? (
               <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-5 shadow-xl">
                 <div className="flex items-center gap-2 mb-3">
