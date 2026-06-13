@@ -23,7 +23,11 @@ import {
   AlertCircle,
   DownloadCloud,
   UploadCloud,
-  ShieldCheck
+  ShieldCheck,
+  Paperclip,
+  Send,
+  Volume2,
+  X
 } from "lucide-react";
 
 interface ServiceRequestDetails {
@@ -161,6 +165,11 @@ export default function ServiceRequestDetailPage({ params }: { params: { id: str
   const [deliveryCode, setDeliveryCode] = useState("");
   const [agreementData, setAgreementData] = useState<any>(null);
 
+  const [messages, setMessages] = useState<any[]>([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [previewFile, setPreviewFile] = useState<File | null>(null);
+  const [isSendingMsg, setIsSendingMsg] = useState(false);
+
   useEffect(() => {
     const loadUser = async () => {
       const supabase = createBrowserClient(
@@ -174,7 +183,9 @@ export default function ServiceRequestDetailPage({ params }: { params: { id: str
   }, []);
 
   useEffect(() => {
-    if (params.id) fetchRequest();
+    if (params.id) {
+      fetchRequest().then(() => fetchMessages());
+    }
   }, [params.id]);
 
   const fetchRequest = async () => {
@@ -199,6 +210,16 @@ export default function ServiceRequestDetailPage({ params }: { params: { id: str
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchMessages = async () => {
+    try {
+      const res = await fetch(`/api/service-requests/${params.id}/messages`);
+      if (res.ok) {
+        const data = await res.json();
+        setMessages(data.messages);
+      }
+    } catch (e) { console.error(e); }
   };
 
   const callAction = async (url: string, body: object = {}) => {
@@ -324,6 +345,48 @@ export default function ServiceRequestDetailPage({ params }: { params: { id: str
     generateLicenseCertificate(agreementData, mockBeat, request.client.fullName, request.producer.fullName);
   };
 
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() && !previewFile) return;
+    setIsSendingMsg(true);
+
+    try {
+      let fileKey = null;
+      if (previewFile) {
+        setStatusText("Uploading Preview Audio...");
+        const presignRes = await fetch("/api/upload/presigned", {
+          method: "POST",
+          body: JSON.stringify({ fileName: previewFile.name, fileType: previewFile.type, fileCategory: "preview" })
+        });
+        const { uploadUrl, fileKey: key } = await presignRes.json();
+        await fetch(uploadUrl, { method: "PUT", body: previewFile, headers: { "Content-Type": previewFile.type } });
+        fileKey = key;
+      }
+
+      const res = await fetch(`/api/service-requests/${params.id}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: newMessage,
+          fileKey,
+          fileName: previewFile?.name,
+          fileType: previewFile?.type
+        })
+      });
+      
+      if (res.ok) {
+        const { message } = await res.json();
+        setMessages(prev => [...prev, message]);
+        setNewMessage("");
+        setPreviewFile(null);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsSendingMsg(false);
+      setStatusText("");
+    }
+  };
+
   const fmt = (d: string) => new Date(d).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
   const fmtShort = (d: string) => new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
@@ -424,6 +487,81 @@ export default function ServiceRequestDetailPage({ params }: { params: { id: str
               </div>
 
               <EscrowTimeline request={request} />
+            </div>
+
+            {/* ============================================================== */}
+            {/* EMBEDDED WORKSPACE CHAT & PREVIEW ROOM */}
+            {/* ============================================================== */}
+            <div className="rounded-2xl border border-zinc-800 bg-zinc-950 flex flex-col shadow-xl overflow-hidden">
+              <div className="bg-[#08080a] border-b border-zinc-800 px-6 py-4 flex items-center justify-between">
+                <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-zinc-400">
+                  <MessageCircle size={16} className="text-purple-500" /> Project Workspace
+                </h2>
+                <span className="text-[10px] text-zinc-500 bg-zinc-900 px-2 py-1 rounded">WIP Previews</span>
+              </div>
+
+              <div className="p-6 h-[400px] overflow-y-auto flex flex-col gap-6 bg-[url('/noise.png')] bg-repeat opacity-95">
+                {messages.length === 0 ? (
+                  <div className="flex-1 flex flex-col items-center justify-center text-zinc-500">
+                    <Volume2 size={32} className="mb-2 opacity-50" />
+                    <p className="text-sm">No messages yet. Drop a rough draft MP3 here to get feedback.</p>
+                  </div>
+                ) : (
+                  messages.map((msg) => {
+                    const isMe = msg.senderId === currentUser?.id;
+                    return (
+                      <div key={msg.id} className={`flex gap-3 max-w-[80%] ${isMe ? "self-end flex-row-reverse" : "self-start"}`}>
+                        <img src={msg.sender.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.sender.id}`} className="w-8 h-8 rounded-full bg-zinc-800" />
+                        <div className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}>
+                          <span className="text-[10px] text-zinc-500 mb-1">{msg.sender.fullName || msg.sender.username}</span>
+                          
+                          <div className={`p-4 rounded-2xl ${isMe ? "bg-purple-600 text-white rounded-tr-sm" : "bg-zinc-800 text-zinc-200 rounded-tl-sm"}`}>
+                            {msg.content && <p className="text-sm font-light leading-relaxed">{msg.content}</p>}
+                            
+                            {msg.fileUrl && msg.fileType?.includes('audio') && (
+                              <div className={`mt-3 p-3 rounded-xl flex flex-col gap-2 ${isMe ? 'bg-purple-700/50' : 'bg-zinc-900/50'}`}>
+                                <span className="text-xs font-semibold flex items-center gap-1.5 opacity-90"><Volume2 size={14} /> {msg.fileName}</span>
+                                <audio controls src={msg.fileUrl} className="h-8 w-full max-w-[250px]" />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              <div className="bg-[#08080a] border-t border-zinc-800 p-4">
+                {previewFile && (
+                  <div className="mb-3 px-3 py-2 bg-purple-500/10 border border-purple-500/20 text-purple-400 rounded-lg text-xs flex justify-between items-center">
+                    <span className="truncate">{previewFile.name}</span>
+                    <button onClick={() => setPreviewFile(null)}><X size={14} /></button>
+                  </div>
+                )}
+                <div className="flex items-end gap-2">
+                  <label className="p-3 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 rounded-xl text-zinc-400 cursor-pointer transition-colors">
+                    <Paperclip size={18} />
+                    <input type="file" accept="audio/*" className="hidden" onChange={(e) => setPreviewFile(e.target.files?.[0] || null)} />
+                  </label>
+                  
+                  <textarea
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder="Type a message or attach a preview..."
+                    rows={1}
+                    className="flex-1 bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-500 outline-none focus:border-purple-500 resize-none"
+                  />
+                  
+                  <button
+                    onClick={handleSendMessage}
+                    disabled={isSendingMsg || (!newMessage.trim() && !previewFile)}
+                    className="p-3 bg-purple-600 hover:bg-purple-700 rounded-xl text-white transition-colors disabled:opacity-50"
+                  >
+                    {isSendingMsg ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* Producer Delivery with R2 Upload */}

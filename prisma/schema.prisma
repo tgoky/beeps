@@ -1138,3 +1138,30 @@ model WithdrawalRequest {
   @@index([status])
   @@map("withdrawal_requests")
 }
+
+// ============================================================================
+// WORKSPACE MESSAGING (For Service Requests)
+// ============================================================================
+
+model WorkspaceMessage {
+  id               String         @id @default(uuid())
+  
+  serviceRequestId String         @map("service_request_id")
+  serviceRequest   ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
+
+  senderId         String         @map("sender_id")
+  sender           User           @relation("SentWorkspaceMessages", fields: [senderId], references: [id], onDelete: Cascade)
+
+  content          String?        @db.Text
+  
+  // Preview Attachments (WIP MP3s)
+  fileKey          String?        @map("file_key")      // Cloudflare R2 Key
+  fileName         String?        @map("file_name")     // e.g. "Rough_Draft_v1.mp3"
+  fileType         String?        @map("file_type")     // e.g. "audio/mpeg"
+
+  createdAt        DateTime       @default(now()) @map("created_at")
+
+  @@index([serviceRequestId])
+  @@index([createdAt])
+  @@map("workspace_messages")
+}
