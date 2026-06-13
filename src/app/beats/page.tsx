@@ -10,6 +10,8 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { getRoleDisplayName } from '@/lib/permissions';
 import { useBeats, type Beat as APIBeat } from "@/hooks/useBeats";
 
+import { formatAmount } from "@/lib/currency";
+
 type Beat = {
   id: number;
   title: string;
@@ -452,14 +454,15 @@ export default function BeatMarketplace() {
 
                         <div className="flex flex-col items-end gap-3 pl-4 border-l border-zinc-800">
                           <div className="text-right">
-                            <div className="text-lg font-medium tracking-tight text-white">
-                              ${beat.price}
-                            </div>
-                            {beat.deal && (
-                              <div className="text-xs font-medium text-red-400 tracking-wide line-through">
-                                ${(beat.price / (1 - beat.deal.discount / 100)).toFixed(2)}
-                              </div>
-                            )}
+                            {/* We assume the producer's currency is returned, otherwise fallback to "USD" */}
+<div className="text-lg font-medium tracking-tight text-white">
+  {formatAmount(beat.price, (beat as any).producer?.currency || "USD")}
+</div>
+{beat.deal && (
+  <div className="text-xs font-medium text-red-400 tracking-wide line-through">
+    {formatAmount((beat.price / (1 - beat.deal.discount / 100)), (beat as any).producer?.currency || "USD")}
+  </div>
+)}
                           </div>
 
                           <BeatCardActions beat={beat} />

@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { usePermissions } from "@/hooks/usePermissions";
+import { createBrowserClient } from "@supabase/ssr";
+import { useUserBySupabaseId } from "@/hooks/api/useUserData";
+import { getCurrencySymbol } from "@/lib/currency";
 import {
   Music,
   UploadCloud,
@@ -14,7 +17,8 @@ import {
   AlertCircle,
   Image as ImageIcon,
   Settings2,
-  ShieldCheck
+  ShieldCheck,
+  ArrowLeft
 } from "lucide-react";
 
 const GENRES = [
@@ -30,6 +34,11 @@ const MOODS = [
 export default function UploadBeat() {
   const router = useRouter();
   const { permissions } = usePermissions();
+
+  const [supabaseUser, setSupabaseUser] = useState<any>(null);
+  const { data: currentUser, isLoading: userLoading } = useUserBySupabaseId(supabaseUser?.id, {
+    enabled: !!supabaseUser?.id,
+  });
 
   const [formData, setFormData] = useState({
     title: "",
@@ -52,9 +61,23 @@ export default function UploadBeat() {
   const [file, setFile] = useState<File | null>(null);
   const [statusText, setStatusText] = useState("");
 
+  useEffect(() => {
+    const loadUser = async () => {
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+      const { data: { user } } = await supabase.auth.getUser();
+      setSupabaseUser(user);
+    };
+    loadUser();
+  }, []);
+
+  const currencySymbol = getCurrencySymbol(currentUser?.currency || "USD");
+
   if (!permissions?.canUploadBeats) {
     return (
-      <div className="flex h-full overflow-y-auto items-center justify-center bg-black px-4 text-white">
+      <div className="flex h-full overflow-y-auto items-center justify-center bg-[#030303] px-4 text-white">
         <div className="w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-950 p-8 text-center shadow-2xl">
           <AlertCircle className="mx-auto mb-4 h-10 w-10 text-red-500" />
           <h1 className="text-2xl font-light tracking-tight">Access Denied</h1>
@@ -63,7 +86,7 @@ export default function UploadBeat() {
           </p>
           <button
             onClick={() => router.push("/beats")}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-purple-600 px-5 py-3 text-sm font-semibold tracking-wide text-white transition-all hover:bg-purple-700"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold tracking-wide text-black transition-all hover:bg-zinc-200"
           >
             Back to Beats
           </button>
@@ -152,18 +175,23 @@ export default function UploadBeat() {
   };
 
   const labelClass = "text-[10px] font-semibold uppercase tracking-[0.15em] text-zinc-500 block mb-2";
-  const inputClass = "w-full px-4 py-3.5 rounded-xl border border-zinc-800 bg-[#08080a] text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-purple-500 transition-colors font-light tracking-wide";
+  const inputClass = "w-full px-4 py-3.5 rounded-xl border border-zinc-800 bg-[#08080a] text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-white transition-colors font-light tracking-wide";
 
   return (
-    <div className="h-full overflow-y-auto bg-[#030303] text-zinc-200 selection:bg-purple-500/30">
-      <main className="relative mx-auto max-w-7xl px-4 pb-24 pt-8 sm:px-6 lg:px-8">
+    <div className="h-full overflow-y-auto bg-[#030303] text-zinc-200 selection:bg-white/30">
+      <main className="relative mx-auto max-w-[1600px] px-6 md:px-8 pb-24 pt-8">
         
-        {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-light tracking-tight text-white sm:text-4xl mb-2">
+          <button
+            onClick={() => router.push("/beats")}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-zinc-800 bg-zinc-950 text-zinc-300 shadow-lg transition-colors hover:border-zinc-700 hover:bg-zinc-900 hover:text-white mb-6"
+          >
+            <ArrowLeft size={18} strokeWidth={1.5} />
+          </button>
+          <h1 className="text-3xl font-semibold tracking-tight text-white mb-2">
             Upload Beat
           </h1>
-          <p className="text-sm font-light tracking-wide text-zinc-500 flex items-center gap-2">
+          <p className="text-sm text-zinc-400 flex items-center gap-2">
             Share your production with artists worldwide. 
             <span className="inline-flex items-center gap-1 text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 text-xs">
               <ShieldCheck size={12} /> Protected by Beeps Shield
@@ -171,7 +199,6 @@ export default function UploadBeat() {
           </p>
         </div>
 
-        {/* Banners */}
         {success && (
           <div className="mb-6 p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 flex items-start gap-3">
             <CheckCircle2 size={18} className="shrink-0 mt-0.5" />
@@ -189,19 +216,17 @@ export default function UploadBeat() {
           </div>
         )}
 
-        {/* Main Grid Layout */}
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_400px] gap-6">
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_400px] gap-8">
           
-          {/* LEFT COLUMN: Core Info & Audio */}
-          <div className="space-y-6 min-w-0">
+          {/* LEFT COLUMN */}
+          <div className="space-y-8 min-w-0">
             
-            {/* Audio File Upload */}
-            <div className="rounded-2xl border border-purple-500/20 bg-purple-500/5 p-6 sm:p-8 shadow-xl">
-               <h2 className="mb-6 flex items-center gap-2 text-lg font-light tracking-tight text-white">
-                <Music className="text-purple-400" size={20} /> Audio File
+            <div className="rounded-2xl border border-zinc-800 bg-[#0A0A0A] p-6 sm:p-8 shadow-xl">
+               <h2 className="mb-6 flex items-center gap-2 text-lg font-medium tracking-tight text-white">
+                <Music className="text-zinc-400" size={20} /> Audio File
               </h2>
               <div>
-                <label className={labelClass}>High-Quality Audio (.WAV / .MP3) <span className="text-purple-500">*</span></label>
+                <label className={labelClass}>High-Quality Audio (.WAV / .MP3) <span className="text-white">*</span></label>
                 <input
                   type="file"
                   accept=".wav,.mp3"
@@ -209,21 +234,20 @@ export default function UploadBeat() {
                   className="w-full bg-zinc-950 border border-zinc-800 p-4 rounded-xl text-zinc-400 file:bg-white file:text-black file:border-0 file:px-4 file:py-2 file:rounded-full file:font-bold file:mr-4 file:cursor-pointer hover:border-zinc-700 transition-colors cursor-pointer"
                 />
                 <p className="text-[11px] font-light text-zinc-500 mt-2 flex items-center gap-1.5">
-                  <ShieldCheck size={12} className="text-purple-500" />
+                  <ShieldCheck size={12} className="text-emerald-500" />
                   File is automatically fingerprinted for copyright protection and exclusivity locking.
                 </p>
               </div>
             </div>
 
-            {/* Basic Information */}
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6 sm:p-8 shadow-xl">
-              <h2 className="mb-6 flex items-center gap-2 text-lg font-light tracking-tight text-white">
+            <div className="rounded-2xl border border-zinc-800 bg-[#0A0A0A] p-6 sm:p-8 shadow-xl">
+              <h2 className="mb-6 flex items-center gap-2 text-lg font-medium tracking-tight text-white">
                 <Settings2 className="text-zinc-400" size={20} /> Basic Details
               </h2>
               
               <div className="space-y-5">
                 <div>
-                  <label className={labelClass}>Title <span className="text-purple-500">*</span></label>
+                  <label className={labelClass}>Title <span className="text-white">*</span></label>
                   <input
                     type="text"
                     name="title"
@@ -249,7 +273,7 @@ export default function UploadBeat() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div>
-                    <label className={labelClass}>BPM <span className="text-purple-500">*</span></label>
+                    <label className={labelClass}>BPM <span className="text-white">*</span></label>
                     <input
                       type="number"
                       name="bpm"
@@ -272,7 +296,7 @@ export default function UploadBeat() {
                     />
                   </div>
                   <div>
-                    <label className={labelClass}>License <span className="text-purple-500">*</span></label>
+                    <label className={labelClass}>License <span className="text-white">*</span></label>
                     <select
                       name="type"
                       value={formData.type}
@@ -284,7 +308,8 @@ export default function UploadBeat() {
                     </select>
                   </div>
                   <div>
-                    <label className={labelClass}>Price ($) <span className="text-purple-500">*</span></label>
+                    {/* 🌍 DYNAMIC CURRENCY LABEL */}
+                    <label className={labelClass}>Price ({currencySymbol}) <span className="text-white">*</span></label>
                     <input
                       type="number"
                       step="0.01"
@@ -300,20 +325,19 @@ export default function UploadBeat() {
               </div>
             </div>
             
-            {/* Submit Button (Desktop: Bottom of Left Col, Mobile: Bottom of screen) */}
-            <div className="hidden lg:flex gap-4 pt-4">
+            <div className="hidden xl:flex gap-4 pt-4">
               <button
                 type="button"
                 onClick={() => router.push("/beats")}
                 disabled={loading}
-                className="flex-1 py-4 px-6 rounded-xl font-semibold transition-all border border-zinc-700 bg-[#08080a] text-zinc-300 hover:bg-zinc-900 hover:text-white disabled:opacity-50"
+                className="flex-1 py-4 px-6 rounded-xl font-medium transition-all border border-zinc-700 bg-[#08080a] text-zinc-300 hover:bg-zinc-900 hover:text-white disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading || !formData.title || !file}
-                className="flex-[2] py-4 px-6 rounded-xl font-bold transition-all flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50"
+                className="flex-[2] py-4 px-6 rounded-xl font-medium transition-all flex items-center justify-center gap-2 bg-white hover:bg-zinc-200 text-black disabled:opacity-50"
               >
                 {loading ? (
                   <><Loader2 className="w-5 h-5 animate-spin" /> {statusText || "Processing..."}</>
@@ -324,10 +348,10 @@ export default function UploadBeat() {
             </div>
           </div>
 
-          {/* RIGHT COLUMN: Metadata & Artwork */}
+          {/* RIGHT COLUMN */}
           <aside className="space-y-6">
             
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6 shadow-xl">
+            <div className="rounded-2xl border border-zinc-800 bg-[#0A0A0A] p-6 shadow-xl">
               <h2 className="mb-4 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-zinc-500">
                 <ImageIcon size={14} className="text-zinc-400" /> Cover Artwork
               </h2>
@@ -346,9 +370,9 @@ export default function UploadBeat() {
               )}
             </div>
 
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6 shadow-xl">
+            <div className="rounded-2xl border border-zinc-800 bg-[#0A0A0A] p-6 shadow-xl">
               <h2 className="mb-4 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-zinc-500">
-                <Tag size={14} className="text-zinc-400" /> Genres <span className="text-purple-500">*</span>
+                <Tag size={14} className="text-zinc-400" /> Genres <span className="text-white">*</span>
               </h2>
               <div className="flex flex-wrap gap-2">
                 {GENRES.map(genre => (
@@ -358,8 +382,8 @@ export default function UploadBeat() {
                     onClick={() => toggleGenre(genre)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
                       genres.includes(genre)
-                        ? "bg-purple-500/10 text-purple-400 border-purple-500/30"
-                        : "bg-[#08080a] text-zinc-400 border-zinc-800 hover:border-zinc-700"
+                        ? "bg-white text-black border-white"
+                        : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-700 hover:text-white"
                     }`}
                   >
                     {genre}
@@ -368,7 +392,7 @@ export default function UploadBeat() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6 shadow-xl">
+            <div className="rounded-2xl border border-zinc-800 bg-[#0A0A0A] p-6 shadow-xl">
               <h2 className="mb-4 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-zinc-500">
                 <Tag size={14} className="text-zinc-400" /> Moods
               </h2>
@@ -380,8 +404,8 @@ export default function UploadBeat() {
                     onClick={() => toggleMood(mood)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
                       moods.includes(mood)
-                        ? "bg-purple-500/10 text-purple-400 border-purple-500/30"
-                        : "bg-[#08080a] text-zinc-400 border-zinc-800 hover:border-zinc-700"
+                        ? "bg-white text-black border-white"
+                        : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-700 hover:text-white"
                     }`}
                   >
                     {mood}
@@ -390,7 +414,7 @@ export default function UploadBeat() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6 shadow-xl">
+            <div className="rounded-2xl border border-zinc-800 bg-[#0A0A0A] p-6 shadow-xl">
               <h2 className="mb-4 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-zinc-500">
                 <Tag size={14} className="text-zinc-400" /> Custom Tags
               </h2>
@@ -425,12 +449,11 @@ export default function UploadBeat() {
               )}
             </div>
             
-            {/* Mobile Submit Button (Visible only on small screens) */}
-            <div className="flex lg:hidden gap-4 pt-4 pb-8">
+            <div className="flex xl:hidden gap-4 pt-4 pb-8">
                <button
                 type="submit"
                 disabled={loading || !formData.title || !file}
-                className="w-full py-4 px-6 rounded-xl font-bold transition-all flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50 shadow-lg shadow-purple-500/20"
+                className="w-full py-4 px-6 rounded-xl font-bold transition-all flex items-center justify-center gap-2 bg-white hover:bg-zinc-200 text-black disabled:opacity-50"
               >
                 {loading ? <><Loader2 className="w-5 h-5 animate-spin" /> {statusText || "Processing..."}</> : <><UploadCloud className="w-5 h-5" /> Publish Beat</>}
               </button>
