@@ -1,8 +1,9 @@
 // src/lib/api-middleware.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { prisma } from '@/lib/prisma';
 import type { UserRole, ClubMemberRole } from '@prisma/client';
+
 import type { ApiResponse, UserPermissions, UserWithProfiles } from '@/types';
 
 // ============================================================================
@@ -39,14 +40,21 @@ async function verifyClaims(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return cookieStore.getAll();
+        get(name: string) {
+          return cookieStore.get(name)?.value;
         },
-        setAll(cookiesToSet) {
+        set(name: string, value: string, options: CookieOptions) {
           try {
-            cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
+            cookieStore.set({ name, value, ...options });
           } catch {
             // Ignored in edge/streaming contexts where cookies can't be set
+          }
+        },
+        remove(name: string, options: CookieOptions) {
+          try {
+            cookieStore.set({ name, value: '', ...options });
+          } catch {
+            // Ignored in edge/streaming contexts
           }
         },
       },

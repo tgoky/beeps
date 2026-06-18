@@ -2,11 +2,13 @@
 // Returns current authenticated user with complete permissions
 
 import { NextRequest, NextResponse } from 'next/server';
-import { withAuth } from '@/lib/api-middleware';
+// 1. CHANGE THIS IMPORT
+import { withFullUser } from '@/lib/api-middleware'; 
 import type { ApiResponse } from '@/types';
 
 export async function GET(request: NextRequest) {
-  return withAuth(request, async (req) => {
+  // 2. CHANGE THIS WRAPPER
+  return withFullUser(request, async (req) => {
     try {
       const user = req.user!;
       const permissions = req.permissions!;
