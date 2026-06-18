@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createSupabaseServerClient } from '@/utils/supabase/server';
 import { getPaymentConfig } from '@/lib/payment-router';
+import { createRoleProfile, getRoleLabel } from '@/lib/user-provisioning';
 import type { RegistrationFormData, ApiResponse, UserWithProfiles } from '@/types';
 import { UserRole } from '@prisma/client';
 
@@ -116,7 +117,7 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Create role-specific profile with permissions
+      // USE THE NEW SHARED HELPER
       await createRoleProfile(tx, newUser.id, role as UserRole, body);
 
       // Create initial activity
@@ -172,106 +173,4 @@ export async function POST(request: NextRequest) {
       }
     }, { status: 500 });
   }
-}
-
-// Helper function to create role-specific profiles
-async function createRoleProfile(
-  tx: any,
-  userId: string,
-  role: UserRole,
-  data: RegistrationFormData
-) {
-  switch (role) {
-    case 'ARTIST':
-      await tx.artistProfile.create({
-        data: {
-          userId,
-          genres: data.genres || [],
-          skills: data.specialties || [],
-          socialLinks: data.socialLinks || {}
-        }
-      });
-      break;
-
-    case 'PRODUCER':
-      await tx.producerProfile.create({
-        data: {
-          userId,
-          genres: data.genres || [],
-          specialties: data.specialties || [],
-          equipment: data.equipment || [],
-          experience: data.experience,
-          productionRate: data.hourlyRate,
-          availability: data.hasStudio 
-            ? 'Available - Own studio' 
-            : 'Available for projects'
-        }
-      });
-
-      // If producer has a studio, create studio profile
-      if (data.hasStudio) {
-        await tx.studioOwnerProfile.create({
-          data: {
-            userId,
-            studioName: data.studioName || `${data.fullName}'s Studio`,
-            capacity: data.capacity,
-            equipment: data.equipment || [],
-            hourlyRate: data.hourlyRate
-          }
-        });
-      }
-      break;
-
-    case 'STUDIO_OWNER':
-      await tx.studioOwnerProfile.create({
-        data: {
-          userId,
-          studioName: data.studioName || `${data.fullName}'s Studio`,
-          capacity: data.capacity,
-          equipment: data.equipment || [],
-          hourlyRate: data.hourlyRate
-        }
-      });
-      break;
-
-    case 'GEAR_SALES':
-      await tx.gearSalesProfile.create({
-        data: {
-          userId,
-          businessName: data.businessName || `${data.fullName}'s Gear`,
-          specialties: data.specialties || [],
-          inventory: data.inventory
-        }
-      });
-      break;
-
-    case 'LYRICIST':
-      await tx.lyricistProfile.create({
-        data: {
-          userId,
-          genres: data.genres || [],
-          writingStyle: data.writingStyle,
-          collaborationStyle: data.collaborationStyle,
-          portfolio: data.portfolio
-        }
-      });
-      break;
-
-    case 'OTHER':
-      // No specific profile for OTHER role
-      break;
-  }
-}
-
-// Helper to get friendly role label
-function getRoleLabel(role: UserRole): string {
-  const labels: Record<UserRole, string> = {
-    ARTIST: 'an Artist',
-    PRODUCER: 'a Producer',
-    STUDIO_OWNER: 'a Studio Owner',
-    GEAR_SALES: 'a Gear Specialist',
-    LYRICIST: 'a Lyricist',
-    OTHER: 'a Music Enthusiast'
-  };
-  return labels[role] || 'a Member';
 }

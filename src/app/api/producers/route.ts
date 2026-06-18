@@ -1,7 +1,7 @@
+export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// GET /api/producers - Fetch all producers with filters
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -10,9 +10,8 @@ export async function GET(req: NextRequest) {
     const skill = searchParams.get("skill");
 
     const where: any = {};
-
-    // Build where clause for user search
     const userWhere: any = {};
+    
     if (search) {
       userWhere.OR = [
         { username: { contains: search, mode: "insensitive" } },
@@ -46,34 +45,21 @@ export async function GET(req: NextRequest) {
               avatar: true,
               bio: true,
               location: true,
-              latitude: true,  // ADDED: Fetch latitude
-              longitude: true, // ADDED: Fetch longitude
+              latitude: true,  
+              longitude: true, 
               verified: true,
               email: true,
+              currency: true, // ✅ Added for Mobile
               followersCount: true,
               followingCount: true,
               uploadedBeats: {
                 where: { isActive: true },
-                select: {
-                  id: true,
-                  title: true,
-                  imageUrl: true,
-                  plays: true,
-                  likes: true,
-                  price: true,
-                },
+                select: { id: true, title: true, imageUrl: true, plays: true, likes: true, price: true },
                 take: 5,
                 orderBy: { createdAt: "desc" },
               },
-              receivedServiceRequests: {
-                select: { id: true, status: true },
-              },
-              _count: {
-                select: {
-                  uploadedBeats: true,
-                  receivedServiceRequests: true,
-                },
-              },
+              receivedServiceRequests: { select: { id: true, status: true } },
+              _count: { select: { uploadedBeats: true, receivedServiceRequests: true } },
             },
           },
         },
@@ -109,14 +95,16 @@ export async function GET(req: NextRequest) {
     );
 
     const producers = producerProfiles.map((profile) => ({
-      id: profile.user.id,
-      name: profile.user.fullName,
+      // --- WEB APP EXPECTS THESE AT TOP LEVEL ---
+      id: profile.id, // Used by mobile (Profile ID)
+      userId: profile.userId, // Used to route to profiles
+      name: profile.user.fullName || profile.user.username,
       email: profile.user.email,
       imageUrl: profile.user.avatar,
       bio: profile.user.bio,
       location: profile.user.location,
-      lat: profile.user.latitude,   // ADDED: Map to lat for frontend
-      lng: profile.user.longitude,  // ADDED: Map to lng for frontend
+      lat: profile.user.latitude,   
+      lng: profile.user.longitude,  
       verified: profile.user.verified,
       followersCount: profile.user.followersCount || 0,
       followingCount: profile.user.followingCount || 0,
@@ -136,8 +124,31 @@ export async function GET(req: NextRequest) {
       })),
       services: [],
       createdAt: profile.createdAt.toISOString(),
+      updatedAt: profile.updatedAt.toISOString(),
+
+      // --- MOBILE APP ADDITIONS ---
+      equipment: profile.equipment || [],
+      experience: profile.experience || 0,
+      productionRate: profile.productionRate,
+      songwritingRate: profile.songwritingRate,
+      mixingRate: profile.mixingRate,
+      currency: profile.user.currency || "USD",
+      availability: profile.availability || 'AVAILABLE',
+      user: {
+        id: profile.user.id,
+        username: profile.user.username,
+        fullName: profile.user.fullName,
+        avatar: profile.user.avatar,
+        location: profile.user.location,
+        bio: profile.user.bio,
+        verified: profile.user.verified,
+        followersCount: profile.user.followersCount || 0,
+        rating: 5.0
+      }
     }));
 
+    // Mobile expects { producers: [] }, Web expects { producers: [], pagination: {} }
+    // By returning both properties, both apps are perfectly happy!
     return NextResponse.json({ producers, pagination: { total, limit, offset } });
   } catch (error: any) {
     console.error("Error fetching producers:", error);

@@ -8,22 +8,23 @@ interface UserSectionProps {
   handleLogout: () => void;
 }
 
+// ✅ Updated: Replaced `imageUrl` with `avatar` to match your database schema
 interface UserIdentity {
   id: string;
   name: string | null;
   email: string;
-  imageUrl: string | null;
+  avatar?: string; // or string | null depending on your exact auth provider payload
   roles: string[];
 }
 
 export const UserSection = ({ collapsed, handleLogout }: UserSectionProps) => {
   const { data: identity } = useGetIdentity<UserIdentity>();
 
-  // Use real user data from auth, with fallbacks
+  // ✅ Updated: Mapped to `identity?.avatar`
   const user = {
     name: identity?.name || "User",
     email: identity?.email || "",
-    avatar: identity?.imageUrl || null,
+    avatar: identity?.avatar || null, 
     role: identity?.roles?.[0] || "Member"
   };
 

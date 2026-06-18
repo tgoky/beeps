@@ -136,11 +136,12 @@ export const authProviderClient: AuthProvider = {
     }
   },
   
-  check: async () => {
-    const { data, error } = await supabaseBrowserClient.auth.getUser();
-    const { user } = data;
+// Replace the check: async () => { ... } method inside src/providers/auth-provider/auth-provider.client.ts
 
-    if (error) {
+  check: async () => {
+    const { data: { session }, error } = await supabaseBrowserClient.auth.getSession();
+
+    if (error || !session) {
       return {
         authenticated: false,
         redirectTo: "/login",
@@ -148,17 +149,26 @@ export const authProviderClient: AuthProvider = {
       };
     }
 
-    if (user) {
-      return {
-        authenticated: true,
-      };
+    // THE MAGIC: Self-Healing Bootstrap
+    if (!session.user.app_metadata?.internal_db_id) {
+      console.log("Token missing DB claims. Bootstrapping...");
+      
+      // 1. Ensure DB row exists
+      await fetch('/api/auth/bootstrap', { method: 'POST' });
+      
+      // 2. Force Supabase to mint a new JWT so the Postgres Auth Hook fires and injects the claims
+      const { error: refreshError } = await supabaseBrowserClient.auth.refreshSession();
+      
+      if (refreshError) {
+        return { authenticated: false, redirectTo: "/login", logout: true };
+      }
     }
 
     return {
-      authenticated: false,
-      redirectTo: "/login",
+      authenticated: true,
     };
   },
+  
   
   // ✅ FIXED: Fetch complete permissions from your database
   getPermissions: async (): Promise<UserPermissions | null> => {
