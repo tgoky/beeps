@@ -1,11 +1,11 @@
 export const dynamic = "force-dynamic"; // MUST HAVE: Stops Next.js from caching!
 
 import { NextRequest, NextResponse } from "next/server";
-import { withAuth } from "@/lib/api-middleware";
+import { withFullUser, withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(req: NextRequest) {
-  return withAuth(req, async (req) => {
+  return withFullUser(req, async (req) => {
     try {
       const user = req.user!;
       const { searchParams } = new URL(req.url);

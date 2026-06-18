@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAuth } from "@/lib/api-middleware";
+import { withFullUser, withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 import { debitForWithdrawal } from "@/lib/wallet";
 import { initiateTransfer, toSmallestUnit } from "@/lib/paystack";
@@ -16,7 +16,7 @@ const MIN_WITHDRAWAL_AMOUNT = 5; // Minimum withdrawal in wallet currency units
  * List withdrawal history
  */
 export async function GET(req: NextRequest) {
-  return withAuth(req, async (req) => {
+  return withFullUser(req, async (req) => {
     const user = req.user!;
 
     try {
@@ -80,7 +80,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  return withAuth(req, async (req) => {
+  return withFullUser(req, async (req) => {
     const user = req.user!;
 
     try {

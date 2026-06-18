@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAuth } from "@/lib/api-middleware";
+import { withFullUser, withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 import { identifyAudio } from "@/lib/acrcloud";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";

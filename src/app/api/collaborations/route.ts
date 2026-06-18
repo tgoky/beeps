@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { withAuth } from "@/lib/api-middleware";
+import { withFullUser, withAuth } from "@/lib/api-middleware";
 
 // GET /api/collaborations - Fetch all collaborations with filters
 export async function GET(req: NextRequest) {
@@ -83,7 +83,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/collaborations - Create a new collaboration
 export async function POST(req: NextRequest) {
-  return withAuth(req, async (req) => {
+  return withFullUser(req, async (req) => {
     const user = req.user!;
   try {
     const body = await req.json();

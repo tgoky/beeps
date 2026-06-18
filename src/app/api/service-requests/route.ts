@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAuth } from "@/lib/api-middleware";
+import { withFullUser, withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 
 // GET /api/service-requests
 export async function GET(req: NextRequest) {
-  return withAuth(req, async (req) => {
+  return withFullUser(req, async (req) => {
     try {
       const user = req.user!;
       const { searchParams } = new URL(req.url);
@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/service-requests - Create a service request
 export async function POST(req: NextRequest) {
-  return withAuth(req, async (req) => {
+  return withFullUser(req, async (req) => {
     try {
       const user = req.user!;
       const permissions = req.permissions;

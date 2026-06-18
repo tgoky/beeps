@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAuth } from "@/lib/api-middleware";
+import { withFullUser, withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 import type { ApiResponse } from "@/types";
 
 // GET /api/sessions/active - Get all active/upcoming sessions for the studio owner
 export async function GET(req: NextRequest) {
-  return withAuth(req, async (req) => {
+  return withFullUser(req, async (req) => {
     const user = req.user!;
 
     try {

@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAuth } from "@/lib/api-middleware";
+import { withFullUser, withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 import type { ApiResponse } from "@/types";
 
 // GET /api/transactions - Fetch user transactions
 export async function GET(req: NextRequest) {
-  return withAuth(req, async (req) => {
+  return withFullUser(req, async (req) => {
     const user = req.user!;
     
     try {
@@ -126,7 +126,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/transactions - Create a transaction (purchase)
 export async function POST(req: NextRequest) {
-  return withAuth(req, async (req) => {
+  return withFullUser(req, async (req) => {
     const user = req.user!;
     
     try {

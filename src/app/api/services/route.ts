@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAuth } from "@/lib/api-middleware";
+import { withFullUser, withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 
 // GET /api/services - Fetch all services (with filters)
@@ -86,7 +86,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/services - Create a service offering
 export async function POST(req: NextRequest) {
-  return withAuth(req, async (req) => {
+  return withFullUser(req, async (req) => {
     const user = req.user!;
   try {
     const body = await req.json();

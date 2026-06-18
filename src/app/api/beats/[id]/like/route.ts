@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { withAuth } from "@/lib/api-middleware";
+import { withFullUser, withAuth } from "@/lib/api-middleware";
 import type { ApiResponse } from "@/types";
 
 // POST /api/beats/[id]/like - Toggle like on a beat
@@ -8,7 +8,7 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  return withAuth(req, async (req) => {
+  return withFullUser(req, async (req) => {
     const user = req.user!;
     
     try {
@@ -153,7 +153,7 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  return withAuth(req, async (req) => {
+  return withFullUser(req, async (req) => {
     const user = req.user!;
     
     try {

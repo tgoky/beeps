@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAuth } from "@/lib/api-middleware";
+import { withFullUser, withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -14,7 +14,7 @@ const r2 = new S3Client({
 });
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  return withAuth(req, async (req) => {
+  return withFullUser(req, async (req) => {
     const messages = await prisma.workspaceMessage.findMany({
       where: { serviceRequestId: params.id },
       include: { sender: { select: { id: true, fullName: true, username: true, avatar: true } } },
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 }
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-  return withAuth(req, async (req) => {
+  return withFullUser(req, async (req) => {
     const { content, fileKey, fileName, fileType } = await req.json();
 
     const message = await prisma.workspaceMessage.create({

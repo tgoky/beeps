@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic"; // MUST HAVE: Prevents Next.js from caching the 403 error for the wrong user
 
 import { NextRequest, NextResponse } from "next/server";
-import { withAuth } from "@/lib/api-middleware";
+import { withFullUser, withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 
 // PATCH /api/service-requests/[id] - Update service request status
@@ -9,7 +9,7 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  return withAuth(req, async (req) => {
+  return withFullUser(req, async (req) => {
     try {
       const user = req.user!;
       const { id } = params;
@@ -133,7 +133,7 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  return withAuth(req, async (req) => {
+  return withFullUser(req, async (req) => {
     try {
       const user = req.user!;
       const { id } = params;
@@ -176,7 +176,7 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  return withAuth(req, async (req) => {
+  return withFullUser(req, async (req) => {
     try {
       const user = req.user!;
       const { id } = params;

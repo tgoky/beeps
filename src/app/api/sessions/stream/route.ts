@@ -1,10 +1,10 @@
 import { NextRequest } from "next/server";
-import { withAuth } from "@/lib/api-middleware";
+import { withFullUser, withAuth } from "@/lib/api-middleware";
 import { subscribe, unsubscribe } from "@/lib/session-emitter";
 
 // GET /api/sessions/stream - SSE endpoint for real-time session updates
 export async function GET(req: NextRequest) {
-  return withAuth(req, async (req) => {
+  return withFullUser(req, async (req) => {
     const user = req.user!;
     const encoder = new TextEncoder();
     let ctrl: ReadableStreamDefaultController<Uint8Array>;

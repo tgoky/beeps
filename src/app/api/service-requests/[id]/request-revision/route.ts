@@ -1,7 +1,7 @@
 // beeps/src/app/api/service-requests/[id]/request-revision/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { withAuth } from "@/lib/api-middleware";
+import { withFullUser, withAuth } from "@/lib/api-middleware";
 
 export async function POST(
   request: NextRequest,

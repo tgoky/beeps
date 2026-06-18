@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAuth } from "@/lib/api-middleware";
+import { withFullUser, withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateWallet } from "@/lib/wallet";
 import type { ApiResponse } from "@/types";
@@ -9,7 +9,7 @@ import type { ApiResponse } from "@/types";
  * Retrieve the current user's wallet balance and summary
  */
 export async function GET(req: NextRequest) {
-  return withAuth(req, async (req) => {
+  return withFullUser(req, async (req) => {
     const user = req.user!;
 
     try {

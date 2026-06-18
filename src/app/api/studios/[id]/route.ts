@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAuth } from "@/lib/api-middleware";
+import { withFullUser, withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 
 // GET /api/studios/[id] - Fetch a studio by ID
@@ -79,7 +79,7 @@ export async function GET(
 
 // PATCH /api/studios/[id] - Update a studio
 export async function PATCH(req: NextRequest, { params }: { params: any }) {
-  return withAuth(req, async (req) => {
+  return withFullUser(req, async (req) => {
     const user = req.user!;
     try {
       const { id } = params;
@@ -151,7 +151,7 @@ export async function PATCH(req: NextRequest, { params }: { params: any }) {
 
 // DELETE /api/studios/[id] - Delete a studio (soft delete)
 export async function DELETE(req: NextRequest, { params }: { params: any }) {
-  return withAuth(req, async (req) => {
+  return withFullUser(req, async (req) => {
     const user = req.user!;
     try {
       const { id } = params;

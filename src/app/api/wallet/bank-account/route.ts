@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAuth } from "@/lib/api-middleware";
+import { withFullUser, withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 import {
   createTransferRecipient,
@@ -16,7 +16,7 @@ import type { ApiResponse } from "@/types";
  * Retrieve saved bank account details for the current user
  */
 export async function GET(req: NextRequest) {
-  return withAuth(req, async (req) => {
+  return withFullUser(req, async (req) => {
     const user = req.user!;
 
     try {
@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
  * For Stripe: { provider: "STRIPE", returnUrl }
  */
 export async function POST(req: NextRequest) {
-  return withAuth(req, async (req) => {
+  return withFullUser(req, async (req) => {
     const user = req.user!;
 
     try {

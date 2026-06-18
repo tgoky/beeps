@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAuth } from "@/lib/api-middleware";
+import { withFullUser, withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 import type { ApiResponse } from "@/types";
 import { identifyAudio } from "@/lib/acrcloud";
@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/beats - (MERGED YOUR LOGIC WITH THE GATES)
 export async function POST(req: NextRequest) {
-  return withAuth(req, async (req) => {
+  return withFullUser(req, async (req) => {
     const user = req.user!;
     
     try {

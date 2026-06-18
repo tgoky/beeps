@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAuth } from "@/lib/api-middleware";
+import { withFullUser, withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 import { initializePayment } from "@/lib/payment-router";
 import { getCurrencySymbol } from "@/lib/currency";
@@ -11,7 +11,7 @@ import type { ApiResponse } from "@/types";
  * Body: { bookingId, callbackUrl? }
  */
 export async function POST(req: NextRequest) {
-  return withAuth(req, async (req) => {
+  return withFullUser(req, async (req) => {
     const user = req.user!;
 
     try {
