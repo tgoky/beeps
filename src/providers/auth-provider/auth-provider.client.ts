@@ -191,21 +191,29 @@ export const authProviderClient: AuthProvider = {
   },
   
   // ✅ FIXED: Include complete permissions in identity
+  // ✅ FIXED: Include complete permissions and profile info in identity
   getIdentity: async () => {
     const { data } = await supabaseBrowserClient.auth.getUser();
 
     if (data?.user) {
-      // Fetch complete permissions from your API
+      // Fetch complete permissions from your API (0ms DB hit now!)
       const permissions = await fetchUserPermissions();
 
       return {
         ...data.user,
-        name: data.user.email,
+        // ✅ EXPOSE THE DATABASE ID & ROLE directly from the JWT app_metadata!
+        dbId: data.user.app_metadata?.internal_db_id,
+        role: data.user.app_metadata?.role || 'OTHER',
+        
+        // ✅ PULL NAME AND AVATAR FROM JWT SO SIDEBAR DOESN'T NEED THE DB
+        name: data.user.user_metadata?.full_name || data.user.user_metadata?.username || data.user.email,
+        avatar: data.user.user_metadata?.avatar_url || null,
+        
         // Include ALL permissions in identity for easy access
         permissions: permissions || {
           canCreateStudios: false,
           canBookStudios: false,
-          role: 'OTHER',
+          role: data.user.app_metadata?.role || 'OTHER',
           canEditProducerProfile: false,
           canAcceptJobs: false,
           canUploadWorks: false,
