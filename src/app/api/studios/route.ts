@@ -1,26 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withFullUser, withAuth } from "@/lib/api-middleware";
+import { withAuth, type AuthenticatedRequest } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 import { getCurrencyConfig } from "@/lib/currency";
+import { unstable_cache } from 'next/cache';
+import { Prisma } from "@prisma/client";
 
-const calculateDistance = (
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number
-) => {
-  const radiusInMiles = 3958.8;
-  const dLat = (lat2 - lat1) * (Math.PI / 180);
-  const dLon = (lon2 - lon1) * (Math.PI / 180);
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * (Math.PI / 180)) *
-      Math.cos(lat2 * (Math.PI / 180)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return radiusInMiles * c;
-};
+// ✅ Next.js Cache Wrapper for the heavy DB call (Non-Geo searches)
+const getCachedStudios = unstable_cache(
+  async (whereParams: any, limit: number, offset: number) => {
+    const [studios, total] = await Promise.all([
+      prisma.studio.findMany({
+        where: whereParams,
+        select: {
+          id: true, name: true, description: true, location: true, streetAddress: true,
+          country: true, state: true, city: true, latitude: true, longitude: true,
+          hourlyRate: true, currency: true, imageUrl: true, equipment: true, capacity: true,
+          rating: true, reviewsCount: true, isActive: true, verificationStatus: true,
+          verifiedAt: true, ownerId: true, createdAt: true, updatedAt: true,
+          owner: { select: { id: true, user: { select: { id: true, username: true, fullName: true, avatar: true } } } },
+          _count: { select: { bookings: true, reviews: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        take: limit,
+        skip: offset,
+      }),
+      prisma.studio.count({ where: whereParams }),
+    ]);
+    return { studios, total };
+  },
+  ['studios-list'],
+  { revalidate: 60 } // Keeps it fast but fresh every 60 seconds
+);
 
 // GET /api/studios - Fetch all studios (with filters)
 export async function GET(req: NextRequest) {
@@ -51,12 +61,9 @@ export async function GET(req: NextRequest) {
       Number.isFinite(userLongitude) &&
       Number.isFinite(radiusMiles);
 
-    // ==========================================
-    // BULLETPROOF PRISMA FILTERING LOGIC
-    // ==========================================
     const where: any = {
       isActive: true,
-      AND: [] // We use a clean AND array to securely stack multiple filters
+      AND: [] 
     };
 
     if (search) {
@@ -73,7 +80,6 @@ export async function GET(req: NextRequest) {
       where.AND.push({ location: { contains: location, mode: "insensitive" } });
     }
 
-    // ✅ SELF-HEALING COUNTRY FILTER: Matches Country String OR the expected Currency!
     if (country) {
       const currencyMap: Record<string, string> = {
         "Nigeria": "NGN",
@@ -87,7 +93,7 @@ export async function GET(req: NextRequest) {
         where.AND.push({
           OR: [
             { country: { contains: country, mode: "insensitive" } },
-            { currency: mappedCurrency } // Bypasses broken DB data securely!
+            { currency: mappedCurrency } 
           ]
         });
       } else {
@@ -95,12 +101,8 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    if (state) {
-      where.AND.push({ state: { contains: state, mode: "insensitive" } });
-    }
-    if (city) {
-      where.AND.push({ city: { contains: city, mode: "insensitive" } });
-    }
+    if (state) where.AND.push({ state: { contains: state, mode: "insensitive" } });
+    if (city) where.AND.push({ city: { contains: city, mode: "insensitive" } });
 
     if (minRate || maxRate) {
       const rateFilter: any = {};
@@ -109,97 +111,89 @@ export async function GET(req: NextRequest) {
       where.AND.push({ hourlyRate: rateFilter });
     }
 
-    if (ownerId) {
-      where.AND.push({ ownerId });
-    }
+    if (ownerId) where.AND.push({ ownerId });
 
-    if (hasNearbyFilter) {
-      where.AND.push({ latitude: { not: null } });
-      where.AND.push({ longitude: { not: null } });
-    }
-
-    // Cleanup empty AND array so Prisma doesn't complain
     if (where.AND.length === 0) {
       delete where.AND;
     }
 
-    const [studiosResult, totalResult] = await Promise.all([
-      prisma.studio.findMany({
-        where,
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          location: true,
-          streetAddress: true,
-          country: true,
-          state: true,
-          city: true,
-          latitude: true,
-          longitude: true,
-          hourlyRate: true,
-          currency: true,
-          imageUrl: true,
-          equipment: true,
-          capacity: true,
-          rating: true,
-          reviewsCount: true,
-          isActive: true,
-          verificationStatus: true,
-          verifiedAt: true,
-          ownerId: true,
-          createdAt: true,
-          updatedAt: true,
-          owner: {
-            select: {
-              id: true,
-              user: {
-                select: {
-                  id: true,
-                  username: true,
-                  fullName: true,
-                  avatar: true,
-                },
-              },
-            },
-          },
-          _count: {
-            select: {
-              bookings: true,
-              reviews: true,
-            },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-        take: hasNearbyFilter ? undefined : limit,
-        skip: hasNearbyFilter ? undefined : offset,
-      }),
-      prisma.studio.count({ where }),
-    ]);
+    let studiosResult: any = [];
+    let totalResult: number = 0;
 
-    const studiosWithDistance = hasNearbyFilter
-      ? studiosResult
-          .map((studio) => ({
+    if (hasNearbyFilter) {
+      // ✅ 1. THE DATABASE MATH: Offload distance calc to PostgreSQL Engine
+      const nearbyStudioRecords = await prisma.$queryRaw<Array<{ id: string; distanceMiles: number }>>`
+        WITH Distances AS (
+          SELECT id, (
+            3958.8 * acos(
+              LEAST(1.0, GREATEST(-1.0,
+                cos(radians(${userLatitude}::float)) * cos(radians("latitude"::float)) *
+                cos(radians("longitude"::float) - radians(${userLongitude}::float)) +
+                sin(radians(${userLatitude}::float)) * sin(radians("latitude"::float))
+              ))
+            )
+          ) AS "distanceMiles"
+          FROM "Studio"
+          WHERE "isActive" = true AND "latitude" IS NOT NULL AND "longitude" IS NOT NULL
+        )
+        SELECT id, "distanceMiles"
+        FROM Distances
+        WHERE "distanceMiles" <= ${radiusMiles}::float
+        ORDER BY "distanceMiles" ASC
+      `;
+
+      if (nearbyStudioRecords.length > 0) {
+        // Create a fast-lookup map to preserve the distance sorting later
+        const distanceMap = new Map(nearbyStudioRecords.map(s => [s.id, s.distanceMiles]));
+        const nearbyIds = Array.from(distanceMap.keys());
+
+        // Update the Prisma WHERE clause to only search within these pre-filtered IDs!
+        if (!where.AND) where.AND = [];
+        where.AND.push({ id: { in: nearbyIds } });
+
+        // ✅ 2. PRISMA MAGIC: Fetch only the matching records + nested relations
+        const [rawStudios, rawTotal] = await Promise.all([
+          prisma.studio.findMany({
+            where,
+            select: {
+              id: true, name: true, description: true, location: true, streetAddress: true,
+              country: true, state: true, city: true, latitude: true, longitude: true,
+              hourlyRate: true, currency: true, imageUrl: true, equipment: true, capacity: true,
+              rating: true, reviewsCount: true, isActive: true, verificationStatus: true,
+              verifiedAt: true, ownerId: true, createdAt: true, updatedAt: true,
+              owner: { select: { id: true, user: { select: { id: true, username: true, fullName: true, avatar: true } } } },
+              _count: { select: { bookings: true, reviews: true } },
+            },
+            // Note: NO ORDER BY here. We want to sort by the raw SQL distance map below.
+          }),
+          prisma.studio.count({ where }),
+        ]);
+
+        // Attach the calculated distances and sort to match PostgreSQL's raw math
+        studiosResult = rawStudios
+          .map((studio: any) => ({
             ...studio,
-            distanceMiles:
-              studio.latitude !== null && studio.longitude !== null
-                ? calculateDistance(userLatitude!, userLongitude!, studio.latitude, studio.longitude)
-                : null,
+            distanceMiles: distanceMap.get(studio.id)
           }))
-          .filter(
-            (studio) => studio.distanceMiles !== null && studio.distanceMiles <= radiusMiles
-          )
-          .sort((a, b) => (a.distanceMiles ?? Infinity) - (b.distanceMiles ?? Infinity))
-      : studiosResult;
+          .sort((a: any, b: any) => a.distanceMiles - b.distanceMiles);
 
+        totalResult = rawTotal;
+      }
+    } else {
+      // ✅ NO GEO-FILTER: Fallback to edge cache speed
+      const cached = await getCachedStudios(where, limit, offset);
+      studiosResult = cached.studios;
+      totalResult = cached.total;
+    }
+
+    // Apply standard pagination (slice) AFTER everything is sorted
     const studios = hasNearbyFilter
-      ? studiosWithDistance.slice(offset, offset + limit)
-      : studiosWithDistance;
-    const total = hasNearbyFilter ? studiosWithDistance.length : totalResult;
+      ? studiosResult.slice(offset, offset + limit)
+      : studiosResult;
 
     return NextResponse.json({
       studios,
-      pagination: { total, limit, offset },
+      pagination: { total: totalResult, limit, offset },
     });
   } catch (error: any) {
     console.error("Error fetching studios:", error);
@@ -212,49 +206,30 @@ export async function GET(req: NextRequest) {
 
 // POST /api/studios - Create a studio
 export async function POST(request: NextRequest) {
-  return withAuth(request, async (req) => {
+  return withAuth(request, async (req: AuthenticatedRequest) => { 
     try {
       const user = req.user!;
       const body = await req.json();
       const {
-        name,
-        description,
-        location,
-        latitude,
-        longitude,
-        hourlyRate,
-        currency,
-        equipment,
-        capacity,
-        imageUrl,
-        clubId,
-        streetAddress,
+        name, description, location, latitude, longitude, hourlyRate, currency,
+        equipment, capacity, imageUrl, clubId, streetAddress, country, state, city
       } = body;
 
-      // Validate required fields
       if (!name || !location || !hourlyRate) {
-        return NextResponse.json(
-          { error: "Missing required fields: name, location, hourlyRate" },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
       }
 
-      // Check if user has a studio owner profile or is a producer
       let studioOwnerProfile = await prisma.studioOwnerProfile.findUnique({
         where: { userId: user.id },
       });
 
-      // If no studio owner profile exists, create one (for producers creating studios)
       if (!studioOwnerProfile) {
         const producerProfile = await prisma.producerProfile.findUnique({
           where: { userId: user.id },
         });
 
         if (!producerProfile) {
-          return NextResponse.json(
-            { error: "You need a producer or studio owner profile to create studios" },
-            { status: 403 }
-          );
+          return NextResponse.json({ error: "You need a producer or studio owner profile to create studios" }, { status: 403 });
         }
 
         studioOwnerProfile = await prisma.studioOwnerProfile.create({
@@ -268,65 +243,36 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // Extract location fields from request
-      const { country, state, city } = body;
       const resolvedCurrency = getCurrencyConfig(body.countryCode || country).currency;
       const studioCurrency = (currency && currency !== "USD") ? currency : resolvedCurrency;
 
       const studio = await prisma.studio.create({
         data: {
-          name,
-          description,
-          location,
-          streetAddress: streetAddress || null,
-          country: country || null,
-          state: state || null,
-          city: city || null,
-          latitude: latitude !== undefined && latitude !== null && latitude !== "" ? parseFloat(latitude) : null,
-          longitude: longitude !== undefined && longitude !== null && longitude !== "" ? parseFloat(longitude) : null,
-          hourlyRate: parseFloat(hourlyRate),
-          currency: studioCurrency,
-          equipment: equipment || [],
-          capacity: capacity || "1-5 people",
-          imageUrl,
-          ownerId: studioOwnerProfile.id,
-          clubId: clubId || null,
+          name, description, location, streetAddress: streetAddress || null,
+          country: country || null, state: state || null, city: city || null,
+          latitude: latitude ? parseFloat(latitude) : null,
+          longitude: longitude ? parseFloat(longitude) : null,
+          hourlyRate: parseFloat(hourlyRate), currency: studioCurrency,
+          equipment: equipment || [], capacity: capacity || "1-5 people",
+          imageUrl, ownerId: studioOwnerProfile.id, clubId: clubId || null,
         },
         include: {
-          owner: {
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  username: true,
-                  fullName: true,
-                  avatar: true,
-                },
-              },
-            },
-          },
+          owner: { include: { user: { select: { id: true, username: true, fullName: true, avatar: true } } } },
         },
       });
 
-      // Create activity
       await prisma.activity.create({
         data: {
-          userId: user.id,
-          type: "UPLOAD",
-          title: `Listed studio "${name}"`,
+          userId: user.id, type: "UPLOAD", title: `Listed studio "${name}"`,
           description: `New studio available for booking at $${hourlyRate}/hour`,
-          referenceId: studio.id,
-          referenceType: "studio",
+          referenceId: studio.id, referenceType: "studio",
         },
       });
 
       return NextResponse.json({ studio }, { status: 201 });
     } catch (error: any) {
       console.error("Error creating studio:", error);
-      return NextResponse.json(
-        { error: "Failed to create studio", details: error.message },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Failed to create studio", details: error.message }, { status: 500 });
     }
   });
 }

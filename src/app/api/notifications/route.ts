@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withFullUser, withAuth } from "@/lib/api-middleware";
+import { withAuth, type AuthenticatedRequest } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 
 // GET /api/notifications - Fetch user notifications
 export async function GET(req: NextRequest) {
-  return withFullUser(req, async (req) => {
+  return withAuth(req, async (req: AuthenticatedRequest) => {
     try {
       const user = req.user!;
       const { searchParams } = new URL(req.url);
@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/notifications - Create a notification (internal use)
 export async function POST(req: NextRequest) {
-  return withFullUser(req, async (req) => {
+  return withAuth(req, async (req: AuthenticatedRequest) => {
     try {
       const user = req.user!;
       const body = await req.json();

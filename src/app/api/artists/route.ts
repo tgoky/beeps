@@ -1,30 +1,54 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
-import { Studio, VerificationStatus } from "@/types/database";
+"use client";
 
-export interface StudioWithOwner extends Studio {
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
+// Adjust these imports based on where your types actually live in the web app
+// import { Studio, VerificationStatus } from "@prisma/client"; 
+
+export interface StudioWithOwner {
+  id: string;
+  name: string;
+  description: string | null;
+  location: string;
+  streetAddress: string | null;
+  country: string | null;
+  state: string | null;
+  city: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  hourlyRate: number;
+  currency: string;
+  imageUrl: string | null;
+  equipment: string[];
+  capacity: string;
+  rating: number;
+  reviewsCount: number;
+  isActive: boolean;
+  verificationStatus: string;
+  verifiedAt: string | null;
+  ownerId: string;
+  createdAt: string;
+  updatedAt: string;
   owner: {
     id: string;
-    username: string;
-    fullName?: string;
-    avatar?: string;
+    user: {
+      id: string;
+      username: string;
+      fullName?: string | null;
+      avatar?: string | null;
+    };
   };
+  // ✅ The backend now calculates this for us!
+  distanceMiles?: number; 
 }
 
-// 🛡️ Secure API Fetcher to hit your Next.js Backend
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.100:3000'; // Change to your local IP / production URL
-
-const authFetch = async (endpoint: string, options: RequestInit = {}) => {
-  const { data: { session } } = await supabase.auth.getSession();
-  
-  // Cleanly handle query parameters vs path variables
-  const url = endpoint.startsWith('http') ? endpoint : `${API_URL}${endpoint}`;
-
-  const res = await fetch(url, {
+// 🛡️ Secure API Fetcher for Next.js Web
+// Automatically includes cookies for the withAuth middleware!
+const webFetch = async (endpoint: string, options: RequestInit = {}) => {
+  const res = await fetch(endpoint, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
       ...options.headers,
     },
   });
@@ -42,8 +66,7 @@ export function useStudios() {
   return useQuery({
     queryKey: ["studios"],
     queryFn: async () => {
-      // Your backend /api/studios route handles the Prisma camelCase mapping!
-      const data = await authFetch('/api/studios');
+      const data = await webFetch('/api/studios');
       return data.studios as StudioWithOwner[];
     },
   });
@@ -54,22 +77,22 @@ export function useAllStudiosDebug() {
   return useQuery({
     queryKey: ["studios", "debug", "all"],
     queryFn: async () => {
-      const data = await authFetch('/api/studios?debug=true');
+      const data = await webFetch('/api/studios?debug=true');
       return data.studios as StudioWithOwner[];
     },
   });
 }
 
-export function useNearbyStudios(latitude?: number, longitude?: number, radiusKm: number = 50) {
+export function useNearbyStudios(latitude?: number, longitude?: number, radiusMiles: number = 50) {
   return useQuery({
-    queryKey: ["studios", "nearby", latitude, longitude, radiusKm],
+    queryKey: ["studios", "nearby", latitude, longitude, radiusMiles],
     queryFn: async () => {
-      // Let the Next.js server handle the complex PostGIS/Math logic!
+      // Let the Next.js server handle the complex PostgreSQL Earthdistance logic!
       let endpoint = '/api/studios';
       if (latitude && longitude) {
-        endpoint += `?lat=${latitude}&lng=${longitude}&radius=${radiusKm}`;
+        endpoint += `?latitude=${latitude}&longitude=${longitude}&radius=${radiusMiles}`;
       }
-      const data = await authFetch(endpoint);
+      const data = await webFetch(endpoint);
       return data.studios as StudioWithOwner[];
     },
     // Don't run the nearby query until we actually have GPS coordinates
@@ -82,9 +105,9 @@ export function useStudioVerification(studioId?: string) {
     queryKey: ["studio", "verification", studioId],
     queryFn: async () => {
       if (!studioId) return null;
-      const data = await authFetch(`/api/studios/${studioId}/verification`);
+      const data = await webFetch(`/api/studios/${studioId}/verification`);
       return {
-        status: (data.verificationStatus || "UNVERIFIED") as VerificationStatus,
+        status: data.verificationStatus || "UNVERIFIED",
         documents: data.verificationDocuments || [],
         notes: data.verificationNotes,
         verifiedAt: data.verifiedAt,
@@ -105,20 +128,17 @@ export function useUpdateStudioStatus() {
 
   return useMutation({
     mutationFn: async ({ studioId, isActive }: { studioId: string; isActive: boolean; }) => {
-      return await authFetch(`/api/studios/${studioId}`, {
+      return await webFetch(`/api/studios/${studioId}`, {
         method: 'PATCH',
         body: JSON.stringify({ isActive })
       });
     },
     // ⚡ OPTIMISTIC UPDATE: Make the UI feel instant!
     onMutate: async ({ studioId, isActive }) => {
-      // 1. Cancel any outgoing refetches so they don't overwrite our optimistic update
       await queryClient.cancelQueries({ queryKey: ['studios'] });
 
-      // 2. Snapshot the previous value
       const previousStudios = queryClient.getQueryData<StudioWithOwner[]>(['studios']);
 
-      // 3. Optimistically update the cache
       if (previousStudios) {
         queryClient.setQueryData<StudioWithOwner[]>(['studios'], (old) => 
           old?.map(studio => 
@@ -127,16 +147,13 @@ export function useUpdateStudioStatus() {
         );
       }
 
-      // 4. Return a context object with the snapshotted value to rollback if it fails
       return { previousStudios };
     },
-    // If the mutation fails, use the context returned from onMutate to roll back
     onError: (err, newTodo, context) => {
       if (context?.previousStudios) {
         queryClient.setQueryData(['studios'], context.previousStudios);
       }
     },
-    // Always refetch after error or success to ensure we are synced with the server
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["studios"] });
     },
@@ -147,9 +164,8 @@ export function useRequestVerification() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ studioId, documents }: { studioId: string; userId: string; documents: string[]; }) => {
-      // The Next.js backend will securely verify ownership, update status to PENDING, and trigger notifications!
-      return await authFetch(`/api/studios/${studioId}/verification`, {
+    mutationFn: async ({ studioId, documents }: { studioId: string; documents: string[]; }) => {
+      return await webFetch(`/api/studios/${studioId}/verification`, {
         method: 'POST',
         body: JSON.stringify({ documents })
       });
@@ -161,7 +177,8 @@ export function useRequestVerification() {
   });
 }
 
-// Client-side Haversine distance calculation (in miles) for UI display rendering
+// Client-side Haversine distance calculation (in miles) for UI fallback rendering
+// Note: Our backend now provides `distanceMiles` automatically for the nearby query!
 export function getDistanceMiles(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 3959; // Earth radius in miles
   const dLat = ((lat2 - lat1) * Math.PI) / 180;

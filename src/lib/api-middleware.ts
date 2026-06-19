@@ -17,6 +17,7 @@ export interface AuthenticatedRequest extends NextRequest {
     supabaseId: string;
     primaryRole: UserRole;
   };
+  supabaseUser?: any;
   permissions?: UserPermissions;
 }
 

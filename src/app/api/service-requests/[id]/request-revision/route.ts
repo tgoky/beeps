@@ -1,13 +1,13 @@
 // beeps/src/app/api/service-requests/[id]/request-revision/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { withFullUser, withAuth } from "@/lib/api-middleware";
+import { withAuth, type AuthenticatedRequest } from "@/lib/api-middleware"; // ✅ Only import what you need and add the type
 
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  return withAuth(request, async (req) => {
+  return withAuth(request, async (req: AuthenticatedRequest) => { // ✅ Added AuthenticatedRequest type
     try {
       // `req.user` is automatically provided and verified by `withAuth`
       const dbUser = req.user!;

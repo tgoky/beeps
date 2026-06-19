@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withFullUser, withAuth } from "@/lib/api-middleware";
+import { 
+  withFullUser, 
+  withAuth, 
+  type AuthenticatedRequest, 
+  type FullAuthenticatedRequest 
+} from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 
 // POST /api/studios/[id]/verification - Request verification for a studio
@@ -7,7 +12,8 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  return withAuth(request, async (req) => {
+  // ✅ FAST PATH: 0ms Edge Cache. We only need user.id here.
+  return withAuth(request, async (req: AuthenticatedRequest) => {
     try {
       const user = req.user!;
       const { id } = params;
@@ -99,6 +105,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  // ✅ PUBLIC PATH: No auth needed just to read the status
   try {
     const { id } = params;
 
@@ -136,15 +143,15 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  return withAuth(request, async (req) => {
+  // 🛑 HEAVY PATH: Requires the DB hit to check `user.verified` status for admins
+  return withFullUser(request, async (req: FullAuthenticatedRequest) => {
     try {
       const user = req.user!;
       const { id } = params;
       const body = await req.json();
       const { action, notes } = body;
 
-      // Only allow admin actions (check user role or admin flag)
-      // For now, we'll check if the user is verified (admin-level)
+      // Only allow admin actions
       if (!user.verified) {
         return NextResponse.json(
           { error: "Admin access required" },

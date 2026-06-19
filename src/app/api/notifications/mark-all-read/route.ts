@@ -1,29 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withFullUser, withAuth } from "@/lib/api-middleware";
+import { withAuth, type AuthenticatedRequest } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 
 // POST /api/notifications/mark-all-read - Mark all notifications as read
 export async function POST(req: NextRequest) {
-  return withFullUser(req, async (req) => {
+  return withAuth(req, async (req: AuthenticatedRequest) => {
     const user = req.user!;
-  try {
-    await prisma.notification.updateMany({
-      where: {
-        userId: user.id,
-        isRead: false,
-      },
-      data: {
-        isRead: true,
-      },
-    });
+    try {
+      await prisma.notification.updateMany({
+        where: {
+          userId: user.id,
+          isRead: false,
+        },
+        data: {
+          isRead: true,
+        },
+      });
 
-    return NextResponse.json({ success: true });
-  } catch (error: any) {
-    console.error("Error marking all notifications as read:", error);
-    return NextResponse.json(
-      { error: "Failed to mark notifications as read" },
-      { status: 500 }
-    );
-  }
+      return NextResponse.json({ success: true });
+    } catch (error: any) {
+      console.error("Error marking all notifications as read:", error);
+      return NextResponse.json(
+        { error: "Failed to mark notifications as read" },
+        { status: 500 }
+      );
+    }
   });
 }

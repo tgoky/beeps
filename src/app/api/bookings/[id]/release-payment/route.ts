@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withFullUser, withAuth } from "@/lib/api-middleware";
+import { withAuth, type AuthenticatedRequest } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 import { captureAndPayout } from "@/lib/payment-router";
 import { releaseFunds } from "@/lib/wallet";
@@ -10,20 +10,20 @@ import type { ApiResponse } from "@/types";
  * Release escrowed payment to the studio owner.
  *
  * Security rules:
- *  - Only the booking artist (booker) can manually release payment
- *  - Studio owner cannot release their own payment (conflict of interest)
- *  - Auto-release is triggered after 24h grace period (no active dispute)
+ * - Only the booking artist (booker) can manually release payment
+ * - Studio owner cannot release their own payment (conflict of interest)
+ * - Auto-release is triggered after 24h grace period (no active dispute)
  *
  * When released:
- *  1. Capture payment with provider (Stripe manual capture OR Paystack transfer)
- *  2. Credit studio owner's wallet (available balance)
- *  3. Update booking/transaction records
+ * 1. Capture payment with provider (Stripe manual capture OR Paystack transfer)
+ * 2. Credit studio owner's wallet (available balance)
+ * 3. Update booking/transaction records
  */
 export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  return withFullUser(req, async (req) => {
+  return withAuth(req, async (req: AuthenticatedRequest) => {
     const user = req.user!;
 
     try {

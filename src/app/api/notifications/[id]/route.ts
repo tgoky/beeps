@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withFullUser, withAuth } from "@/lib/api-middleware";
+import { withAuth, type AuthenticatedRequest } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 
 // PATCH /api/notifications/[id] - Mark notification as read
 export async function PATCH(req: NextRequest, { params }: { params: any }) {
-  return withFullUser(req, async (req) => {
+  return withAuth(req, async (req: AuthenticatedRequest) => {
     const user = req.user!;
     try {
       const { id } = params;
@@ -48,7 +48,7 @@ export async function PATCH(req: NextRequest, { params }: { params: any }) {
 
 // DELETE /api/notifications/[id] - Delete a notification
 export async function DELETE(req: NextRequest, { params }: { params: any }) {
-  return withFullUser(req, async (req) => {
+  return withAuth(req, async (req: AuthenticatedRequest) => {
     const user = req.user!;
     try {
       const { id } = params;

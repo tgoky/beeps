@@ -1,10 +1,10 @@
-import { NextRequest } from "next/server";
-import { withFullUser, withAuth } from "@/lib/api-middleware";
+import { NextRequest, NextResponse } from "next/server"; // ✅ Added NextResponse import
+import { withAuth, type AuthenticatedRequest } from "@/lib/api-middleware";
 import { subscribe, unsubscribe } from "@/lib/session-emitter";
 
 // GET /api/sessions/stream - SSE endpoint for real-time session updates
 export async function GET(req: NextRequest) {
-  return withFullUser(req, async (req) => {
+  return withAuth(req, async (req: AuthenticatedRequest) => {
     const user = req.user!;
     const encoder = new TextEncoder();
     let ctrl: ReadableStreamDefaultController<Uint8Array>;
@@ -31,7 +31,8 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    return new Response(stream, {
+    // ✅ Changed 'new Response' to 'new NextResponse' to satisfy the middleware types
+    return new NextResponse(stream as any, {
       headers: {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache, no-transform",

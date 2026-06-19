@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withFullUser, withAuth } from "@/lib/api-middleware";
+import { withAuth, type AuthenticatedRequest } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 import { identifyAudio } from "@/lib/acrcloud";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
@@ -19,7 +19,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  return withAuth(request, async (req) => {
+  return withAuth(request, async (req: AuthenticatedRequest) => { // ✅ Added AuthenticatedRequest type
     try {
       const user = req.user!;
       const { id } = params;

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withFullUser, withAuth } from "@/lib/api-middleware";
+import { withAuth, type AuthenticatedRequest } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 
 // POST /api/service-requests/[id]/dispute
@@ -10,11 +10,11 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  return withAuth(request, async (req) => {
+  return withAuth(request, async (req: AuthenticatedRequest) => {
     try {
       const user = req.user!;
       const { id } = params;
-      const body = await req.json();
+      const body = await request.json();
       const { reason } = body;
 
       if (!reason || reason.trim().length < 10) {

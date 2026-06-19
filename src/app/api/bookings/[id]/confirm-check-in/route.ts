@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withFullUser, withAuth } from "@/lib/api-middleware";
+import { withAuth, type AuthenticatedRequest } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 import type { ApiResponse } from "@/types";
 
@@ -9,7 +9,7 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  return withFullUser(req, async (req) => {
+  return withAuth(req, async (req: AuthenticatedRequest) => {
     const user = req.user!;
 
     try {
@@ -124,7 +124,8 @@ export async function POST(
           userId: booking.studio.owner.userId,
           type: "SESSION_CONFIRMED_BY_BOOKER",
           title: "Artist Confirmed Presence",
-          message: `${user.fullName || user.username} has confirmed their presence at ${booking.studio.name}. Session is now fully verified.`,
+          // ✅ We use booking.user here instead of the session user to keep the route lean
+          message: `${booking.user.fullName || booking.user.username} has confirmed their presence at ${booking.studio.name}. Session is now fully verified.`,
           referenceId: booking.id,
           referenceType: "BOOKING",
         },

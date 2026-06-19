@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useMemo, useRef } from "react";
-import { useLogout, useMenu } from "@refinedev/core";
+import { useLogout, useMenu, useGetIdentity } from "@refinedev/core";
 import { useRouter } from "next/navigation";
 import { useSidebar } from "../../providers/sidebar-provider/sidebar-provider";
 import { WorkspaceHeader } from "./WorkspaceHeader";
@@ -9,8 +9,6 @@ import { NavigationMenu } from "./NavigationMenu";
 import { UserSection } from "./UserSection";
 import { Power } from "lucide-react";
 import { CreateClubModal } from '@/components/menu/CreateClubModal';
-import { createBrowserClient } from '@supabase/ssr';
-import { useUserBySupabaseId } from "@/hooks/api/useUserData";
 import { useCreateClub } from "@/hooks/api/useClubs";
 import { Manrope } from 'next/font/google';
 
@@ -60,13 +58,15 @@ export const Menu: React.FC = () => {
   const router = useRouter();
   const [isClient, setIsClient] = useState<boolean>(false);
   const { collapsed } = useSidebar();
-  const [expandedGroups, setExpandedGroups] = useState<string[]>(["create"]); // "clubs" removed from default open
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(["create"]);
   const userHasInteractedRef = useRef<boolean>(false);
   const [showLogoutDialog, setShowLogoutDialog] = useState<boolean>(false);
   const [showCreateClubModal, setShowCreateClubModal] = useState(false);
-  const [supabaseUser, setSupabaseUser] = useState<any>(null);
 
-  const { data: userData } = useUserBySupabaseId(supabaseUser?.id, { enabled: !!supabaseUser?.id });
+  // ✅ GRAB IDENTITY (0ms delay, no DB fetch)
+  const { data: identity } = useGetIdentity<any>();
+  const dbId = identity?.dbId;
+
   const createClubMutation = useCreateClub();
 
   const selectedItemGroup = useMemo(() => {
@@ -76,12 +76,6 @@ export const Menu: React.FC = () => {
 
   useEffect(() => {
     setIsClient(true);
-    const loadUser = async () => {
-      const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
-      const { data: { user } } = await supabase.auth.getUser();
-      setSupabaseUser(user);
-    };
-    loadUser();
   }, []);
 
   useEffect(() => {
@@ -93,9 +87,9 @@ export const Menu: React.FC = () => {
   }, [selectedItemGroup, expandedGroups]);
 
   const handleCreateClub = async (clubData: any) => {
-    if (!userData?.id) return;
+    if (!dbId) return; // ✅ Check against dbId from JWT
     createClubMutation.mutate(
-      { ...clubData, ownerId: userData.id },
+      { ...clubData, ownerId: dbId }, // ✅ Use dbId
       {
         onSuccess: (result: any) => {
           setShowCreateClubModal(false);

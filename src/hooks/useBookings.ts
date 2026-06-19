@@ -105,26 +105,32 @@ export function useUpdateBookingStatus() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      bookingId,
-      status,
-    }: {
-      bookingId: string;
-      status: string;
-    }) => {
+    mutationFn: async ({ bookingId, status }: { bookingId: string; status: string }) => {
       const response = await fetch(`/api/bookings/${bookingId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to update booking");
-      }
-
+      if (!response.ok) throw new Error("Failed to update booking");
       return response.json();
     },
-    onSuccess: () => {
+    onMutate: async ({ bookingId, status }) => {
+      await queryClient.cancelQueries({ queryKey: ["bookings"] });
+      const previousBookings = queryClient.getQueriesData({ queryKey: ["bookings"] });
+
+      queryClient.setQueriesData({ queryKey: ["bookings"] }, (old: any) => {
+        if (!old?.studioBookings) return old;
+        return {
+          ...old,
+          studioBookings: old.studioBookings.map((b: any) => b.id === bookingId ? { ...b, status } : b),
+        };
+      });
+      return { previousBookings };
+    },
+    onError: (err, variables, context) => {
+      context?.previousBookings.forEach(([queryKey, data]) => queryClient.setQueryData(queryKey, data));
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
     },
   });
@@ -136,24 +142,34 @@ export function useCancelBooking() {
 
   return useMutation({
     mutationFn: async (bookingId: string) => {
-      const response = await fetch(`/api/bookings/${bookingId}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to cancel booking");
-      }
-
+      const response = await fetch(`/api/bookings/${bookingId}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("Failed to cancel booking");
       return response.json();
     },
-    onSuccess: () => {
+    onMutate: async (bookingId) => {
+      await queryClient.cancelQueries({ queryKey: ["bookings"] });
+      const previousBookings = queryClient.getQueriesData({ queryKey: ["bookings"] });
+
+      queryClient.setQueriesData({ queryKey: ["bookings"] }, (old: any) => {
+        if (!old?.studioBookings) return old;
+        return {
+          ...old,
+          studioBookings: old.studioBookings.map((b: any) => b.id === bookingId ? { ...b, status: "CANCELLED" } : b),
+        };
+      });
+      return { previousBookings };
+    },
+    onError: (err, variables, context) => {
+      context?.previousBookings.forEach(([queryKey, data]) => queryClient.setQueryData(queryKey, data));
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
     },
   });
 }
 
 // ============================================================================
-// SESSION MANAGEMENT HOOKS
+// SESSION MANAGEMENT HOOKS (OPTIMISTIC UI ENABLED)
 // ============================================================================
 
 // Check in a booking (start session)
@@ -167,17 +183,55 @@ export function useCheckIn() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ qrCode }),
       });
-
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error?.message || "Failed to check in");
       }
-
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+    // 🚀 THE MAGIC: Optimistic UI
+    onMutate: async ({ bookingId }) => {
+      await queryClient.cancelQueries({ queryKey: ["sessions"] });
+      await queryClient.cancelQueries({ queryKey: ["bookings"] });
+
+      const previousSessions = queryClient.getQueriesData({ queryKey: ["sessions"] });
+      const previousBookings = queryClient.getQueriesData({ queryKey: ["bookings"] });
+
+      // Instantly update sessions
+      queryClient.setQueriesData({ queryKey: ["sessions"] }, (old: any) => {
+        if (!old?.sessions) return old;
+        return {
+          ...old,
+          sessions: old.sessions.map((s: any) => s.id === bookingId ? { ...s, status: "ACTIVE" } : s),
+        };
+      });
+
+      // Instantly update bookings
+      queryClient.setQueriesData({ queryKey: ["bookings"] }, (old: any) => {
+        if (!old?.studioBookings) return old;
+        return {
+          ...old,
+          studioBookings: old.studioBookings.map((b: any) => 
+            b.id === bookingId ? { 
+              ...b, 
+              status: "ACTIVE",
+              sessionInfo: { ...b.sessionInfo, isActive: true } 
+            } : b
+          ),
+        };
+      });
+
+      return { previousSessions, previousBookings };
+    },
+    // 🛑 ROLLBACK
+    onError: (err, variables, context) => {
+      context?.previousSessions.forEach(([queryKey, data]) => queryClient.setQueryData(queryKey, data));
+      context?.previousBookings.forEach(([queryKey, data]) => queryClient.setQueryData(queryKey, data));
+    },
+    // 🔄 QUIET SYNC
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
     },
   });
 }
@@ -192,17 +246,50 @@ export function useCheckOut() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
-
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error?.message || "Failed to check out");
       }
-
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+    onMutate: async (bookingId) => {
+      await queryClient.cancelQueries({ queryKey: ["sessions"] });
+      await queryClient.cancelQueries({ queryKey: ["bookings"] });
+
+      const previousSessions = queryClient.getQueriesData({ queryKey: ["sessions"] });
+      const previousBookings = queryClient.getQueriesData({ queryKey: ["bookings"] });
+
+      queryClient.setQueriesData({ queryKey: ["sessions"] }, (old: any) => {
+        if (!old?.sessions) return old;
+        return {
+          ...old,
+          sessions: old.sessions.map((s: any) => s.id === bookingId ? { ...s, status: "COMPLETED" } : s),
+        };
+      });
+
+      queryClient.setQueriesData({ queryKey: ["bookings"] }, (old: any) => {
+        if (!old?.studioBookings) return old;
+        return {
+          ...old,
+          studioBookings: old.studioBookings.map((b: any) => 
+            b.id === bookingId ? { 
+              ...b, 
+              status: "COMPLETED",
+              sessionInfo: { ...b.sessionInfo, isActive: false } 
+            } : b
+          ),
+        };
+      });
+
+      return { previousSessions, previousBookings };
+    },
+    onError: (err, variables, context) => {
+      context?.previousSessions.forEach(([queryKey, data]) => queryClient.setQueryData(queryKey, data));
+      context?.previousBookings.forEach(([queryKey, data]) => queryClient.setQueryData(queryKey, data));
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
     },
   });
 }
@@ -218,12 +305,10 @@ export function usePayBooking() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ paymentMethod }),
       });
-
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error?.message || "Failed to process payment");
       }
-
       return response.json();
     },
     onSuccess: () => {
@@ -243,15 +328,34 @@ export function useConfirmCheckIn() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ confirmationCode }),
       });
-
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error?.message || "Failed to confirm check-in");
       }
-
       return response.json();
     },
-    onSuccess: () => {
+    onMutate: async ({ bookingId }) => {
+      await queryClient.cancelQueries({ queryKey: ["bookings"] });
+      const previousBookings = queryClient.getQueriesData({ queryKey: ["bookings"] });
+
+      queryClient.setQueriesData({ queryKey: ["bookings"] }, (old: any) => {
+        if (!old?.studioBookings) return old;
+        return {
+          ...old,
+          studioBookings: old.studioBookings.map((b: any) => 
+            b.id === bookingId ? { 
+              ...b, 
+              sessionInfo: { ...b.sessionInfo, bookerConfirmedCheckIn: true } 
+            } : b
+          ),
+        };
+      });
+      return { previousBookings };
+    },
+    onError: (err, variables, context) => {
+      context?.previousBookings.forEach(([queryKey, data]) => queryClient.setQueryData(queryKey, data));
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
       queryClient.invalidateQueries({ queryKey: ["sessions"] });
     },
@@ -268,15 +372,35 @@ export function useReleasePayment() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
-
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error?.message || "Failed to release payment");
       }
-
       return response.json();
     },
-    onSuccess: () => {
+    onMutate: async (bookingId) => {
+      await queryClient.cancelQueries({ queryKey: ["bookings"] });
+      const previousBookings = queryClient.getQueriesData({ queryKey: ["bookings"] });
+
+      queryClient.setQueriesData({ queryKey: ["bookings"] }, (old: any) => {
+        if (!old?.studioBookings) return old;
+        return {
+          ...old,
+          studioBookings: old.studioBookings.map((b: any) => 
+            b.id === bookingId ? { 
+              ...b, 
+              paymentStatus: "PAYMENT_RELEASED",
+              sessionInfo: { ...b.sessionInfo, paymentStatus: "PAYMENT_RELEASED" } 
+            } : b
+          ),
+        };
+      });
+      return { previousBookings };
+    },
+    onError: (err, variables, context) => {
+      context?.previousBookings.forEach(([queryKey, data]) => queryClient.setQueryData(queryKey, data));
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
       queryClient.invalidateQueries({ queryKey: ["sessions"] });
     },

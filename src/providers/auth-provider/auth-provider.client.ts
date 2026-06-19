@@ -191,7 +191,7 @@ export const authProviderClient: AuthProvider = {
   },
   
   // ✅ FIXED: Include complete permissions in identity
-  // ✅ FIXED: Include complete permissions and profile info in identity
+// ✅ FIXED: Include complete permissions and profile info in identity
   getIdentity: async () => {
     const { data } = await supabaseBrowserClient.auth.getUser();
 
@@ -239,6 +239,8 @@ export const authProviderClient: AuthProvider = {
 
     return null;
   },
+
+  
   
   onError: async (error) => {
     if (error?.code === "PGRST301" || error?.code === 401) {

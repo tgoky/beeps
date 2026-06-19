@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withFullUser, withAuth } from "@/lib/api-middleware";
+import { withAuth, type AuthenticatedRequest } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 import type { ApiResponse } from "@/types";
 
@@ -81,7 +81,7 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  return withFullUser(req, async (req) => {
+return withAuth(req, async (req: AuthenticatedRequest) => {
     const user = req.user!;
     
     try {
@@ -176,7 +176,7 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  return withFullUser(req, async (req) => {
+return withAuth(req, async (req: AuthenticatedRequest) => {
     const user = req.user!;
     
     try {

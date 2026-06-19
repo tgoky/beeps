@@ -4,7 +4,6 @@ import { useState, useRef, useEffect } from "react";
 import { LayoutGrid, ChevronDown, Plus, Activity, Check } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import { useGetIdentity } from "@refinedev/core";
-import { useUserBySupabaseId } from "@/hooks/api/useUserData";
 import { useClubs } from "@/hooks/api/useClubs";
 
 interface WorkspaceHeaderProps {
@@ -21,12 +20,12 @@ export const WorkspaceHeader = ({
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   
+  // ✅ USE IDENTITY INSTEAD OF FETCHING FROM DB
   const { data: identity } = useGetIdentity<any>();
-  const { data: userData } = useUserBySupabaseId(identity?.id, {
-    enabled: !!identity?.id,
-  });
-  const { data: clubsData } = useClubs(userData?.id, {
-    enabled: !!userData?.id,
+  const dbId = identity?.dbId; // Grab the internal DB ID exposed by our auth provider
+
+  const { data: clubsData } = useClubs(dbId, {
+    enabled: !!dbId, // Only fetch clubs if we have the DB ID
   });
 
   const clubsCount = clubsData?.length || 0;

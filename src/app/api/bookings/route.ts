@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withFullUser, withAuth } from "@/lib/api-middleware";
+import { withFullUser, withAuth, type AuthenticatedRequest } from "@/lib/api-middleware"; // ✅ Imported both wrappers
 import { prisma } from "@/lib/prisma";
 import { formatAmount, getProviderFromCurrency } from "@/lib/currency";
 
 // GET /api/bookings - Fetch user bookings
 export async function GET(req: NextRequest) {
-  return withFullUser(req, async (req) => {
+  // ✅ FAST PATH: 0ms Edge Cache. We only need user.id to fetch the list.
+  return withAuth(req, async (req: AuthenticatedRequest) => {
     try {
       const user = req.user!;
       const { searchParams } = new URL(req.url);
@@ -111,6 +112,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/bookings - Create a booking
 export async function POST(req: NextRequest) {
+  // 🛑 HEAVY PATH: Requires the DB hit to get user.fullName for the notification message
   return withFullUser(req, async (req) => {
     try {
       const user = req.user!;
@@ -203,7 +205,7 @@ export async function POST(req: NextRequest) {
           totalAmount,
           currency,
           paymentProvider,
-          notes: notes || "", // ✅ Fixed: moved notes here
+          notes: notes || "", 
           status: "PENDING",
         },
         include: {
