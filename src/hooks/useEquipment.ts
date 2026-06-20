@@ -60,6 +60,7 @@ export function useEquipment(filters?: {
       if (!response.ok) throw new Error("Failed to fetch equipment");
       return response.json();
     },
+    keepPreviousData: true,
   });
 }
 

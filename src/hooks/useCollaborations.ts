@@ -138,6 +138,7 @@ export function useCollaborations(filters?: {
       // Fallback to empty array if no data
       return [];
     },
+    keepPreviousData: true,
   });
 }
 

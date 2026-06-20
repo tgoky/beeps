@@ -52,6 +52,7 @@ export function useServices(filters?: {
       if (!response.ok) throw new Error("Failed to fetch services");
       return response.json();
     },
+    keepPreviousData: true,
   });
 }
 

@@ -73,6 +73,9 @@ export interface CreateBeatInput {
 /**
  * Fetch all beats with optional filters
  */
+/**
+ * Fetch all beats with optional filters
+ */
 export function useBeats(filters?: {
   search?: string;
   genre?: string;
@@ -112,6 +115,7 @@ export function useBeats(filters?: {
       
       return result.data;
     },
+    keepPreviousData: true, // <--- ADD IT RIGHT HERE
   });
 }
 

@@ -47,6 +47,7 @@ export function useProducers(filters?: {
   return useQuery<Producer[]>({
     queryKey: ["producers", filters],
     queryFn: async () => {
+      
       const params = new URLSearchParams();
       if (filters?.hasStudios !== undefined) params.append("hasStudios", filters.hasStudios.toString());
       if (filters?.hasBeats !== undefined) params.append("hasBeats", filters.hasBeats.toString());
@@ -59,6 +60,7 @@ export function useProducers(filters?: {
       const data = await response.json();
       return data.producers || [];
     },
+    keepPreviousData: true,
   });
 }
 
