@@ -93,7 +93,7 @@ export function useStudios(filters?: {
   radius?: number;
   limit?: number;
   offset?: number;
-  enabled?: boolean; // ✅ Added enabled flag
+  enabled?: boolean;
 }) {
   return useQuery<StudiosResponse>({
     queryKey: ["studios", filters],
@@ -103,8 +103,8 @@ export function useStudios(filters?: {
       if (filters?.location) params.append("location", filters.location);
       if (filters?.country) params.append("country", filters.country);
       if (filters?.city) params.append("city", filters.city);
-      if (filters?.minRate) params.append("minRate", filters.minRate.toString());
-      if (filters?.maxRate) params.append("maxRate", filters.maxRate.toString());
+      if (filters?.minRate !== undefined) params.append("minRate", filters.minRate.toString());
+      if (filters?.maxRate !== undefined) params.append("maxRate", filters.maxRate.toString());
       if (filters?.latitude !== undefined) params.append("latitude", filters.latitude.toString());
       if (filters?.longitude !== undefined) params.append("longitude", filters.longitude.toString());
       if (filters?.radius !== undefined) params.append("radius", filters.radius.toString());
@@ -120,8 +120,10 @@ export function useStudios(filters?: {
         pagination: data.pagination ?? { total: 0, limit: filters?.limit ?? 20, offset: filters?.offset ?? 0 },
       };
     },
-    enabled: filters?.enabled !== false, // ✅ Tells React Query to wait if enabled is explicitly false
-    staleTime: 1000 * 60 * 5, 
+    enabled: filters?.enabled !== false,
+    staleTime: 1000 * 60 * 5,
+    // ✅ FIX: React Query v4 uses a simple boolean flag
+    keepPreviousData: true, 
   });
 }
 

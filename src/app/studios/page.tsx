@@ -24,8 +24,10 @@ import {
   BadgeCheck,
 } from "lucide-react";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useUserPermissions } from "@/hooks/api/useUserPermissions";
 import { useStudios } from "@/hooks/useStudios";
 import { formatAmount } from "@/lib/currency";
+import Link from "next/link";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -54,6 +56,7 @@ type SortOrder = "price_asc" | "rating_desc" | "nearest" | null;
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const EMPTY_STUDIOS: Studio[] = [];
+const COUNTRY_STORAGE_KEY = "beeps:lastDetectedCountry";
 
 const FILTER_OPTIONS = [
   { label: "Budget", min: 0, max: 25, text: "Under $25/hr" },
@@ -97,6 +100,20 @@ const getPosition = (lat: number, lon: number, studioId: string) => {
   const y = 20 + (Math.abs(lat * 100) % 60) + jitterY;
   return { x, y };
 };
+
+// Pure function — no I/O, easy to keep in sync with the old logic
+function detectCountryFromUser(user: any): string {
+  if (!user) return "";
+  const loc = (user.location || "").toLowerCase();
+  const code = user.countryCode || "";
+  const curr = user.currency || "";
+
+  if (code === "GH" || curr === "GHS" || loc.includes("ghana") || loc.includes("accra")) return "Ghana";
+  if (code === "NG" || curr === "NGN" || loc.includes("nigeria") || loc.includes("lagos") || loc.includes("abuja") || loc.includes("umuahia")) return "Nigeria";
+  if (code === "GB" || curr === "GBP" || loc.includes("uk") || loc.includes("united kingdom") || loc.includes("london")) return "United Kingdom";
+  if (code === "US" || loc.includes("usa") || loc.includes("united states") || loc.includes("new york") || loc.includes("los angeles")) return "United States";
+  return "";
+}
 
 // ─── MapMarker ────────────────────────────────────────────────────────────────
 
@@ -202,12 +219,8 @@ const MapMarker = memo(
 MapMarker.displayName = "MapMarker";
 
 // ─── Static Map Background ─────────────────────────────────────────────────────
-// FIX: Wrapped in its own isolated layer with contain:strict so it never
-// participates in the sheet's compositing layer — massive GPU saving.
 
 const MapBackground = memo(() => (
-  // contain:strict tells the browser "nothing inside affects layout outside"
-  // This prevents the SVG lines from triggering repaints during sheet drags.
   <div style={{ contain: "strict", position: "absolute", inset: 0, zIndex: 0 }}>
     <div
       className="absolute inset-[-200%] w-[500%] h-[500%] opacity-[0.02] pointer-events-none mix-blend-screen"
@@ -369,8 +382,6 @@ const InteractiveMap = memo(
             ref={contentRef}
             className="absolute inset-0 w-full h-full"
             style={{
-              // FIX: removed will-change here — it was permanently promoting every
-              // child to its own GPU layer. Only set during active animation.
               transformStyle: "preserve-3d",
               transformOrigin: "center 70%",
               transform: `scale(1.2)`,
@@ -536,6 +547,8 @@ InteractiveMap.displayName = "InteractiveMap";
 
 // ─── StudioCard ───────────────────────────────────────────────────────────────
 
+// ─── StudioCard ───────────────────────────────────────────────────────────────
+
 const StudioCard = memo(
   ({
     studio,
@@ -546,11 +559,11 @@ const StudioCard = memo(
     distance: number | null;
     onHover: (id: string | null) => void;
   }) => {
-    const router = useRouter();
     return (
-      <div
+      <Link
+        href={`/studios/${studio.id}`}
+        prefetch={true}
         className="group flex flex-col bg-zinc-900 border border-zinc-800 rounded-xl hover:border-zinc-700 hover:bg-zinc-800 transition-all duration-200 cursor-pointer overflow-hidden"
-        onClick={() => router.push(`/studios/${studio.id}`)}
         onMouseEnter={() => onHover(studio.id)}
         onMouseLeave={() => onHover(null)}
       >
@@ -602,16 +615,18 @@ const StudioCard = memo(
             )}
           </div>
         </div>
-      </div>
+      </Link>
     );
   }
 );
 StudioCard.displayName = "StudioCard";
 
+
 // ─── StudioList (main page) ───────────────────────────────────────────────────
 
 export default function StudioList() {
   const { permissions } = usePermissions();
+  const { data: userPermissions } = useUserPermissions();
 
   const [userLocation, setUserLocation] = useState<{ lat: number; lon: number } | null>(null);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
@@ -621,41 +636,22 @@ export default function StudioList() {
   const [selectedFilterIndex, setSelectedFilterIndex] = useState<number | null>(null);
   const [sortOrder, setSortOrder] = useState<SortOrder>(null);
   const [showFilters, setShowFilters] = useState(false);
-  const [filterCountry, setFilterCountry] = useState("");
+
+  // ✅ FIX: Synchronous on mount — use localStorage for instant country detection
+  const [filterCountry, setFilterCountry] = useState<string>(() =>
+    typeof window !== "undefined" ? localStorage.getItem(COUNTRY_STORAGE_KEY) || "" : ""
+  );
   const [filterCity, setFilterCity] = useState("");
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
 
+  // ✅ FIX: Use cached user permissions instead of raw fetch — no network wait
   useEffect(() => {
-    fetch("/api/auth/me")
-      .then((res) => {
-        if (res.ok) return res.json();
-        throw new Error("Not logged in");
-      })
-      .then((resData) => {
-        const user = resData?.data;
-        if (!user) return;
-
-        const loc = (user.location || "").toLowerCase();
-        const code = user.countryCode || "";
-        const curr = user.currency || "";
-
-        if (code === "GH" || curr === "GHS" || loc.includes("ghana") || loc.includes("accra")) {
-          return setFilterCountry("Ghana");
-        }
-        if (code === "NG" || curr === "NGN" || loc.includes("nigeria") || loc.includes("lagos") || loc.includes("abuja") || loc.includes("umuahia")) {
-          return setFilterCountry("Nigeria");
-        }
-        if (code === "GB" || curr === "GBP" || loc.includes("uk") || loc.includes("united kingdom") || loc.includes("london")) {
-          return setFilterCountry("United Kingdom");
-        }
-        if (code === "US" || loc.includes("usa") || loc.includes("united states") || loc.includes("new york") || loc.includes("los angeles")) {
-          return setFilterCountry("United States");
-        }
-        setFilterCountry("");
-      })
-      .catch((err) => console.log("Public session fallback:", err.message))
-      .finally(() => setIsAuthLoading(false));
-  }, []);
+    if (!userPermissions) return;
+    const detected = detectCountryFromUser(userPermissions);
+    if (detected) {
+      localStorage.setItem(COUNTRY_STORAGE_KEY, detected);
+      setFilterCountry((prev) => prev || detected); // don't override a filter the user already changed
+    }
+  }, [userPermissions]);
 
   const [debouncedSearch, setDebouncedSearch] = useState("");
   useEffect(() => {
@@ -663,6 +659,7 @@ export default function StudioList() {
     return () => clearTimeout(t);
   }, [searchQuery]);
 
+  // ✅ FIX: Remove enabled: !isAuthLoading — let it fetch immediately
   const { data: studiosData, isLoading: isLoadingStudios } = useStudios({
     search: debouncedSearch || undefined,
     country: filterCountry || undefined,
@@ -672,7 +669,6 @@ export default function StudioList() {
     latitude: sortOrder === "nearest" && userLocation ? userLocation.lat : undefined,
     longitude: sortOrder === "nearest" && userLocation ? userLocation.lon : undefined,
     radius: sortOrder === "nearest" && userLocation ? 50 : undefined,
-    enabled: !isAuthLoading,
   });
 
   const studios = useMemo(() => studiosData?.studios ?? EMPTY_STUDIOS, [studiosData?.studios]);
@@ -684,8 +680,6 @@ export default function StudioList() {
   const mapWrapperRef = useRef<HTMLDivElement>(null);
   const sheetStateRef = useRef<"full" | "half" | "min">("half");
 
-  // FIX: Cache snap heights in a ref so we NEVER read the DOM during drag.
-  // Heights are calculated once on mount and on window resize.
   const snapHeightsRef = useRef({ full: 0, half: 0, min: 0 });
 
   const recalcSnaps = useCallback(() => {
@@ -712,12 +706,10 @@ export default function StudioList() {
       const mapWrap = mapWrapperRef.current;
       if (!sheet) return;
 
-      // Use the pre-cached snap heights — zero DOM reads during drag
       const snaps = snapHeightsRef.current;
       const startY = e.clientY;
       const startOffset = snaps[sheetStateRef.current];
 
-      // FIX: Only promote to GPU layer right before drag starts
       sheet.style.willChange = "transform";
       sheet.style.transition = "none";
 
@@ -777,7 +769,6 @@ export default function StudioList() {
               : "15vh";
         }
 
-        // FIX: Release GPU layer once animation completes
         setTimeout(() => {
           if (sheetRef.current) sheetRef.current.style.willChange = "auto";
         }, 520);
@@ -787,7 +778,7 @@ export default function StudioList() {
       window.addEventListener("pointerup", handleUp);
       window.addEventListener("pointercancel", handleUp);
     },
-    [] // No dependencies — reads from refs only
+    []
   );
 
   // ── Hover bus ────────────────────────────────────────────────────────────────
@@ -875,7 +866,6 @@ export default function StudioList() {
     return data;
   }, [studios, sortOrder, userLocation]);
 
-  // Helper to snap the sheet programmatically (used by toggle button)
   const snapSheetTo = useCallback(
     (targetState: "full" | "half" | "min") => {
       sheetStateRef.current = targetState;
@@ -910,15 +900,14 @@ export default function StudioList() {
         mapWrapperRef={mapWrapperRef}
       />
 
-      {(isLoadingStudios || isAuthLoading) && (
+      {/* ✅ FIX: Overlay only depends on studios query — no more auth blocking */}
+      {isLoadingStudios && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm z-50 pointer-events-none">
           <div className="animate-spin h-8 w-8 border-2 border-t-transparent border-white rounded-full" />
         </div>
       )}
 
       {/* Bottom sheet */}
-      {/* FIX: removed willChange from JSX — it was always-on.
-           We only set it imperatively in the drag handler, then unset it after. */}
       <div
         ref={sheetRef}
         className="absolute left-0 right-0 bottom-0 z-40 flex flex-col bg-[#030303] border-t border-zinc-800 rounded-t-3xl shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.5)]"
@@ -926,7 +915,6 @@ export default function StudioList() {
           height: "90vh",
           transform: `translate3d(0, 32vh, 0)`,
           transition: "transform 500ms cubic-bezier(0.32, 0.72, 0, 1)",
-          // willChange is intentionally NOT set here — only applied during drag
         }}
       >
         {/* Drag handle */}
