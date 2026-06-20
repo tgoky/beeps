@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useActiveSessions, useCheckIn, useCheckOut, useReleasePayment, useSessionStream } from "@/hooks/useBookings";
+import { useActiveSessions, useCheckIn, useCheckOut, useReleasePayment } from "@/hooks/useBookings";
+import { useBookingRealtime } from "@/hooks/useBookingRealtime";
 import { useTheme } from "@/providers/ThemeProvider";
 import { createBrowserClient } from "@supabase/ssr";
 import {
@@ -32,7 +33,35 @@ export default function SessionsDashboardPage() {
   const checkIn = useCheckIn();
   const checkOut = useCheckOut();
   const releasePayment = useReleasePayment();
-  useSessionStream(); // Opens SSE connection; invalidates queries instantly on check-in/check-out
+  
+  // Get current user and owned studio IDs for Supabase Realtime
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [ownedStudioIds, setOwnedStudioIds] = useState<string[]>([]);
+  
+  useEffect(() => {
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+    
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        setCurrentUser(user);
+        // Fetch owned studio IDs
+        fetch(`/api/studios?ownerId=${user.id}`)
+          .then(res => res.json())
+          .then(data => {
+            const ids = data.studios?.map((s: any) => s.id) || [];
+            setOwnedStudioIds(ids);
+          })
+          .catch(console.error);
+      }
+    });
+  }, []);
+  
+  // Supabase Realtime - replaces old SSE connection
+  useBookingRealtime(currentUser?.id, ownedStudioIds);
+  
   const [now, setNow] = useState(new Date());
 
   // Live clock - update every second for real-time session timers

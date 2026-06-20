@@ -1,273 +1,185 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withFullUser, withAuth, type AuthenticatedRequest } from "@/lib/api-middleware"; // ✅ Imported both wrappers
+import { withFullUser, withAuth, type AuthenticatedRequest } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
-import { formatAmount, getProviderFromCurrency } from "@/lib/currency";
 
-// GET /api/bookings - Fetch user bookings
+// GET /api/notifications - Fetch user's own notifications
 export async function GET(req: NextRequest) {
-  // ✅ FAST PATH: 0ms Edge Cache. We only need user.id to fetch the list.
   return withAuth(req, async (req: AuthenticatedRequest) => {
     try {
       const user = req.user!;
       const { searchParams } = new URL(req.url);
-      const status = searchParams.get("status");
-      const asOwner = searchParams.get("asOwner") === "true";
-      const limit = parseInt(searchParams.get("limit") || "20");
+      const unreadOnly = searchParams.get("unreadOnly") === "true";
+      const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 100); // Cap at 100
       const offset = parseInt(searchParams.get("offset") || "0");
 
-      let where: any = {};
+      const where: any = {
+        userId: user.id,
+      };
 
-      if (asOwner) {
-        // Fetch bookings for studios owned by the user
-        where = {
-          studio: {
-            owner: {
-              userId: user.id,
-            },
-          },
-        };
-      } else {
-        // Fetch bookings made by the user
-        where = {
-          userId: user.id,
-        };
+      if (unreadOnly) {
+        where.read = false;
       }
 
-      if (status) {
-        where.status = status;
-      }
-
-      const [bookings, total] = await Promise.all([
-        prisma.booking.findMany({
+      const [notifications, total, unreadCount] = await Promise.all([
+        prisma.notification.findMany({
           where,
-          select: {
-            id: true,
-            studioId: true,
-            userId: true,
-            startTime: true,
-            endTime: true,
-            status: true,
-            totalAmount: true,
-            notes: true,
-            paymentStatus: true,
-            checkedInAt: true,
-            checkedOutAt: true,
-            qrCode: true,
-            overtimeMinutes: true,
-            overtimeAmount: true,
-            bookerConfirmedCheckIn: true,
-            createdAt: true,
-            updatedAt: true,
-            studio: {
-              select: {
-                id: true,
-                name: true,
-                location: true,
-                hourlyRate: true,
-                imageUrl: true,
-                owner: {
-                  select: {
-                    id: true,
-                    user: {
-                      select: {
-                        id: true,
-                        username: true,
-                        fullName: true,
-                        avatar: true,
-                      },
-                    },
-                  },
-                },
-              },
-            },
-            user: {
-              select: {
-                id: true,
-                username: true,
-                fullName: true,
-                avatar: true,
-              },
-            },
-          },
-          orderBy: { startTime: "desc" },
+          orderBy: { createdAt: "desc" },
           take: limit,
           skip: offset,
         }),
-        prisma.booking.count({ where }),
+        prisma.notification.count({ where }),
+        prisma.notification.count({
+          where: { userId: user.id, read: false }
+        }),
       ]);
 
       return NextResponse.json({
-        bookings,
-        pagination: { total, limit, offset },
+        notifications,
+        pagination: {
+          total,
+          limit,
+          offset,
+          unreadCount,
+        },
       });
     } catch (error: any) {
-      console.error("Error fetching bookings:", error);
+      console.error("Error fetching notifications:", error);
       return NextResponse.json(
-        { error: "Failed to fetch bookings" },
+        { error: "Failed to fetch notifications" },
         { status: 500 }
       );
     }
   });
 }
 
-// POST /api/bookings - Create a booking
+// POST /api/notifications - ADMIN ONLY: Create notifications
 export async function POST(req: NextRequest) {
-  // 🛑 HEAVY PATH: Requires the DB hit to get user.fullName for the notification message
   return withFullUser(req, async (req) => {
     try {
       const user = req.user!;
+
+      // ✅ FIX #9: Lock notification creation to admin users only
+      // This prevents open notification injection from regular users
+      // Every legitimate notification is created inline by business-logic routes
+      if (!user.verified) {
+        return NextResponse.json(
+          { error: "Admin access required" }, 
+          { status: 403 }
+        );
+      }
+
       const body = await req.json();
-      const { studioId, startTime, endTime, notes } = body;
+      const { userId, type, title, message, referenceId, referenceType } = body;
 
       // Validate required fields
-      if (!studioId || !startTime || !endTime) {
+      if (!userId || !type || !title || !message) {
         return NextResponse.json(
-          { error: "Missing required fields: studioId, startTime, endTime" },
+          { error: "Missing required fields: userId, type, title, message" }, 
           { status: 400 }
         );
       }
 
-      // Verify studio exists
-      const studio = await prisma.studio.findUnique({
-        where: { id: studioId },
-        include: {
-          owner: {
-            include: {
-              user: true,
-            },
-          },
-        },
-      });
-
-      if (!studio) {
-        return NextResponse.json({ error: "Studio not found" }, { status: 404 });
-      }
-
-      if (!studio.isActive) {
+      // Validate message length to prevent abuse
+      if (title.length > 200 || message.length > 1000) {
         return NextResponse.json(
-          { error: "Studio is not available for booking" },
+          { error: "Title or message exceeds maximum length" }, 
           { status: 400 }
         );
       }
 
-      // Check for conflicting bookings
-      const conflictingBooking = await prisma.booking.findFirst({
-        where: {
-          studioId,
-          status: {
-            in: ["PENDING", "CONFIRMED"],
-          },
-          OR: [
-            {
-              AND: [
-                { startTime: { lte: new Date(startTime) } },
-                { endTime: { gt: new Date(startTime) } },
-              ],
-            },
-            {
-              AND: [
-                { startTime: { lt: new Date(endTime) } },
-                { endTime: { gte: new Date(endTime) } },
-              ],
-            },
-            {
-              AND: [
-                { startTime: { gte: new Date(startTime) } },
-                { endTime: { lte: new Date(endTime) } },
-              ],
-            },
-          ],
-        },
+      // Verify the target user exists
+      const targetUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true },
       });
 
-      if (conflictingBooking) {
+      if (!targetUser) {
         return NextResponse.json(
-          { error: "Studio is already booked for this time slot" },
-          { status: 409 }
+          { error: "Target user not found" }, 
+          { status: 404 }
         );
       }
 
-      // Calculate total amount
-      const start = new Date(startTime);
-      const end = new Date(endTime);
-      const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-      const totalAmount = parseFloat(studio.hourlyRate.toString()) * hours;
-      const currency = (studio as any).currency || "USD";
-      const paymentProvider = getProviderFromCurrency(currency);
-
-      // Create booking
-      const booking = await prisma.booking.create({
-        data: {
-          studioId,
-          userId: user.id,
-          startTime: new Date(startTime),
-          endTime: new Date(endTime),
-          totalAmount,
-          currency,
-          paymentProvider,
-          notes: notes || "", 
-          status: "PENDING",
-        },
-        include: {
-          studio: {
-            include: {
-              owner: {
-                include: {
-                  user: {
-                    select: {
-                      id: true,
-                      username: true,
-                      fullName: true,
-                      avatar: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-          user: {
-            select: {
-              id: true,
-              username: true,
-              fullName: true,
-              avatar: true,
-            },
-          },
+      const notification = await prisma.notification.create({
+        data: { 
+          userId, 
+          type, 
+          title, 
+          message, 
+          ...(referenceId && { referenceId }), 
+          ...(referenceType && { referenceType }) 
         },
       });
 
-      // Create notification for studio owner
-      const sessionDate = start.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-      const sessionTimeFrom = start.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
-      const sessionTimeTo = end.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
-      await prisma.notification.create({
-        data: {
-          userId: studio.owner.userId,
-          type: "BOOKING_CONFIRMED",
-          title: "New Booking Request",
-          message: `${user.fullName || user.username} has requested to book ${studio.name} on ${sessionDate}, ${sessionTimeFrom} – ${sessionTimeTo}. Review and accept or decline.`,
-          referenceId: booking.id,
-          referenceType: "BOOKING",
-        },
-      });
-
-      // Create activity
-      await prisma.activity.create({
-        data: {
-          userId: user.id,
-          type: "COMPLETE",
-          title: `Booked studio "${studio.name}"`,
-          description: `Booking request for ${hours} hours at ${formatAmount(parseFloat(studio.hourlyRate.toString()), currency)}/hour`,
-          referenceId: booking.id,
-          referenceType: "booking",
-        },
-      });
-
-      return NextResponse.json({ booking }, { status: 201 });
+      return NextResponse.json({ notification }, { status: 201 });
     } catch (error: any) {
-      console.error("Error creating booking:", error);
+      console.error("Error creating notification:", error);
       return NextResponse.json(
-        { error: "Failed to create booking", details: error.message },
+        { error: "Failed to create notification" }, 
+        { status: 500 }
+      );
+    }
+  });
+}
+
+// PATCH /api/notifications - Mark notifications as read
+export async function PATCH(req: NextRequest) {
+  return withAuth(req, async (req: AuthenticatedRequest) => {
+    try {
+      const user = req.user!;
+      const body = await req.json();
+      const { notificationIds, markAllRead } = body;
+
+      if (markAllRead) {
+        await prisma.notification.updateMany({
+          where: {
+            userId: user.id,  // ✅ Only user's own notifications
+            read: false,
+          },
+          data: {
+            read: true,
+          },
+        });
+
+        return NextResponse.json({
+          success: true,
+          message: "All notifications marked as read",
+        });
+      }
+
+      if (!notificationIds || !Array.isArray(notificationIds) || notificationIds.length === 0) {
+        return NextResponse.json(
+          { error: "notificationIds array is required and must not be empty" },
+          { status: 400 }
+        );
+      }
+
+      // Cap batch updates to prevent abuse
+      if (notificationIds.length > 100) {
+        return NextResponse.json(
+          { error: "Cannot mark more than 100 notifications at once" },
+          { status: 400 }
+        );
+      }
+
+      await prisma.notification.updateMany({
+        where: {
+          id: { in: notificationIds },
+          userId: user.id,  // ✅ Only user's own notifications
+        },
+        data: {
+          read: true,
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: "Notifications marked as read",
+      });
+    } catch (error: any) {
+      console.error("Error updating notifications:", error);
+      return NextResponse.json(
+        { error: "Failed to update notifications" },
         { status: 500 }
       );
     }

@@ -52,65 +52,68 @@ export async function POST(
       // ==========================================
       // NEW: GENERATE THE LEGAL CERTIFICATE 
       // ==========================================
-      const timestamp = Date.now();
-      const rawData = `SR-${serviceRequest.id}|${serviceRequest.clientId}|${serviceRequest.producerId}|${timestamp}`;
-      const transactionHash = crypto.createHash("sha256").update(rawData).digest("hex");
+const timestamp = Date.now();
+const rawData = `SR-${serviceRequest.id}|${serviceRequest.clientId}|${serviceRequest.producerId}|${timestamp}`;
+const transactionHash = crypto.createHash("sha256").update(rawData).digest("hex");
 
-      await prisma.licenseAgreement.create({
-        data: {
-          beatId: "custom", // Marking as custom job
-          buyerId: serviceRequest.clientId,
-          licenseType: "EXCLUSIVE", 
-          amountPaid: totalAmount,
-          transactionHash,
-          licensedFileHash: serviceRequest.deliveryUrl || "legacy_url", 
-          masterSplit: 100, 
-        }
-      });
+const { updated } = await prisma.$transaction(async (tx) => {
+  await tx.licenseAgreement.create({
+    data: {
+      serviceRequestId: serviceRequest.id,
+      buyerId: serviceRequest.clientId,
+      licenseType: "EXCLUSIVE",
+      amountPaid: totalAmount,
+      transactionHash,
+      licensedFileHash: serviceRequest.deliveryUrl || "legacy_url",
+      masterSplit: 100,
+    },
+  });
 
-      // YOUR STATUS UPDATES
-      const updated = await prisma.serviceRequest.update({
-        where: { id },
-        data: {
-          status: "COMPLETED",
-          paymentStatus: "PAYMENT_RELEASED",
-          clientConfirmedDelivery: true,
-        },
-      });
+  const updated = await tx.serviceRequest.update({
+    where: { id },
+    data: {
+      status: "COMPLETED",
+      paymentStatus: "PAYMENT_RELEASED",
+      clientConfirmedDelivery: true,
+    },
+  });
 
-      // YOUR TRANSACTION UPDATES
-      await prisma.transaction.updateMany({
-        where: { referenceId: id, referenceType: "SERVICE_REQUEST" },
-        data: { status: "COMPLETED" },
-      });
+  await tx.transaction.updateMany({
+    where: { referenceId: id, referenceType: "SERVICE_REQUEST" },
+    data: { status: "COMPLETED" },
+  });
 
-      // YOUR NOTIFICATIONS
-      await prisma.notification.create({
-        data: {
-          userId: serviceRequest.producerId,
-          type: "PAYMENT_RELEASED",
-          title: "Payment Released!",
-          message: `${serviceRequest.client.fullName || serviceRequest.client.username} confirmed delivery of "${serviceRequest.projectTitle}". $${producerPayout.toFixed(2)} has been released to you (after ${(platformFee / totalAmount * 100).toFixed(0)}% platform fee).`,
-          referenceId: id, referenceType: "SERVICE_REQUEST", isRead: false,
-        },
-      });
+  return { updated };
+});
 
-      await prisma.notification.create({
-        data: {
-          userId: user.id,
-          type: "PAYMENT_RELEASED",
-          title: "Delivery Confirmed",
-          message: `You confirmed delivery of "${serviceRequest.projectTitle}". Payment of $${producerPayout.toFixed(2)} has been released to the producer.`,
-          referenceId: id, referenceType: "SERVICE_REQUEST", isRead: false,
-        },
-      });
+// Non-critical side effects — fine to run in parallel after commit
+await Promise.all([
+  prisma.notification.create({
+    data: {
+      userId: serviceRequest.producerId,
+      type: "PAYMENT_RELEASED",
+      title: "Payment Released!",
+      message: `${serviceRequest.client.fullName || serviceRequest.client.username} confirmed delivery of "${serviceRequest.projectTitle}". $${producerPayout.toFixed(2)} has been released to you (after ${(platformFee / totalAmount * 100).toFixed(0)}% platform fee).`,
+      referenceId: id, referenceType: "SERVICE_REQUEST", isRead: false,
+    },
+  }),
+  prisma.notification.create({
+    data: {
+      userId: user.id,
+      type: "PAYMENT_RELEASED",
+      title: "Delivery Confirmed",
+      message: `You confirmed delivery of "${serviceRequest.projectTitle}". Payment of $${producerPayout.toFixed(2)} has been released to the producer.`,
+      referenceId: id, referenceType: "SERVICE_REQUEST", isRead: false,
+    },
+  }),
+]);
 
-      return NextResponse.json({
-        success: true,
-        serviceRequest: updated,
-        payout: { totalAmount, platformFee, producerPayout },
-        message: "Delivery confirmed. Payment released to producer. Certificate generated.",
-      });
+return NextResponse.json({
+  success: true,
+  serviceRequest: updated,
+  payout: { totalAmount, platformFee, producerPayout },
+  message: "Delivery confirmed. Payment released to producer. Certificate generated.",
+});
     } catch (error: any) {
       console.error("Error confirming delivery:", error);
       return NextResponse.json({ error: "Failed to confirm delivery" }, { status: 500 });

@@ -339,7 +339,7 @@ export default function BookingsPage() {
               {bookingType === "beat" && <Music2 className="w-8 h-8 text-green-900/50" strokeWidth={1.5} />}
             </div>
             <h3 className="text-lg font-medium text-zinc-200 mb-1">No {bookingType} records found</h3>
-            <p className="text-sm text-zinc-500">You don't have any matching items in this view.</p>
+            <p className="text-sm text-zinc-500">You do not have any matching items in this view.</p>
           </div>
         ) : (
           <div className="bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden shadow-xl">

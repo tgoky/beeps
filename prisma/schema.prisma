@@ -276,6 +276,7 @@ model ServiceRequest {
   updatedAt           DateTime             @updatedAt @map("updated_at")
 
   workspaceMessages   WorkspaceMessage[]
+  licenses LicenseAgreement[]
 
   @@index([clientId])
   @@index([producerId])
@@ -421,29 +422,33 @@ model Beat {
 
 // ✅ NEW: The Legal Contract Engine
 model LicenseAgreement {
-  id                String      @id @default(uuid())
-  
-  beatId            String      @map("beat_id")
-  beat              Beat        @relation(fields: [beatId], references: [id])
-  
-  buyerId           String      @map("buyer_id")
-  buyer             User        @relation("BuyerLicenses", fields: [buyerId], references: [id])
-  
-  licenseType       LicenseType @map("license_type")
-  amountPaid        Decimal     @db.Decimal(10, 2) @map("amount_paid")
-  
-  // The Legal "Lock-In" Cryptographic Anchor
-  transactionHash   String      @unique @map("transaction_hash") 
-  licensedFileHash  String      @map("licensed_file_hash")       
-  
-  // Rights
-  publishingSplit   Decimal     @default(50.00) @db.Decimal(5, 2) @map("publishing_split")
-  masterSplit       Decimal     @default(0.00) @db.Decimal(5, 2) @map("master_split") 
-  
-  pdfUrl            String?     @map("pdf_url") 
-  
-  createdAt         DateTime    @default(now()) @map("created_at")
-  
+  id                String          @id @default(uuid())
+
+  beatId            String?         @map("beat_id")
+  beat              Beat?           @relation(fields: [beatId], references: [id], onDelete: SetNull)
+
+  serviceRequestId  String?         @map("service_request_id")
+  serviceRequest    ServiceRequest? @relation(fields: [serviceRequestId], references: [id], onDelete: SetNull)
+
+  buyerId           String          @map("buyer_id")
+  buyer             User            @relation("BuyerLicenses", fields: [buyerId], references: [id])
+
+  licenseType       LicenseType     @map("license_type")
+  amountPaid        Decimal         @db.Decimal(10, 2) @map("amount_paid")
+
+  transactionHash   String          @unique @map("transaction_hash")
+  licensedFileHash  String          @map("licensed_file_hash")
+
+  publishingSplit   Decimal         @default(50.00) @db.Decimal(5, 2) @map("publishing_split")
+  masterSplit       Decimal         @default(0.00)  @db.Decimal(5, 2) @map("master_split")
+
+  pdfUrl            String?         @map("pdf_url")
+
+  createdAt         DateTime        @default(now()) @map("created_at")
+
+  @@index([beatId])
+  @@index([serviceRequestId])
+  @@index([buyerId])
   @@map("license_agreements")
 }
 

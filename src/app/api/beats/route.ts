@@ -5,6 +5,8 @@ import type { ApiResponse } from "@/types";
 import { identifyAudio } from "@/lib/acrcloud";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { unstable_cache } from "next/cache";
+import { revalidateTag } from "next/cache";
 
 const r2 = new S3Client({
   region: "auto",
@@ -15,7 +17,65 @@ const r2 = new S3Client({
   },
 });
 
-// GET /api/beats - (KEPT EXACTLY AS YOU WROTE IT)
+// ✅ FIX #11: Pagination constants
+const MAX_LIMIT = 100;
+const DEFAULT_LIMIT = 20;
+
+// ✅ FIX #14: Cached beats query with invalidation tag
+const getCachedBeats = unstable_cache(
+  async (where: any, limit: number, offset: number) => {
+    const [beats, totalCount] = await Promise.all([
+      prisma.beat.findMany({
+        where,
+        include: {
+          producer: { 
+            select: { 
+              id: true, 
+              username: true, 
+              fullName: true, 
+              avatar: true, 
+              verified: true 
+            } 
+          },
+          club: { 
+            select: { 
+              id: true, 
+              name: true, 
+              icon: true 
+            } 
+          },
+          _count: { 
+            select: { 
+              beatLikes: true 
+            } 
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        take: limit,
+        skip: offset,
+      }),
+      prisma.beat.count({ where }),
+    ]);
+    return { beats, totalCount };
+  },
+  ['beats-list'],
+  { revalidate: 60, tags: ['beats'] }
+);
+
+// ✅ FIX #12: ACRCloud timeout wrapper
+async function identifyAudioWithTimeout(
+  url: string, 
+  ms = 10_000
+): Promise<{ isMatch: boolean; matchData?: string | null; timedOut?: boolean; error?: unknown }> {
+  return Promise.race([
+    identifyAudio(url),
+    new Promise<{ isMatch: boolean; timedOut: boolean }>((resolve) =>
+      setTimeout(() => resolve({ isMatch: false, timedOut: true }), ms)
+    ),
+  ]);
+}
+
+// GET /api/beats - Fetch beats with pagination
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -25,9 +85,13 @@ export async function GET(req: NextRequest) {
     const minPrice = searchParams.get("minPrice");
     const maxPrice = searchParams.get("maxPrice");
     const producerId = searchParams.get("producerId");
-    const type = searchParams.get("type"); 
-    const limit = searchParams.get("limit");
-    const offset = searchParams.get("offset");
+    const type = searchParams.get("type");
+    
+    // ✅ FIX #11: Apply default + cap to limit and offset
+    const rawLimit = searchParams.get("limit");
+    const rawOffset = searchParams.get("offset");
+    const limit = Math.min(rawLimit ? parseInt(rawLimit) : DEFAULT_LIMIT, MAX_LIMIT);
+    const offset = rawOffset ? parseInt(rawOffset) : 0;
 
     const where: any = { isActive: true };
 
@@ -47,30 +111,38 @@ export async function GET(req: NextRequest) {
     if (producerId) where.producerId = producerId;
     if (type) where.type = type;
 
-    const beats = await prisma.beat.findMany({
-      where,
-      include: {
-        producer: { select: { id: true, username: true, fullName: true, avatar: true, verified: true } },
-        club: { select: { id: true, name: true, icon: true } },
-        _count: { select: { beatLikes: true } },
-      },
-      orderBy: { createdAt: "desc" },
-      ...(limit && { take: parseInt(limit) }),
-      ...(offset && { skip: parseInt(offset) }),
-    });
-
-    const totalCount = await prisma.beat.count({ where });
+    // ✅ FIX #14: Use cached query
+    const { beats, totalCount } = await getCachedBeats(where, limit, offset);
 
     return NextResponse.json<ApiResponse>({
       success: true,
-      data: { beats, pagination: { total: totalCount, limit: limit ? parseInt(limit) : beats.length, offset: offset ? parseInt(offset) : 0 } },
+      data: { 
+        beats, 
+        pagination: { 
+          total: totalCount, 
+          limit, 
+          offset,
+          hasMore: totalCount > offset + limit
+        } 
+      },
     });
   } catch (error: any) {
-    return NextResponse.json<ApiResponse>({ success: false, error: { message: "Failed to fetch beats", code: "SERVER_ERROR" } }, { status: 500 });
+    console.error("Error fetching beats:", error);
+    return NextResponse.json<ApiResponse>(
+      { 
+        success: false, 
+        error: { 
+          message: "Failed to fetch beats", 
+          code: "SERVER_ERROR",
+          details: process.env.NODE_ENV === "development" ? error.message : undefined
+        } 
+      }, 
+      { status: 500 }
+    );
   }
 }
 
-// POST /api/beats - (MERGED YOUR LOGIC WITH THE GATES)
+// POST /api/beats - Upload a new beat
 export async function POST(req: NextRequest) {
   return withAuth(req, async (req: AuthenticatedRequest) => {
     const user = req.user!;
@@ -80,89 +152,213 @@ export async function POST(req: NextRequest) {
       const {
         title, description, bpm, key, price, type, genres, moods, tags, imageUrl, 
         audioUrl, clubId, 
-        // NEW R2/HASH FIELDS:
         untaggedWavKey, fileHash 
       } = body;
 
-      // YOUR ORIGINAL VALIDATIONS
+      // Validate required fields
       if (!title || !bpm || !price || !type) {
-        return NextResponse.json<ApiResponse>({ success: false, error: { message: "Missing required fields", code: "VALIDATION_ERROR" } }, { status: 400 });
+        return NextResponse.json<ApiResponse>(
+          { 
+            success: false, 
+            error: { 
+              message: "Missing required fields", 
+              code: "VALIDATION_ERROR" 
+            } 
+          }, 
+          { status: 400 }
+        );
       }
 
       const bpmNum = parseInt(bpm);
       if (bpmNum < 20 || bpmNum > 300) {
-        return NextResponse.json<ApiResponse>({ success: false, error: { message: "BPM must be between 20 and 300", code: "VALIDATION_ERROR" } }, { status: 400 });
+        return NextResponse.json<ApiResponse>(
+          { 
+            success: false, 
+            error: { 
+              message: "BPM must be between 20 and 300", 
+              code: "VALIDATION_ERROR" 
+            } 
+          }, 
+          { status: 400 }
+        );
       }
 
       const priceNum = parseFloat(price);
       if (priceNum < 0) {
-        return NextResponse.json<ApiResponse>({ success: false, error: { message: "Price must be a positive number", code: "VALIDATION_ERROR" } }, { status: 400 });
+        return NextResponse.json<ApiResponse>(
+          { 
+            success: false, 
+            error: { 
+              message: "Price must be a positive number", 
+              code: "VALIDATION_ERROR" 
+            } 
+          }, 
+          { status: 400 }
+        );
       }
 
-      // YOUR PERMISSION CHECKS
+      // Permission checks
       const permissions = req.permissions;
       if (!permissions?.canUploadBeats) {
-        return NextResponse.json<ApiResponse>({ success: false, error: { message: "You don't have permission to upload beats.", code: "INSUFFICIENT_PERMISSIONS" } }, { status: 403 });
+        return NextResponse.json<ApiResponse>(
+          { 
+            success: false, 
+            error: { 
+              message: "You don't have permission to upload beats.", 
+              code: "INSUFFICIENT_PERMISSIONS" 
+            } 
+          }, 
+          { status: 403 }
+        );
       }
 
-      // YOUR CLUB CHECKS
+      // Club membership check
       if (clubId) {
-        const clubMembership = await prisma.clubMember.findUnique({ where: { clubId_userId: { clubId, userId: user.id } } });
-        if (!clubMembership) return NextResponse.json<ApiResponse>({ success: false, error: { message: "You must be a member of the club", code: "NOT_CLUB_MEMBER" } }, { status: 403 });
+        const clubMembership = await prisma.clubMember.findUnique({ 
+          where: { clubId_userId: { clubId, userId: user.id } } 
+        });
+        if (!clubMembership) {
+          return NextResponse.json<ApiResponse>(
+            { 
+              success: false, 
+              error: { 
+                message: "You must be a member of the club", 
+                code: "NOT_CLUB_MEMBER" 
+              } 
+            }, 
+            { status: 403 }
+          );
+        }
       }
 
-      // ==========================================
-      // NEW: GATE 2 (INTERNAL EXCLUSIVITY CHECK)
-      // ==========================================
+      // GATE 2: Internal exclusivity check
       if (fileHash) {
         const existingExclusive = await prisma.licenseAgreement.findFirst({
-          where: { licensedFileHash: fileHash, licenseType: "EXCLUSIVE" }
+          where: { 
+            licensedFileHash: fileHash, 
+            licenseType: "EXCLUSIVE" 
+          }
         });
         if (existingExclusive) {
-          return NextResponse.json<ApiResponse>({ success: false, error: { message: "GATE 2 BLOCKED: Beat already sold exclusively.", code: "COPYRIGHT_ERROR" } }, { status: 403 });
+          return NextResponse.json<ApiResponse>(
+            { 
+              success: false, 
+              error: { 
+                message: "GATE 2 BLOCKED: Beat already sold exclusively.", 
+                code: "COPYRIGHT_ERROR" 
+              } 
+            }, 
+            { status: 403 }
+          );
         }
       }
 
-      // ==========================================
-      // NEW: GATE 1 (ACRCLOUD COPYRIGHT CHECK)
-      // ==========================================
+      // ✅ FIX #12: GATE 1 - ACRCloud copyright check with timeout
       if (untaggedWavKey) {
-        const command = new GetObjectCommand({ Bucket: process.env.R2_BUCKET_NAME!, Key: untaggedWavKey });
+        const command = new GetObjectCommand({ 
+          Bucket: process.env.R2_BUCKET_NAME!, 
+          Key: untaggedWavKey 
+        });
         const tempAudioUrl = await getSignedUrl(r2, command, { expiresIn: 300 });
-        const acrResult = await identifyAudio(tempAudioUrl);
-        if (acrResult.isMatch) {
-          return NextResponse.json<ApiResponse>({ success: false, error: { message: `GATE 1 BLOCKED: Uncleared sample detected ("${acrResult.matchData}")`, code: "COPYRIGHT_ERROR" } }, { status: 403 });
+        
+        const acrResult = await identifyAudioWithTimeout(tempAudioUrl);
+        
+        if (acrResult.timedOut) {
+          console.error("[Beeps Shield] ACRCloud check timed out — proceeding without verification, flag for manual review.");
+          await prisma.activity.create({
+            data: {
+              userId: user.id,
+              type: "UPLOAD",
+              title: "ACRCloud Timeout - Manual Review Needed",
+              description: `Beat "${title}" bypassed copyright check due to ACRCloud timeout`,
+              referenceType: "beat",
+            },
+          });
+        } else if (acrResult.isMatch) {
+          return NextResponse.json<ApiResponse>(
+            { 
+              success: false, 
+              error: { 
+                message: `GATE 1 BLOCKED: Uncleared sample detected ("${acrResult.matchData}")`, 
+                code: "COPYRIGHT_ERROR" 
+              } 
+            }, 
+            { status: 403 }
+          );
         }
       }
 
-      // YOUR BEAT CREATION (Now including R2 fields)
+      // Create beat
       const beat = await prisma.beat.create({
         data: {
-          title, description, bpm: bpmNum, key, price: priceNum, type, genres: genres || [],
-          moods: moods || [], tags: tags || [], imageUrl, producerId: user.id, clubId: clubId || null,
-          // NEW FIELDS:
+          title, 
+          description, 
+          bpm: bpmNum, 
+          key, 
+          price: priceNum, 
+          type, 
+          genres: genres || [],
+          moods: moods || [], 
+          tags: tags || [], 
+          imageUrl, 
+          producerId: user.id, 
+          clubId: clubId || null,
           untaggedWavKey: untaggedWavKey || null,
           fileHash: fileHash || null,
-          audioUrl: audioUrl || "", // Kept so your legacy UI doesn't break
+          audioUrl: audioUrl || "",
         },
         include: {
-          producer: { select: { id: true, username: true, fullName: true, avatar: true, verified: true } },
-          club: { select: { id: true, name: true, icon: true } },
+          producer: { 
+            select: { 
+              id: true, 
+              username: true, 
+              fullName: true, 
+              avatar: true, 
+              verified: true 
+            } 
+          },
+          club: { 
+            select: { 
+              id: true, 
+              name: true, 
+              icon: true 
+            } 
+          },
         },
       });
 
-      // YOUR ACTIVITY CREATION
+      // Create activity
       await prisma.activity.create({
         data: {
-          userId: user.id, type: "UPLOAD", title: `Uploaded beat "${title}"`,
+          userId: user.id, 
+          type: "UPLOAD", 
+          title: `Uploaded beat "${title}"`,
           description: `New ${type.toLowerCase()} beat at ${bpmNum} BPM for $${priceNum}`,
-          referenceId: beat.id, referenceType: "beat",
+          referenceId: beat.id, 
+          referenceType: "beat",
         },
       });
 
-      return NextResponse.json<ApiResponse>({ success: true, data: { beat } }, { status: 201 });
+      // ✅ FIX #14: Invalidate beats cache after upload
+      revalidateTag('beats');
+
+      return NextResponse.json<ApiResponse>(
+        { success: true, data: { beat } }, 
+        { status: 201 }
+      );
     } catch (error: any) {
-      return NextResponse.json<ApiResponse>({ success: false, error: { message: "Failed to upload beat", code: "SERVER_ERROR" } }, { status: 500 });
+      console.error("Error uploading beat:", error);
+      return NextResponse.json<ApiResponse>(
+        { 
+          success: false, 
+          error: { 
+            message: "Failed to upload beat", 
+            code: "SERVER_ERROR",
+            details: process.env.NODE_ENV === "development" ? error.message : undefined
+          } 
+        }, 
+        { status: 500 }
+      );
     }
   });
 }

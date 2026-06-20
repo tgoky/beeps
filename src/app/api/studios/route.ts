@@ -3,9 +3,9 @@ import { withAuth, type AuthenticatedRequest } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 import { getCurrencyConfig } from "@/lib/currency";
 import { unstable_cache } from 'next/cache';
-import { Prisma } from "@prisma/client";
+import { revalidateTag } from "next/cache";
 
-// ✅ Next.js Cache Wrapper for the heavy DB call (Non-Geo searches)
+// ✅ FIX #14: Added tags for cache invalidation
 const getCachedStudios = unstable_cache(
   async (whereParams: any, limit: number, offset: number) => {
     const [studios, total] = await Promise.all([
@@ -29,7 +29,7 @@ const getCachedStudios = unstable_cache(
     return { studios, total };
   },
   ['studios-list'],
-  { revalidate: 60 } // Keeps it fast but fresh every 60 seconds
+  { revalidate: 60, tags: ['studios'] } // ✅ Added tags
 );
 
 // GET /api/studios - Fetch all studios (with filters)
@@ -121,75 +121,86 @@ export async function GET(req: NextRequest) {
     let totalResult: number = 0;
 
     if (hasNearbyFilter) {
-      // ✅ 1. THE DATABASE MATH: Offload distance calc to PostgreSQL Engine
-      const nearbyStudioRecords = await prisma.$queryRaw<Array<{ id: string; distanceMiles: number }>>`
-        WITH Distances AS (
-          SELECT id, (
-            3958.8 * acos(
-              LEAST(1.0, GREATEST(-1.0,
-                cos(radians(${userLatitude}::float)) * cos(radians("latitude"::float)) *
-                cos(radians("longitude"::float) - radians(${userLongitude}::float)) +
-                sin(radians(${userLatitude}::float)) * sin(radians("latitude"::float))
-              ))
-            )
-          ) AS "distanceMiles"
+      const radiusMeters = radiusMiles * 1609.344;
+
+      const [nearbyStudioRecords, countResult] = await Promise.all([
+        prisma.$queryRaw<Array<{ id: string; distanceMiles: number }>>`
+          SELECT 
+            id, 
+            (earth_distance(
+              ll_to_earth(latitude, longitude), 
+              ll_to_earth(${userLatitude}, ${userLongitude})
+            ) / 1609.344) AS "distanceMiles"
           FROM "Studio"
-          WHERE "isActive" = true AND "latitude" IS NOT NULL AND "longitude" IS NOT NULL
-        )
-        SELECT id, "distanceMiles"
-        FROM Distances
-        WHERE "distanceMiles" <= ${radiusMiles}::float
-        ORDER BY "distanceMiles" ASC
-      `;
+          WHERE "isActive" = true
+            AND latitude IS NOT NULL 
+            AND longitude IS NOT NULL
+            AND earth_box(
+              ll_to_earth(${userLatitude}, ${userLongitude}), 
+              ${radiusMeters}
+            ) @> ll_to_earth(latitude, longitude)
+            AND earth_distance(
+              ll_to_earth(latitude, longitude), 
+              ll_to_earth(${userLatitude}, ${userLongitude})
+            ) <= ${radiusMeters}
+          ORDER BY "distanceMiles" ASC
+          LIMIT ${limit} OFFSET ${offset}
+        `,
+        prisma.$queryRaw<Array<{ count: bigint }>>`
+          SELECT COUNT(*) as count
+          FROM "Studio"
+          WHERE "isActive" = true
+            AND latitude IS NOT NULL 
+            AND longitude IS NOT NULL
+            AND earth_box(
+              ll_to_earth(${userLatitude}, ${userLongitude}), 
+              ${radiusMeters}
+            ) @> ll_to_earth(latitude, longitude)
+            AND earth_distance(
+              ll_to_earth(latitude, longitude), 
+              ll_to_earth(${userLatitude}, ${userLongitude})
+            ) <= ${radiusMeters}
+        `,
+      ]);
 
       if (nearbyStudioRecords.length > 0) {
-        // Create a fast-lookup map to preserve the distance sorting later
-        const distanceMap = new Map(nearbyStudioRecords.map(s => [s.id, s.distanceMiles]));
+        const distanceMap = new Map(nearbyStudioRecords.map((s) => [s.id, s.distanceMiles]));
         const nearbyIds = Array.from(distanceMap.keys());
 
-        // Update the Prisma WHERE clause to only search within these pre-filtered IDs!
-        if (!where.AND) where.AND = [];
-        where.AND.push({ id: { in: nearbyIds } });
+        const rawStudios = await prisma.studio.findMany({
+          where: { id: { in: nearbyIds } },
+          select: {
+            id: true, name: true, description: true, location: true, streetAddress: true,
+            country: true, state: true, city: true, latitude: true, longitude: true,
+            hourlyRate: true, currency: true, imageUrl: true, equipment: true, capacity: true,
+            rating: true, reviewsCount: true, isActive: true, verificationStatus: true,
+            verifiedAt: true, ownerId: true, createdAt: true, updatedAt: true,
+            owner: { select: { id: true, user: { select: { id: true, username: true, fullName: true, avatar: true } } } },
+            _count: { select: { bookings: true, reviews: true } },
+          },
+        });
 
-        // ✅ 2. PRISMA MAGIC: Fetch only the matching records + nested relations
-        const [rawStudios, rawTotal] = await Promise.all([
-          prisma.studio.findMany({
-            where,
-            select: {
-              id: true, name: true, description: true, location: true, streetAddress: true,
-              country: true, state: true, city: true, latitude: true, longitude: true,
-              hourlyRate: true, currency: true, imageUrl: true, equipment: true, capacity: true,
-              rating: true, reviewsCount: true, isActive: true, verificationStatus: true,
-              verifiedAt: true, ownerId: true, createdAt: true, updatedAt: true,
-              owner: { select: { id: true, user: { select: { id: true, username: true, fullName: true, avatar: true } } } },
-              _count: { select: { bookings: true, reviews: true } },
-            },
-            // Note: NO ORDER BY here. We want to sort by the raw SQL distance map below.
-          }),
-          prisma.studio.count({ where }),
-        ]);
-
-        // Attach the calculated distances and sort to match PostgreSQL's raw math
+        const idOrderMap = new Map(nearbyIds.map((id, index) => [id, index]));
         studiosResult = rawStudios
           .map((studio: any) => ({
             ...studio,
             distanceMiles: distanceMap.get(studio.id)
           }))
-          .sort((a: any, b: any) => a.distanceMiles - b.distanceMiles);
+          .sort((a: any, b: any) => {
+            const orderA = idOrderMap.get(a.id) ?? 999999;
+            const orderB = idOrderMap.get(b.id) ?? 999999;
+            return orderA - orderB;
+          });
 
-        totalResult = rawTotal;
+        totalResult = Number(countResult[0]?.count ?? 0);
       }
     } else {
-      // ✅ NO GEO-FILTER: Fallback to edge cache speed
       const cached = await getCachedStudios(where, limit, offset);
       studiosResult = cached.studios;
       totalResult = cached.total;
     }
 
-    // Apply standard pagination (slice) AFTER everything is sorted
-    const studios = hasNearbyFilter
-      ? studiosResult.slice(offset, offset + limit)
-      : studiosResult;
+    const studios = studiosResult;
 
     return NextResponse.json({
       studios,
@@ -268,6 +279,9 @@ export async function POST(request: NextRequest) {
           referenceId: studio.id, referenceType: "studio",
         },
       });
+
+      // ✅ FIX #14: Invalidate studios cache after create
+      revalidateTag('studios');
 
       return NextResponse.json({ studio }, { status: 201 });
     } catch (error: any) {

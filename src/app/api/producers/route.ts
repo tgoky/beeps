@@ -1,35 +1,11 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { unstable_cache } from "next/cache";
 
-export async function GET(req: NextRequest) {
-  try {
-    const { searchParams } = new URL(req.url);
-    const search = searchParams.get("search");
-    const genre = searchParams.get("genre");
-    const skill = searchParams.get("skill");
-
-    const where: any = {};
-    const userWhere: any = {};
-    
-    if (search) {
-      userWhere.OR = [
-        { username: { contains: search, mode: "insensitive" } },
-        { fullName: { contains: search, mode: "insensitive" } },
-      ];
-    }
-
-    if (genre) {
-      where.genres = { has: genre };
-    }
-
-    if (skill) {
-      where.specialties = { has: skill };
-    }
-
-    const limit = parseInt(searchParams.get("limit") || "20");
-    const offset = parseInt(searchParams.get("offset") || "0");
-
+// ✅ FIX #14: Cached producers query with invalidation tag
+const getCachedProducers = unstable_cache(
+  async (where: any, userWhere: any, limit: number, offset: number) => {
     const [producerProfiles, total] = await Promise.all([
       prisma.producerProfile.findMany({
         where: {
@@ -49,7 +25,7 @@ export async function GET(req: NextRequest) {
               longitude: true, 
               verified: true,
               email: true,
-              currency: true, // ✅ Added for Mobile
+              currency: true,
               followersCount: true,
               followingCount: true,
               uploadedBeats: {
@@ -96,8 +72,8 @@ export async function GET(req: NextRequest) {
 
     const producers = producerProfiles.map((profile) => ({
       // --- WEB APP EXPECTS THESE AT TOP LEVEL ---
-      id: profile.id, // Used by mobile (Profile ID)
-      userId: profile.userId, // Used to route to profiles
+      id: profile.id,
+      userId: profile.userId,
       name: profile.user.fullName || profile.user.username,
       email: profile.user.email,
       imageUrl: profile.user.avatar,
@@ -146,6 +122,43 @@ export async function GET(req: NextRequest) {
         rating: 5.0
       }
     }));
+
+    return { producers, total };
+  },
+  ['producers-list'],
+  { revalidate: 60, tags: ['producers'] }
+);
+
+export async function GET(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const search = searchParams.get("search");
+    const genre = searchParams.get("genre");
+    const skill = searchParams.get("skill");
+
+    const where: any = {};
+    const userWhere: any = {};
+    
+    if (search) {
+      userWhere.OR = [
+        { username: { contains: search, mode: "insensitive" } },
+        { fullName: { contains: search, mode: "insensitive" } },
+      ];
+    }
+
+    if (genre) {
+      where.genres = { has: genre };
+    }
+
+    if (skill) {
+      where.specialties = { has: skill };
+    }
+
+    const limit = parseInt(searchParams.get("limit") || "20");
+    const offset = parseInt(searchParams.get("offset") || "0");
+
+    // ✅ FIX #14: Use cached query
+    const { producers, total } = await getCachedProducers(where, userWhere, limit, offset);
 
     // Mobile expects { producers: [] }, Web expects { producers: [], pagination: {} }
     // By returning both properties, both apps are perfectly happy!

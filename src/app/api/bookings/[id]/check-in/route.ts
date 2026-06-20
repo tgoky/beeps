@@ -3,10 +3,10 @@ import { withAuth, type AuthenticatedRequest } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
 import type { ApiResponse } from "@/types";
-import { emitToUser } from "@/lib/session-emitter";
+// ❌ REMOVE THIS LINE:
+// import { emitToUser } from "@/lib/session-emitter";
 
 // POST /api/bookings/[id]/check-in - Studio owner initiates check-in (requires artist confirmation)
-// SECURITY: QR code is MANDATORY, time window enforced, two-party confirmation required
 export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -19,7 +19,6 @@ export async function POST(
       const body = await req.json().catch(() => ({}));
       const { qrCode } = body;
 
-      // Fetch booking with studio owner info
       const booking = await prisma.booking.findUnique({
         where: { id },
         include: {
@@ -55,7 +54,6 @@ export async function POST(
         );
       }
 
-      // Only studio owner can initiate check-in
       const isStudioOwner = booking.studio.owner.userId === user.id;
       if (!isStudioOwner) {
         return NextResponse.json<ApiResponse>(
@@ -64,7 +62,6 @@ export async function POST(
         );
       }
 
-      // Booking must be CONFIRMED to check in
       if (booking.status !== "CONFIRMED") {
         return NextResponse.json<ApiResponse>(
           { success: false, error: { message: `Cannot check in a booking with status: ${booking.status}. Booking must be CONFIRMED.`, code: "VALIDATION_ERROR" } },
@@ -72,7 +69,6 @@ export async function POST(
         );
       }
 
-      // SECURITY: QR code is MANDATORY - prevents starting session without the booker's QR code
       if (!qrCode) {
         return NextResponse.json<ApiResponse>(
           { success: false, error: { message: "QR code is required for check-in. The artist must present their booking QR code.", code: "VALIDATION_ERROR" } },
@@ -87,12 +83,10 @@ export async function POST(
         );
       }
 
-      // SECURITY: Time window validation - can only check in within 30 minutes before scheduled start
-      // and up to 15 minutes after (grace period for late arrivals)
       const now = new Date();
       const scheduledStart = new Date(booking.startTime);
-      const earliestCheckIn = new Date(scheduledStart.getTime() - 30 * 60 * 1000); // 30 min before
-      const latestCheckIn = new Date(scheduledStart.getTime() + 15 * 60 * 1000);   // 15 min after
+      const earliestCheckIn = new Date(scheduledStart.getTime() - 30 * 60 * 1000);
+      const latestCheckIn = new Date(scheduledStart.getTime() + 15 * 60 * 1000);
 
       if (now < earliestCheckIn) {
         const minutesEarly = Math.ceil((earliestCheckIn.getTime() - now.getTime()) / (1000 * 60));
@@ -109,12 +103,9 @@ export async function POST(
         );
       }
 
-      // SECURITY: Generate a confirmation code that the artist must enter to confirm presence
-      const confirmationCode = crypto.randomBytes(3).toString("hex").toUpperCase(); // 6-char code
-      const confirmationExpiresAt = new Date(now.getTime() + 10 * 60 * 1000); // 10 min to confirm
+      const confirmationCode = crypto.randomBytes(3).toString("hex").toUpperCase();
+      const confirmationExpiresAt = new Date(now.getTime() + 10 * 60 * 1000);
 
-      // Update booking: set to ACTIVE but require booker confirmation
-      // Session timer starts but payment is protected until artist confirms
       const updatedBooking = await prisma.booking.update({
         where: { id },
         data: {
@@ -122,7 +113,7 @@ export async function POST(
           checkedInAt: now,
           confirmationCode,
           confirmationExpiresAt,
-          bookerConfirmedCheckIn: false, // Artist hasn't confirmed yet
+          bookerConfirmedCheckIn: false,
         },
         include: {
           studio: {
@@ -142,46 +133,44 @@ export async function POST(
         },
       });
 
-      // Push real-time update to both parties so their dashboards refresh instantly
-      const sessionPayload = { bookingId: id, status: "ACTIVE", checkedInAt: now.toISOString() };
-      emitToUser(user.id, "session_updated", sessionPayload);
-      emitToUser(booking.userId, "session_updated", sessionPayload);
+      // ❌ REMOVE THESE 3 LINES:
+      // const sessionPayload = { bookingId: id, status: "ACTIVE", checkedInAt: now.toISOString() };
+      // emitToUser(user.id, "session_updated", sessionPayload);
+      // emitToUser(booking.userId, "session_updated", sessionPayload);
 
-      // Notify the artist that they need to confirm their presence
-      await prisma.notification.create({
-        data: {
-          userId: booking.userId,
-          type: "SESSION_CONFIRM_REQUIRED",
-          title: "Confirm Your Presence",
-          message: `Your session at ${booking.studio.name} is starting. Please confirm your presence with code: ${confirmationCode}. This code expires in 10 minutes.`,
-          referenceId: booking.id,
-          referenceType: "BOOKING",
-        },
-      });
-
-      // Also notify about session start
-      await prisma.notification.create({
-        data: {
-          userId: booking.userId,
-          type: "SESSION_CHECKED_IN",
-          title: "Session Started",
-          message: `Your session at ${booking.studio.name} has started. Please confirm your presence to secure your payment protection.`,
-          referenceId: booking.id,
-          referenceType: "BOOKING",
-        },
-      });
-
-      // Create activity log
-      await prisma.activity.create({
-        data: {
-          userId: user.id,
-          type: "SESSION_STARTED",
-          title: `Started session at ${booking.studio.name}`,
-          description: `${booking.user.fullName || booking.user.username} checked in for their session. Awaiting artist confirmation.`,
-          referenceId: booking.id,
-          referenceType: "booking",
-        },
-      });
+      // Notifications - these can be parallel
+      await Promise.all([
+        prisma.notification.create({
+          data: {
+            userId: booking.userId,
+            type: "SESSION_CONFIRM_REQUIRED",
+            title: "Confirm Your Presence",
+            message: `Your session at ${booking.studio.name} is starting. Please confirm your presence with code: ${confirmationCode}. This code expires in 10 minutes.`,
+            referenceId: booking.id,
+            referenceType: "BOOKING",
+          },
+        }),
+        prisma.notification.create({
+          data: {
+            userId: booking.userId,
+            type: "SESSION_CHECKED_IN",
+            title: "Session Started",
+            message: `Your session at ${booking.studio.name} has started. Please confirm your presence to secure your payment protection.`,
+            referenceId: booking.id,
+            referenceType: "BOOKING",
+          },
+        }),
+        prisma.activity.create({
+          data: {
+            userId: user.id,
+            type: "SESSION_STARTED",
+            title: `Started session at ${booking.studio.name}`,
+            description: `${booking.user.fullName || booking.user.username} checked in for their session. Awaiting artist confirmation.`,
+            referenceId: booking.id,
+            referenceType: "booking",
+          },
+        }),
+      ]);
 
       return NextResponse.json<ApiResponse>({
         success: true,

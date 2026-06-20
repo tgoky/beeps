@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withFullUser, withAuth } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
+import { revalidateTag } from "next/cache"; // ✅ ADD THIS IMPORT
 
 // GET /api/studios/[id] - Fetch a studio by ID
 export async function GET(
@@ -138,6 +139,9 @@ export async function PATCH(req: NextRequest, { params }: { params: any }) {
         },
       });
 
+      // ✅ FIX #14: Invalidate studios cache after update
+      revalidateTag('studios');
+
       return NextResponse.json({ studio: updatedStudio });
     } catch (error: any) {
       console.error("Error updating studio:", error);
@@ -183,6 +187,9 @@ export async function DELETE(req: NextRequest, { params }: { params: any }) {
         where: { id },
         data: { isActive: false },
       });
+
+      // ✅ FIX #14: Invalidate studios cache after delete
+      revalidateTag('studios');
 
       return NextResponse.json({ success: true });
     } catch (error: any) {

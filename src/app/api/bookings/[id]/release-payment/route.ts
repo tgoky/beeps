@@ -205,43 +205,46 @@ export async function POST(
         return updated;
       });
 
-      // ─── Notifications ────────────────────────────────────────────────────
-      await prisma.notification.create({
-        data: {
-          userId: booking.studio.owner.userId,
-          type: "PAYMENT_RELEASED",
-          title: "Payment Released!",
-          message: `${currency} ${studioOwnerPayout.toFixed(2)} has been released to your wallet for ${booking.user.fullName || booking.user.username}'s session at ${booking.studio.name}.${proRataAmount !== null ? ` (Pro-rata adjusted from ${totalAmount.toFixed(2)} to ${proRataAmount.toFixed(2)})` : ""}`,
-          referenceId: id,
-          referenceType: "BOOKING",
-        },
-      });
-
+      // ✅ OPTIMIZATION: Batch all notification & activity writes into Promise.all
       const refundInfo = proRataAmount !== null
         ? ` You were only charged ${currency} ${finalAmount.toFixed(2)} (pro-rata) instead of ${totalAmount.toFixed(2)}.`
         : "";
 
-      await prisma.notification.create({
-        data: {
-          userId: booking.userId,
-          type: "PAYMENT_RELEASED",
-          title: "Payment Approved & Completed",
-          message: `Your payment of ${currency} ${finalAmount.toFixed(2)} for ${booking.studio.name} has been completed.${overtimeAmount > 0 ? ` Includes ${currency} ${overtimeAmount.toFixed(2)} overtime.` : ""}${refundInfo}`,
-          referenceId: id,
-          referenceType: "BOOKING",
-        },
-      });
-
-      await prisma.activity.create({
-        data: {
-          userId: booking.studio.owner.userId,
-          type: "PAYMENT_RECEIVED",
-          title: `Payment received for ${booking.studio.name}`,
-          description: `${currency} ${studioOwnerPayout.toFixed(2)} released after session with ${booking.user.fullName || booking.user.username}.`,
-          referenceId: id,
-          referenceType: "booking",
-        },
-      });
+      await Promise.all([
+        // Notify studio owner
+        prisma.notification.create({
+          data: {
+            userId: booking.studio.owner.userId,
+            type: "PAYMENT_RELEASED",
+            title: "Payment Released!",
+            message: `${currency} ${studioOwnerPayout.toFixed(2)} has been released to your wallet for ${booking.user.fullName || booking.user.username}'s session at ${booking.studio.name}.${proRataAmount !== null ? ` (Pro-rata adjusted from ${totalAmount.toFixed(2)} to ${proRataAmount.toFixed(2)})` : ""}`,
+            referenceId: id,
+            referenceType: "BOOKING",
+          },
+        }),
+        // Notify booking artist
+        prisma.notification.create({
+          data: {
+            userId: booking.userId,
+            type: "PAYMENT_RELEASED",
+            title: "Payment Approved & Completed",
+            message: `Your payment of ${currency} ${finalAmount.toFixed(2)} for ${booking.studio.name} has been completed.${overtimeAmount > 0 ? ` Includes ${currency} ${overtimeAmount.toFixed(2)} overtime.` : ""}${refundInfo}`,
+            referenceId: id,
+            referenceType: "BOOKING",
+          },
+        }),
+        // Create activity log
+        prisma.activity.create({
+          data: {
+            userId: booking.studio.owner.userId,
+            type: "PAYMENT_RECEIVED",
+            title: `Payment received for ${booking.studio.name}`,
+            description: `${currency} ${studioOwnerPayout.toFixed(2)} released after session with ${booking.user.fullName || booking.user.username}.`,
+            referenceId: id,
+            referenceType: "booking",
+          },
+        }),
+      ]);
 
       return NextResponse.json<ApiResponse>({
         success: true,

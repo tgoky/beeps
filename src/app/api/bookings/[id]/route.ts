@@ -182,16 +182,30 @@ export async function PATCH(
         }
 
         // SECURITY: Only studio owner can confirm, and only from PENDING
-        if (body.status === "CONFIRMED" && isStudioOwner && booking.status !== "PENDING") {
-          return NextResponse.json<ApiResponse>({
-            success: false,
-            error: {
-              message: "Can only confirm a PENDING booking",
-              code: "VALIDATION_ERROR",
-            },
-          }, { status: 400 });
-        }
-
+    // SECURITY: Only studio owner can confirm bookings
+if (body.status === "CONFIRMED") {
+  // Block non-studio owners from confirming
+  if (!isStudioOwner) {
+    return NextResponse.json<ApiResponse>({
+      success: false,
+      error: {
+        message: "Only the studio owner can confirm bookings",
+        code: "FORBIDDEN",
+      },
+    }, { status: 403 });
+  }
+  
+  // Can only confirm PENDING bookings
+  if (booking.status !== "PENDING") {
+    return NextResponse.json<ApiResponse>({
+      success: false,
+      error: {
+        message: "Can only confirm a PENDING booking",
+        code: "VALIDATION_ERROR",
+      },
+    }, { status: 400 });
+  }
+}
         // SECURITY: Cannot cancel an ACTIVE session via PATCH - must use check-out
         if (body.status === "CANCELLED" && booking.status === "ACTIVE") {
           return NextResponse.json<ApiResponse>({

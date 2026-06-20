@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { withAuth, type AuthenticatedRequest } from "@/lib/api-middleware";
 import { prisma } from "@/lib/prisma";
 import type { ApiResponse } from "@/types";
+import { revalidateTag } from "next/cache";
 
-// GET /api/beats/[id] - Fetch a beat by ID
+// GET /api/beats/[id] - Fetch a beat by ID (single query: fetch + increment plays)
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -11,8 +12,10 @@ export async function GET(
   try {
     const { id } = params;
 
-    const beat = await prisma.beat.findUnique({
+    // ✅ OPTIMIZATION: Single query - fetch AND increment plays in one round trip
+    const beat = await prisma.beat.update({
       where: { id },
+      data: { plays: { increment: 1 } },
       include: {
         producer: {
           select: {
@@ -43,7 +46,13 @@ export async function GET(
       },
     });
 
-    if (!beat) {
+    return NextResponse.json<ApiResponse>({
+      success: true,
+      data: { beat },
+    });
+  } catch (error: any) {
+    // ✅ Handle "not found" from update (Prisma throws P2025 when record doesn't exist)
+    if (error.code === "P2025") {
       return NextResponse.json<ApiResponse>({
         success: false,
         error: {
@@ -52,18 +61,6 @@ export async function GET(
         },
       }, { status: 404 });
     }
-
-    // Increment plays
-    await prisma.beat.update({
-      where: { id },
-      data: { plays: { increment: 1 } },
-    });
-
-    return NextResponse.json<ApiResponse>({
-      success: true,
-      data: { beat },
-    });
-  } catch (error: any) {
     console.error("Error fetching beat:", error);
     return NextResponse.json<ApiResponse>({
       success: false,
@@ -153,6 +150,9 @@ return withAuth(req, async (req: AuthenticatedRequest) => {
         },
       });
 
+      // ✅ FIX #14: Invalidate beats cache after update
+      revalidateTag('beats');
+
       return NextResponse.json<ApiResponse>({
         success: true,
         data: { beat: updatedBeat },
@@ -216,6 +216,9 @@ return withAuth(req, async (req: AuthenticatedRequest) => {
         where: { id },
         data: { isActive: false },
       });
+
+      // ✅ FIX #14: Invalidate beats cache after delete
+      revalidateTag('beats');
 
       return NextResponse.json<ApiResponse>({
         success: true,
