@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useTheme } from "../../../providers/ThemeProvider";
-import { usePermissions } from "../../../hooks/usePermissions";
+import { useTheme } from "../../../../providers/ThemeProvider";
+import { usePermissions } from "../../../../hooks/usePermissions";
 import { useCommunityPosts, useCreateCommunityPost, useCommunityStats } from "@/hooks/api/useCommunityPosts";
 import {
   ArrowLeft,

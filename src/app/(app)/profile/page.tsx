@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useTheme } from "../../providers/ThemeProvider";
-import { usePermissions } from "../../hooks/usePermissions";
+import { useTheme } from "../../../providers/ThemeProvider";
+import { usePermissions } from "../../../hooks/usePermissions";
 import { Edit, Mail, MapPin, Link as LinkIcon, Users, Music2, FileText, Heart, MessageCircle, Clock, CheckCircle, Plus, Star, Crown, Settings, Upload, TrendingUp, Award, Play, Pause, Share2, Download, Eye, Briefcase, DollarSign, Package, Headphones, Mic, Zap, Shield, Trophy, Target, BarChart3, Calendar, Sparkles, Wrench, Radio } from "lucide-react";
 
 // Mock user data (in real app, this would come from API/database)

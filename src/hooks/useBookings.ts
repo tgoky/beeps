@@ -17,7 +17,7 @@ export interface SessionInfo {
 
 export interface StudioBooking {
   id: string;
-  studioId: string;
+  studioId: string; 
   userId: string;
   startTime: string;
   endTime: string;
@@ -97,7 +97,6 @@ export function useAllBookings(view: "customer" | "provider" = "customer") {
       }
       return response.json();
     },
-    keepPreviousData: true,export function useCollaborations(filters?: {
   });
 }
 

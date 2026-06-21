@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useToast } from "../../../../providers/ToastProvider";
-import { useStudio } from "../../../../hooks/useStudios";
+import { useToast } from "../../../../../providers/ToastProvider";
+import { useStudio } from "../../../../../hooks/useStudios";
 import dayjs from "dayjs";
 import {
   Star,

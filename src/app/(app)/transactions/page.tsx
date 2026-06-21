@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, Video, MapPin, Users, Music2, ShoppingCart, Clock, Star, Play, Zap, Package, Radio, Tv } from "lucide-react";
-import { useTheme } from "../../providers/ThemeProvider";
+import { useTheme } from "../../../providers/ThemeProvider";
 
 type LiveStream = {
   id: number;

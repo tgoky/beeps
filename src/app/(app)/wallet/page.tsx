@@ -18,7 +18,7 @@ import {
   Info,
   BadgeCheck,
 } from "lucide-react";
-import { useTheme } from "../../providers/ThemeProvider";
+import { useTheme } from "../../../providers/ThemeProvider";
 
 interface WalletData {
   availableBalance: number;

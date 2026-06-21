@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Search, Heart, Play, Pause, Music2, Users, FileText, Mic, Crown, MessageCircle, Plus, TrendingUp, Clock, CheckCircle, Lock, Globe, UserPlus, EyeOff, AlertCircle, Info, Pencil, Send } from "lucide-react";
-import { usePermissions } from "../../hooks/usePermissions";
+import { usePermissions } from "../../../hooks/usePermissions";
 
 type MusicService = {
   id: number;

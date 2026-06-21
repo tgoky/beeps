@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useTheme } from "../../../../providers/ThemeProvider";
-import { producerData } from "@app/producers/producersdata";
+import { useTheme } from "../../../../../providers/ThemeProvider";
+import { producerData } from "../../producersdata";
 import {
   Star,
   MapPin,
