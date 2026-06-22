@@ -10,6 +10,7 @@ export interface UserData {
   username: string;
   avatar?: string;
   primaryRole?: string;
+  currency?: string;
   bio?: string;
   createdAt: string;
   updatedAt: string;
