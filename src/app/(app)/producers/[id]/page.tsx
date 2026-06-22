@@ -382,7 +382,7 @@ function ProducerBookingDrawer({
             )}
           </button>
           <p className="text-center text-[10px] mt-3 font-light tracking-wide text-zinc-500">
-            You won't be charged until the producer confirms availability.
+            You would not be charged until the producer confirms availability.
           </p>
         </div>
       </div>
