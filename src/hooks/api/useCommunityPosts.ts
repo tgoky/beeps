@@ -11,20 +11,65 @@ export interface CommunityPost {
   role: string;
   createdAt: string;
   updatedAt: string;
+  imageUrl?: string; // Added for post images
+  user: {
+    id: string;
+    username: string;
+    avatar?: string;
+    name?: string; // Added for display name
+  };
+  author?: { // Added as an alias for user (if your API returns author instead)
+    id: string;
+    username: string;
+    avatar?: string;
+    name?: string;
+  };
+  _count?: {
+    comments: number;
+    likes: number;
+    reposts?: number; // If you have reposts
+    views?: number; // If you track views
+  };
+  isLiked?: boolean; // For tracking if current user liked
+  isReposted?: boolean; // For tracking if current user reposted
+  tags?: string[]; // If you use tags
+  likes?: Like[]; // If you need the actual likes array
+  comments?: Comment[]; // If you need the actual comments array
+  reposts?: Repost[]; // If you have reposts
+}
+
+export interface Like {
+  id: string;
+  userId: string;
+  postId: string;
+  createdAt: string;
+}
+
+export interface Comment {
+  id: string;
+  content: string;
+  userId: string;
+  postId: string;
+  createdAt: string;
+  updatedAt: string;
   user: {
     id: string;
     username: string;
     avatar?: string;
   };
-  _count?: {
-    comments: number;
-    likes: number;
-  };
+}
+
+export interface Repost {
+  id: string;
+  userId: string;
+  postId: string;
+  createdAt: string;
 }
 
 export interface CreatePostData {
   content: string;
   role: string;
+  imageUrl?: string; // If posts can have images
 }
 
 export interface CommunityStats {
@@ -32,6 +77,15 @@ export interface CommunityStats {
   totalMembers: number;
   postsToday: number;
   activeMembers: number;
+}
+
+// Helper function to normalize post data (handles both author and user fields)
+function normalizePost(post: any): CommunityPost {
+  return {
+    ...post,
+    author: post.author || post.user, // Ensure author exists
+    user: post.user || post.author, // Ensure user exists
+  };
 }
 
 // Fetch community posts
@@ -43,7 +97,10 @@ async function fetchCommunityPosts(role: string): Promise<CommunityPost[]> {
   }
 
   const json = await response.json();
-  return json.data || json; // Extract data field if present
+  const posts = json.data || json;
+  
+  // Normalize posts to ensure both user and author fields exist
+  return Array.isArray(posts) ? posts.map(normalizePost) : [];
 }
 
 // Create a new post
@@ -53,7 +110,10 @@ async function createCommunityPost(data: CreatePostData): Promise<CommunityPost>
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ content: data.content }),
+    body: JSON.stringify({ 
+      content: data.content,
+      imageUrl: data.imageUrl 
+    }),
   });
 
   if (!response.ok) {
@@ -62,7 +122,7 @@ async function createCommunityPost(data: CreatePostData): Promise<CommunityPost>
   }
 
   const json = await response.json();
-  return json.data || json; // Extract data field if present
+  return normalizePost(json.data || json);
 }
 
 // Fetch community stats
@@ -74,7 +134,7 @@ async function fetchCommunityStats(role: string): Promise<CommunityStats> {
   }
 
   const json = await response.json();
-  return json.data || json; // Extract data field if present
+  return json.data || json;
 }
 
 /**
@@ -122,7 +182,8 @@ export function useCreateCommunityPost() {
         const optimisticPost: CommunityPost = {
           id: `temp-${Date.now()}`,
           content: newPost.content,
-          userId: "current-user", // Will be replaced with real data
+          imageUrl: newPost.imageUrl,
+          userId: "current-user",
           role: newPost.role,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -131,10 +192,17 @@ export function useCreateCommunityPost() {
             username: "You",
             avatar: undefined,
           },
+          author: {
+            id: "current-user",
+            username: "You",
+            avatar: undefined,
+          },
           _count: {
             comments: 0,
             likes: 0,
           },
+          isLiked: false,
+          isReposted: false,
         };
 
         queryClient.setQueryData<CommunityPost[]>(
@@ -184,5 +252,65 @@ export function useCommunityStats(
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     enabled: (options?.enabled ?? true) && !!role,
+  });
+}
+
+// Like a post
+export function useLikePost() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ postId, role }: { postId: string; role: string }) => {
+      const response = await fetch(`/api/communities/${role}/posts/${postId}/like`, {
+        method: "POST",
+      });
+      if (!response.ok) throw new Error("Failed to like post");
+      return response.json();
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: communityKeys.posts(variables.role),
+      });
+    },
+  });
+}
+
+// Unlike a post
+export function useUnlikePost() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ postId, role }: { postId: string; role: string }) => {
+      const response = await fetch(`/api/communities/${role}/posts/${postId}/like`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("Failed to unlike post");
+      return response.json();
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: communityKeys.posts(variables.role),
+      });
+    },
+  });
+}
+
+// Repost a post
+export function useRepostPost() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ postId, role }: { postId: string; role: string }) => {
+      const response = await fetch(`/api/communities/${role}/posts/${postId}/repost`, {
+        method: "POST",
+      });
+      if (!response.ok) throw new Error("Failed to repost");
+      return response.json();
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: communityKeys.posts(variables.role),
+      });
+    },
   });
 }
