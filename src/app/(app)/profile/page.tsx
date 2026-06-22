@@ -13,6 +13,7 @@ import {
   Headphones, Mic, FileText, Package, Building2, Users, Wallet,
   Upload, Music2, Heart, MessageCircle, Plus, ArrowLeft, AlertCircle, ArrowRight
 } from "lucide-react";
+import type { UserRole } from "@prisma/client";
 
 const ROLE_ICON: Record<string, any> = {
   PRODUCER: Headphones, ARTIST: Mic, LYRICIST: FileText,
@@ -179,7 +180,7 @@ export default function ProfilePage() {
                 </span>
                 {secondaryRoles.map((r: string) => (
                   <span key={r} className="px-3 py-1.5 rounded-lg border border-zinc-800 bg-[#08080a] text-xs text-zinc-500">
-                    {getRoleDisplayName(r)}
+                        {getRoleDisplayName(r as UserRole)}
                   </span>
                 ))}
               </div>
