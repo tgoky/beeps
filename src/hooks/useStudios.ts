@@ -13,6 +13,7 @@ export interface Studio {
   city: string | null;
   latitude: number | null;
   longitude: number | null;
+    imageUrls?: string[];
   hourlyRate: number;
   currency: string;
   imageUrl: string | null;

@@ -63,7 +63,7 @@ export default function ProfilePage() {
       <div className="flex h-full items-center justify-center bg-[#030303] text-white px-4">
         <div className="w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-950 p-8 text-center">
           <AlertCircle className="mx-auto mb-4 h-10 w-10 text-red-500" />
-          <h1 className="text-xl font-light">Couldn't load your profile</h1>
+          <h1 className="text-xl font-light">Could not load your profile</h1>
           <p className="mt-2 text-sm text-zinc-500">{(error as Error)?.message || "Please try again."}</p>
         </div>
       </div>

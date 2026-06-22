@@ -63,11 +63,7 @@ export default function StudioBookingDrawer({
     setTimeout(onClose, 400); // Wait for slide-out transition before unmounting
   };
 
-  const images = studio?.imageUrls?.length
-    ? studio.imageUrls
-    : studio?.imageUrl
-    ? [studio.imageUrl]
-    : [];
+ const images = studio?.imageUrl ? [studio.imageUrl] : [];
 
   const nextImage = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -542,7 +538,7 @@ export default function StudioBookingDrawer({
             )}
           </button>
           <p className="text-center text-[10px] mt-2.5 text-zinc-500">
-            You won't be charged until the studio confirms.
+            You would not be charged until the studio confirms.
           </p>
         </div>
       </div>
