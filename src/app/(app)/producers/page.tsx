@@ -167,7 +167,7 @@ const ProCard = ({ producer, router, showDistance }: { producer: Producer; route
        <img 
          src={producer.imageUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${producer.id}`} 
          className="w-full h-full object-cover blur-2xl scale-125" 
-         alt="" 
+        alt={producer.name || "Producer"} 
        />
        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
     </div>
@@ -211,7 +211,7 @@ const ProCard = ({ producer, router, showDistance }: { producer: Producer; route
       <div className="relative w-14 h-14 sm:w-16 sm:h-16 mb-2 sm:mb-3 group-hover:scale-105 transition-transform duration-500">
         <img
           src={producer.imageUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${producer.id}`}
-          alt={producer.name}
+          alt={producer.name || "Producer"}
           className="w-full h-full rounded-full object-cover shadow-2xl"
         />
         {producer.isOnline && (
@@ -535,7 +535,7 @@ export default function ProducerHub() {
                   <div className="relative w-14 h-14 shrink-0">
                     <img
                       src={p.imageUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.id}`}
-                      alt={p.name}
+                      alt={p.name || "Producer"} 
                       className="w-full h-full rounded-full object-cover border border-white/10"
                     />
                     {p.isOnline && (
