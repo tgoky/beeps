@@ -79,7 +79,7 @@ export default function ProducerProfile() {
       <div className="relative h-64 overflow-hidden">
         <img 
           src={producer.cover} 
-          alt={producer.name}
+        alt={producer.name || "Producer"}
           className="w-full h-full object-cover"
         />
         <div className={`absolute inset-0 ${
@@ -97,7 +97,7 @@ export default function ProducerProfile() {
           <div className="relative flex-shrink-0">
             <img
               src={producer.avatar}
-              alt={producer.name}
+            alt={producer.name || "Producer"}
               className={`w-32 h-32 rounded-2xl object-cover border-4 shadow-2xl ${
                 theme === "dark" ? "border-black" : "border-white"
               }`}
