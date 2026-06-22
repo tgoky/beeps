@@ -338,12 +338,17 @@ export default function ServiceRequestDetailPage({ params }: { params: { id: str
     }
   };
 
-  const handleDownloadCertificate = () => {
-    if (!agreementData || !request) return;
-    
-    const mockBeat = { title: request.projectTitle };
-    generateLicenseCertificate(agreementData, mockBeat, request.client.fullName, request.producer.fullName);
-  };
+ const handleDownloadCertificate = () => {
+  if (!agreementData || !request) return;
+  
+  const mockBeat = { title: request.projectTitle };
+  generateLicenseCertificate(
+    agreementData, 
+    mockBeat, 
+    request.client.fullName || request.client.username || "Client", 
+    request.producer.fullName || request.producer.username || "Producer"
+  );
+};
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() && !previewFile) return;
@@ -580,7 +585,7 @@ export default function ServiceRequestDetailPage({ params }: { params: { id: str
                 {request.client?.email && (
                   <div className="bg-blue-500/10 border border-blue-500/20 text-blue-200/80 p-3 rounded-xl text-xs font-light tracking-wide flex items-start gap-2 mb-6">
                     <AlertCircle size={16} className="shrink-0 mt-0.5 text-blue-400" />
-                    <span>If using a private Google Drive link, ensure you grant access to the client's email: <strong className="text-white select-all">{request.client.email}</strong></span>
+                    <span>If using a private Google Drive link, ensure you grant access to the clients email: <strong className="text-white select-all">{request.client.email}</strong></span>
                   </div>
                 )}
 

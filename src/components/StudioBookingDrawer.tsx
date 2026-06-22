@@ -63,7 +63,11 @@ export default function StudioBookingDrawer({
     setTimeout(onClose, 400); // Wait for slide-out transition before unmounting
   };
 
- const images = studio?.imageUrl ? [studio.imageUrl] : [];
+  const images = studio?.imageUrls?.length
+    ? studio.imageUrls
+    : studio?.imageUrl
+    ? [studio.imageUrl]
+    : [];
 
   const nextImage = (e: React.MouseEvent) => {
     e.stopPropagation();
