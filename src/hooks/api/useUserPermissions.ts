@@ -43,7 +43,7 @@ export function useUserPermissions(options?: { enabled?: boolean }) {
     queryKey: userKeys.permissions("current"),
     queryFn: fetchUserPermissions,
     staleTime: 10 * 60 * 1000, // 10 minutes - permissions don't change often
-    gcTime: 30 * 60 * 1000, // 30 minutes
+    cacheTime: 30 * 60 * 1000, // 30 minutes
     retry: 1, // Only retry once for auth endpoints
     enabled: options?.enabled ?? true,
     refetchOnWindowFocus: false, // Don't refetch on focus for permissions

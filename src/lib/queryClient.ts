@@ -6,7 +6,7 @@ export const queryClient = new QueryClient({
       // Stale time: How long data is considered fresh (5 minutes)
       staleTime: 5 * 60 * 1000,
       // GC time: How long unused data stays in cache (10 minutes)
-      gcTime: 10 * 60 * 1000,
+      cacheTime: 10 * 60 * 1000,
       // Retry failed requests
       retry: 1,
       refetchOnWindowFocus: false,

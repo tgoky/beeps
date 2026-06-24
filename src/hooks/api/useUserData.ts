@@ -63,7 +63,7 @@ export function useUserBySupabaseId(
     queryKey: userKeys.bySupabase(supabaseId || ""),
     queryFn: () => fetchUserBySupabaseId(supabaseId!),
     staleTime: 10 * 60 * 1000, // 10 minutes - user data changes infrequently
-    gcTime: 30 * 60 * 1000, // 30 minutes
+    cacheTime: 30 * 60 * 1000, // 30 minutes
     enabled: (options?.enabled ?? true) && !!supabaseId,
     refetchOnWindowFocus: true, // Refetch when user returns to tab
   });
@@ -82,7 +82,7 @@ export function useUserById(
     queryKey: userKeys.detail(userId || ""),
     queryFn: () => fetchUserById(userId!),
     staleTime: 10 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
+    cacheTime: 30 * 60 * 1000,
     enabled: (options?.enabled ?? true) && !!userId,
   });
 }

@@ -150,7 +150,7 @@ export function useCommunityPosts(
     queryKey: communityKeys.posts(role || ""),
     queryFn: () => fetchCommunityPosts(role!),
     staleTime: 2 * 60 * 1000, // 2 minutes - posts are more dynamic
-    gcTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 5 * 60 * 1000, // 5 minutes
     enabled: (options?.enabled ?? true) && !!role,
     refetchOnWindowFocus: true, // Keep posts fresh
   });
@@ -250,7 +250,7 @@ export function useCommunityStats(
     queryKey: communityKeys.stats(role || ""),
     queryFn: () => fetchCommunityStats(role!),
     staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    cacheTime: 10 * 60 * 1000, // 10 minutes
     enabled: (options?.enabled ?? true) && !!role,
   });
 }
