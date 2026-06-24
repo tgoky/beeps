@@ -11,7 +11,7 @@ import { authProviderClient } from "@providers/auth-provider/auth-provider.clien
 import { dataProvider } from "@providers/data-provider";
 import { ThemeProvider } from "@providers/ThemeProvider";
 import { ToastProvider } from "@providers/ToastProvider";
-import { QueryProvider } from "@providers/QueryProvider";
+import QueryProvider from "@providers/QueryProvider"; // ✅ FIXED: Removed curly braces for default import
 import { PermissionsProvider } from "@/hooks/usePermissions";
 import "../styles/global.css";
 
@@ -33,129 +33,101 @@ export default function RootLayout({
       <body>
         <Suspense>
           <RefineKbarProvider>
-     
+            {/* ✅ FIXED: Wrapped the tree in QueryProvider so React Query hooks work */}
+            <QueryProvider> 
               <ThemeProvider>
                 <ToastProvider>
                   <SidebarProvider>
-                  {/* ✅ FIXED: Refine must wrap PermissionsProvider */}
-                  <Refine
-                  routerProvider={routerProvider}
-                  authProvider={authProviderClient}
-                  dataProvider={dataProvider}
-                  resources={[
-                    {
-                      name: "studios",
-                      list: "/studios",
-                      create: "/studios/create/:id",
-                      edit: "/studios/edit/:id",
-                      show: "/studios/show/:id",
-                      meta: {
-                        label: "Recording Studios",
-                        canDelete: true,
-                      },
-                    },
-                    {
-                      name: "producers",
-                      list: "/producers",
-                      create: "/producers/create/:id",
-                      edit: "/producers/edit/:id",
-                      show: "/producers/show/:id",
-                      meta: {
-                        label: "Producers",
-                        canDelete: true,
-                      },
-                    },
-                    {
-                      name: "beats",
-                      list: "/beats",
-                      create: "/beats/upload",
-                      edit: "/beats/edit/:id",
-                      show: "/beats/show/:id",
-                      meta: {
-                        label: "Beats Marketplace",
-                        canDelete: true,
-                      },
-                    },
-                    {
-                      name: "bookings",
-                      list: "/bookings",
-                      create: "/bookings/create",
-                      edit: "/bookings/edit/:id",
-                      show: "/bookings/show/:id",
-                      meta: {
-                        label: "Bookings",
-                        canDelete: false,
-                      },
-                    },
-                    {
-                      name: "collabs",
-                      list: "/collabs",
-                      create: "/collabs/create",
-                      edit: "/collabs/edit/:id",
-                      show: "/collabs/show/:id",
-                      meta: {
-                        label: "Collabs",
-                        canDelete: false,
-                      },
-                    },
-                    {
-                      name: "equipment",
-                      list: "/equipment",
-                      create: "/equipment/list",
-                      edit: "/equipment/edit/:id",
-                      show: "/equipment/show/:id",
-                      meta: {
-                        label: "Gear & Equipments",
-                        canDelete: true,
-                      },
-                    },
-                    {
-                      name: "services",
-                      list: "/services",
-                      create: "/services/offer",
-                      edit: "/services/edit/:id",
-                      show: "/services/show/:id",
-                      meta: {
-                        label: "Music Services",
-                        canDelete: true,
-                      },
-                    },
-                    {
-                      name: "artists",
-                      list: "/artists",
-                      show: "/artists/profile/:id",
-                      meta: {
-                        label: "Profile",
-                        canDelete: false,
-                      },
-                    },
-                    {
-                      name: "transactions",
-                      list: "/transactions",
-                      show: "/transactions/show/:id",
-                      meta: {
-                        label: "Live Feeds",
-                        canDelete: false,
-                      },
-                    },
-                  ]}
-                  options={{
-                    syncWithLocation: true,
-                    warnWhenUnsavedChanges: true,
-                    useNewQueryKeys: true,
-                    projectId: "1qO17T-Aib2M5-IanaeI",
-                  }}
-                >
-                  {/* ✅ FIXED: PermissionsProvider INSIDE Refine */}
-                  <PermissionsProvider>
-                    {children}
-                    <RefineKbar />
-                  </PermissionsProvider>
-                </Refine>
+                    <Refine
+                      routerProvider={routerProvider}
+                      authProvider={authProviderClient}
+                      dataProvider={dataProvider}
+                      resources={[
+                        {
+                          name: "studios",
+                          list: "/studios",
+                          create: "/studios/create/:id",
+                          edit: "/studios/edit/:id",
+                          show: "/studios/show/:id",
+                          meta: { label: "Recording Studios", canDelete: true },
+                        },
+                        {
+                          name: "producers",
+                          list: "/producers",
+                          create: "/producers/create/:id",
+                          edit: "/producers/edit/:id",
+                          show: "/producers/show/:id",
+                          meta: { label: "Producers", canDelete: true },
+                        },
+                        {
+                          name: "beats",
+                          list: "/beats",
+                          create: "/beats/upload",
+                          edit: "/beats/edit/:id",
+                          show: "/beats/show/:id",
+                          meta: { label: "Beats Marketplace", canDelete: true },
+                        },
+                        {
+                          name: "bookings",
+                          list: "/bookings",
+                          create: "/bookings/create",
+                          edit: "/bookings/edit/:id",
+                          show: "/bookings/show/:id",
+                          meta: { label: "Bookings", canDelete: false },
+                        },
+                        {
+                          name: "collabs",
+                          list: "/collabs",
+                          create: "/collabs/create",
+                          edit: "/collabs/edit/:id",
+                          show: "/collabs/show/:id",
+                          meta: { label: "Collabs", canDelete: false },
+                        },
+                        {
+                          name: "equipment",
+                          list: "/equipment",
+                          create: "/equipment/list",
+                          edit: "/equipment/edit/:id",
+                          show: "/equipment/show/:id",
+                          meta: { label: "Gear & Equipments", canDelete: true },
+                        },
+                        {
+                          name: "services",
+                          list: "/services",
+                          create: "/services/offer",
+                          edit: "/services/edit/:id",
+                          show: "/services/show/:id",
+                          meta: { label: "Music Services", canDelete: true },
+                        },
+                        {
+                          name: "artists",
+                          list: "/artists",
+                          show: "/artists/profile/:id",
+                          meta: { label: "Profile", canDelete: false },
+                        },
+                        {
+                          name: "transactions",
+                          list: "/transactions",
+                          show: "/transactions/show/:id",
+                          meta: { label: "Live Feeds", canDelete: false },
+                        },
+                      ]}
+                      options={{
+                        syncWithLocation: true,
+                        warnWhenUnsavedChanges: true,
+                        useNewQueryKeys: true,
+                        projectId: "1qO17T-Aib2M5-IanaeI",
+                      }}
+                    >
+                      <PermissionsProvider>
+                        {children}
+                        <RefineKbar />
+                      </PermissionsProvider>
+                    </Refine>
                   </SidebarProvider>
                 </ToastProvider>
               </ThemeProvider>
-     
+            </QueryProvider>
           </RefineKbarProvider>
         </Suspense>
       </body>
