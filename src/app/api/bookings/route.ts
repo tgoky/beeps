@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
       };
 
       if (unreadOnly) {
-        where.read = false;
+        where.isRead = false; // ✅ FIXED: Changed 'read' to 'isRead'
       }
 
       const [notifications, total, unreadCount] = await Promise.all([
@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
         }),
         prisma.notification.count({ where }),
         prisma.notification.count({
-          where: { userId: user.id, read: false }
+          where: { userId: user.id, isRead: false } // ✅ FIXED: Changed 'read' to 'isRead'
         }),
       ]);
 
@@ -58,9 +58,6 @@ export async function POST(req: NextRequest) {
     try {
       const user = req.user!;
 
-      // ✅ FIX #9: Lock notification creation to admin users only
-      // This prevents open notification injection from regular users
-      // Every legitimate notification is created inline by business-logic routes
       if (!user.verified) {
         return NextResponse.json(
           { error: "Admin access required" }, 
@@ -71,7 +68,6 @@ export async function POST(req: NextRequest) {
       const body = await req.json();
       const { userId, type, title, message, referenceId, referenceType } = body;
 
-      // Validate required fields
       if (!userId || !type || !title || !message) {
         return NextResponse.json(
           { error: "Missing required fields: userId, type, title, message" }, 
@@ -79,7 +75,6 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Validate message length to prevent abuse
       if (title.length > 200 || message.length > 1000) {
         return NextResponse.json(
           { error: "Title or message exceeds maximum length" }, 
@@ -87,7 +82,6 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Verify the target user exists
       const targetUser = await prisma.user.findUnique({
         where: { id: userId },
         select: { id: true },
@@ -133,11 +127,11 @@ export async function PATCH(req: NextRequest) {
       if (markAllRead) {
         await prisma.notification.updateMany({
           where: {
-            userId: user.id,  // ✅ Only user's own notifications
-            read: false,
+            userId: user.id, 
+            isRead: false, // ✅ FIXED: Changed 'read' to 'isRead'
           },
           data: {
-            read: true,
+            isRead: true, // ✅ FIXED: Changed 'read' to 'isRead'
           },
         });
 
@@ -154,7 +148,6 @@ export async function PATCH(req: NextRequest) {
         );
       }
 
-      // Cap batch updates to prevent abuse
       if (notificationIds.length > 100) {
         return NextResponse.json(
           { error: "Cannot mark more than 100 notifications at once" },
@@ -165,10 +158,10 @@ export async function PATCH(req: NextRequest) {
       await prisma.notification.updateMany({
         where: {
           id: { in: notificationIds },
-          userId: user.id,  // ✅ Only user's own notifications
+          userId: user.id, 
         },
         data: {
-          read: true,
+          isRead: true, // ✅ FIXED: Changed 'read' to 'isRead'
         },
       });
 
